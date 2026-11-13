@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds Regista with SwiftPM (no Xcode needed) and assembles build/Regista.app, plus the matching release
+# Builds Regista with SwiftPM (no Xcode needed) and assembles build.noindex/Regista.app, plus the matching release
 # regista-mcp / regista-engine (scripts/build-mcp.sh), all stamped with the same build id (scripts/build-stamp.sh).
 # Both ship inside the app (Contents/MacOS, M3 #60): Claude Desktop and Claude Code run the app's own regista-mcp, so the
 # server always matches the app and nothing points into a source folder.
@@ -32,7 +32,9 @@ swift build -c release --product Regista
 scripts/build-mcp.sh >/dev/null   # same stamp: the MCP server Claude launches matches this app
 BIN="$(swift build -c release --show-bin-path)/Regista"
 
-APP=build/Regista.app
+# build.noindex: Spotlight and Launchpad skip folders named *.noindex, so a build copy never shows up as a second
+# Regista next to the installed one.
+APP=build.noindex/Regista.app
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/Regista"

@@ -9,7 +9,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT="${1:?usage: scripts/app-check.sh <outdir> [--no-replay]}"
 SOCK="${REGISTA_ENGINE_SOCKET:-$HOME/Library/Application Support/Regista/engine.sock}"
-[ -S "$SOCK" ] || { echo "Regista is not running (no socket at $SOCK): open build/Regista.app" >&2; exit 1; }
+[ -S "$SOCK" ] || { echo "Regista is not running (no socket at $SOCK): open build.noindex/Regista.app" >&2; exit 1; }
 FFMPEG="${REGISTA_FFMPEG:-/opt/homebrew/bin/ffmpeg}"
 mkdir -p "$OUT"
 

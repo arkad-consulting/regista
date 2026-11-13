@@ -7,7 +7,7 @@
 #   (ui.screenshot real: ScreenCaptureKit, needs Regista's Screen Recording permission, never asks), into
 #   <outdir>/real-window.png, and prints its geometry (window and title-row height, traffic lights, content top).
 #   --lang en relaunches the app in that language (-AppleLanguages) for the renders, then relaunches it as before.
-#   --private-lang fr never touches a running Regista: it copies build/Regista.app (or $REGISTA_PRIVATE_APP) to a temporary
+#   --private-lang fr never touches a running Regista: it copies build.noindex/Regista.app (or $REGISTA_PRIVATE_APP) to a temporary
 #   folder under its own bundle id (its own user defaults: no restored tabs, no recent projects of the owner's), signs the
 #   copy ad hoc, starts it in that language on a private engine socket, renders, and stops that process only (by its pid).
 #   Workspaces default to every screen of the window shell (S1 #75): each activity (home, record, media, texts, audio,
@@ -123,7 +123,7 @@ if [ -n "$LANG_ARG" ]; then
 fi
 if [ -n "$PRIVATE_LANG" ]; then
   [ -z "$LANG_ARG" ] || { echo "--lang and --private-lang exclude each other" >&2; exit 1; }
-  SRC_APP="${REGISTA_PRIVATE_APP:-build/Regista.app}"
+  SRC_APP="${REGISTA_PRIVATE_APP:-build.noindex/Regista.app}"
   [ -x "$SRC_APP/Contents/MacOS/Regista" ] || { echo "no app at $SRC_APP: run scripts/build-app.sh --no-open first" >&2; exit 1; }
   PRIV="$(mktemp -d -t regista-private)"
   PRIV_ID="com.arkad.regista.render"

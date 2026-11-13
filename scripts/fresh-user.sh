@@ -7,7 +7,7 @@
 #
 #   scripts/fresh-user.sh --app <Regista.app> [--tier base|medium] [--full] [--seed <lock id>=<file>]... [--keep] [--reuse <dir>]
 #
-#   --app    a built Regista.app (scripts/build-app.sh --no-open → build/Regista.app), installed with --app-bundle
+#   --app    a built Regista.app (scripts/build-app.sh --no-open → build.noindex/Regista.app), installed with --app-bundle
 #   --tier   base (default): the full installer on the Base tier. medium: the same, then Node.js + HyperFrames and the
 #            English aligner for real, and the heavy Medium engines (WhisperX, VoxCPM2: several GB) with --only <id> --check
 #   --full   with --tier medium: the full installer on the Medium tier instead (downloads about 12 GB)

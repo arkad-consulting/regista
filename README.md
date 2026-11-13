@@ -119,7 +119,7 @@ Shotcut is offered on every tier. Every engine with the RAM, disk and licence it
 ### Development
 
 ```bash
-scripts/build-app.sh            # build and open build/Regista.app (and the matching regista-mcp)
+scripts/build-app.sh            # build and open build.noindex/Regista.app (and the matching regista-mcp)
 scripts/test.sh                 # unit tests
 git config core.hooksPath .githooks   # once per clone: the pre-commit gate (tests + scenarios)
 ```

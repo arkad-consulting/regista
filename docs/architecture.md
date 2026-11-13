@@ -8,7 +8,7 @@ installing it: the [README](../README.md); engines by tier: [engines.md](engines
 The Apple **Command Line Tools** are enough to work on the code (`xcode-select --install`); Xcode is not needed.
 
 ```bash
-scripts/build-app.sh            # build and open build/Regista.app (and the matching release regista-mcp)
+scripts/build-app.sh            # build and open build.noindex/Regista.app (and the matching release regista-mcp)
 scripts/build-app.sh --install  # and copy it to /Applications; another copy in ~/Applications goes to the Trash
 scripts/signing-identity.sh --remove  # undo the local signing identity (permissions are asked once more after)
 scripts/test.sh                 # tests
