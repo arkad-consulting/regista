@@ -1,0 +1,51 @@
+{
+  "name": "basic",
+  "defaults": {"REGISTA_GOLDEN_MEDIA": "${HOME}/.config/regista/test-media/wesites-2026-10-26"},
+  "description": "Import the 2026-10-26 test take, cut out 10-20 s with ripple, undo/redo, save, reopen.",
+  "requires": ["footage"],
+  "footage": ["${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV"],
+  "steps": [
+    {"command": "project.new", "params": {"name": "basic", "directory": "${WORK}"},
+     "expect": {"result.name": "basic", "result.settings.fps": 30, "result.settings.width": 1080, "result.settings.height": 1920}},
+
+    {"command": "media.import", "params": {"path": "${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV"},
+     "expect": {"result.asset.duration": {"approx": 94.7, "tol": 0.01}, "result.asset.video.width": 1080,
+                "result.asset.video.height": 1920, "result.asset.video.fps": 30, "result.asset.audio.sampleRate": 48000},
+     "capture": {"asset": "result.asset.id"}},
+
+    {"command": "track.add", "params": {"kind": "video"}, "expect": {"result.track.name": "V1"}, "capture": {"v1": "result.track.id"}},
+    {"command": "track.add", "params": {"kind": "audio"}, "expect": {"result.track.name": "A1"}, "capture": {"a1": "result.track.id"}},
+
+    {"command": "timeline.place", "params": {"assetId": "${asset}", "trackId": "${v1}"},
+     "expect": {"result.clip.start": 0, "result.clip.end": {"approx": 94.703, "tol": 0.001}}},
+    {"command": "timeline.place", "params": {"assetId": "${asset}", "trackId": "${a1}"},
+     "expect": {"state.tracks.1.clips": {"count": 1}, "state.duration": {"approx": 94.703}}},
+
+    {"command": "timeline.cut", "params": {"at": 10}, "expect": {"result.cuts": {"count": 2}}},
+    {"command": "timeline.cut", "params": {"at": 20},
+     "expect": {"result.cuts": {"count": 2}, "state.tracks.0.clips": {"count": 3}, "state.tracks.1.clips": {"count": 3},
+                "state.tracks.0.clips.1.start": 10, "state.tracks.0.clips.1.end": 20},
+     "capture": {"midV": "result.cuts.0.left", "midA": "result.cuts.1.left"}},
+
+    {"command": "timeline.delete", "params": {"clipIds": ["${midV}", "${midA}"], "ripple": true},
+     "expect": {"result.deleted": {"count": 2}, "state.tracks.0.clips": {"count": 2}, "state.tracks.1.clips": {"count": 2},
+                "state.tracks.0.clips.1.start": 10, "state.tracks.0.clips.1.sourceIn": 20,
+                "state.tracks.1.clips.1.start": 10, "state.duration": {"approx": 84.703}},
+     "capture": {"edited": "state"}},
+
+    {"command": "history.undo",
+     "expect": {"result.undone": "timeline.delete", "state.tracks.0.clips": {"count": 3}, "state.duration": {"approx": 94.703}}},
+    {"command": "history.redo",
+     "expect": {"result.redone": "timeline.delete", "state.tracks": {"equals": "${edited.tracks}"}}},
+
+    {"command": "project.save", "expect": {"result.path": {"contains": "basic.regista"}, "state.dirty": false},
+     "capture": {"saved": "state"}},
+
+    {"command": "project.open", "params": {"path": "${WORK}/basic.regista"},
+     "expect": {"state.tracks": {"equals": "${saved.tracks}"}, "state.assets": {"equals": "${saved.assets}"},
+                "state.settings": {"equals": "${saved.settings}"}, "state.duration": {"approx": 84.703},
+                "state.dirty": false, "state.history.undo": 0}},
+
+    {"command": "history.undo", "expectError": "nothing to undo"}
+  ]
+}

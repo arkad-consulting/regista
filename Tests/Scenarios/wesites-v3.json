@@ -1,0 +1,821 @@
+{
+ "name": "wesites-v3",
+ "defaults": {"REGISTA_GOLDEN_MEDIA": "${HOME}/.config/regista/test-media/wesites-2026-10-26", "REGISTA_SFX_LIBRARY": "${HOME}/.config/regista/test-media/sfx"},
+ "description": "Golden reel with graphics: the wesites-v1 edit (auto cut, voice, punch-ins, grade, captions) dressed like the hand-made reel-v3 by commands only. Times of the v3 composition (compose.json, on the 49.8 s roughcut) are mapped onto this 49.0 s timeline through the source frames (timeline.mapTimes with the roughcut's segments.json): the two AI inserts, the 25 SFX with their volumes, and the cards. Adds a Blender 3D hook title (AGGIORNATO = SICURO?, top band 0–4 s), Core Text title cards (kicker, CVSS chip, TUOI., the closing question), a HyperFrames chip row (Tests/Fixtures/hyperframes-kicker), and the ComfyUI music bed ducked under the voice. Checks: layout (caption band clean), −15 ±1 LUFS / true peak ≤ −1.5 dBTP, music ≥ 15 dB under the voice during speech, SFX onsets within 1 frame in the mp4, inserts exactly in their windows, captions timing, A/V sync, MLT. Needs the engines (whisper/WhisperX, DeepFilterNet, Blender, npx + network for GSAP on the first HyperFrames render) and the footage.",
+ "requires": [
+  "engines",
+  "footage"
+ ],
+ "footage": [
+  "${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV",
+  "${REGISTA_GOLDEN_MEDIA}/script.md",
+  "${REGISTA_GOLDEN_MEDIA}/work/segments.json",
+  "${REGISTA_GOLDEN_MEDIA}/work/keywords.json",
+  "${REGISTA_GOLDEN_MEDIA}/ai/pizzeria.mp4",
+  "${REGISTA_GOLDEN_MEDIA}/ai/salon.mp4",
+  "${REGISTA_GOLDEN_MEDIA}/stack-tests/comfy/music_202_00001.flac",
+  "${REGISTA_GOLDEN_MEDIA}/work/compose.json",
+  "${REGISTA_GOLDEN_MEDIA}/assets/young-serif-latin-400-normal.woff2",
+  "${REGISTA_SFX_LIBRARY}/manifest.json"
+ ],
+ "steps": [
+  {
+   "command": "project.new",
+   "params": {
+    "name": "wesites-v3",
+    "directory": "${WORK}"
+   }
+  },
+  {
+   "command": "media.import",
+   "params": {
+    "path": "${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV"
+   },
+   "capture": {
+    "raw": "result.asset.id"
+   }
+  },
+  {
+   "command": "media.extractAudio",
+   "params": {
+    "assetId": "${raw}"
+   }
+  },
+  {
+   "command": "transcript.run",
+   "params": {
+    "assetId": "${raw}",
+    "language": "it"
+   },
+   "expect": {
+    "result.words": {
+     "min": 190
+    }
+   }
+  },
+  {
+   "command": "script.set",
+   "params": {
+    "path": "${REGISTA_GOLDEN_MEDIA}/script.md"
+   },
+   "expect": {
+    "result.count": 10
+   }
+  },
+  {
+   "command": "takes.list",
+   "expect": {
+    "result.read": 10
+   }
+  },
+  {
+   "command": "edit.autoCut",
+   "expect": {
+    "result.segments": {
+     "count": 11
+    },
+    "state.tracks.0.clips.0.link": {
+     "exists": true
+    },
+    "state.tracks.1.clips.0.fadeIn": 0.015,
+    "state.tracks.1.clips.10.fadeOut": 0.015
+   },
+   "capture": {
+    "cut": "result"
+   }
+  },
+  {
+   "command": "audio.clean",
+   "expect": {
+    "result.loudness.integrated": {
+     "approx": -15,
+     "tol": 0.5
+    },
+    "result.loudness.truePeak": {
+     "max": -1.5
+    },
+    "state.tracks.0.clips.0.link": "l1",
+    "state.tracks.1.clips.0.link": "l1",
+    "state.tracks.1.clips.0.fadeIn": 0.015
+   }
+  },
+  {
+   "command": "edit.punchIns",
+   "params": {
+    "base": [
+     864,
+     1536,
+     152,
+     384
+    ],
+    "punch": [
+     760,
+     1351,
+     204,
+     487
+    ],
+    "by": "line"
+   },
+   "expect": {
+    "result.clips": {
+     "count": 11
+    },
+    "result.clips.0.framing": "base",
+    "result.clips.1.framing": "punch",
+    "result.clips.4.framing": "base",
+    "result.clips.5.framing": "base",
+    "result.clips.10.framing": "punch"
+   }
+  },
+  {
+   "command": "clip.set",
+   "params": {
+    "trackId": "${cut.videoTrackId}",
+    "brightness": 0.02,
+    "contrast": 1.06,
+    "saturation": 1.08
+   },
+   "expect": {
+    "result.clips": {
+     "count": 11
+    },
+    "state.tracks.0.clips.3.color.contrast": 1.06
+   }
+  },
+  {
+   "command": "captions.generate",
+   "params": {
+    "keywordsPath": "${REGISTA_GOLDEN_MEDIA}/work/keywords.json",
+    "style": "talking-head-v1"
+   },
+   "expect": {
+    "result.chunks": {
+     "min": 55,
+     "max": 70
+    },
+    "result.keywordsShown": {
+     "min": 12
+    },
+    "result.stale": false,
+    "result.preview.0": "TI HANNO DETTO"
+   },
+   "capture": {
+    "captions": "result"
+   }
+  },
+  {
+   "command": "timeline.mapTimes",
+   "params": {
+    "referenceSegments": "${REGISTA_GOLDEN_MEDIA}/work/segments.json",
+    "times": [
+     25.95,
+     26.85,
+     28.4,
+     0.05,
+     2.35,
+     4.0,
+     6.55,
+     7.65,
+     12.05,
+     14.65,
+     15.3,
+     19.05,
+     22.55,
+     24.4,
+     25.95,
+     26.8,
+     28.35,
+     31.05,
+     32.6,
+     33.2,
+     34.2,
+     35.6,
+     36.55,
+     38.85,
+     39.65,
+     42.75,
+     44.8,
+     48.75,
+     4.3,
+     7.4,
+     12.05,
+     14.5,
+     32.1,
+     38.85,
+     48.8
+    ]
+   },
+   "expect": {
+    "result.times": {
+     "count": 35
+    }
+   },
+   "capture": {
+    "m": "result"
+   },
+   "show": [
+    "result.times"
+   ]
+  },
+  {
+   "command": "brandkit.apply",
+   "params": {
+    "kit": "wesites"
+   },
+   "expect": {
+    "result.missingFonts": {
+     "count": 0
+    }
+   }
+  },
+  {
+   "command": "graphics.blenderTitle",
+   "params": {
+    "line1": "AGGIORNATO",
+    "line2": "= SICURO?",
+    "start": 0,
+    "duration": 4,
+    "scale": 0.78
+   },
+   "expect": {
+    "result.box.1": {
+     "min": 110
+    },
+    "result.clip.end": 4
+   },
+   "show": [
+    "result.box",
+    "result.cached",
+    "result.renderSeconds"
+   ]
+  },
+  {
+   "command": "title.add",
+   "params": {
+    "text": "MERCOLEDÌ 21 OTTOBRE",
+    "preset": "kicker",
+    "start": "${m.times.28}",
+    "end": "${m.times.29}",
+    "position": [
+     540,
+     215
+    ],
+    "size": 34
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    }
+   }
+  },
+  {
+   "command": "title.add",
+   "params": {
+    "text": "CVSS 9,2 / 10 · CRITICAL",
+    "preset": "chipWarn",
+    "start": "${m.times.30}",
+    "end": "${m.times.31}",
+    "size": 38,
+    "position": [
+     540,
+     225
+    ]
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    }
+   }
+  },
+  {
+   "command": "overlay.add",
+   "params": {
+    "path": "${REGISTA_GOLDEN_MEDIA}/ai/pizzeria.mp4",
+    "start": "${m.times.0}",
+    "end": "${m.times.1}",
+    "fullFrame": true
+   },
+   "capture": {
+    "ins0": "result"
+   },
+   "expect": {
+    "result.clip.placement": {
+     "exists": false
+    }
+   }
+  },
+  {
+   "command": "clip.set",
+   "params": {
+    "clipId": "${ins0.clip.id}",
+    "contrast": 1.04,
+    "saturation": 1.05
+   }
+  },
+  {
+   "command": "effect.add",
+   "params": {
+    "kind": "sharpen",
+    "clipId": "${ins0.clip.id}",
+    "amount": 0.6
+   }
+  },
+  {
+   "command": "overlay.add",
+   "params": {
+    "path": "${REGISTA_GOLDEN_MEDIA}/ai/salon.mp4",
+    "start": "${m.times.1}",
+    "end": "${m.times.2}",
+    "fullFrame": true
+   },
+   "capture": {
+    "ins1": "result"
+   },
+   "expect": {
+    "result.clip.placement": {
+     "exists": false
+    }
+   }
+  },
+  {
+   "command": "clip.set",
+   "params": {
+    "clipId": "${ins1.clip.id}",
+    "contrast": 1.04,
+    "saturation": 1.05
+   }
+  },
+  {
+   "command": "effect.add",
+   "params": {
+    "kind": "sharpen",
+    "clipId": "${ins1.clip.id}",
+    "amount": 0.6
+   }
+  },
+  {
+   "command": "graphics.hyperframes",
+   "params": {
+    "project": "${SCENARIO_DIR}/../Fixtures/hyperframes-kicker",
+    "start": "${m.times.32}",
+    "position": [
+     540,
+     280
+    ]
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    }
+   },
+   "show": [
+    "result.box",
+    "result.cached",
+    "result.renderSeconds"
+   ]
+  },
+  {
+   "command": "title.add",
+   "params": {
+    "text": "TUOI.",
+    "preset": "word",
+    "start": "${m.times.33}",
+    "duration": 1.2,
+    "position": [
+     540,
+     235
+    ],
+    "size": 112,
+    "background": "box",
+    "backgroundColor": "ink",
+    "padding": [
+     48,
+     22
+    ],
+    "radius": 30
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    }
+   }
+  },
+  {
+   "command": "title.add",
+   "params": {
+    "text": "Il tuo sito lavora per te?",
+    "preset": "question",
+    "start": "${m.times.34}",
+    "end": "${cut.duration}",
+    "position": [
+     540,
+     230
+    ]
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    }
+   }
+  },
+  {
+   "command": "audio.addMusic",
+   "params": {
+    "path": "${REGISTA_GOLDEN_MEDIA}/stack-tests/comfy/music_202_00001.flac"
+   },
+   "expect": {
+    "result.speechRegions": {
+     "min": 1
+    },
+    "result.underSpeechLUFS": -34
+   },
+   "show": [
+    "result.gain",
+    "result.measuredLUFS",
+    "result.speechRegions",
+    "result.clips"
+   ]
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "whoosh-short",
+    "at": "${m.times.3}",
+    "volume": 0.25
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "pop",
+    "at": "${m.times.4}",
+    "volume": 0.25
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "whoosh",
+    "at": "${m.times.5}",
+    "volume": 0.22
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "click-soft",
+    "at": "${m.times.6}",
+    "volume": 0.3
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "whoosh-short",
+    "at": "${m.times.7}",
+    "volume": 0.25
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "impact-bass-1",
+    "at": "${m.times.8}",
+    "volume": 0.28
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "whoosh-short",
+    "at": "${m.times.9}",
+    "volume": 0.25
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "ping",
+    "at": "${m.times.10}",
+    "volume": 0.2
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "whoosh-short",
+    "at": "${m.times.11}",
+    "volume": 0.25
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "impact-bass-2",
+    "at": "${m.times.12}",
+    "volume": 0.3
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "click-soft",
+    "at": "${m.times.13}",
+    "volume": 0.3
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "whoosh",
+    "at": "${m.times.14}",
+    "volume": 0.3
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "whoosh-short",
+    "at": "${m.times.15}",
+    "volume": 0.25
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "whoosh-short",
+    "at": "${m.times.16}",
+    "volume": 0.22
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "sparkle",
+    "at": "${m.times.17}",
+    "volume": 0.2
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "click-soft",
+    "at": "${m.times.18}",
+    "volume": 0.3
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "click-soft",
+    "at": "${m.times.19}",
+    "volume": 0.3
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "click-soft",
+    "at": "${m.times.20}",
+    "volume": 0.3
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "typing",
+    "at": "${m.times.21}",
+    "volume": 0.18
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "notification",
+    "at": "${m.times.22}",
+    "volume": 0.18
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "pop",
+    "at": "${m.times.23}",
+    "volume": 0.28
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "whoosh-short",
+    "at": "${m.times.24}",
+    "volume": 0.25
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "pop",
+    "at": "${m.times.25}",
+    "volume": 0.25
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "whoosh-short",
+    "at": "${m.times.26}",
+    "volume": 0.25
+   }
+  },
+  {
+   "command": "sfx.add",
+   "params": {
+    "name": "impact-bass-1",
+    "at": "${m.times.27}",
+    "volume": 0.3
+   }
+  },
+  {
+   "command": "graphics.checkLayout",
+   "expect": {
+    "result.pass": true,
+    "result.violations": {
+     "count": 0
+    }
+   },
+   "show": [
+    "result.checked",
+    "result.zoneWarnings",
+    "result.clips"
+   ]
+  },
+  {
+   "command": "export.render",
+   "params": {
+    "path": "${WORK}/wesites-v3.mp4",
+    "preset": "9:16",
+    "loudness": -15
+   },
+   "expect": {
+    "result.frames": {
+     "min": 1400
+    },
+    "result.loudness.integrated": {
+     "approx": -15,
+     "tol": 1
+    },
+    "result.loudness.truePeak": {
+     "max": -1.5
+    },
+    "result.warnings": {
+     "count": 0
+    }
+   },
+   "show": [
+    "result.loudness",
+    "result.masterGain",
+    "result.frames",
+    "result.seconds",
+    "result.audioClips"
+   ]
+  },
+  {
+   "command": "project.save"
+  },
+  {
+   "command": "media.probe",
+   "params": {
+    "path": "${WORK}/wesites-v3.mp4"
+   },
+   "expect": {
+    "result.duration": {
+     "approx": "${cut.duration}",
+     "tol": 0.067
+    },
+    "result.video.width": 1080,
+    "result.video.height": 1920,
+    "result.faststart": true
+   }
+  },
+  {
+   "command": "audio.checkDucking",
+   "expect": {
+    "result.pass": true,
+    "result.underDB": {
+     "min": 15
+    }
+   },
+   "show": [
+    "result"
+   ]
+  },
+  {
+   "command": "sfx.checkOnsets",
+   "params": {
+    "path": "${WORK}/wesites-v3.mp4"
+   },
+   "expect": {
+    "result.pass": true,
+    "result.effects": 25,
+    "result.maxAbsLagFrames": {
+     "max": 1
+    },
+    "result.undetected": 0,
+    "result.minCorrelation": {
+     "min": 0.5
+    }
+   },
+   "show": [
+    "result.maxAbsLagMs",
+    "result.maxAbsLagFrames",
+    "result.minCorrelation",
+    "result.onsets"
+   ]
+  },
+  {
+   "command": "media.checkOverlay",
+   "params": {
+    "path": "${WORK}/wesites-v3.mp4",
+    "trackId": "${ins0.trackId}"
+   },
+   "expect": {
+    "result.pass": true,
+    "result.clips": {
+     "count": 2
+    }
+   },
+   "show": [
+    "result.clips"
+   ]
+  },
+  {
+   "command": "captions.checkTiming",
+   "params": {
+    "path": "${WORK}/wesites-v3.mp4"
+   },
+   "expect": {
+    "result.pass": true,
+    "result.maxAbsError": {
+     "max": 1
+    },
+    "result.band.inside": true
+   },
+   "show": [
+    "result.maxAbsError",
+    "result.undetected",
+    "result.words"
+   ]
+  },
+  {
+   "command": "media.checkSync",
+   "params": {
+    "path": "${WORK}/wesites-v3.mp4"
+   },
+   "expect": {
+    "result.lagFrames": {
+     "min": -0.99,
+     "max": 0.99
+    }
+   },
+   "show": [
+    "result.lagMs",
+    "result.correlation"
+   ]
+  },
+  {
+   "command": "frame.contactSheet",
+   "params": {
+    "count": 12,
+    "path": "${WORK}/contact.jpg"
+   }
+  },
+  {
+   "command": "export.mlt",
+   "params": {
+    "path": "${WORK}/wesites-v3.mlt"
+   },
+   "expect": {
+    "result.captionImages": {
+     "min": 100
+    },
+    "result.titleImages": 4
+   },
+   "show": [
+    "result.warnings"
+   ]
+  },
+  {
+   "command": "history.undo",
+   "expect": {
+    "result.undone": "sfx.add"
+   }
+  },
+  {
+   "command": "history.redo",
+   "expect": {
+    "result.redone": "sfx.add"
+   }
+  }
+ ]
+}

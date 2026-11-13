@@ -1,0 +1,313 @@
+# Voice recording script — English
+
+consent: My name is {name}, and I agree to let Regista learn my voice to create a clone of it.
+
+## neutral
+- Today I'll show you how I rebuilt my website in a single evening.
+- Most of your customers look for you on Google first.
+- Your WordPress site needs yet another update.
+- I got the first results this morning, just before my coffee.
+- ChatGPT is already answering your customers' questions for you.
+- There are two days left before the offer ends.
+- We lost all the videos, so we have to start over.
+- Let me show you exactly what changed on the home page.
+- The Wi-Fi dropped again in the middle of the Zoom call.
+- And that's it, we're done for today.
+- Hi everyone, today we're talking about how to shoot a video with just your phone.
+- You don't need an expensive camera, a recent iPhone is more than enough to start.
+- The first rule is light, so stand facing a window.
+- Don't keep the window behind you, or your face will end up in shadow.
+- Sound matters even more than the picture, trust me.
+- A small clip-on microphone costs about thirty euros and completely changes the result.
+- Shoot vertically if the video is going to Instagram or TikTok.
+- For YouTube, on the other hand, keep the horizontal format.
+- A short video lasts somewhere between thirty seconds and one minute.
+- The first three seconds decide whether people stay or scroll away.
+- So start right away with the main idea, no long intro.
+- Then explain one thing, clearly, with a concrete example.
+- Finish with one simple sentence that makes people want to act.
+- For editing, a lot of creators use CapCut or Final Cut.
+- Always add subtitles, because half of your viewers watch with the sound off.
+- Now let's talk about your website.
+- Your website is your address on the internet, the one you really own.
+- Social networks can change their rules overnight.
+- Your website stays yours, with your own domain name.
+- A domain name usually costs around ten euros a year.
+- Pick a short name that's easy to say and easy to spell.
+- Your home page should answer three questions: who, what and where.
+- Put your phone number and your email address where people can see them.
+- Most visitors arrive from a smartphone, not from a computer.
+- So always test your site on a small screen before you publish it.
+- A slow website makes visitors leave within a few seconds.
+- Compress your photos before you upload them, it's the easiest win there is.
+- Search engine optimization, or SEO, is how people find you on Google.
+- Google likes pages that are fast, clear and useful.
+- Write for your customers, not for the robots.
+- These days, lots of people ask their questions straight to ChatGPT or Gemini.
+- Those assistants quote the websites that give precise answers.
+- A good page answers one question, and only one.
+- Now let's talk about email for a minute.
+- A newsletter is the only channel where you talk directly to your subscribers.
+- Send it on a steady rhythm, for example every other Tuesday.
+- A good subject line fits in fewer than ten words.
+- Avoid capital letters and exclamation marks in the subject line.
+- To organize my ideas, I use a simple spreadsheet in Excel.
+- One column for the idea, one for the date, one for the platform.
+- Some people prefer Notion or Google Sheets, and that's perfectly fine too.
+- What matters is having one single place to write everything down.
+- Every Monday morning, I block two hours to plan the week's content.
+- On Wednesdays, I film three or four videos in one go.
+- On Fridays, I reply to comments and direct messages.
+- On LinkedIn, slightly longer posts tend to work well.
+- On Instagram, the picture and the first few seconds do all the work.
+- On YouTube, people are usually searching for a specific tutorial.
+- A podcast needs less gear than a video, but more consistency.
+- All you need is a good microphone, a quiet room and a topic you love.
+- You're probably wondering how long all this really takes?
+- Do you have to post every single day to succeed?
+- And what if I have no idea what to talk about this week?
+- Why do some videos take off while others go nowhere?
+- How can I tell whether people actually like my content?
+- The answer is often hiding in your analytics.
+- Look at average watch time more than the number of views.
+- A forty second video watched to the end beats a ten minute video people abandon.
+- Last month, I published twelve videos and two blog posts.
+- The best one got twenty-five thousand views, the worst barely three hundred.
+- My editing software subscription costs nine euros ninety a month.
+- The launch is planned for Thursday, March twelfth, at six in the evening.
+- The conference takes place on the first of October, twenty twenty-seven.
+- In twenty twenty-six, most searches happen on a phone.
+- The newsletter open rate went from twenty to thirty-five percent.
+- We passed one thousand subscribers in a little under six months.
+- For a startup, marketing often begins with a budget of zero.
+- In that case, free content is your best friend.
+- A plugin is a small module you add to a website for one specific feature.
+- Every plugin adds code, and every line of code has to be maintained.
+- A contact form sends messages straight to your inbox.
+- You can also get the requests on WhatsApp, if you prefer.
+- Online payments usually go through Stripe or PayPal.
+- For visuals, Canva lets you make a clean image in a few minutes.
+- Artificial intelligence can help you write a first draft.
+- Always reread the text, and put your own words back in.
+- A good YouTube thumbnail shows a face and three words at most.
+- Hashtags don't matter as much as they used to.
+- What counts is that people share and save your post.
+- Step one: figure out who you're talking to.
+- Step two: pick one or two platforms, no more.
+- Step three: post regularly for at least three months.
+- Step four: look at what works, and do more of it.
+- Keep a copy of every video on an external drive or in the cloud.
+- A different password for every account is the foundation of security.
+- Turn on two-factor authentication for Instagram, Gmail and LinkedIn.
+- For a remote meeting, Zoom and Google Meet do the job just fine.
+- Turn off notifications while you record, or you'll hear them.
+- Speak a little more slowly than usual, the microphone loves it.
+- Drink a glass of water before you start, your voice will sound clearer.
+- If you make a mistake, pause and read the sentence again from the start.
+- When editing, cut the long silences, but not all of them.
+- Background music should stay discreet, almost invisible.
+- Export the video in high definition, and check it on your phone.
+- A good title makes one promise, and the video keeps it.
+- Marketing, deep down, is just explaining clearly what you do.
+- Nobody wants to read complicated jargon.
+- Talk the way you'd talk to a friend over coffee.
+- In short, start small, stay consistent, and get better with every video.
+- Thanks for listening, and see you very soon for the next one.
+## enthusiastic
+- Today I'll show you how I rebuilt my website in a single evening.
+- Most of your customers look for you on Google first.
+- Your WordPress site needs yet another update.
+- I got the first results this morning, just before my coffee.
+- ChatGPT is already answering your customers' questions for you.
+- There are two days left before the offer ends.
+- We lost all the videos, so we have to start over.
+- Let me show you exactly what changed on the home page.
+- The Wi-Fi dropped again in the middle of the Zoom call.
+- And that's it, we're done for today.
+- It's live! My new website is finally live, and it looks amazing!
+- Unbelievable, the video passed one hundred thousand views overnight!
+- We just hit ten thousand subscribers, thank you all so much!
+- I love this project, honestly, it's my favorite of the year!
+- Look at this, the home page is perfect on the iPhone!
+- Great news: the newsletter finally goes out every single week!
+- We did it, my site is number one on Google for my favorite search!
+- I can't believe it, it turned out even better than I imagined!
+- The form works, the emails arrive, everything is running!
+- So cool, someone wrote to tell me my tutorial really helped them!
+- Come on, let's celebrate: three new videos published this week!
+- You're going to love the next episode of the podcast!
+- This is exactly what I wanted to show you, it's brilliant!
+- The new microphone just arrived, and the sound is simply perfect!
+- Wow, look at the light tonight, it's the perfect moment to film!
+- My startup just landed its first hundred customers, I'm over the moon!
+- We got invited to a real studio, it's a dream come true!
+- More than two thousand people joined the live on Instagram!
+- Well done, everyone, you were absolutely fantastic!
+- I finally understand how formulas work in Excel, what a feeling!
+- Tomorrow we're shooting by the sea, I can't wait!
+- And the best part is that we did all of it ourselves!
+## serious
+- Today I'll show you how I rebuilt my website in a single evening.
+- Most of your customers look for you on Google first.
+- Your WordPress site needs yet another update.
+- I got the first results this morning, just before my coffee.
+- ChatGPT is already answering your customers' questions for you.
+- There are two days left before the offer ends.
+- We lost all the videos, so we have to start over.
+- Let me show you exactly what changed on the home page.
+- The Wi-Fi dropped again in the middle of the Zoom call.
+- And that's it, we're done for today.
+- What I'm about to say is important, so listen carefully.
+- If your website hasn't been updated in a year, it's exposed.
+- A hacker doesn't need your password to exploit a known vulnerability.
+- You're responsible for your customers' data, even if you work alone.
+- Check who actually owns your domain name.
+- If it's registered in someone else's name, it isn't yours.
+- A backup you've never tested is not a backup.
+- Never share your login details by email or text message.
+- Before you sign, read the cancellation clause carefully.
+- The numbers are clear, and they're not going the right way.
+- I'd rather tell you straight: this plugin is no longer maintained.
+- Artificial intelligence helps, but it doesn't replace a human proofread.
+- Misleading advertising can cost your reputation dearly.
+- Every piece of information you publish must be verifiable.
+- Your followers trust you, so don't betray that trust.
+- Over the long run, consistency matters more than talent.
+- We've made a decision, and we're going to stick to it.
+- It's a considered choice, and we take full responsibility for it.
+- Respect copyright, even for a simple piece of background music.
+- A verbal agreement won't protect you if there's a dispute.
+- Keep a written record of every deal with your partners.
+- Those are the rules, and they apply to everyone.
+## calm
+- Today I'll show you how I rebuilt my website in a single evening.
+- Most of your customers look for you on Google first.
+- Your WordPress site needs yet another update.
+- I got the first results this morning, just before my coffee.
+- ChatGPT is already answering your customers' questions for you.
+- There are two days left before the offer ends.
+- We lost all the videos, so we have to start over.
+- Let me show you exactly what changed on the home page.
+- The Wi-Fi dropped again in the middle of the Zoom call.
+- And that's it, we're done for today.
+- Come closer, I'll let you in on a little secret.
+- Between us, most creators don't need all this equipment.
+- Take a moment to breathe, we'll look at this together.
+- Gently now, one thing at a time.
+- Tonight, when everything's quiet, open your website on your phone.
+- Look at it as if you were seeing it for the very first time.
+- Can you find what you're looking for in under three seconds?
+- If you can't, that's alright, it can be fixed.
+- In the morning, with a coffee, I quietly read yesterday's messages.
+- It's a silent moment, when I make the important decisions.
+- You don't have to follow every trend.
+- Keep what works, and let go of the rest.
+- No need to redo everything, often three small things are enough.
+- Close your eyes for a second, and think of the person who'll be listening.
+- Talk to them, as if they were sitting right next to you.
+- There's no rush at all, the video can wait until tomorrow.
+- Turn off the notifications, put the phone down, and listen to the silence.
+- Let me tell you what I repeat to myself on the hard days.
+- Nobody notices the small mistakes as much as you do.
+- Move at your own pace, it's the only one that really matters.
+- Take all the time you need, and come back whenever you like.
+- There you go, it's really that simple.
+## playful
+- Today I'll show you how I rebuilt my website in a single evening.
+- Most of your customers look for you on Google first.
+- Your WordPress site needs yet another update.
+- I got the first results this morning, just before my coffee.
+- ChatGPT is already answering your customers' questions for you.
+- There are two days left before the offer ends.
+- We lost all the videos, so we have to start over.
+- Let me show you exactly what changed on the home page.
+- The Wi-Fi dropped again in the middle of the Zoom call.
+- And that's it, we're done for today.
+- Ah, WordPress… our dear old friend.
+- Twenty-three plugins to display a restaurant menu, well done!
+- Sure, sure, your nephew can build the site, shall we talk again in six months?
+- The temporary website from twenty nineteen, still online, of course.
+- Update available. Again. For the fourth time this week.
+- My site takes six seconds to load? Perfect, I've got time for a coffee.
+- I asked ChatGPT for a joke about SEO, and it hid it on page two of Google.
+- Of course the image carousel is essential, nobody looks at it, but still.
+- Do you also pay a subscription for an app you never open?
+- Spoiler: the answer is always “it depends”.
+- They told me “it's just a tiny change”, and three days later, here I am.
+- The client wanted something simple, but with a wow effect, naturally.
+- I shot twenty takes for a six word sentence, personal record!
+- Hotel Wi-Fi, every content creator's best friend.
+- My cat has more Instagram followers than me, and he does absolutely nothing.
+- My to-do list has its own to-do list, just so you know.
+- Nothing like an Excel spreadsheet to feel organized without doing anything.
+- The algorithm changed again, what a surprise, really.
+- This meeting could have been an email, and that email could have not existed.
+- Can you hear me? No? Oh, I've been on mute for ten minutes.
+- My desk is perfectly tidy, well, the part you can see on camera.
+- Come on, admit it, you only stayed to see the ending.
+## alarmed
+- Today I'll show you how I rebuilt my website in a single evening.
+- Most of your customers look for you on Google first.
+- Your WordPress site needs yet another update.
+- I got the first results this morning, just before my coffee.
+- ChatGPT is already answering your customers' questions for you.
+- There are two days left before the offer ends.
+- We lost all the videos, so we have to start over.
+- Let me show you exactly what changed on the home page.
+- The Wi-Fi dropped again in the middle of the Zoom call.
+- And that's it, we're done for today.
+- Watch out! Whatever you do, don't click that link!
+- The website has been down since this morning!
+- Stop! Stop everything, there's a problem with the payments!
+- The update has to happen now, not tomorrow!
+- The domain name expires in forty-eight hours!
+- Someone is trying to log into my account right now!
+- Quick, change your password right away!
+- The forms aren't working anymore, we're losing messages!
+- Alert: a critical flaw is hitting thousands of WordPress sites!
+- The security certificate has expired, the browser is showing a red warning!
+- Last chance, the offer ends tonight at midnight!
+- Don't reply to that email, it's a scam!
+- We've received hundreds of fake messages in one hour!
+- The battery is at two percent and the live starts in one minute!
+- The website shows a blank page, on every single phone!
+- Call me as soon as you see this message!
+- The memory card is full, we're not recording anything!
+- My Instagram account has just been hacked!
+- The file won't save, don't turn off the computer!
+- Ten minutes until launch, and nothing is ready!
+- Unplug everything right now, something's burning!
+- Careful, this is not a drill!
+## sad
+- Today I'll show you how I rebuilt my website in a single evening.
+- Most of your customers look for you on Google first.
+- Your WordPress site needs yet another update.
+- I got the first results this morning, just before my coffee.
+- ChatGPT is already answering your customers' questions for you.
+- There are two days left before the offer ends.
+- We lost all the videos, so we have to start over.
+- Let me show you exactly what changed on the home page.
+- The Wi-Fi dropped again in the middle of the Zoom call.
+- And that's it, we're done for today.
+- We did our best, but it wasn't enough.
+- The little shop on the corner closed last month.
+- I really wish I had better news for you.
+- The project stopped, without any real explanation.
+- Years of photos and videos, gone in one night.
+- And of course, there was no backup.
+- I'm really disappointed, I won't lie to you.
+- We truly believed in this project.
+- This month's numbers are bad, we have to admit it.
+- Nobody replied to the newsletter this time.
+- It's a shame, the website was beautiful, but nobody could find it.
+- I read the message three times, hoping I'd got it wrong.
+- Sometimes you do everything right, and it still doesn't work.
+- The video I spent a whole week on got forty views.
+- We'll have to rebuild everything from scratch.
+- I really thought this time would be the one.
+- The podcast is ending after three years, it was a beautiful ride.
+- We cancelled the trip, and the shoot along with it.
+- My old computer never turned back on.
+- I didn't have the heart to film anything today.
+- We're going to step back for a while, it's better that way.
+- Thank you anyway for staying until the end.

@@ -1,0 +1,353 @@
+{
+  "schema": 1,
+  "about": [
+    "Every engine, model, tool and provider Regista can use: the single source for scripts/install.sh, scripts/doctor.sh,",
+    "the app (RegistaCore EngineManifest, engines.status) and docs/engines.md (scripts/engines.py docs).",
+    "Download facts (version, release and pin dates, sha256, download size, url) live ONLY in scripts/engines.lock:",
+    "an entry names its lock rows in 'artifacts' (an id ending with ':' means every row with that prefix).",
+    "minRamGB is the minimum RAM; the tier (base/medium/pro) is derived from it with 'tiers'. null = planned.",
+    "diskBytes = installed footprint, measured with du on the owner's Mac (M5 Pro, 2026-11-12) where it differs from the",
+    "download; when absent the footprint is the sum of the artifacts' download sizes; null = unknown.",
+    "install.method: installer (scripts/install.sh step), homebrew, system (macOS), firstUse (downloaded by the engine",
+    "the first time it is needed), manual (steps), cloud. status: available (Regista uses it) or planned (not built).",
+    "files: what the engine puts in Regista's engines folder (~/Library/Application Support/Regista/engines), relative to it:",
+    "the Motori screen removes exactly these, and scripts/install.sh --only <id> downloads a single-artifact entry to its one file.",
+    "After editing: scripts/engines.py docs (regenerates docs/engines.md; the pre-commit hook runs --check)."
+  ],
+  "tiers": [
+    {"id": "base", "name": "Base", "ramGB": 8, "detectFromGB": 0},
+    {"id": "medium", "name": "Medium", "ramGB": 16, "detectFromGB": 14},
+    {"id": "pro", "name": "Pro", "ramGB": 32, "detectFromGB": 28}
+  ],
+  "tierDetectNote": "detectFromGB sits below the nominal size: macOS reports slightly less than 16/32 GiB on some models.",
+  "diskMarginGB": 2,
+  "diskMarginNote": "headroom for the install itself: the 1.6 GB source of the faster-whisper conversion (deleted afterwards), the download cache and logs",
+  "engines": [
+    {
+      "id": "ffmpeg", "name": "FFmpeg",
+      "role": "audio extraction, voice chain, loudness, render and export",
+      "unlocks": ["import and export video", "clean voice chain", "loudness"],
+      "minRamGB": 8, "ramInUseGB": null, "diskBytes": 214585344,
+      "licence": "LGPL-2.1-or-later AND GPL-2.0-or-later", "nonCommercial": false,
+      "install": {"method": "homebrew", "formula": "ffmpeg"}, "artifacts": ["ffmpeg"],
+      "optional": false, "dependsOn": [], "status": "available",
+      "notes": "diskBytes = the ffmpeg formula and its Homebrew dependencies"
+    },
+    {
+      "id": "ffprobe", "name": "FFprobe",
+      "role": "media metadata",
+      "unlocks": ["read any video's format"],
+      "minRamGB": 8, "ramInUseGB": null, "diskBytes": 0,
+      "licence": "LGPL-2.1-or-later AND GPL-2.0-or-later", "nonCommercial": false,
+      "install": {"method": "homebrew", "formula": "ffmpeg"},
+      "optional": false, "dependsOn": ["ffmpeg"], "status": "available",
+      "notes": "ships in the ffmpeg formula (its size is counted there)"
+    },
+    {
+      "id": "cmake", "name": "CMake",
+      "role": "builds whisper.cpp from the pinned source",
+      "unlocks": ["build the transcription engine"],
+      "minRamGB": 8, "ramInUseGB": null, "diskBytes": 80683008,
+      "licence": "BSD-3-Clause", "nonCommercial": false,
+      "install": {"method": "homebrew", "formula": "cmake"}, "artifacts": ["cmake"],
+      "optional": false, "dependsOn": [], "status": "available"
+    },
+    {
+      "id": "whisper.cpp", "name": "whisper.cpp",
+      "role": "transcription with word timings (DTW)",
+      "unlocks": ["transcribe", "captions", "cut by text", "takes"],
+      "minRamGB": 8, "ramInUseGB": null, "diskBytes": 8021408,
+      "licence": "MIT", "nonCommercial": false,
+      "install": {"method": "installer", "step": "base"}, "files": ["whisper.cpp-1.9.5", "src/whisper.cpp-1.9.5.tar.gz"], "artifacts": ["whisper-src"],
+      "optional": false, "dependsOn": ["cmake", "whisper-model"], "status": "available",
+      "notes": "built locally by scripts/build-whisper.sh; diskBytes = the build"
+    },
+    {
+      "id": "whisper-model", "name": "Whisper large-v3-turbo (ggml)",
+      "role": "speech model of whisper.cpp",
+      "unlocks": ["transcribe"],
+      "minRamGB": 8, "ramInUseGB": null,
+      "licence": "MIT", "nonCommercial": false,
+      "install": {"method": "installer", "step": "base"}, "files": ["models/ggml-large-v3-turbo.bin"], "artifacts": ["ggml-large-v3-turbo"],
+      "optional": false, "dependsOn": [], "status": "available"
+    },
+    {
+      "id": "deepfilternet", "name": "DeepFilterNet3",
+      "role": "voice denoise",
+      "unlocks": ["clean voice"],
+      "minRamGB": 8, "ramInUseGB": null,
+      "licence": "MIT OR Apache-2.0", "nonCommercial": false,
+      "install": {"method": "installer", "step": "base"}, "files": ["deepfilternet"], "artifacts": ["deep-filter"],
+      "optional": false, "dependsOn": ["ffmpeg"], "status": "available"
+    },
+    {
+      "id": "vision", "name": "Apple Vision",
+      "role": "face, hand and person tracking",
+      "unlocks": ["face framing and zooms", "text behind the person", "hand tracking"],
+      "minRamGB": 8, "ramInUseGB": null, "diskBytes": 0,
+      "licence": "Apple SDK licence", "nonCommercial": false,
+      "install": {"method": "system"},
+      "optional": false, "dependsOn": [], "status": "available"
+    },
+    {
+      "id": "speech", "name": "Apple Speech",
+      "role": "live speech recognition",
+      "unlocks": ["teleprompter that follows your voice"],
+      "minRamGB": 8, "ramInUseGB": null, "diskBytes": 0,
+      "licence": "Apple SDK licence", "nonCommercial": false,
+      "install": {"method": "system"},
+      "optional": false, "dependsOn": [], "status": "available"
+    },
+    {
+      "id": "compositor", "name": "Regista compositor",
+      "role": "titles, overlays, effects, motion templates (Core Image, Core Text, AVFoundation)",
+      "unlocks": ["captions", "graphics", "effects", "render"],
+      "minRamGB": 8, "ramInUseGB": null, "diskBytes": 0,
+      "licence": "Apple SDK licence", "nonCommercial": false,
+      "install": {"method": "system"},
+      "optional": false, "dependsOn": [], "status": "available"
+    },
+    {
+      "id": "sfx-bank", "name": "Sound-effect bank (earshot)",
+      "role": "185 sound effects made in code, listed by sfx.library and the Audio panel's browser",
+      "unlocks": ["sound effects"],
+      "minRamGB": 8, "ramInUseGB": null, "diskBytes": 4648960,
+      "licence": "MIT", "nonCommercial": false,
+      "install": {"method": "installer", "step": "base"}, "artifacts": ["sfx-bank"],
+      "optional": false, "dependsOn": [], "status": "available",
+      "notes": "rendered from earshot 0.3.0 by scripts/sfx-bank.py and shipped inside the app (Resources/SFX, copied by the installer's app build); 15 sounds are fitted from CC0 1.0 recordings, credited in its manifest.json"
+    },
+    {
+      "id": "sfx-library", "name": "Your sound effects",
+      "role": "your own sound effects, listed by sfx.library next to the bank",
+      "unlocks": ["your own sound effects"],
+      "minRamGB": 8, "ramInUseGB": null, "diskBytes": null,
+      "licence": "the user's own (e.g. Pixabay Content License)", "nonCommercial": false,
+      "install": {"method": "manual", "steps": [
+        "Optional: put your own sound effects (mp3 / wav files, and a manifest.json if you want descriptions) in ~/Library/Application Support/Regista/sfx, or set sfxLibrary in engines.json to your folder; they are listed next to the shipped bank.",
+        "Pixabay files cannot ship with Regista: its licence forbids redistributing them as a collection."
+      ]},
+      "optional": true, "dependsOn": [], "status": "available",
+      "notes": "size depends on your library"
+    },
+    {
+      "id": "shotcut", "name": "Shotcut",
+      "role": "opens Regista's MLT exports",
+      "unlocks": ["finish an edit in Shotcut"],
+      "minRamGB": 8, "ramInUseGB": null, "diskBytes": 583086080,
+      "licence": "GPL-3.0-or-later", "nonCommercial": false,
+      "install": {"method": "installer", "step": "optional-apps"}, "artifacts": ["shotcut"],
+      "optional": true, "dependsOn": [], "status": "available",
+      "notes": "diskBytes = the installed app (the dmg stays in the download cache)"
+    },
+    {
+      "id": "higgsfield", "name": "Higgsfield",
+      "role": "paid cloud generation: images and video clips",
+      "unlocks": ["paid generated shots, cost shown and approved every time"],
+      "minRamGB": 8, "ramInUseGB": null, "diskBytes": null,
+      "licence": "Higgsfield terms of service", "nonCommercial": false,
+      "install": {"method": "cloud", "steps": ["Your own Higgsfield account and its CLI; every run needs an approval in the app and counts against a hard budget."]},
+      "optional": true, "dependsOn": [], "status": "available", "paid": true
+    },
+    {
+      "id": "uv", "name": "uv",
+      "role": "builds the pinned Python environments",
+      "unlocks": ["precise word timings", "cloned voice"],
+      "minRamGB": 16, "ramInUseGB": null, "diskBytes": 44425216,
+      "licence": "Apache-2.0 OR MIT", "nonCommercial": false,
+      "install": {"method": "homebrew", "formula": "uv"}, "artifacts": ["uv"],
+      "optional": false, "dependsOn": [], "status": "available"
+    },
+    {
+      "id": "whisperx", "name": "WhisperX",
+      "role": "transcription with forced alignment (wav2vec2), Python environment",
+      "unlocks": ["precise word timings", "tighter cuts and captions"],
+      "minRamGB": 16, "ramInUseGB": null, "diskBytes": 1037017637,
+      "licence": "BSD-2-Clause", "nonCommercial": false,
+      "install": {"method": "installer", "step": "medium-whisperx"}, "files": ["whisperx/.venv", "whisperx/pyproject.toml", "whisperx/uv.lock", "whisperx/wx_align.py", "whisperx/textnorm.py"], "artifacts": ["whisperx-env"],
+      "optional": false, "dependsOn": ["uv", "faster-whisper-model", "punkt-tab"], "status": "available",
+      "notes": "diskBytes = the .venv without its nltk_data; per-package licences in LICENSES.md"
+    },
+    {
+      "id": "faster-whisper-model", "name": "Whisper large-v3-turbo (CTranslate2)",
+      "role": "speech model of WhisperX, converted locally from OpenAI's weights",
+      "unlocks": ["precise word timings"],
+      "minRamGB": 16, "ramInUseGB": null, "diskBytes": 1621665983,
+      "licence": "MIT", "nonCommercial": false,
+      "install": {"method": "installer", "step": "medium-whisperx"}, "files": ["whisperx/models/ct2-whisper-large-v3-turbo"], "artifacts": ["ct2-whisper-large-v3-turbo", "oai:"],
+      "optional": false, "dependsOn": ["whisperx"], "status": "available",
+      "notes": "the oai: rows are the conversion source, deleted after the conversion"
+    },
+    {
+      "id": "aligner-it", "name": "Italian aligner (wav2vec2 VoxPopuli)",
+      "role": "word alignment for Italian",
+      "unlocks": ["precise word timings in Italian"],
+      "minRamGB": 16, "ramInUseGB": null,
+      "licence": "CC-BY-NC-4.0", "nonCommercial": true,
+      "licenceUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "install": {"method": "installer", "step": "aligner-opt-in"}, "files": ["whisperx/models/torchaudio/wav2vec2_voxpopuli_base_10k_asr_it.pt"], "artifacts": ["wav2vec2-voxpopuli-it"],
+      "optional": true, "dependsOn": ["whisperx"], "status": "available",
+      "notes": "opt-in (issue #20): the installer shows the licence and asks, the Motori screen asks before installing; without it Regista transcribes this language with whisper.cpp"
+    },
+    {
+      "id": "aligner-fr", "name": "French aligner (wav2vec2 VoxPopuli)",
+      "role": "word alignment for French",
+      "unlocks": ["precise word timings in French"],
+      "minRamGB": 16, "ramInUseGB": null,
+      "licence": "CC-BY-NC-4.0", "nonCommercial": true,
+      "licenceUrl": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "install": {"method": "installer", "step": "aligner-opt-in"}, "files": ["whisperx/models/torchaudio/wav2vec2_voxpopuli_base_10k_asr_fr.pt"], "artifacts": ["wav2vec2-voxpopuli-fr"],
+      "optional": true, "dependsOn": ["whisperx"], "status": "available",
+      "notes": "opt-in (issue #20): the installer shows the licence and asks, the Motori screen asks before installing; without it Regista transcribes this language with whisper.cpp"
+    },
+    {
+      "id": "aligner-en", "name": "English aligner (wav2vec2 base 960h)",
+      "role": "word alignment for English",
+      "unlocks": ["precise word timings in English"],
+      "minRamGB": 16, "ramInUseGB": null, "diskBytes": 377664473,
+      "licence": "MIT", "nonCommercial": false,
+      "install": {"method": "installer", "step": "medium-whisperx"}, "files": ["whisperx/models/torchaudio/wav2vec2_fairseq_base_ls960_asr_ls960.pth"], "artifacts": ["wav2vec2-base-960h-en"],
+      "optional": false, "dependsOn": ["whisperx"], "status": "available"
+    },
+    {
+      "id": "aligner-pt", "name": "Portuguese aligner (wav2vec2 XLSR-53)",
+      "role": "word alignment for Portuguese",
+      "unlocks": ["precise word timings in Portuguese"],
+      "minRamGB": 16, "ramInUseGB": null,
+      "licence": "Apache-2.0", "nonCommercial": false,
+      "install": {"method": "installer", "step": "medium-whisperx"}, "files": ["whisperx/models/wav2vec2-large-xlsr-53-portuguese", "whisperx/models/torchaudio/models--jonatasgrosman--wav2vec2-large-xlsr-53-portuguese"], "artifacts": ["ptalign:"],
+      "optional": false, "dependsOn": ["whisperx"], "status": "available",
+      "notes": "the second folder is where an older Regista let WhisperX download it unpinned; removed with the engine"
+    },
+    {
+      "id": "punkt-tab", "name": "NLTK punkt_tab",
+      "role": "sentence splitter WhisperX loads at alignment time",
+      "unlocks": ["precise word timings"],
+      "minRamGB": 16, "ramInUseGB": null, "diskBytes": 10885395,
+      "licence": "Apache-2.0", "nonCommercial": false,
+      "install": {"method": "installer", "step": "medium-whisperx"}, "files": ["whisperx/.venv/nltk_data/tokenizers/punkt_tab"], "artifacts": ["punkt_tab"],
+      "optional": false, "dependsOn": ["whisperx"], "status": "available",
+      "notes": "diskBytes = the extracted folder"
+    },
+    {
+      "id": "voxcpm", "name": "VoxCPM2 voice-over",
+      "role": "voice-over in the active profile's own cloned voice, Python environment",
+      "unlocks": ["cloned voice from a reference", "voice-over from text"],
+      "minRamGB": 16, "ramInUseGB": 8, "diskBytes": 1449879422,
+      "licence": "Apache-2.0", "nonCommercial": false,
+      "install": {"method": "installer", "step": "medium-voxcpm"}, "files": ["voxcpm/.venv", "voxcpm/pyproject.toml", "voxcpm/uv.lock", "voxcpm/vox_say.py", "voxcpm/train_voxcpm_finetune.py", "voxcpm/scripts"], "artifacts": ["voxcpm-env"],
+      "optional": false, "dependsOn": ["uv", "voxcpm-weights"], "status": "available",
+      "notes": "diskBytes = the .venv"
+    },
+    {
+      "id": "voxcpm-weights", "name": "VoxCPM2 weights",
+      "role": "base voice model of VoxCPM2 (openbmb/VoxCPM2)",
+      "unlocks": ["cloned voice from a reference"],
+      "minRamGB": 16, "ramInUseGB": null,
+      "licence": "Apache-2.0", "nonCommercial": false,
+      "install": {"method": "installer", "step": "medium-voxcpm"}, "files": ["voxcpm/VoxCPM2"], "artifacts": ["vox:"],
+      "optional": false, "dependsOn": [], "status": "available"
+    },
+    {
+      "id": "blender", "name": "Blender",
+      "role": "3D titles and 3D templates (headless EEVEE)",
+      "unlocks": ["3D titles", "3D templates"],
+      "minRamGB": 16, "ramInUseGB": null, "diskBytes": 950579200,
+      "licence": "GPL-2.0-or-later", "nonCommercial": false,
+      "install": {"method": "installer", "step": "optional-apps"}, "artifacts": ["blender"],
+      "optional": true, "dependsOn": [], "status": "available",
+      "notes": "diskBytes = the installed app (the dmg stays in the download cache)"
+    },
+    {
+      "id": "node", "name": "Node.js",
+      "role": "runs the HyperFrames CLI (its own copy in the engines folder, nothing global)",
+      "unlocks": ["HTML motion graphics"],
+      "minRamGB": 16, "ramInUseGB": null, "diskBytes": 209072128,
+      "licence": "MIT", "nonCommercial": false,
+      "install": {"method": "installer", "step": "medium-node"}, "files": ["node"], "artifacts": ["node"],
+      "optional": false, "dependsOn": [], "status": "available",
+      "notes": "diskBytes = the extracted official build"
+    },
+    {
+      "id": "hyperframes", "name": "HyperFrames",
+      "role": "HTML motion graphics rendered to transparent frames (pinned CLI from a lockfile, npm scripts off)",
+      "unlocks": ["HTML motion graphics"],
+      "minRamGB": 16, "ramInUseGB": null, "diskBytes": 319680512,
+      "licence": "Apache-2.0", "nonCommercial": false,
+      "install": {"method": "installer", "step": "medium-node"}, "files": ["hyperframes"], "artifacts": ["hyperframes-env"],
+      "optional": false, "dependsOn": ["node"], "status": "available",
+      "notes": "diskBytes = node_modules plus the headless Chrome and fonts HyperFrames puts in ~/.cache/hyperframes at the first render"
+    },
+    {
+      "id": "voice-training", "name": "Voice training (LoRA)",
+      "role": "fine-tunes VoxCPM2 on your recorded clips, in the background",
+      "unlocks": ["voice trained on your recordings (about 2 h)"],
+      "minRamGB": 32, "ramInUseGB": null, "diskBytes": 0,
+      "licence": "Apache-2.0", "nonCommercial": false,
+      "install": {"method": "installer", "step": "medium-voxcpm"},
+      "optional": false, "dependsOn": ["voxcpm", "voxcpm-weights"], "status": "available",
+      "notes": "a capability, no download: the trainer script ships with the VoxCPM2 environment"
+    },
+    {
+      "id": "comfyui", "name": "ComfyUI",
+      "role": "local generation server (comfy-gen CLI and workflow runner)",
+      "unlocks": ["local images, clips, music and upscale (free)"],
+      "minRamGB": 32, "ramInUseGB": null, "diskBytes": 1664643006,
+      "licence": "GPL-3.0", "nonCommercial": false,
+      "install": {"method": "manual", "steps": [
+        "Install ComfyUI by following its own instructions (https://docs.comfy.org), in a Python environment of its own, and put the model files generate.check lists in ComfyUI's models folders (Regista's workflows name each file exactly).",
+        "Put the comfy-gen command (images and clips) in ~/.local/bin, or set comfyGen in engines.json to where it is; for music and upscale, set comfyRun in engines.json to the comfy_run.py runner. Both read their ComfyUI workflows from a workflows folder beside them.",
+        "Check it: ask Claude for generate.check (or run scripts/install.sh --with comfyui). It lists every missing node pack and model file, with the ComfyUI folder it goes in."
+      ]},
+      "optional": true, "dependsOn": [], "status": "available",
+      "notes": "diskBytes = the clone with its venv"
+    },
+    {
+      "id": "comfyui-z-image", "name": "Z-Image Turbo",
+      "role": "still images in ComfyUI (with its Qwen3 4B text encoder and the FLUX VAE)",
+      "unlocks": ["local generated images"],
+      "minRamGB": 32, "ramInUseGB": null, "diskBytes": 20690152836,
+      "licence": "Apache-2.0", "nonCommercial": false,
+      "install": {"method": "manual", "steps": ["Part of the ComfyUI setup: generate.check lists the files this one still needs and the ComfyUI models folder each goes in."]},
+      "optional": true, "dependsOn": ["comfyui"], "status": "available",
+      "notes": "re-check each model card at setup time"
+    },
+    {
+      "id": "comfyui-wan22", "name": "Wan 2.2 image-to-video",
+      "role": "video clips from an image in ComfyUI (14B Q6, umt5-xxl text encoder, lightning LoRA)",
+      "unlocks": ["local generated clips"],
+      "minRamGB": 32, "ramInUseGB": null, "diskBytes": 38081473743,
+      "licence": "Apache-2.0", "nonCommercial": false,
+      "install": {"method": "manual", "steps": ["Part of the ComfyUI setup: generate.check lists the files this one still needs and the ComfyUI models folder each goes in."]},
+      "optional": true, "dependsOn": ["comfyui"], "status": "available",
+      "notes": "Wan 2.2 and umt5-xxl are Apache-2.0; the lightx2v lightning LoRA's licence is not recorded here: check its model card"
+    },
+    {
+      "id": "comfyui-ace-step", "name": "ACE-Step 1.5",
+      "role": "music beds in ComfyUI",
+      "unlocks": ["local generated music"],
+      "minRamGB": 32, "ramInUseGB": null, "diskBytes": 10025369979,
+      "licence": "Apache-2.0", "nonCommercial": false,
+      "install": {"method": "manual", "steps": ["Part of the ComfyUI setup: generate.check lists the files this one still needs and the ComfyUI models folder each goes in."]},
+      "optional": true, "dependsOn": ["comfyui"], "status": "available"
+    },
+    {
+      "id": "comfyui-upscale", "name": "Real-ESRGAN + RIFE",
+      "role": "upscale to 1080x1920 and frame interpolation to 30 fps in ComfyUI",
+      "unlocks": ["upscale generated clips"],
+      "minRamGB": 32, "ramInUseGB": null, "diskBytes": 89715677,
+      "licence": "BSD-3-Clause AND MIT", "nonCommercial": false,
+      "install": {"method": "manual", "steps": ["Part of the ComfyUI setup: generate.check lists the files this one still needs and the ComfyUI models folder each goes in."]},
+      "optional": true, "dependsOn": ["comfyui"], "status": "available"
+    },
+    {
+      "id": "sam-3.1", "name": "SAM 3.1",
+      "role": "objects tracked by name (issue #37)",
+      "unlocks": ["track any object by name"],
+      "minRamGB": null, "ramInUseGB": null, "diskBytes": null,
+      "licence": "SAM License", "nonCommercial": false,
+      "install": {"method": "manual", "steps": ["Planned, not built yet."]},
+      "optional": true, "dependsOn": [], "status": "planned"
+    }
+  ]
+}

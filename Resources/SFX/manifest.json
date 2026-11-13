@@ -1,0 +1,3030 @@
+{
+ "about": "Sound effects made in code by earshot (MIT; the fitted sounds come from CC0 recordings, credited per sound). Rendered by scripts/sfx-bank.py: every take that passes earshot's audit, AAC 160 kb/s, 48 kHz, sample peak -1 dBFS.",
+ "groups": [
+  "whoosh",
+  "ui",
+  "pop",
+  "impact",
+  "rise",
+  "chime",
+  "logo",
+  "glitch",
+  "typing"
+ ],
+ "schema": 1,
+ "skipped": [
+  "glitch/dropout",
+  "hover_tick/detent",
+  "logo_sting/reverse_bloom",
+  "logo_sting/zip_ping",
+  "pop/2",
+  "pro_hover_tick/air",
+  "pro_hover_tick/glass",
+  "pro_logo_sting/sweep_hit",
+  "pro_pop/bloop",
+  "pro_shimmer/m3",
+  "pro_typing_key/soft",
+  "pro_zip/arc",
+  "pro_zip/up",
+  "pro_zip/up_hi",
+  "typing_key/laptop",
+  "typing_key/light"
+ ],
+ "sounds": {
+  "click/double": {
+   "category": "click",
+   "description": "cursor presses and buttons: a short modal tick with a small body",
+   "duration": 0.1032,
+   "file": "click/double.m4a",
+   "group": "ui",
+   "kinds": [
+    "click"
+   ],
+   "member": "double",
+   "onset": 0.0012,
+   "order": 0,
+   "peak": 0.0045,
+   "sha256": "5554bece60ed6d54168e416dd9702e387536de4631f59539c5d20661faaef881"
+  },
+  "click/snap": {
+   "category": "click",
+   "description": "cursor presses and buttons: a short modal tick with a small body",
+   "duration": 0.0621,
+   "file": "click/snap.m4a",
+   "group": "ui",
+   "kinds": [
+    "click"
+   ],
+   "member": "snap",
+   "onset": 0.0015,
+   "order": 0,
+   "peak": 0.0045,
+   "sha256": "d8075f1772e806c7dce23a92534096ce92943a8ce458fba5343ca1c8f33327f1"
+  },
+  "click/soft": {
+   "category": "click",
+   "description": "cursor presses and buttons: a short modal tick with a small body",
+   "duration": 0.0938,
+   "file": "click/soft.m4a",
+   "group": "ui",
+   "kinds": [
+    "click"
+   ],
+   "member": "soft",
+   "onset": 0.0012,
+   "order": 0,
+   "peak": 0.0045,
+   "sha256": "6244afc3aceda4f211a80ac719bece099c87a0f0bfa95ed4452a2dfe9c38f3a7"
+  },
+  "click/thock": {
+   "category": "click",
+   "description": "cursor presses and buttons: a short modal tick with a small body",
+   "duration": 0.1026,
+   "file": "click/thock.m4a",
+   "group": "ui",
+   "kinds": [
+    "click"
+   ],
+   "member": "thock",
+   "onset": 0.0012,
+   "order": 0,
+   "peak": 0.0045,
+   "sha256": "79626cbdcaae47629dee7dcf479d4e3e8eb74b8afed2e5c921f7f57e71ff305b"
+  },
+  "click/tink": {
+   "category": "click",
+   "description": "cursor presses and buttons: a short modal tick with a small body",
+   "duration": 0.0695,
+   "file": "click/tink.m4a",
+   "group": "ui",
+   "kinds": [
+    "click"
+   ],
+   "member": "tink",
+   "onset": 0.0012,
+   "order": 0,
+   "peak": 0.0045,
+   "sha256": "551303e2f748b533352c2576e7121e3311314a73bfb2c3b0ee604d50b3129a5c"
+  },
+  "downlifter/air_fall": {
+   "category": "downlifter",
+   "description": "energy falling away after a hit, scene exits",
+   "duration": 2.0601,
+   "file": "downlifter/air_fall.m4a",
+   "group": "rise",
+   "kinds": [
+    "drop"
+   ],
+   "member": "air_fall",
+   "onset": 0.015,
+   "order": 2,
+   "peak": 0.1485,
+   "sha256": "5b0b13a1ec05a5f46f6737b5217cb4c11ed218edcd17c4e9f1872f950a19a741"
+  },
+  "downlifter/flange_air": {
+   "category": "downlifter",
+   "description": "energy falling away after a hit, scene exits",
+   "duration": 2.9539,
+   "file": "downlifter/flange_air.m4a",
+   "group": "rise",
+   "kinds": [
+    "drop"
+   ],
+   "member": "flange_air",
+   "onset": 0.0325,
+   "order": 2,
+   "peak": 0.2205,
+   "sha256": "22aeac51fe2f36ac0808e5cd4b8452eb47a2f23dc3981121276b049fd1d7b896"
+  },
+  "downlifter/shepard_fall": {
+   "category": "downlifter",
+   "description": "energy falling away after a hit, scene exits",
+   "duration": 4.0195,
+   "file": "downlifter/shepard_fall.m4a",
+   "group": "rise",
+   "kinds": [
+    "drop"
+   ],
+   "member": "shepard_fall",
+   "onset": 0.0295,
+   "order": 2,
+   "peak": 0.2795,
+   "sha256": "9e7b1b1eead4fcfca07b2898293f4191b78a8aea112b2ffb3956500d766f937d"
+  },
+  "downlifter/sub_sink": {
+   "category": "downlifter",
+   "description": "energy falling away after a hit, scene exits",
+   "duration": 1.7871,
+   "file": "downlifter/sub_sink.m4a",
+   "group": "rise",
+   "kinds": [
+    "drop"
+   ],
+   "member": "sub_sink",
+   "onset": 0.0062,
+   "order": 2,
+   "peak": 0.1525,
+   "sha256": "fdc7eb3e4ecc7f8e8b0fc423b4ba871389b24a1b20b764a14046151952b3b189"
+  },
+  "downlifter/synth_fall": {
+   "category": "downlifter",
+   "description": "energy falling away after a hit, scene exits",
+   "duration": 4.0389,
+   "file": "downlifter/synth_fall.m4a",
+   "group": "rise",
+   "kinds": [
+    "drop"
+   ],
+   "member": "synth_fall",
+   "onset": 0.0232,
+   "order": 2,
+   "peak": 0.3305,
+   "sha256": "9971680c3244d28be5d685ba308b25b741861ae78a13c5feffa162d0178a3b3a"
+  },
+  "downlifter/tape": {
+   "category": "downlifter",
+   "description": "energy falling away after a hit, scene exits",
+   "duration": 1.6303,
+   "file": "downlifter/tape.m4a",
+   "group": "rise",
+   "kinds": [
+    "drop"
+   ],
+   "member": "tape",
+   "onset": 0.0045,
+   "order": 2,
+   "peak": 0.1035,
+   "sha256": "c3241f38b5b75310f236ae9ce26714c3cf86a375fe7f84da9d6fe993fd6c4b49"
+  },
+  "fit/bell/small_bell": {
+   "category": "fit",
+   "credit": {
+    "author": "steffcaffrey",
+    "license": "CC0 1.0",
+    "title": "Small Bell #2",
+    "url": "https://freesound.org/people/steffcaffrey/sounds/452379/"
+   },
+   "description": "a small bell struck once, fitted from \"Small Bell #2\" by steffcaffrey (CC0 1.0): sines model, CLAP 0.94 to the recording, takes pass the take check at vary 0.3; the audit notes a comb ring in the tail on some takes, as on the recording itself",
+   "duration": 1.66,
+   "file": "fit/bell/small_bell.m4a",
+   "group": "chime",
+   "kinds": [
+    "bell"
+   ],
+   "member": "bell/small_bell",
+   "onset": 0.0012,
+   "order": 99,
+   "peak": 0.0625,
+   "sha256": "ecb9ebe40bb60b087241b58bed0a5067e37f1374e9fdc8c1033b5611193c41fd"
+  },
+  "fit/click/floss_lid": {
+   "category": "fit",
+   "credit": {
+    "author": "qubodup",
+    "license": "CC0 1.0",
+    "title": "Plastic Clicks.flac",
+    "url": "https://freesound.org/people/qubodup/sounds/167829/"
+   },
+   "description": "a small plastic click, fitted from \"Plastic Clicks.flac\" by qubodup (CC0 1.0): sines model, CLAP 0.96 to the recording, takes pass the take check at vary 0.3",
+   "duration": 0.132,
+   "file": "fit/click/floss_lid.m4a",
+   "group": "ui",
+   "kinds": [
+    "click",
+    "tick.crisp"
+   ],
+   "member": "click/floss_lid",
+   "onset": 0.004,
+   "order": 99,
+   "peak": 0.0075,
+   "sha256": "39d90df437816c8f7237c66d4a4167887e8091337381b927335fff8263d52f81"
+  },
+  "fit/hit/bamboo_tok": {
+   "category": "fit",
+   "credit": {
+    "author": "michorvath",
+    "license": "CC0 1.0",
+    "title": "Bamboo hit",
+    "url": "https://freesound.org/people/michorvath/sounds/386888/"
+   },
+   "description": "a bamboo hit, fitted from \"Bamboo hit\" by michorvath (CC0 1.0): hybrid model, CLAP 0.97 to the recording, takes pass the take check at vary 0.3",
+   "duration": 0.17,
+   "file": "fit/hit/bamboo_tok.m4a",
+   "group": "impact",
+   "kinds": [
+    "hit",
+    "tock"
+   ],
+   "member": "hit/bamboo_tok",
+   "onset": 0.007,
+   "order": 99,
+   "peak": 0.0115,
+   "sha256": "fd216488ce513f294fcf546fc6f557c472cf3e04592afba8f2b2401ea3b0743e"
+  },
+  "fit/key.space/thock_space": {
+   "category": "fit",
+   "credit": {
+    "author": "Sadiquecat",
+    "license": "CC0 1.0",
+    "title": "Keychron k10 space_bar",
+    "url": "https://freesound.org/people/Sadiquecat/sounds/789630/"
+   },
+   "description": "a mechanical keyboard space bar, fitted from \"Keychron k10 space_bar\" by Sadiquecat (CC0 1.0): sines model, CLAP 0.95 to the recording, takes pass the take check at vary 0.3",
+   "duration": 0.39,
+   "file": "fit/key.space/thock_space.m4a",
+   "group": "typing",
+   "kinds": [
+    "key.space"
+   ],
+   "member": "key.space/thock_space",
+   "onset": 0.0065,
+   "order": 99,
+   "peak": 0.0205,
+   "sha256": "910b47f852c3c16e206e9e6c7c6e970451be78c1cefa723c2f79fc58823915aa"
+  },
+  "fit/key/lubed": {
+   "category": "fit",
+   "credit": {
+    "author": "zrrion",
+    "license": "CC0 1.0",
+    "title": "Keyboard typing sounds: Unidentified Technics keyboard",
+    "url": "https://freesound.org/people/zrrion/sounds/665075/"
+   },
+   "description": "one mechanical keyboard key press, fitted from \"Keyboard typing sounds: Unidentified Technics keyboard\" by zrrion (CC0 1.0): modal model, CLAP 0.98 to the recording, takes pass the take check at vary 0.3; the audit notes a comb ring in the tail on some takes, as on the recording itself",
+   "duration": 0.4245,
+   "file": "fit/key/lubed.m4a",
+   "group": "typing",
+   "kinds": [
+    "key"
+   ],
+   "member": "key/lubed",
+   "onset": 0.0622,
+   "order": 99,
+   "peak": 0.0755,
+   "sha256": "a81f7cd980820e7496996acf2e84738748d810b2dff05fb6e1c945302e8e68d1"
+  },
+  "fit/key/medium": {
+   "category": "fit",
+   "credit": {
+    "author": "bigmonmulgrew",
+    "license": "CC0 1.0",
+    "title": "mechanical key medium.wav",
+    "url": "https://freesound.org/people/bigmonmulgrew/sounds/378084/"
+   },
+   "description": "one mechanical keyboard key, press and release, fitted from \"mechanical key medium.wav\" by bigmonmulgrew (CC0 1.0): hybrid model, CLAP 0.94 to the recording, takes pass the take check at vary 0.3",
+   "duration": 0.4265,
+   "file": "fit/key/medium.m4a",
+   "group": "typing",
+   "kinds": [
+    "key"
+   ],
+   "member": "key/medium",
+   "onset": 0.0932,
+   "order": 99,
+   "peak": 0.1035,
+   "sha256": "215d1a15e188753b2af7ffc4442b0d18fdc603d2f2aeab358231d5564947fe9f"
+  },
+  "fit/key/thock": {
+   "category": "fit",
+   "credit": {
+    "author": "Sadiquecat",
+    "license": "CC0 1.0",
+    "title": "Keychron k10 A to + individual keys",
+    "url": "https://freesound.org/people/Sadiquecat/sounds/789628/"
+   },
+   "description": "one low mechanical keyboard key press, fitted from \"Keychron k10 A to + individual keys\" by Sadiquecat (CC0 1.0): modal model, CLAP 0.94 to the recording, takes pass the take check at vary 0.3",
+   "duration": 0.4541,
+   "file": "fit/key/thock.m4a",
+   "group": "typing",
+   "kinds": [
+    "key"
+   ],
+   "member": "key/thock",
+   "onset": 0.0048,
+   "order": 99,
+   "peak": 0.0145,
+   "sha256": "553370379a646e642cf8191b580fc9fc53c71f7e1606c5df77faa3bec5035156"
+  },
+  "fit/land.light/finger_phone": {
+   "category": "fit",
+   "credit": {
+    "author": "jentlemen",
+    "license": "CC0 1.0",
+    "title": "Finger Tapping Phone",
+    "url": "https://freesound.org/people/jentlemen/sounds/704862/"
+   },
+   "description": "a finger tapping a phone, fitted from \"Finger Tapping Phone\" by jentlemen (CC0 1.0): hybrid model, CLAP 0.93 to the recording, takes pass the take check at vary 0.3",
+   "duration": 0.331,
+   "file": "fit/land.light/finger_phone.m4a",
+   "group": "ui",
+   "kinds": [
+    "land.light",
+    "text"
+   ],
+   "member": "land.light/finger_phone",
+   "onset": 0.0082,
+   "order": 99,
+   "peak": 0.0125,
+   "sha256": "8a6b403f07df6e7abbe38775942bb5c2e84ce1169d6b68ca8534e801f0fa7262"
+  },
+  "fit/land.light/finger_wood": {
+   "category": "fit",
+   "credit": {
+    "author": "kyles",
+    "license": "CC0 1.0",
+    "title": "finger tap table counter wood various.wav",
+    "url": "https://freesound.org/people/kyles/sounds/452621/"
+   },
+   "description": "a finger tap on a wooden counter, fitted from \"finger tap table counter wood various.wav\" by kyles (CC0 1.0): modal model, CLAP 0.93 to the recording, takes pass the take check at vary 0.3",
+   "duration": 0.339,
+   "file": "fit/land.light/finger_wood.m4a",
+   "group": "ui",
+   "kinds": [
+    "land.light",
+    "tock"
+   ],
+   "member": "land.light/finger_wood",
+   "onset": 0.005,
+   "order": 99,
+   "peak": 0.0095,
+   "sha256": "3cfe43dc1874ec194a5ea7fdbae02440ef24be6bff3062101bc427583c70180a"
+  },
+  "fit/land.light/fingertip_book": {
+   "category": "fit",
+   "credit": {
+    "author": "IENBA",
+    "license": "CC0 1.0",
+    "title": "Light Footsteps On Book",
+    "url": "https://freesound.org/people/IENBA/sounds/760337/"
+   },
+   "description": "light finger steps on a book, fitted from \"Light Footsteps On Book\" by IENBA (CC0 1.0): modal model, CLAP 0.94 to the recording, takes pass the take check at vary 0.3",
+   "duration": 0.375,
+   "file": "fit/land.light/fingertip_book.m4a",
+   "group": "ui",
+   "kinds": [
+    "land.light",
+    "tock"
+   ],
+   "member": "land.light/fingertip_book",
+   "onset": 0.0045,
+   "order": 99,
+   "peak": 0.0095,
+   "sha256": "9136754449d4bd0110719cb356d4a123a5f0f619354fad2886e79d66f54be2c7"
+  },
+  "fit/pop/lip_pop": {
+   "category": "fit",
+   "credit": {
+    "author": "deraj",
+    "license": "CC0 1.0",
+    "title": "Pop sound",
+    "url": "https://freesound.org/people/deraj/sounds/202230/"
+   },
+   "description": "a short pop, fitted from \"Pop sound\" by deraj (CC0 1.0): modal model, CLAP 0.95 to the recording, takes pass the take check at vary 0.3",
+   "duration": 0.221,
+   "file": "fit/pop/lip_pop.m4a",
+   "group": "pop",
+   "kinds": [
+    "pop"
+   ],
+   "member": "pop/lip_pop",
+   "onset": 0.0052,
+   "order": 99,
+   "peak": 0.0095,
+   "sha256": "78184fcafe5b6f97a4a68c7b4c90bcc4946500d2e53c45edc815407a6fa7a6ef"
+  },
+  "fit/pop/mouth_plop": {
+   "category": "fit",
+   "credit": {
+    "author": "CapsLok",
+    "license": "CC0 1.0",
+    "title": "Mouth Plops.wav",
+    "url": "https://freesound.org/people/CapsLok/sounds/181907/"
+   },
+   "description": "a soft mouth plop, fitted from \"Mouth Plops.wav\" by CapsLok (CC0 1.0): hybrid model, CLAP 0.96 to the recording, takes pass the take check at vary 0.3",
+   "duration": 0.2808,
+   "file": "fit/pop/mouth_plop.m4a",
+   "group": "pop",
+   "kinds": [
+    "pop"
+   ],
+   "member": "pop/mouth_plop",
+   "onset": 0.008,
+   "order": 99,
+   "peak": 0.0145,
+   "sha256": "c3e375e83b239949b5f7fc01ae577adbb6dca7f65ff4f050d9f3f4fa59d7881d"
+  },
+  "fit/snap/switch_flip": {
+   "category": "fit",
+   "credit": {
+    "author": "IanStarGem",
+    "license": "CC0 1.0",
+    "title": "Switch Flip #1",
+    "url": "https://freesound.org/people/IanStarGem/sounds/278205/"
+   },
+   "description": "a switch flip, fitted from \"Switch Flip #1\" by IanStarGem (CC0 1.0): sines model, CLAP 0.94 to the recording, takes pass the take check at vary 0.3",
+   "duration": 0.185,
+   "file": "fit/snap/switch_flip.m4a",
+   "group": "ui",
+   "kinds": [
+    "snap",
+    "click"
+   ],
+   "member": "snap/switch_flip",
+   "onset": 0.0008,
+   "order": 99,
+   "peak": 0.0355,
+   "sha256": "f39a646641425127954771916aa3b6b8397a7fc164b140b9f9b99c2c1ca053e8"
+  },
+  "fit/tick/domino": {
+   "category": "fit",
+   "credit": {
+    "author": "Macif",
+    "license": "CC0 1.0",
+    "title": "Domino pieces hit",
+    "url": "https://freesound.org/people/Macif/sounds/329098/"
+   },
+   "description": "domino pieces knocking together, fitted from \"Domino pieces hit\" by Macif (CC0 1.0): sines model, CLAP 0.94 to the recording, takes pass the take check at vary 0.3",
+   "duration": 0.139,
+   "file": "fit/tick/domino.m4a",
+   "group": "ui",
+   "kinds": [
+    "tick"
+   ],
+   "member": "tick/domino",
+   "onset": 0.0042,
+   "order": 99,
+   "peak": 0.0075,
+   "sha256": "bd75a0d090cc36f78e8fcb02ed899721ccfa0f653ba4c5716d8484d72df4e9e6"
+  },
+  "fit/whoosh.short/bamboo_swish": {
+   "category": "fit",
+   "credit": {
+    "author": "Kinoton",
+    "license": "CC0 1.0",
+    "title": "Short Whoosh, 13x",
+    "url": "https://freesound.org/people/Kinoton/sounds/427979/"
+   },
+   "description": "a short whoosh, fitted from \"Short Whoosh, 13x\" by Kinoton (CC0 1.0): sines model, CLAP 0.94 to the recording, takes pass the take check at vary 0.3",
+   "duration": 0.477,
+   "file": "fit/whoosh.short/bamboo_swish.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short"
+   ],
+   "member": "whoosh.short/bamboo_swish",
+   "onset": 0.087,
+   "order": 99,
+   "peak": 0.1295,
+   "sha256": "ca7c3395970c6296aa463e03cd5d5525569310f7a1ca9bb9e22b265e7aae8de9"
+  },
+  "glitch/crush": {
+   "category": "glitch",
+   "description": "glitch transitions, error states",
+   "duration": 0.54,
+   "file": "glitch/crush.m4a",
+   "group": "glitch",
+   "kinds": [
+    "glitch"
+   ],
+   "member": "crush",
+   "onset": 0.004,
+   "order": 0,
+   "peak": 0.4015,
+   "sha256": "b76076ffd0fb03912644abe9a37ce6513db2557dbff53bdaa4d6e4d4909914bd"
+  },
+  "glitch/data": {
+   "category": "glitch",
+   "description": "glitch transitions, error states",
+   "duration": 0.49,
+   "file": "glitch/data.m4a",
+   "group": "glitch",
+   "kinds": [
+    "glitch"
+   ],
+   "member": "data",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.3905,
+   "sha256": "16c36dc96fd5fc18800948dec27cb9f5de852d82425921c476f49eb3b15c1a3e"
+  },
+  "glitch/hit": {
+   "category": "glitch",
+   "description": "glitch transitions, error states",
+   "duration": 0.34,
+   "file": "glitch/hit.m4a",
+   "group": "glitch",
+   "kinds": [
+    "glitch"
+   ],
+   "member": "hit",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.2515,
+   "sha256": "1eb6e335816b8932532b6fe92e804a04725ab7a4a6d678a07335138ca4b40292"
+  },
+  "glitch/scramble": {
+   "category": "glitch",
+   "description": "glitch transitions, error states",
+   "duration": 0.59,
+   "file": "glitch/scramble.m4a",
+   "group": "glitch",
+   "kinds": [
+    "glitch"
+   ],
+   "member": "scramble",
+   "onset": 0.0165,
+   "order": 0,
+   "peak": 0.5365,
+   "sha256": "9efa2e7adf426706a4a7583a6e1e41ba9d0233ea33f29992f9d6bb2eaa328ed2"
+  },
+  "glitch/stutter": {
+   "category": "glitch",
+   "description": "glitch transitions, error states",
+   "duration": 0.64,
+   "file": "glitch/stutter.m4a",
+   "group": "glitch",
+   "kinds": [
+    "glitch"
+   ],
+   "member": "stutter",
+   "onset": 0.0198,
+   "order": 0,
+   "peak": 0.3745,
+   "sha256": "e14a4257e7c843f54266663592f7d31ea9d92be3f1ff47402143c14a565bd990"
+  },
+  "hover_tick/air": {
+   "category": "hover_tick",
+   "description": "hover, list rows passing, tiny ticks",
+   "duration": 0.0745,
+   "file": "hover_tick/air.m4a",
+   "group": "ui",
+   "kinds": [
+    "tick"
+   ],
+   "member": "air",
+   "onset": 0.0012,
+   "order": 2,
+   "peak": 0.0045,
+   "sha256": "354e966a268b46e9a8b49ba268e3f2efe3bc722d0eadaad16f640ca439ed0105"
+  },
+  "hover_tick/high": {
+   "category": "hover_tick",
+   "description": "hover, list rows passing, tiny ticks",
+   "duration": 0.047,
+   "file": "hover_tick/high.m4a",
+   "group": "ui",
+   "kinds": [
+    "tick"
+   ],
+   "member": "high",
+   "onset": 0.0012,
+   "order": 2,
+   "peak": 0.0045,
+   "sha256": "203e8176a1fd46731592e7477b3e17775a626d932132c95dcf66723c5fd20be5"
+  },
+  "hover_tick/mid": {
+   "category": "hover_tick",
+   "description": "hover, list rows passing, tiny ticks",
+   "duration": 0.0895,
+   "file": "hover_tick/mid.m4a",
+   "group": "ui",
+   "kinds": [
+    "tick"
+   ],
+   "member": "mid",
+   "onset": 0.0012,
+   "order": 2,
+   "peak": 0.0045,
+   "sha256": "087a5f987f2b07464a9f14f44bbe292657ab6ad268b8e9f4f569620831b46007"
+  },
+  "hover_tick/ping": {
+   "category": "hover_tick",
+   "description": "hover, list rows passing, tiny ticks",
+   "duration": 0.0504,
+   "file": "hover_tick/ping.m4a",
+   "group": "ui",
+   "kinds": [
+    "tick"
+   ],
+   "member": "ping",
+   "onset": 0.0012,
+   "order": 2,
+   "peak": 0.0045,
+   "sha256": "42f3c254449f35413387f53575061e27f692fdf896dfbaa92774a1c74923dd91"
+  },
+  "impact/blast": {
+   "category": "impact",
+   "description": "a cinematic hit: reveal, title slam (long tails: trim with dur or max_s)",
+   "duration": 5.7594,
+   "file": "impact/blast.m4a",
+   "group": "impact",
+   "kinds": [
+    "hit",
+    "land"
+   ],
+   "member": "blast",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.0235,
+   "sha256": "781a696c4f5f5ca5ff819592dcf09331dbcc58a6a144b97f17c2df2ebbb65edd"
+  },
+  "impact/classic": {
+   "category": "impact",
+   "description": "a cinematic hit: reveal, title slam (long tails: trim with dur or max_s)",
+   "duration": 4.7971,
+   "file": "impact/classic.m4a",
+   "group": "impact",
+   "kinds": [
+    "hit",
+    "land"
+   ],
+   "member": "classic",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.1165,
+   "sha256": "18138153943f05e7d5e82d204ec79ebe34e1ff04c1bac94c2996990c9fbe1b46"
+  },
+  "impact/deep": {
+   "category": "impact",
+   "description": "a cinematic hit: reveal, title slam (long tails: trim with dur or max_s)",
+   "duration": 6.2047,
+   "file": "impact/deep.m4a",
+   "group": "impact",
+   "kinds": [
+    "hit",
+    "land"
+   ],
+   "member": "deep",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.0835,
+   "sha256": "16b4ec243be1266a8e0b8472696f1d631373faeee152f04e73e5be84daf1b398"
+  },
+  "impact/metal": {
+   "category": "impact",
+   "description": "a cinematic hit: reveal, title slam (long tails: trim with dur or max_s)",
+   "duration": 5.0225,
+   "file": "impact/metal.m4a",
+   "group": "impact",
+   "kinds": [
+    "hit",
+    "land"
+   ],
+   "member": "metal",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.1165,
+   "sha256": "b9a8d5874193bfcdafc1369db549d6f947b6acd5fc2b0c62745c7c1a7ea6d02e"
+  },
+  "impact/punch": {
+   "category": "impact",
+   "description": "a cinematic hit: reveal, title slam (long tails: trim with dur or max_s)",
+   "duration": 2.845,
+   "file": "impact/punch.m4a",
+   "group": "impact",
+   "kinds": [
+    "hit",
+    "land"
+   ],
+   "member": "punch",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.0655,
+   "sha256": "3c78bc1f144691f882904ea6025158ec019e5bf56ee951b55c4e4570b125c551"
+  },
+  "impact/swell": {
+   "category": "impact",
+   "description": "a cinematic hit: reveal, title slam (long tails: trim with dur or max_s)",
+   "duration": 6.2324,
+   "file": "impact/swell.m4a",
+   "group": "impact",
+   "kinds": [
+    "hit",
+    "land"
+   ],
+   "member": "swell",
+   "onset": 0.2968,
+   "order": 0,
+   "peak": 0.6155,
+   "sha256": "88134d0e27996026d9ad5cc2cd58fe9e357c34625c8704cb2632db7073a01f63"
+  },
+  "logo_sting/soft_bloom": {
+   "category": "logo_sting",
+   "description": "a composite logo reveal (lead-in + hit + chime)",
+   "duration": 1.85,
+   "file": "logo_sting/soft_bloom.m4a",
+   "group": "logo",
+   "kinds": [
+    "sting"
+   ],
+   "member": "soft_bloom",
+   "onset": 0.1393,
+   "order": 0,
+   "peak": 0.2985,
+   "sha256": "8308066a27f6d47f6eb6c299fcfdc6d04d25ee050481404150012a756f405052"
+  },
+  "logo_sting/spark": {
+   "category": "logo_sting",
+   "description": "a composite logo reveal (lead-in + hit + chime)",
+   "duration": 1.84,
+   "file": "logo_sting/spark.m4a",
+   "group": "logo",
+   "kinds": [
+    "sting"
+   ],
+   "member": "spark",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.0105,
+   "sha256": "a48ea1c744b8ee3381cc33b3c5f5171f769a7799936306188037a9082cc5a186"
+  },
+  "logo_sting/whoosh_glass": {
+   "category": "logo_sting",
+   "description": "a composite logo reveal (lead-in + hit + chime)",
+   "duration": 1.9116,
+   "file": "logo_sting/whoosh_glass.m4a",
+   "group": "logo",
+   "kinds": [
+    "sting"
+   ],
+   "member": "whoosh_glass",
+   "onset": 0.106,
+   "order": 0,
+   "peak": 0.2005,
+   "sha256": "daf4bd501e6a9ac2c59bf48cba9faa4c03d06fdeaddc648126af824725453ba5"
+  },
+  "notify/m0": {
+   "category": "notify",
+   "description": "struck bell chimes (A4-E6): success, a message, a soft lockup",
+   "duration": 2.3,
+   "file": "notify/m0.m4a",
+   "group": "chime",
+   "kinds": [
+    "bell",
+    "hit",
+    "text",
+    "click.confirm"
+   ],
+   "member": "m0",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.0045,
+   "sha256": "068da60152e38b9d7dee7d1ad797fa503071dea5adfe186c7f6f82ece62adaae"
+  },
+  "notify/m1": {
+   "category": "notify",
+   "description": "struck bell chimes (A4-E6): success, a message, a soft lockup",
+   "duration": 2.0,
+   "file": "notify/m1.m4a",
+   "group": "chime",
+   "kinds": [
+    "bell",
+    "hit",
+    "text",
+    "click.confirm"
+   ],
+   "member": "m1",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.0045,
+   "sha256": "5fecb67fe8ad2c49c07b59427c19b2b044e7e6520f96c3ce93acb69027e06269"
+  },
+  "notify/m2": {
+   "category": "notify",
+   "description": "struck bell chimes (A4-E6): success, a message, a soft lockup",
+   "duration": 1.8,
+   "file": "notify/m2.m4a",
+   "group": "chime",
+   "kinds": [
+    "bell",
+    "hit",
+    "text",
+    "click.confirm"
+   ],
+   "member": "m2",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.0035,
+   "sha256": "99ce605019ccba0e95f84e59e2ed041901fe90fedc4f360125be49fd8425480b"
+  },
+  "notify/m3": {
+   "category": "notify",
+   "description": "struck bell chimes (A4-E6): success, a message, a soft lockup",
+   "duration": 2.5,
+   "file": "notify/m3.m4a",
+   "group": "chime",
+   "kinds": [
+    "bell",
+    "hit",
+    "text",
+    "click.confirm"
+   ],
+   "member": "m3",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.0065,
+   "sha256": "a154a823ee4a73f55341fe0a5bac9881e0a5fd62e546a88c115853e7a76e7bdc"
+  },
+  "notify/m4": {
+   "category": "notify",
+   "description": "struck bell chimes (A4-E6): success, a message, a soft lockup",
+   "duration": 1.8,
+   "file": "notify/m4.m4a",
+   "group": "chime",
+   "kinds": [
+    "bell",
+    "hit",
+    "text",
+    "click.confirm"
+   ],
+   "member": "m4",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.0045,
+   "sha256": "4e237613bc58126ab0134aa010eb118e74cbfc5535fc9426c43206537b2fea77"
+  },
+  "notify/m5": {
+   "category": "notify",
+   "description": "struck bell chimes (A4-E6): success, a message, a soft lockup",
+   "duration": 1.7,
+   "file": "notify/m5.m4a",
+   "group": "chime",
+   "kinds": [
+    "bell",
+    "hit",
+    "text",
+    "click.confirm"
+   ],
+   "member": "m5",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.0035,
+   "sha256": "c84d62d7ed0f5a10f32514dc1e0d6dbf95e4780613d944f0d922265fc59560e1"
+  },
+  "pluck/kalimba": {
+   "category": "pluck",
+   "description": "the launch film kalimba: a bright steel tine over a small wooden box",
+   "duration": 3.0,
+   "file": "pluck/kalimba.m4a",
+   "group": "chime",
+   "kinds": [
+    "bell",
+    "text",
+    "hit"
+   ],
+   "member": "kalimba",
+   "onset": 0.0032,
+   "order": 4,
+   "peak": 0.0135,
+   "sha256": "cce97f845ff6a8f29a1a6ce8e58e0db81ed40f3c03fae7a366e4e7fb71563ce5"
+  },
+  "pluck/kalimba_ring": {
+   "category": "pluck",
+   "description": "a longer ring (the film's chord tones): end cards, a tonal lockup",
+   "duration": 3.0,
+   "file": "pluck/kalimba_ring.m4a",
+   "group": "chime",
+   "kinds": [
+    "bell",
+    "text",
+    "hit"
+   ],
+   "member": "kalimba_ring",
+   "onset": 0.0032,
+   "order": 4,
+   "peak": 0.0135,
+   "sha256": "661388304b45d1231d4b4d140252741eb0e3fb551ab17bb6b86b24066388e19d"
+  },
+  "pluck/kalimba_soft": {
+   "category": "pluck",
+   "description": "a fleshy-thumb pluck: darker and softer at the attack (the film's soft notes)",
+   "duration": 3.0,
+   "file": "pluck/kalimba_soft.m4a",
+   "group": "chime",
+   "kinds": [
+    "bell",
+    "text",
+    "hit"
+   ],
+   "member": "kalimba_soft",
+   "onset": 0.0032,
+   "order": 4,
+   "peak": 0.0135,
+   "sha256": "2fda58a01615b90a4132e1750af4f1a24c667ca9e23cd177c8375d3c847e05a0"
+  },
+  "pop/0": {
+   "category": "pop",
+   "description": "bubble and cork pops (the bubble rises in pitch)",
+   "duration": 0.2,
+   "file": "pop/0.m4a",
+   "group": "pop",
+   "kinds": [
+    "pop"
+   ],
+   "member": "0",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.0035,
+   "sha256": "59ff06bc1481f2e0ad1db9725dd2fff962becf3255d62be80907fb5d643f46b1"
+  },
+  "pop/1": {
+   "category": "pop",
+   "description": "bubble and cork pops (the bubble rises in pitch)",
+   "duration": 0.15,
+   "file": "pop/1.m4a",
+   "group": "pop",
+   "kinds": [
+    "pop"
+   ],
+   "member": "1",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.0035,
+   "sha256": "5e6ddd44807a1481122fe39e8875491d63417353c2b4c38cbbe0d94cc79272d8"
+  },
+  "pop/3": {
+   "category": "pop",
+   "description": "bubble and cork pops (the bubble rises in pitch)",
+   "duration": 0.16,
+   "file": "pop/3.m4a",
+   "group": "pop",
+   "kinds": [
+    "pop"
+   ],
+   "member": "3",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.0035,
+   "sha256": "2d4425f91de76ed15b7ffa0571700fa43624c8d5271e2819f7d838cb485191c4"
+  },
+  "pop/4": {
+   "category": "pop",
+   "description": "bubble and cork pops (the bubble rises in pitch)",
+   "duration": 0.22,
+   "file": "pop/4.m4a",
+   "group": "pop",
+   "kinds": [
+    "pop"
+   ],
+   "member": "4",
+   "onset": 0.0,
+   "order": 0,
+   "peak": 0.0035,
+   "sha256": "08bd064e9861b7309120c053da01a724d3d828d5109044d5eb192aff92800634"
+  },
+  "pro_click/glass": {
+   "category": "pro_click",
+   "description": "bright designed UI ticks",
+   "duration": 0.0617,
+   "file": "pro_click/glass.m4a",
+   "group": "ui",
+   "kinds": [
+    "click",
+    "tick.crisp"
+   ],
+   "member": "glass",
+   "onset": 0.0012,
+   "order": 1,
+   "peak": 0.0045,
+   "sha256": "73dd28b7152942725a8dcffcade6312160ae26b2de83412c43149868d81cf4c4"
+  },
+  "pro_click/mouse": {
+   "category": "pro_click",
+   "description": "bright designed UI ticks",
+   "duration": 0.0537,
+   "file": "pro_click/mouse.m4a",
+   "group": "ui",
+   "kinds": [
+    "click",
+    "tick.crisp"
+   ],
+   "member": "mouse",
+   "onset": 0.0012,
+   "order": 1,
+   "peak": 0.0045,
+   "sha256": "5ed3d1673d35ddd4b8932e2d89acec24e9ffeeba3eef43c1fdd7ee025b1726df"
+  },
+  "pro_click/snap": {
+   "category": "pro_click",
+   "description": "bright designed UI ticks",
+   "duration": 0.047,
+   "file": "pro_click/snap.m4a",
+   "group": "ui",
+   "kinds": [
+    "click",
+    "tick.crisp"
+   ],
+   "member": "snap",
+   "onset": 0.0012,
+   "order": 1,
+   "peak": 0.0045,
+   "sha256": "edd733099893d2a1bf608c5ff0b0bd1289d765eaab53462fb77fc4cfec52119f"
+  },
+  "pro_click/soft": {
+   "category": "pro_click",
+   "description": "bright designed UI ticks",
+   "duration": 0.0532,
+   "file": "pro_click/soft.m4a",
+   "group": "ui",
+   "kinds": [
+    "click",
+    "tick.crisp"
+   ],
+   "member": "soft",
+   "onset": 0.0012,
+   "order": 1,
+   "peak": 0.0045,
+   "sha256": "24e5044f7cb785e8bf78058fbf2259141e5ac51c2a28dfea1a3a274c04bd1a1e"
+  },
+  "pro_click/tink": {
+   "category": "pro_click",
+   "description": "bright designed UI ticks",
+   "duration": 0.0373,
+   "file": "pro_click/tink.m4a",
+   "group": "ui",
+   "kinds": [
+    "click",
+    "tick.crisp"
+   ],
+   "member": "tink",
+   "onset": 0.0012,
+   "order": 1,
+   "peak": 0.0045,
+   "sha256": "4da30d5b748d6a13a1a49eefc77eeb3c75c68dff83558712f71a2e26dbfd954f"
+  },
+  "pro_glitch/crunchy": {
+   "category": "pro_glitch",
+   "description": "a designed stutter ending on the cut",
+   "duration": 0.7097,
+   "file": "pro_glitch/crunchy.m4a",
+   "group": "glitch",
+   "kinds": [
+    "glitch"
+   ],
+   "member": "crunchy",
+   "onset": 0.0078,
+   "order": 1,
+   "peak": 0.6525,
+   "sha256": "0c4cf14f2f18b7793954888254e93bd4b91c3f357b5d27c105ff908203deb93b"
+  },
+  "pro_glitch/data": {
+   "category": "pro_glitch",
+   "description": "a designed stutter ending on the cut",
+   "duration": 0.6697,
+   "file": "pro_glitch/data.m4a",
+   "group": "glitch",
+   "kinds": [
+    "glitch"
+   ],
+   "member": "data",
+   "onset": 0.0572,
+   "order": 1,
+   "peak": 0.6195,
+   "sha256": "33a3e1cafd1c57f8ff9d6b41ab02da188341dcc168540e7a44314a4af126b1c5"
+  },
+  "pro_glitch/fastroll": {
+   "category": "pro_glitch",
+   "description": "a designed stutter ending on the cut",
+   "duration": 0.5497,
+   "file": "pro_glitch/fastroll.m4a",
+   "group": "glitch",
+   "kinds": [
+    "glitch"
+   ],
+   "member": "fastroll",
+   "onset": 0.0055,
+   "order": 1,
+   "peak": 0.5045,
+   "sha256": "b6622255502cba0e1d9993e91b0d6a5080c7f78967e575c14f6be51fcde27822"
+  },
+  "pro_glitch/framelock": {
+   "category": "pro_glitch",
+   "description": "a designed stutter ending on the cut",
+   "duration": 0.7297,
+   "file": "pro_glitch/framelock.m4a",
+   "group": "glitch",
+   "kinds": [
+    "glitch"
+   ],
+   "member": "framelock",
+   "onset": 0.053,
+   "order": 1,
+   "peak": 0.6625,
+   "sha256": "31916bd1d02800229865f6fbcdce2cd47bc033483d4372d92666088c3af0f341"
+  },
+  "pro_glitch/sparse": {
+   "category": "pro_glitch",
+   "description": "a designed stutter ending on the cut",
+   "duration": 0.7497,
+   "file": "pro_glitch/sparse.m4a",
+   "group": "glitch",
+   "kinds": [
+    "glitch"
+   ],
+   "member": "sparse",
+   "onset": 0.0762,
+   "order": 1,
+   "peak": 0.7035,
+   "sha256": "2f6bd7dc5538e1a8647d2eb7f2d40783b4926aeb8c73c6570903b59f492cd162"
+  },
+  "pro_glitch/standard": {
+   "category": "pro_glitch",
+   "description": "a designed stutter ending on the cut",
+   "duration": 0.7097,
+   "file": "pro_glitch/standard.m4a",
+   "group": "glitch",
+   "kinds": [
+    "glitch"
+   ],
+   "member": "standard",
+   "onset": 0.0085,
+   "order": 1,
+   "peak": 0.6595,
+   "sha256": "e8224071427a0c3df7bfebbd4124db776559163844f7eebe1b29925cff31dcd6"
+  },
+  "pro_hover_tick/detent": {
+   "category": "pro_hover_tick",
+   "description": "airy digital ticks: cursor blinks, counters",
+   "duration": 0.0364,
+   "file": "pro_hover_tick/detent.m4a",
+   "group": "ui",
+   "kinds": [
+    "tick",
+    "tick.crisp"
+   ],
+   "member": "detent",
+   "onset": 0.0012,
+   "order": 3,
+   "peak": 0.0045,
+   "sha256": "0c0be21e05127eb22d8c598cc5f3c39c3dff2157e0b4aa8362ac6886b930ffb7"
+  },
+  "pro_hover_tick/ping": {
+   "category": "pro_hover_tick",
+   "description": "airy digital ticks: cursor blinks, counters",
+   "duration": 0.0389,
+   "file": "pro_hover_tick/ping.m4a",
+   "group": "ui",
+   "kinds": [
+    "tick",
+    "tick.crisp"
+   ],
+   "member": "ping",
+   "onset": 0.0012,
+   "order": 3,
+   "peak": 0.0045,
+   "sha256": "6a8a69fa7e29ad8b2275e830629c6f0e3c88b778c61f0f6d58bd80252e55fece"
+  },
+  "pro_hover_tick/soft": {
+   "category": "pro_hover_tick",
+   "description": "airy digital ticks: cursor blinks, counters",
+   "duration": 0.0324,
+   "file": "pro_hover_tick/soft.m4a",
+   "group": "ui",
+   "kinds": [
+    "tick",
+    "tick.crisp"
+   ],
+   "member": "soft",
+   "onset": 0.0012,
+   "order": 3,
+   "peak": 0.0045,
+   "sha256": "88dce2f561643487ba3a859bf7476988c2f331a7d335080b97e11bdaf2992c0f"
+  },
+  "pro_impact/air": {
+   "category": "pro_impact",
+   "description": "a designed gated sub impact",
+   "duration": 0.8476,
+   "file": "pro_impact/air.m4a",
+   "group": "impact",
+   "kinds": [
+    "hit",
+    "land"
+   ],
+   "member": "air",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.1725,
+   "sha256": "785a479edecdd73b46ee9bf52beedd5f9819434a029560c761a55a4a549a0a0a"
+  },
+  "pro_impact/deep": {
+   "category": "pro_impact",
+   "description": "a designed gated sub impact",
+   "duration": 1.3148,
+   "file": "pro_impact/deep.m4a",
+   "group": "impact",
+   "kinds": [
+    "hit",
+    "land"
+   ],
+   "member": "deep",
+   "onset": 0.0048,
+   "order": 1,
+   "peak": 0.2135,
+   "sha256": "924f2843d066f327b6f81c09b8a2c828030356f4c8f661a09b3ba8781f06c4cd"
+  },
+  "pro_impact/rumble": {
+   "category": "pro_impact",
+   "description": "a designed gated sub impact",
+   "duration": 0.993,
+   "file": "pro_impact/rumble.m4a",
+   "group": "impact",
+   "kinds": [
+    "hit",
+    "land"
+   ],
+   "member": "rumble",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.6185,
+   "sha256": "7921a027e745ab1935fae084ac0aee1c1f6daaad798109a4f29c941183d9cab9"
+  },
+  "pro_impact/short": {
+   "category": "pro_impact",
+   "description": "a designed gated sub impact",
+   "duration": 0.6668,
+   "file": "pro_impact/short.m4a",
+   "group": "impact",
+   "kinds": [
+    "hit",
+    "land"
+   ],
+   "member": "short",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.1815,
+   "sha256": "0f8ad950dba6d4ce0572e729e89308bb3824a8a01181823ec323fa22f9d7b6e2"
+  },
+  "pro_impact/swell": {
+   "category": "pro_impact",
+   "description": "a designed gated sub impact",
+   "duration": 1.118,
+   "file": "pro_impact/swell.m4a",
+   "group": "impact",
+   "kinds": [
+    "hit",
+    "land"
+   ],
+   "member": "swell",
+   "onset": 0.0928,
+   "order": 1,
+   "peak": 0.4555,
+   "sha256": "1f914709cd58159da15633b15ae381c8c66d81e6efb2fc9cff83dcbfc7eac98d"
+  },
+  "pro_logo_sting/chirp_hum": {
+   "category": "pro_logo_sting",
+   "description": "designed launch gestures onto a tone",
+   "duration": 0.985,
+   "file": "pro_logo_sting/chirp_hum.m4a",
+   "group": "logo",
+   "kinds": [
+    "sting"
+   ],
+   "member": "chirp_hum",
+   "onset": 0.0002,
+   "order": 1,
+   "peak": 0.0825,
+   "sha256": "6d16637de3b2a92019dc7634d773651770d0d7a8568f04414db1aa34436c6f32"
+  },
+  "pro_logo_sting/swell_sting": {
+   "category": "pro_logo_sting",
+   "description": "designed launch gestures onto a tone",
+   "duration": 1.3,
+   "file": "pro_logo_sting/swell_sting.m4a",
+   "group": "logo",
+   "kinds": [
+    "sting"
+   ],
+   "member": "swell_sting",
+   "onset": 0.1635,
+   "order": 1,
+   "peak": 0.4655,
+   "sha256": "8c87d0b0d5cc05fa4bde1d77736bd2d25050e49ac4e276bfe9505da5174418e8"
+  },
+  "pro_logo_sting/taps_tone": {
+   "category": "pro_logo_sting",
+   "description": "designed launch gestures onto a tone",
+   "duration": 0.95,
+   "file": "pro_logo_sting/taps_tone.m4a",
+   "group": "logo",
+   "kinds": [
+    "sting"
+   ],
+   "member": "taps_tone",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.1565,
+   "sha256": "b8c6942c08ffc88469827bbe7eccb7c69357bdd81b9d2b697e9ea69efbbb8065"
+  },
+  "pro_logo_sting/zap_bloom": {
+   "category": "pro_logo_sting",
+   "description": "designed launch gestures onto a tone",
+   "duration": 0.96,
+   "file": "pro_logo_sting/zap_bloom.m4a",
+   "group": "logo",
+   "kinds": [
+    "sting"
+   ],
+   "member": "zap_bloom",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.0765,
+   "sha256": "94e7ec1559511a0783188fc8409948e89557a2950cd04146f07148e7f713ca52"
+  },
+  "pro_notify/ding_1822": {
+   "category": "pro_notify",
+   "description": "short clean dings a semitone apart",
+   "duration": 0.26,
+   "file": "pro_notify/ding_1822.m4a",
+   "group": "chime",
+   "kinds": [
+    "bell",
+    "click.confirm"
+   ],
+   "member": "ding_1822",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.0055,
+   "sha256": "340223d3e41c987c463f1ad36f675792390096e57d95d81b6fe61a502e4df6d4"
+  },
+  "pro_notify/ding_1930": {
+   "category": "pro_notify",
+   "description": "short clean dings a semitone apart",
+   "duration": 0.27,
+   "file": "pro_notify/ding_1930.m4a",
+   "group": "chime",
+   "kinds": [
+    "bell",
+    "click.confirm"
+   ],
+   "member": "ding_1930",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.0125,
+   "sha256": "2d6fdadef3e30b684e319576b39a94f21d75bc13b7d4520437f6b896e50bba05"
+  },
+  "pro_notify/ding_2045": {
+   "category": "pro_notify",
+   "description": "short clean dings a semitone apart",
+   "duration": 0.36,
+   "file": "pro_notify/ding_2045.m4a",
+   "group": "chime",
+   "kinds": [
+    "bell",
+    "click.confirm"
+   ],
+   "member": "ding_2045",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.0055,
+   "sha256": "42ce83b66dfab001f02f33d3ce87d00c669395fbd518d876661b8ebcc0831597"
+  },
+  "pro_notify/ding_2167": {
+   "category": "pro_notify",
+   "description": "short clean dings a semitone apart",
+   "duration": 0.3,
+   "file": "pro_notify/ding_2167.m4a",
+   "group": "chime",
+   "kinds": [
+    "bell",
+    "click.confirm"
+   ],
+   "member": "ding_2167",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.0135,
+   "sha256": "d3577d45e919dadc12c2e478cd878f3dcf11b355f7cd264129a354526d77201b"
+  },
+  "pro_notify/ding_2296": {
+   "category": "pro_notify",
+   "description": "short clean dings a semitone apart",
+   "duration": 0.26,
+   "file": "pro_notify/ding_2296.m4a",
+   "group": "chime",
+   "kinds": [
+    "bell",
+    "click.confirm"
+   ],
+   "member": "ding_2296",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.0065,
+   "sha256": "10b1097c797027de5d75ea62bb5cbb076b207bf0d83669fef68914b0e6a5c153"
+  },
+  "pro_pop/boop": {
+   "category": "pro_pop",
+   "description": "tonal pops for a word or badge appearing",
+   "duration": 0.1141,
+   "file": "pro_pop/boop.m4a",
+   "group": "pop",
+   "kinds": [
+    "pop"
+   ],
+   "member": "boop",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.0035,
+   "sha256": "b0762dabda63e04390235da33c513007a5257a6e976196a2a0aee21c4be122aa"
+  },
+  "pro_pop/chirp": {
+   "category": "pro_pop",
+   "description": "tonal pops for a word or badge appearing",
+   "duration": 0.162,
+   "file": "pro_pop/chirp.m4a",
+   "group": "pop",
+   "kinds": [
+    "pop"
+   ],
+   "member": "chirp",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.0375,
+   "sha256": "47401688803b4b16811bd2e46eecdaf3aac3a8b19c38c69eced2bf0edae2b970"
+  },
+  "pro_pop/double": {
+   "category": "pro_pop",
+   "description": "tonal pops for a word or badge appearing",
+   "duration": 0.1572,
+   "file": "pro_pop/double.m4a",
+   "group": "pop",
+   "kinds": [
+    "pop"
+   ],
+   "member": "double",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.0025,
+   "sha256": "dec1c488a0d07f11597ea966597f16a7e2a0375dbb9fcf6956a40acc9575b9e5"
+  },
+  "pro_pop/thup": {
+   "category": "pro_pop",
+   "description": "tonal pops for a word or badge appearing",
+   "duration": 0.0991,
+   "file": "pro_pop/thup.m4a",
+   "group": "pop",
+   "kinds": [
+    "pop"
+   ],
+   "member": "thup",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.0045,
+   "sha256": "b748b1090a5b0fb98dd006738381d90308dc4a99978f23bc9aa0f236adbe28d5"
+  },
+  "pro_pop/tink": {
+   "category": "pro_pop",
+   "description": "tonal pops for a word or badge appearing",
+   "duration": 0.093,
+   "file": "pro_pop/tink.m4a",
+   "group": "pop",
+   "kinds": [
+    "pop"
+   ],
+   "member": "tink",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.0025,
+   "sha256": "37ad7217751b29e4bb775391e6530be2a1a1db0e9dc4e797a19e5af2bcc0b755"
+  },
+  "pro_pop_in/airy": {
+   "category": "pro_pop_in",
+   "description": "an icon or element popping in: a round low thump",
+   "duration": 0.1701,
+   "file": "pro_pop_in/airy.m4a",
+   "group": "pop",
+   "kinds": [
+    "pop",
+    "land",
+    "land.light",
+    "snap"
+   ],
+   "member": "airy",
+   "onset": 0.0015,
+   "order": 2,
+   "peak": 0.0175,
+   "sha256": "0e0b9a619b11a4661c6c8bd6759f6043e953829ef9ea970998d0235c706a4840"
+  },
+  "pro_pop_in/deep": {
+   "category": "pro_pop_in",
+   "description": "an icon or element popping in: a round low thump",
+   "duration": 0.1759,
+   "file": "pro_pop_in/deep.m4a",
+   "group": "pop",
+   "kinds": [
+    "pop",
+    "land",
+    "land.light",
+    "snap"
+   ],
+   "member": "deep",
+   "onset": 0.0012,
+   "order": 2,
+   "peak": 0.0195,
+   "sha256": "a06332f66ec3a972fc1a8de7fcebaf8d79e0226503da8bf7a301f4aad2ba23e1"
+  },
+  "pro_pop_in/double": {
+   "category": "pro_pop_in",
+   "description": "an icon or element popping in: a round low thump",
+   "duration": 0.1652,
+   "file": "pro_pop_in/double.m4a",
+   "group": "pop",
+   "kinds": [
+    "pop",
+    "land",
+    "land.light",
+    "snap"
+   ],
+   "member": "double",
+   "onset": 0.0012,
+   "order": 2,
+   "peak": 0.0145,
+   "sha256": "7e254861a65dbfc500025cbba6b8c06312adb42c1b7610eb711a0ecd1b60da67"
+  },
+  "pro_pop_in/knock": {
+   "category": "pro_pop_in",
+   "description": "an icon or element popping in: a round low thump",
+   "duration": 0.152,
+   "file": "pro_pop_in/knock.m4a",
+   "group": "pop",
+   "kinds": [
+    "pop",
+    "land",
+    "land.light",
+    "snap"
+   ],
+   "member": "knock",
+   "onset": 0.0015,
+   "order": 2,
+   "peak": 0.0115,
+   "sha256": "b3badd04613670976f592abacdffdc2eb9d2ee3f4940c95e2e10e95b38e690fd"
+  },
+  "pro_pop_in/round": {
+   "category": "pro_pop_in",
+   "description": "an icon or element popping in: a round low thump",
+   "duration": 0.1716,
+   "file": "pro_pop_in/round.m4a",
+   "group": "pop",
+   "kinds": [
+    "pop",
+    "land",
+    "land.light",
+    "snap"
+   ],
+   "member": "round",
+   "onset": 0.0012,
+   "order": 2,
+   "peak": 0.0195,
+   "sha256": "c407931af15da235ca85da3a070ba59704b367cfee3acbd6de6bf425dd291c64"
+  },
+  "pro_riser/air_gate": {
+   "category": "pro_riser",
+   "description": "a short stutter riser into a cut",
+   "duration": 1.2,
+   "file": "pro_riser/air_gate.m4a",
+   "group": "rise",
+   "kinds": [
+    "riser"
+   ],
+   "member": "air_gate",
+   "onset": 0.003,
+   "order": 1,
+   "peak": 1.1935,
+   "sha256": "337f65d8363d0b10bbdbc62a379aa3b2554e2528928ee32da52ceb6a2b09fe8c"
+  },
+  "pro_riser/chop": {
+   "category": "pro_riser",
+   "description": "a short stutter riser into a cut",
+   "duration": 1.0,
+   "file": "pro_riser/chop.m4a",
+   "group": "rise",
+   "kinds": [
+    "riser"
+   ],
+   "member": "chop",
+   "onset": 0.0015,
+   "order": 1,
+   "peak": 0.9945,
+   "sha256": "7e5964c7f9b9a8b52efed80533f295f1824043b52025aa061c79ac8de45ea310"
+  },
+  "pro_riser/nblips": {
+   "category": "pro_riser",
+   "description": "a short stutter riser into a cut",
+   "duration": 1.0,
+   "file": "pro_riser/nblips.m4a",
+   "group": "rise",
+   "kinds": [
+    "riser"
+   ],
+   "member": "nblips",
+   "onset": 0.0012,
+   "order": 1,
+   "peak": 0.9945,
+   "sha256": "f8a5f26461fbb6fd6669b28209d54debc4e8c277e6a1749c5d0ad9b8055edd10"
+  },
+  "pro_riser/nblips_hi": {
+   "category": "pro_riser",
+   "description": "a short stutter riser into a cut",
+   "duration": 0.85,
+   "file": "pro_riser/nblips_hi.m4a",
+   "group": "rise",
+   "kinds": [
+    "riser"
+   ],
+   "member": "nblips_hi",
+   "onset": 0.0028,
+   "order": 1,
+   "peak": 0.8445,
+   "sha256": "bb677e9dddd0b1282733e78d0e78bc862a24d233c8c3462effede86a3680961a"
+  },
+  "pro_riser/roll": {
+   "category": "pro_riser",
+   "description": "a short stutter riser into a cut",
+   "duration": 1.3,
+   "file": "pro_riser/roll.m4a",
+   "group": "rise",
+   "kinds": [
+    "riser"
+   ],
+   "member": "roll",
+   "onset": 0.002,
+   "order": 1,
+   "peak": 1.2775,
+   "sha256": "35f467148af4bedd64d0c0f4decc68b67a59abb2324ba939c50012d400e72d41"
+  },
+  "pro_shimmer/m0": {
+   "category": "pro_shimmer",
+   "description": "granular sparkle",
+   "duration": 1.95,
+   "file": "pro_shimmer/m0.m4a",
+   "group": "chime",
+   "kinds": [
+    "shimmer"
+   ],
+   "member": "m0",
+   "onset": 0.1172,
+   "order": 3,
+   "peak": 0.8525,
+   "sha256": "13e76f6ad8eedef64d9fb4e816eab137cff69e0d0d5ee53644260f8e332e83af"
+  },
+  "pro_shimmer/m1": {
+   "category": "pro_shimmer",
+   "description": "granular sparkle",
+   "duration": 1.4,
+   "file": "pro_shimmer/m1.m4a",
+   "group": "chime",
+   "kinds": [
+    "shimmer"
+   ],
+   "member": "m1",
+   "onset": 0.0752,
+   "order": 3,
+   "peak": 0.3625,
+   "sha256": "f19521229fe71666fe90ee21203b12d97a6c75cb0dc01b3c25170857fcb0b150"
+  },
+  "pro_shimmer/m2": {
+   "category": "pro_shimmer",
+   "description": "granular sparkle",
+   "duration": 1.65,
+   "file": "pro_shimmer/m2.m4a",
+   "group": "chime",
+   "kinds": [
+    "shimmer"
+   ],
+   "member": "m2",
+   "onset": 0.316,
+   "order": 3,
+   "peak": 1.0635,
+   "sha256": "bd3bca2e6057736e6d8023712c4830c77af5c04b168e21c80de83f314503c965"
+  },
+  "pro_shimmer/m4": {
+   "category": "pro_shimmer",
+   "description": "granular sparkle",
+   "duration": 2.4,
+   "file": "pro_shimmer/m4.m4a",
+   "group": "chime",
+   "kinds": [
+    "shimmer"
+   ],
+   "member": "m4",
+   "onset": 0.2547,
+   "order": 3,
+   "peak": 1.1595,
+   "sha256": "acfc8af9220ee7c3961c4a0c77357ace743128e61ba4f4783c129039ca92f766"
+  },
+  "pro_sub_drop/bright": {
+   "category": "pro_sub_drop",
+   "description": "the designed low drop that blooms after the cut",
+   "duration": 1.25,
+   "file": "pro_sub_drop/bright.m4a",
+   "group": "impact",
+   "kinds": [
+    "drop"
+   ],
+   "member": "bright",
+   "onset": 0.0,
+   "order": 3,
+   "peak": 0.3345,
+   "sha256": "4cde4af424c3017445b44789ba8302901b85128956cb2f394f177f5f1572e584"
+  },
+  "pro_sub_drop/low": {
+   "category": "pro_sub_drop",
+   "description": "the designed low drop that blooms after the cut",
+   "duration": 1.1389,
+   "file": "pro_sub_drop/low.m4a",
+   "group": "impact",
+   "kinds": [
+    "drop"
+   ],
+   "member": "low",
+   "onset": 0.052,
+   "order": 3,
+   "peak": 0.4675,
+   "sha256": "da6292553574b8d7b46608032fc16dad1a399df5ad5b7695453426c9cb15831e"
+  },
+  "pro_sub_drop/quick": {
+   "category": "pro_sub_drop",
+   "description": "the designed low drop that blooms after the cut",
+   "duration": 1.0,
+   "file": "pro_sub_drop/quick.m4a",
+   "group": "impact",
+   "kinds": [
+    "drop"
+   ],
+   "member": "quick",
+   "onset": 0.0,
+   "order": 3,
+   "peak": 0.2495,
+   "sha256": "c062053489646fcb8672b554eaecedefb00421d37a372b9a73980adc7986a982"
+  },
+  "pro_sub_drop/ref": {
+   "category": "pro_sub_drop",
+   "description": "the designed low drop that blooms after the cut",
+   "duration": 1.4452,
+   "file": "pro_sub_drop/ref.m4a",
+   "group": "impact",
+   "kinds": [
+    "drop"
+   ],
+   "member": "ref",
+   "onset": 0.0,
+   "order": 3,
+   "peak": 0.4165,
+   "sha256": "82e905b601229ddf68262b5c6c2edb546acb806123091776e4584a46d30027fb"
+  },
+  "pro_sub_drop/soft": {
+   "category": "pro_sub_drop",
+   "description": "the designed low drop that blooms after the cut",
+   "duration": 1.4818,
+   "file": "pro_sub_drop/soft.m4a",
+   "group": "impact",
+   "kinds": [
+    "drop"
+   ],
+   "member": "soft",
+   "onset": 0.0002,
+   "order": 3,
+   "peak": 0.4935,
+   "sha256": "3f0beac826907c86bcddf32cd2eb041c294b86f076ea8c390bf0ba8f790410d6"
+  },
+  "pro_tap/double": {
+   "category": "pro_tap",
+   "description": "the soft low thump of a touch",
+   "duration": 0.1181,
+   "file": "pro_tap/double.m4a",
+   "group": "ui",
+   "kinds": [
+    "land.light",
+    "tock"
+   ],
+   "member": "double",
+   "onset": 0.0015,
+   "order": 5,
+   "peak": 0.0095,
+   "sha256": "706c8996309024b09b962ef08d4cab98d99558bfe8b4b26a677f8e5ca5816477"
+  },
+  "pro_tap/finger": {
+   "category": "pro_tap",
+   "description": "the soft low thump of a touch",
+   "duration": 0.0895,
+   "file": "pro_tap/finger.m4a",
+   "group": "ui",
+   "kinds": [
+    "land.light",
+    "tock"
+   ],
+   "member": "finger",
+   "onset": 0.0015,
+   "order": 5,
+   "peak": 0.0135,
+   "sha256": "c17861eb0be68c562f2cf2e779d7f5c7bf918009aeb220f2ebc8f6f841b11c0a"
+  },
+  "pro_tap/glass": {
+   "category": "pro_tap",
+   "description": "the soft low thump of a touch",
+   "duration": 0.0981,
+   "file": "pro_tap/glass.m4a",
+   "group": "ui",
+   "kinds": [
+    "land.light",
+    "tock"
+   ],
+   "member": "glass",
+   "onset": 0.0012,
+   "order": 5,
+   "peak": 0.0095,
+   "sha256": "668f0985e4fd91f5e9ad2d35a33966d578e07f8b0f228a259776be28be00768b"
+  },
+  "pro_tap/knock": {
+   "category": "pro_tap",
+   "description": "the soft low thump of a touch",
+   "duration": 0.086,
+   "file": "pro_tap/knock.m4a",
+   "group": "ui",
+   "kinds": [
+    "land.light",
+    "tock"
+   ],
+   "member": "knock",
+   "onset": 0.0012,
+   "order": 5,
+   "peak": 0.0115,
+   "sha256": "d77d4b8360d41a18f4a1cdd08036d64ef75121c9023596931ac1d1fcdf3c14db"
+  },
+  "pro_tap/soft": {
+   "category": "pro_tap",
+   "description": "the soft low thump of a touch",
+   "duration": 0.0983,
+   "file": "pro_tap/soft.m4a",
+   "group": "ui",
+   "kinds": [
+    "land.light",
+    "tock"
+   ],
+   "member": "soft",
+   "onset": 0.0015,
+   "order": 5,
+   "peak": 0.0185,
+   "sha256": "37deb67ba060379f220b14ff178fb72ff73b92323d277a35cbfa221085e88f70"
+  },
+  "pro_typing_key/blip": {
+   "category": "pro_typing_key",
+   "description": "high-passed designed ticks for kinetic type",
+   "duration": 0.0809,
+   "file": "pro_typing_key/blip.m4a",
+   "group": "typing",
+   "kinds": [
+    "key"
+   ],
+   "member": "blip",
+   "onset": 0.001,
+   "order": 1,
+   "peak": 0.0075,
+   "sha256": "c9864892577f1d69fd98cfbcafe8ee5786f61368c966e3638a80ddcafc0576b2"
+  },
+  "pro_typing_key/crackle": {
+   "category": "pro_typing_key",
+   "description": "high-passed designed ticks for kinetic type",
+   "duration": 0.0722,
+   "file": "pro_typing_key/crackle.m4a",
+   "group": "typing",
+   "kinds": [
+    "key"
+   ],
+   "member": "crackle",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.0075,
+   "sha256": "0d664c3ea0a25ae7b460eb31ec4b4119a3795f66f1a6d78e7bdd1c35bbb38628"
+  },
+  "pro_typing_key/double": {
+   "category": "pro_typing_key",
+   "description": "high-passed designed ticks for kinetic type",
+   "duration": 0.0916,
+   "file": "pro_typing_key/double.m4a",
+   "group": "typing",
+   "kinds": [
+    "key"
+   ],
+   "member": "double",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.0085,
+   "sha256": "6a4f398718d18321b937cf97e4595fe7d0bead738bb59e3308b6e6995d147d68"
+  },
+  "pro_typing_key/glass": {
+   "category": "pro_typing_key",
+   "description": "high-passed designed ticks for kinetic type",
+   "duration": 0.0645,
+   "file": "pro_typing_key/glass.m4a",
+   "group": "typing",
+   "kinds": [
+    "key"
+   ],
+   "member": "glass",
+   "onset": 0.0005,
+   "order": 1,
+   "peak": 0.0075,
+   "sha256": "f8b9f72f656ab39a3536b894a9e5d2967b7ee443eae37dc5f83ee02563c2b89f"
+  },
+  "pro_typing_key/tick": {
+   "category": "pro_typing_key",
+   "description": "high-passed designed ticks for kinetic type",
+   "duration": 0.0607,
+   "file": "pro_typing_key/tick.m4a",
+   "group": "typing",
+   "kinds": [
+    "key"
+   ],
+   "member": "tick",
+   "onset": 0.0,
+   "order": 1,
+   "peak": 0.0075,
+   "sha256": "ef0fd9a4a65a8d9c5805fc89c68b0df2ff72da6ec5eb0c8c49abafb47f90cc92"
+  },
+  "pro_typing_run/blip": {
+   "category": "pro_typing_run",
+   "description": "a whole typed run as one file",
+   "duration": 1.5066,
+   "file": "pro_typing_run/blip.m4a",
+   "group": "typing",
+   "kinds": [
+    "key.run"
+   ],
+   "member": "blip",
+   "onset": 0.0025,
+   "order": 2,
+   "peak": 1.0675,
+   "sha256": "65ac74a9dd6df3fce7d1c4d3c24ae95354f07bdd3a513f67c4946fb0b35a53a9"
+  },
+  "pro_typing_run/double": {
+   "category": "pro_typing_run",
+   "description": "a whole typed run as one file",
+   "duration": 1.5929,
+   "file": "pro_typing_run/double.m4a",
+   "group": "typing",
+   "kinds": [
+    "key.run"
+   ],
+   "member": "double",
+   "onset": 0.0005,
+   "order": 2,
+   "peak": 0.0085,
+   "sha256": "f8447e5ef4caef44f94209755f95cc48ca5408408d66728313114bf79a526305"
+  },
+  "pro_typing_run/glass": {
+   "category": "pro_typing_run",
+   "description": "a whole typed run as one file",
+   "duration": 1.4736,
+   "file": "pro_typing_run/glass.m4a",
+   "group": "typing",
+   "kinds": [
+    "key.run"
+   ],
+   "member": "glass",
+   "onset": 0.0018,
+   "order": 2,
+   "peak": 0.6865,
+   "sha256": "354381e6b6b43f48683a6e54c22bca5b67be6b138c8516955847ae210ed1ae2f"
+  },
+  "pro_typing_run/soft": {
+   "category": "pro_typing_run",
+   "description": "a whole typed run as one file",
+   "duration": 1.7549,
+   "file": "pro_typing_run/soft.m4a",
+   "group": "typing",
+   "kinds": [
+    "key.run"
+   ],
+   "member": "soft",
+   "onset": 0.0048,
+   "order": 2,
+   "peak": 0.5285,
+   "sha256": "98d26b89345bc7664bd08049ef498d0f0288de2799b0c8eb40014ef24f0d38cb"
+  },
+  "pro_typing_run/standard": {
+   "category": "pro_typing_run",
+   "description": "a whole typed run as one file",
+   "duration": 1.4442,
+   "file": "pro_typing_run/standard.m4a",
+   "group": "typing",
+   "kinds": [
+    "key.run"
+   ],
+   "member": "standard",
+   "onset": 0.0032,
+   "order": 2,
+   "peak": 0.9755,
+   "sha256": "f79400a6a7441e5eae33dfaffce3ab405361e8a5a33cbacf9e2eea69315bb1bd"
+  },
+  "pro_typing_run/tick": {
+   "category": "pro_typing_run",
+   "description": "a whole typed run as one file",
+   "duration": 1.2659,
+   "file": "pro_typing_run/tick.m4a",
+   "group": "typing",
+   "kinds": [
+    "key.run"
+   ],
+   "member": "tick",
+   "onset": 0.0035,
+   "order": 2,
+   "peak": 0.9495,
+   "sha256": "b4d66f404a712840959e8fa8f57f62ca3f578966836ecd622055541f7fd7c61f"
+  },
+  "pro_whoosh_big/gritty": {
+   "category": "pro_whoosh_big",
+   "description": "a designed low sub swell into a cut",
+   "duration": 0.9314,
+   "file": "pro_whoosh_big/gritty.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.long",
+    "swell"
+   ],
+   "member": "gritty",
+   "onset": 0.0662,
+   "order": 2,
+   "peak": 0.3225,
+   "sha256": "964bd50c42cd39d4f72e3ea0c8ec7fd0129e6ba500aee67e10f214a724b63c08"
+  },
+  "pro_whoosh_big/long": {
+   "category": "pro_whoosh_big",
+   "description": "a designed low sub swell into a cut",
+   "duration": 1.1199,
+   "file": "pro_whoosh_big/long.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.long",
+    "swell"
+   ],
+   "member": "long",
+   "onset": 0.0678,
+   "order": 2,
+   "peak": 0.5195,
+   "sha256": "7f59f3fe210eaaa7872cb532efb6b2680251561b539d28865863e8a9bc5995b0"
+  },
+  "pro_whoosh_big/reverse": {
+   "category": "pro_whoosh_big",
+   "description": "a designed low sub swell into a cut",
+   "duration": 1.0551,
+   "file": "pro_whoosh_big/reverse.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.long",
+    "swell"
+   ],
+   "member": "reverse",
+   "onset": 0.0345,
+   "order": 2,
+   "peak": 0.7045,
+   "sha256": "2d886474be4c66239f4b5d6ab5cdbc532dd643e141027f80997fdd7bde9d60ce"
+  },
+  "pro_whoosh_big/swell": {
+   "category": "pro_whoosh_big",
+   "description": "a designed low sub swell into a cut",
+   "duration": 0.8053,
+   "file": "pro_whoosh_big/swell.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.long",
+    "swell"
+   ],
+   "member": "swell",
+   "onset": 0.052,
+   "order": 2,
+   "peak": 0.3545,
+   "sha256": "607fe51d1bae04ca6f980263dbf10a6e86f60f21ff506344dcedbfaee4340b30"
+  },
+  "pro_whoosh_big/tonal": {
+   "category": "pro_whoosh_big",
+   "description": "a designed low sub swell into a cut",
+   "duration": 0.8059,
+   "file": "pro_whoosh_big/tonal.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.long",
+    "swell"
+   ],
+   "member": "tonal",
+   "onset": 0.07,
+   "order": 2,
+   "peak": 0.3505,
+   "sha256": "efccd84b5561739c27006b41ebc8669d43adfd1e9eeb8330784b7a3d6c48d055"
+  },
+  "pro_whoosh_big/windy": {
+   "category": "pro_whoosh_big",
+   "description": "a designed low sub swell into a cut",
+   "duration": 0.7704,
+   "file": "pro_whoosh_big/windy.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.long",
+    "swell"
+   ],
+   "member": "windy",
+   "onset": 0.0745,
+   "order": 2,
+   "peak": 0.3395,
+   "sha256": "163f1af9b85abed63fe925c5f9a7934180e3958e53495e69ba42f949f1fab39a"
+  },
+  "pro_zip/down": {
+   "category": "pro_zip",
+   "description": "tonal sweeps across a cut (up / arc members rise in pitch)",
+   "duration": 0.2874,
+   "file": "pro_zip/down.m4a",
+   "group": "rise",
+   "kinds": [
+    "zip"
+   ],
+   "member": "down",
+   "onset": 0.0008,
+   "order": 3,
+   "peak": 0.0595,
+   "sha256": "2b0eda22a844d267545b455ff936a73e6fef6d3c5ee4b48927a50ce5b07a3ee6"
+  },
+  "pro_zip/down_warm": {
+   "category": "pro_zip",
+   "description": "tonal sweeps across a cut (up / arc members rise in pitch)",
+   "duration": 0.3716,
+   "file": "pro_zip/down_warm.m4a",
+   "group": "rise",
+   "kinds": [
+    "zip"
+   ],
+   "member": "down_warm",
+   "onset": 0.0008,
+   "order": 3,
+   "peak": 0.0345,
+   "sha256": "3901c148339bc386f8d6d7f616bfdb965a94bdaa4ee8a687a3a3bfaa6bdcfe48"
+  },
+  "riser/air": {
+   "category": "riser",
+   "description": "a build into a reveal; it stops on its loudest sample",
+   "duration": 2.4,
+   "file": "riser/air.m4a",
+   "group": "rise",
+   "kinds": [
+    "riser"
+   ],
+   "member": "air",
+   "onset": 0.024,
+   "order": 0,
+   "peak": 2.3885,
+   "sha256": "5cb3fcb04df8da536d6c4481761b9359537afc1b7570d4e968b551b8d8f969d0"
+  },
+  "riser/rush": {
+   "category": "riser",
+   "description": "a build into a reveal; it stops on its loudest sample",
+   "duration": 1.756,
+   "file": "riser/rush.m4a",
+   "group": "rise",
+   "kinds": [
+    "riser"
+   ],
+   "member": "rush",
+   "onset": 0.0765,
+   "order": 0,
+   "peak": 1.7465,
+   "sha256": "f7192104855fe5e5394d357e296c55a9e93ff63041f23393d0600c42fa899c24"
+  },
+  "riser/shepard": {
+   "category": "riser",
+   "description": "a build into a reveal; it stops on its loudest sample",
+   "duration": 3.708,
+   "file": "riser/shepard.m4a",
+   "group": "rise",
+   "kinds": [
+    "riser"
+   ],
+   "member": "shepard",
+   "onset": 0.0048,
+   "order": 0,
+   "peak": 3.6535,
+   "sha256": "a054b015f4faa33b3bb9850d43a5b9dec6fcb86d2ad36de995d64b1cc96670ac"
+  },
+  "riser/swell": {
+   "category": "riser",
+   "description": "a build into a reveal; it stops on its loudest sample",
+   "duration": 2.2,
+   "file": "riser/swell.m4a",
+   "group": "rise",
+   "kinds": [
+    "riser"
+   ],
+   "member": "swell",
+   "onset": 1.3075,
+   "order": 0,
+   "peak": 2.1925,
+   "sha256": "b0aa29dbd20c632eadeae4c025fcdaf90e199882ece5836e4d6c9b2752de57d9"
+  },
+  "riser/tension": {
+   "category": "riser",
+   "description": "a build into a reveal; it stops on its loudest sample",
+   "duration": 2.8,
+   "file": "riser/tension.m4a",
+   "group": "rise",
+   "kinds": [
+    "riser"
+   ],
+   "member": "tension",
+   "onset": 0.005,
+   "order": 0,
+   "peak": 2.7705,
+   "sha256": "4f0f6970d4ec81a36a87549a80456d7517a771211c0326b6ee3c6bffb985c671"
+  },
+  "shimmer/m0": {
+   "category": "shimmer",
+   "description": "chimes ringing out (end-card sparkle)",
+   "duration": 4.2,
+   "file": "shimmer/m0.m4a",
+   "group": "chime",
+   "kinds": [
+    "shimmer"
+   ],
+   "member": "m0",
+   "onset": 0.0,
+   "order": 2,
+   "peak": 0.7455,
+   "sha256": "a65b9be82d9f4e549c36d3d8e315187c85a3734558baf93ff69c5bfe3942da8e"
+  },
+  "shimmer/m1": {
+   "category": "shimmer",
+   "description": "chimes ringing out (end-card sparkle)",
+   "duration": 4.0,
+   "file": "shimmer/m1.m4a",
+   "group": "chime",
+   "kinds": [
+    "shimmer"
+   ],
+   "member": "m1",
+   "onset": 0.0,
+   "order": 2,
+   "peak": 0.7045,
+   "sha256": "6dcb4de8f0e5e3bbbbe28aab9a31bae552c8fe47a7992947c6c3402ef9dd6da3"
+  },
+  "shimmer/m2": {
+   "category": "shimmer",
+   "description": "chimes ringing out (end-card sparkle)",
+   "duration": 4.2,
+   "file": "shimmer/m2.m4a",
+   "group": "chime",
+   "kinds": [
+    "shimmer"
+   ],
+   "member": "m2",
+   "onset": 0.0,
+   "order": 2,
+   "peak": 0.0285,
+   "sha256": "351aefd96d1f08e88dae17ff53aaa091cf29e94557b453c83ed5a8f787e21a7a"
+  },
+  "shimmer/m3": {
+   "category": "shimmer",
+   "description": "chimes ringing out (end-card sparkle)",
+   "duration": 3.6,
+   "file": "shimmer/m3.m4a",
+   "group": "chime",
+   "kinds": [
+    "shimmer"
+   ],
+   "member": "m3",
+   "onset": 0.0,
+   "order": 2,
+   "peak": 0.5515,
+   "sha256": "d30df9b4a92d40c41fc4b5cef0e2544e8c104c1028eb40106f0ca5a8503cff6b"
+  },
+  "shimmer/m4": {
+   "category": "shimmer",
+   "description": "chimes ringing out (end-card sparkle)",
+   "duration": 4.2,
+   "file": "shimmer/m4.m4a",
+   "group": "chime",
+   "kinds": [
+    "shimmer"
+   ],
+   "member": "m4",
+   "onset": 0.0955,
+   "order": 2,
+   "peak": 0.7865,
+   "sha256": "0e535b7f7e1266dcdcd87584ef6e9069e327634654b6ef6c714f1cdf1aff738c"
+  },
+  "shimmer/m5": {
+   "category": "shimmer",
+   "description": "chimes ringing out (end-card sparkle)",
+   "duration": 4.4,
+   "file": "shimmer/m5.m4a",
+   "group": "chime",
+   "kinds": [
+    "shimmer"
+   ],
+   "member": "m5",
+   "onset": 0.0,
+   "order": 2,
+   "peak": 0.6825,
+   "sha256": "a94d158b3c3041ab80409f44924e034489a401a28c9d9a5af677561fd7fa97d8"
+  },
+  "sub_drop/808": {
+   "category": "sub_drop",
+   "description": "weight under a hit, a music drop",
+   "duration": 2.0539,
+   "file": "sub_drop/808.m4a",
+   "group": "impact",
+   "kinds": [
+    "drop"
+   ],
+   "member": "808",
+   "onset": 0.0,
+   "order": 2,
+   "peak": 0.0505,
+   "sha256": "0a75e6aa3ace18047523ea57cca2572c9a840fb04c0eabf75d9fbf0a96095deb"
+  },
+  "sub_drop/gritty": {
+   "category": "sub_drop",
+   "description": "weight under a hit, a music drop",
+   "duration": 2.15,
+   "file": "sub_drop/gritty.m4a",
+   "group": "impact",
+   "kinds": [
+    "drop"
+   ],
+   "member": "gritty",
+   "onset": 0.0002,
+   "order": 2,
+   "peak": 0.1335,
+   "sha256": "a63b993106750b9773b4b45341d098604b07906759721367c42c021ffb57e35a"
+  },
+  "sub_drop/long": {
+   "category": "sub_drop",
+   "description": "weight under a hit, a music drop",
+   "duration": 2.088,
+   "file": "sub_drop/long.m4a",
+   "group": "impact",
+   "kinds": [
+    "drop"
+   ],
+   "member": "long",
+   "onset": 0.0,
+   "order": 2,
+   "peak": 0.2735,
+   "sha256": "a733808108c1ffa388d92e1760c2c240b2080d2e0b4c21f77c8cf0f0a87adf6d"
+  },
+  "sub_drop/pro": {
+   "category": "sub_drop",
+   "description": "weight under a hit, a music drop",
+   "duration": 2.0967,
+   "file": "sub_drop/pro.m4a",
+   "group": "impact",
+   "kinds": [
+    "drop"
+   ],
+   "member": "pro",
+   "onset": 0.0,
+   "order": 2,
+   "peak": 0.4175,
+   "sha256": "f4171a0a0f82d5ea3776732d03844bd2c297cad497ff93fe2355b7791d725fde"
+  },
+  "sub_drop/punch": {
+   "category": "sub_drop",
+   "description": "weight under a hit, a music drop",
+   "duration": 1.004,
+   "file": "sub_drop/punch.m4a",
+   "group": "impact",
+   "kinds": [
+    "drop"
+   ],
+   "member": "punch",
+   "onset": 0.0,
+   "order": 2,
+   "peak": 0.0065,
+   "sha256": "b9fc03b54bed70a61dbbdbdb28ded86ee007e8d3247dc4eb124e9fed237d0deb"
+  },
+  "swipe/cloth": {
+   "category": "swipe",
+   "description": "card and panel swipes, page turns (cloth, paper)",
+   "duration": 0.6757,
+   "file": "swipe/cloth.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short"
+   ],
+   "member": "cloth",
+   "onset": 0.023,
+   "order": 4,
+   "peak": 0.1765,
+   "sha256": "85f9b8b0ff4395189f124a21a867b04e226f543229c7366eff4a8ed1262799a1"
+  },
+  "swipe/flick": {
+   "category": "swipe",
+   "description": "card and panel swipes, page turns (cloth, paper)",
+   "duration": 0.5681,
+   "file": "swipe/flick.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short"
+   ],
+   "member": "flick",
+   "onset": 0.0107,
+   "order": 4,
+   "peak": 0.1305,
+   "sha256": "ac90a0c3702ee9f14b85d22e625dddb5de23ba9040447cceba4aefb9fab65793"
+  },
+  "swipe/glide": {
+   "category": "swipe",
+   "description": "card and panel swipes, page turns (cloth, paper)",
+   "duration": 0.7355,
+   "file": "swipe/glide.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short"
+   ],
+   "member": "glide",
+   "onset": 0.0278,
+   "order": 4,
+   "peak": 0.2575,
+   "sha256": "431e82a99e8ca3fe4d01958c69bdba28a0a4176f8c4d4e4757d5daa3727224af"
+  },
+  "swipe/paper": {
+   "category": "swipe",
+   "description": "card and panel swipes, page turns (cloth, paper)",
+   "duration": 0.7697,
+   "file": "swipe/paper.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short"
+   ],
+   "member": "paper",
+   "onset": 0.0462,
+   "order": 4,
+   "peak": 0.1295,
+   "sha256": "04fc06d9c785747d0ad025b84c9637cdb6e68ddaf1c601d240d30bd0038b8e78"
+  },
+  "swipe/velvet": {
+   "category": "swipe",
+   "description": "card and panel swipes, page turns (cloth, paper)",
+   "duration": 1.1496,
+   "file": "swipe/velvet.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short"
+   ],
+   "member": "velvet",
+   "onset": 0.048,
+   "order": 4,
+   "peak": 0.2645,
+   "sha256": "5841f47180895e304367d808652a6acf624c161819f0a8caa77a0224f9fdeac9"
+  },
+  "swish/blade": {
+   "category": "swish",
+   "description": "thin quick flicks, text slides, small UI moves",
+   "duration": 0.3685,
+   "file": "swish/blade.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short"
+   ],
+   "member": "blade",
+   "onset": 0.0078,
+   "order": 3,
+   "peak": 0.0595,
+   "sha256": "efde7bd801311346fce9c9962d4d0ad43ae4bbb29e7d398118b78bfdbe58e1ca"
+  },
+  "swish/cane": {
+   "category": "swish",
+   "description": "thin quick flicks, text slides, small UI moves",
+   "duration": 0.7001,
+   "file": "swish/cane.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short"
+   ],
+   "member": "cane",
+   "onset": 0.0258,
+   "order": 3,
+   "peak": 0.0725,
+   "sha256": "bf7259672b962d6db8d363d51a9262cc92e91850863b65d3838812f02496d162"
+  },
+  "swish/soft": {
+   "category": "swish",
+   "description": "thin quick flicks, text slides, small UI moves",
+   "duration": 0.8826,
+   "file": "swish/soft.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short"
+   ],
+   "member": "soft",
+   "onset": 0.0205,
+   "order": 3,
+   "peak": 0.1095,
+   "sha256": "16a41f540824ced9f9a49554b8b7358307c2d0340efc587b2bfe49a699c5a6e3"
+  },
+  "swish/stick": {
+   "category": "swish",
+   "description": "thin quick flicks, text slides, small UI moves",
+   "duration": 0.5269,
+   "file": "swish/stick.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short"
+   ],
+   "member": "stick",
+   "onset": 0.024,
+   "order": 3,
+   "peak": 0.0975,
+   "sha256": "cbbea265f14a74a9c7817fd2ebdffb954ee73a356921e1be99f79d94a1c0bda8"
+  },
+  "swish/zing": {
+   "category": "swish",
+   "description": "thin quick flicks, text slides, small UI moves",
+   "duration": 0.5353,
+   "file": "swish/zing.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short"
+   ],
+   "member": "zing",
+   "onset": 0.0152,
+   "order": 3,
+   "peak": 0.0645,
+   "sha256": "af6efdc2a7516324f3f4656a3b29178667b208f7506c155504596f538328b01d"
+  },
+  "tap/finger": {
+   "category": "tap",
+   "description": "screen taps and light touches on a surface",
+   "duration": 0.1205,
+   "file": "tap/finger.m4a",
+   "group": "ui",
+   "kinds": [
+    "tock",
+    "land.light",
+    "click",
+    "tick"
+   ],
+   "member": "finger",
+   "onset": 0.0012,
+   "order": 4,
+   "peak": 0.0065,
+   "sha256": "dbfb58fe6be6981fcf0a65dc7f09cc69f980093f4833355c6f237e8ff998f3bc"
+  },
+  "tap/glass": {
+   "category": "tap",
+   "description": "screen taps and light touches on a surface",
+   "duration": 0.1525,
+   "file": "tap/glass.m4a",
+   "group": "ui",
+   "kinds": [
+    "tock",
+    "land.light",
+    "click",
+    "tick"
+   ],
+   "member": "glass",
+   "onset": 0.0012,
+   "order": 4,
+   "peak": 0.0045,
+   "sha256": "3df0bec2a2b54a79c42f22d58ff38b40cdbaecf0bd674b0cec472e85450b4575"
+  },
+  "tap/knuckle": {
+   "category": "tap",
+   "description": "screen taps and light touches on a surface",
+   "duration": 0.152,
+   "file": "tap/knuckle.m4a",
+   "group": "ui",
+   "kinds": [
+    "tock",
+    "land.light",
+    "click",
+    "tick"
+   ],
+   "member": "knuckle",
+   "onset": 0.0012,
+   "order": 4,
+   "peak": 0.0055,
+   "sha256": "4f32583b74664cf39cd62b3fd178c021b69f392272122f69e2ab36397e2764a6"
+  },
+  "tap/soft": {
+   "category": "tap",
+   "description": "screen taps and light touches on a surface",
+   "duration": 0.1304,
+   "file": "tap/soft.m4a",
+   "group": "ui",
+   "kinds": [
+    "tock",
+    "land.light",
+    "click",
+    "tick"
+   ],
+   "member": "soft",
+   "onset": 0.0012,
+   "order": 4,
+   "peak": 0.0055,
+   "sha256": "25651f21a8feed3c9fc27eb309fdea8583e9f0c22db4a318dc06f82d4fbaf046"
+  },
+  "tap/table": {
+   "category": "tap",
+   "description": "screen taps and light touches on a surface",
+   "duration": 0.1349,
+   "file": "tap/table.m4a",
+   "group": "ui",
+   "kinds": [
+    "tock",
+    "land.light",
+    "click",
+    "tick"
+   ],
+   "member": "table",
+   "onset": 0.0012,
+   "order": 4,
+   "peak": 0.0055,
+   "sha256": "4d318f85b06919e06a3b9d69f22802c9b1f69d08a7a00da29208aec16fd04dff"
+  },
+  "toggle/latch": {
+   "category": "toggle",
+   "description": "switches, settings toggles, lock-ins (press + latch)",
+   "duration": 0.217,
+   "file": "toggle/latch.m4a",
+   "group": "ui",
+   "kinds": [
+    "snap",
+    "click"
+   ],
+   "member": "latch",
+   "onset": 0.0012,
+   "order": 6,
+   "peak": 0.1385,
+   "sha256": "2cec53bf34e01c16f62b2439281b83662b55200b3e767884a33dd1cd79a20df4"
+  },
+  "toggle/micro": {
+   "category": "toggle",
+   "description": "switches, settings toggles, lock-ins (press + latch)",
+   "duration": 0.1234,
+   "file": "toggle/micro.m4a",
+   "group": "ui",
+   "kinds": [
+    "snap",
+    "click"
+   ],
+   "member": "micro",
+   "onset": 0.0012,
+   "order": 6,
+   "peak": 0.0045,
+   "sha256": "1d1837b61c30e1940fe8b6b5c24649b0a753b6f64754778811cbf397898fb8ca"
+  },
+  "toggle/off": {
+   "category": "toggle",
+   "description": "switches, settings toggles, lock-ins (press + latch)",
+   "duration": 0.1365,
+   "file": "toggle/off.m4a",
+   "group": "ui",
+   "kinds": [
+    "snap",
+    "click"
+   ],
+   "member": "off",
+   "onset": 0.0012,
+   "order": 6,
+   "peak": 0.0045,
+   "sha256": "c00782d7e0f5058e6aab1826e2057d6ee91a977cc7d240342a88f4789c5fa2ac"
+  },
+  "toggle/on": {
+   "category": "toggle",
+   "description": "switches, settings toggles, lock-ins (press + latch)",
+   "duration": 0.1666,
+   "file": "toggle/on.m4a",
+   "group": "ui",
+   "kinds": [
+    "snap",
+    "click"
+   ],
+   "member": "on",
+   "onset": 0.0012,
+   "order": 6,
+   "peak": 0.0045,
+   "sha256": "d616aca14ac24709fff38a28ed8b7edff3ee35ececc9324c833e7a8fe923b334"
+  },
+  "toggle/rocker": {
+   "category": "toggle",
+   "description": "switches, settings toggles, lock-ins (press + latch)",
+   "duration": 0.2348,
+   "file": "toggle/rocker.m4a",
+   "group": "ui",
+   "kinds": [
+    "snap",
+    "click"
+   ],
+   "member": "rocker",
+   "onset": 0.0012,
+   "order": 6,
+   "peak": 0.0825,
+   "sha256": "ec9835c79ac8c7d618da84db6098841c3ec3e3c6176f9cd6f5d1bf1e70ea3683"
+  },
+  "typing_key/clicky": {
+   "category": "typing_key",
+   "description": "realistic mechanical keys, one take per character",
+   "duration": 0.1937,
+   "file": "typing_key/clicky.m4a",
+   "group": "typing",
+   "kinds": [
+    "key",
+    "key.space",
+    "key.return"
+   ],
+   "member": "clicky",
+   "onset": 0.0105,
+   "order": 0,
+   "peak": 0.0225,
+   "sha256": "03401b11ee784342095c43ad8a101a700d8fd07fab308fe0b97f1df5b71f81a9"
+  },
+  "typing_key/crisp": {
+   "category": "typing_key",
+   "description": "realistic mechanical keys, one take per character",
+   "duration": 0.2231,
+   "file": "typing_key/crisp.m4a",
+   "group": "typing",
+   "kinds": [
+    "key",
+    "key.space",
+    "key.return"
+   ],
+   "member": "crisp",
+   "onset": 0.0088,
+   "order": 0,
+   "peak": 0.0115,
+   "sha256": "aa87cc80e6a82e2cf5e3cdca801f8ca57a423bb774b5e009554358c8e974cce2"
+  },
+  "typing_key/deep": {
+   "category": "typing_key",
+   "description": "realistic mechanical keys, one take per character",
+   "duration": 0.3187,
+   "file": "typing_key/deep.m4a",
+   "group": "typing",
+   "kinds": [
+    "key",
+    "key.space",
+    "key.return"
+   ],
+   "member": "deep",
+   "onset": 0.01,
+   "order": 0,
+   "peak": 0.0135,
+   "sha256": "173912906b80ed297e926df7d7896edce484d6042bb8f0d08e329d5b46a55baf"
+  },
+  "typing_key/thock": {
+   "category": "typing_key",
+   "description": "realistic mechanical keys, one take per character",
+   "duration": 0.3365,
+   "file": "typing_key/thock.m4a",
+   "group": "typing",
+   "kinds": [
+    "key",
+    "key.space",
+    "key.return"
+   ],
+   "member": "thock",
+   "onset": 0.0088,
+   "order": 0,
+   "peak": 0.0135,
+   "sha256": "c8a29f31aec90c13b3a5f28f9c29aade47b73fc2a53c7db1e68465d0940532ac"
+  },
+  "whoosh_big/cape": {
+   "category": "whoosh_big",
+   "description": "big scene transitions, large objects passing",
+   "duration": 1.3268,
+   "file": "whoosh_big/cape.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.long",
+    "swell"
+   ],
+   "member": "cape",
+   "onset": 0.039,
+   "order": 1,
+   "peak": 0.4585,
+   "sha256": "e4f05bb2ed6cc7028cf7b5ab81c7b0ef0340327aaa69899f3e144eeba0726d11"
+  },
+  "whoosh_big/deep": {
+   "category": "whoosh_big",
+   "description": "big scene transitions, large objects passing",
+   "duration": 2.0383,
+   "file": "whoosh_big/deep.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.long",
+    "swell"
+   ],
+   "member": "deep",
+   "onset": 0.2532,
+   "order": 1,
+   "peak": 0.7485,
+   "sha256": "979a4eff68a7aa73f012c010b9215c34a89168e099f8af20f37fd98c04c7b6cf"
+  },
+  "whoosh_big/gust": {
+   "category": "whoosh_big",
+   "description": "big scene transitions, large objects passing",
+   "duration": 1.886,
+   "file": "whoosh_big/gust.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.long",
+    "swell"
+   ],
+   "member": "gust",
+   "onset": 0.2018,
+   "order": 1,
+   "peak": 0.6025,
+   "sha256": "5784c666fdd2a70c2e20201602e4fa99e1da1a6b141e37cc8a44e76529b4ebdf"
+  },
+  "whoosh_big/jet": {
+   "category": "whoosh_big",
+   "description": "big scene transitions, large objects passing",
+   "duration": 1.6488,
+   "file": "whoosh_big/jet.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.long",
+    "swell"
+   ],
+   "member": "jet",
+   "onset": 0.0772,
+   "order": 1,
+   "peak": 0.5445,
+   "sha256": "514849e000d2ee119a737f68ad494438c7d1adced9ca71926992d668f3b87377"
+  },
+  "whoosh_big/reverse": {
+   "category": "whoosh_big",
+   "description": "big scene transitions, large objects passing",
+   "duration": 1.5053,
+   "file": "whoosh_big/reverse.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.long",
+    "swell"
+   ],
+   "member": "reverse",
+   "onset": 0.1048,
+   "order": 1,
+   "peak": 0.8525,
+   "sha256": "ab65880e234099fb5e92d0261677fcd113b4945d169a33325ab047c8a2f06f86"
+  },
+  "whoosh_big/swell": {
+   "category": "whoosh_big",
+   "description": "big scene transitions, large objects passing",
+   "duration": 1.3547,
+   "file": "whoosh_big/swell.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.long",
+    "swell"
+   ],
+   "member": "swell",
+   "onset": 0.0592,
+   "order": 1,
+   "peak": 0.4365,
+   "sha256": "c9c09ee2418006de59a333b52a715c3f0d037405edef7901cb58deb3ff5fe997"
+  },
+  "whoosh_fast/crisp": {
+   "category": "whoosh_fast",
+   "description": "whip pans, fast fly-ins, element moves",
+   "duration": 1.0561,
+   "file": "whoosh_fast/crisp.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short",
+    "suck"
+   ],
+   "member": "crisp",
+   "onset": 0.0195,
+   "order": 0,
+   "peak": 0.1305,
+   "sha256": "50c8e41e56f510f94e9fcd1740934689214f2d2885af8693186ee5b6da9ddfc2"
+  },
+  "whoosh_fast/heavy": {
+   "category": "whoosh_fast",
+   "description": "whip pans, fast fly-ins, element moves",
+   "duration": 0.765,
+   "file": "whoosh_fast/heavy.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short",
+    "suck"
+   ],
+   "member": "heavy",
+   "onset": 0.0285,
+   "order": 0,
+   "peak": 0.1345,
+   "sha256": "83dd7e58f1a8c0ddf770851a4bfef88abccaefcbca502c437bccd1c68e4d5edc"
+  },
+  "whoosh_fast/reverse": {
+   "category": "whoosh_fast",
+   "description": "whip pans, fast fly-ins, element moves",
+   "duration": 0.7681,
+   "file": "whoosh_fast/reverse.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short",
+    "suck"
+   ],
+   "member": "reverse",
+   "onset": 0.0295,
+   "order": 0,
+   "peak": 0.2945,
+   "sha256": "99347528c24d5bc19daf85a11c7a058d59c9d1f0ba3cf02ddfc9b8725adaf302"
+  },
+  "whoosh_fast/sleeve": {
+   "category": "whoosh_fast",
+   "description": "whip pans, fast fly-ins, element moves",
+   "duration": 1.0901,
+   "file": "whoosh_fast/sleeve.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short",
+    "suck"
+   ],
+   "member": "sleeve",
+   "onset": 0.0142,
+   "order": 0,
+   "peak": 0.1565,
+   "sha256": "bf2023949af9d910c0d23d5e9d8111d527d1da68e51b2ec751e724a538219459"
+  },
+  "whoosh_fast/tight": {
+   "category": "whoosh_fast",
+   "description": "whip pans, fast fly-ins, element moves",
+   "duration": 0.5364,
+   "file": "whoosh_fast/tight.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short",
+    "suck"
+   ],
+   "member": "tight",
+   "onset": 0.0485,
+   "order": 0,
+   "peak": 0.1615,
+   "sha256": "a40fec4ec45da75329797a68554f8419d60347247209ef0fae3ced2b166e2988"
+  },
+  "whoosh_fast/whistle": {
+   "category": "whoosh_fast",
+   "description": "whip pans, fast fly-ins, element moves",
+   "duration": 0.9968,
+   "file": "whoosh_fast/whistle.m4a",
+   "group": "whoosh",
+   "kinds": [
+    "whoosh.short",
+    "suck"
+   ],
+   "member": "whistle",
+   "onset": 0.0175,
+   "order": 0,
+   "peak": 0.1925,
+   "sha256": "0a2505684b9eb49833642e37ecc6ad29432a71918d0ee422f59ef3aed9419b56"
+  }
+ },
+ "source": {
+  "bank": "forge_v2r6+fit1+pluck1",
+  "commit": "0121eb67ee9bf599189a408909b9e37c1f26615a",
+  "copyright": "Copyright (c) 2026 Leon Lin",
+  "licence": "MIT",
+  "name": "earshot",
+  "released": "2026-10-18",
+  "url": "https://github.com/Leonxlnx/earshot",
+  "version": "0.3.0"
+ }
+}

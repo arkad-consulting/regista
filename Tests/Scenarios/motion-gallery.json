@@ -1,0 +1,654 @@
+{
+ "name": "motion-gallery",
+ "description": "Every motion template (issue #22) on a synthetic talking head (media.synthesize: a speaker silhouette with its exact person matte, so the behind/in-front layering is tested without footage or Vision), in the Arkad kit: each template added with motion.add in its own 3 s window (no warnings), the catalog lists them all, effects.preview renders one without touching the edit or the undo history, effects.check finds every template visible at three moments and none of their ink in the caption band (templates that cover the frame by design are exempt), exported 9:16. Needs no engines and no footage (ffmpeg only for the export).",
+ "steps": [
+  {
+   "command": "project.new",
+   "params": {
+    "name": "motion-gallery",
+    "directory": "${WORK}"
+   }
+  },
+  {
+   "command": "media.synthesize",
+   "params": {
+    "path": "${WORK}/talking-head.mov",
+    "duration": 103
+   },
+   "capture": {
+    "cam": "result.asset.id"
+   },
+   "expect": {
+    "result.frames": 3090
+   }
+  },
+  {
+   "command": "track.add",
+   "params": {
+    "kind": "video"
+   },
+   "capture": {
+    "v": "result.track.id"
+   }
+  },
+  {
+   "command": "timeline.place",
+   "params": {
+    "assetId": "${cam}",
+    "trackId": "${v}",
+    "sourceIn": 0,
+    "sourceOut": 103
+   }
+  },
+  {
+   "command": "brandkit.apply",
+   "params": {
+    "kit": "arkad",
+    "captions": false
+   }
+  },
+  {
+   "command": "effects.catalog",
+   "params": {
+    "category": "templates"
+   },
+   "expect": {
+    "result.items": {
+     "count": 36
+    }
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "orbit-carousel",
+    "start": 0.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "orbit-carousel"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "checklist",
+    "start": 3.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "checklist"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "counter",
+    "start": 6.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "counter"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "swing-tag",
+    "start": 9.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "swing-tag"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "marquee",
+    "start": 12.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "marquee"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "device-frame",
+    "start": 15.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "device-frame"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "card-stack",
+    "start": 18.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "card-stack"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "hud-frame",
+    "start": 21.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "hud-frame"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "chart",
+    "start": 24.3,
+    "duration": 2.7,
+    "fields": {
+     "kind": "line"
+    }
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "chart"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "kicker-headline",
+    "start": 27.3,
+    "duration": 2.7,
+    "fields": {
+     "kicker": "FROM NOW ON",
+     "headline": "CLAUDE"
+    },
+    "behind": true
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "kicker-headline"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "annotation-chip",
+    "start": 30.3,
+    "duration": 2.7,
+    "fields": {
+     "target": [
+      600,
+      760
+     ]
+    }
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "annotation-chip"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "background-scene",
+    "start": 33.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "background-scene"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "stat-card",
+    "start": 36.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "stat-card"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "before-after",
+    "start": 39.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "before-after"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "scatter-wall",
+    "start": 42.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "scatter-wall"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "mock-ui",
+    "start": 45.3,
+    "duration": 2.7,
+    "fields": {
+     "kind": "wheels"
+    }
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "mock-ui"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "gallery-card",
+    "start": 48.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "gallery-card"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "thumbnail-ring",
+    "start": 51.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "thumbnail-ring"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "script-card",
+    "start": 54.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "script-card"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "bento-grid",
+    "start": 57.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "bento-grid"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "card-row",
+    "start": 60.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "card-row"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "video-card",
+    "start": 63.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "video-card"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "prompt-bar",
+    "start": 66.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "prompt-bar"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "timeline-milestones",
+    "start": 69.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "timeline-milestones"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "stacked-pages",
+    "start": 72.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "stacked-pages"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "progress-rows",
+    "start": 75.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "progress-rows"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "sfx-callout",
+    "start": 78.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "sfx-callout"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "cursor",
+    "start": 81.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "cursor"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "chat-window",
+    "start": 84.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "chat-window"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "cut-visualizer",
+    "start": 87.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "cut-visualizer"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "play-card",
+    "start": 90.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "play-card"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "receipt",
+    "start": 93.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "receipt"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "machine",
+    "start": 96.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "machine"
+   }
+  },
+  {
+   "command": "motion.add",
+   "params": {
+    "template": "logo-tile",
+    "start": 99.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "logo-tile"
+   }
+  },
+  {
+   "command": "effects.preview",
+   "params": {
+    "item": "checklist",
+    "at": 1,
+    "frames": 6
+   },
+   "expect": {
+    "result.times": {
+     "count": 6
+    },
+    "state.history.nextUndo": "motion.add"
+   }
+  },
+  {
+   "command": "history.undo",
+   "expect": {
+    "result.undone": "motion.add"
+   }
+  },
+  {
+   "command": "history.redo",
+   "expect": {
+    "result.redone": "motion.add"
+   }
+  },
+  {
+   "command": "frame.contactSheet",
+   "params": {
+    "times": [
+     1.6,
+     4.6,
+     7.6,
+     10.6,
+     13.6,
+     16.6,
+     19.6,
+     22.6,
+     25.6,
+     28.6,
+     31.6,
+     34.6,
+     37.6,
+     40.6,
+     43.6,
+     46.6,
+     49.6,
+     52.6,
+     55.6,
+     58.6,
+     61.6,
+     64.6,
+     67.6,
+     70.6,
+     73.6,
+     76.6,
+     79.6,
+     82.6,
+     85.6,
+     88.6
+    ],
+    "path": "${WORK}/motion-sheet.jpg"
+   }
+  },
+  {
+   "command": "effects.check",
+   "expect": {
+    "result.pass": true,
+    "result.captionBand": {
+     "count": 0
+    },
+    "result.items": {
+     "count": 102
+    }
+   },
+   "show": [
+    "result.captionBand"
+   ]
+  },
+  {
+   "command": "export.render",
+   "params": {
+    "path": "${WORK}/motion-gallery.mp4",
+    "preset": "9:16"
+   },
+   "expect": {
+    "result.width": 1080,
+    "result.height": 1920
+   }
+  },
+  {
+   "command": "media.probe",
+   "params": {
+    "path": "${WORK}/motion-gallery.mp4"
+   },
+   "expect": {
+    "result.video.fps": "30/1"
+   }
+  }
+ ]
+}

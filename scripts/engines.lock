@@ -1,0 +1,93 @@
+# Regista engines.lock — every external artifact scripts/install.sh fetches, pinned, with its SHA256.
+# Read by scripts/install.sh and scripts/doctor.sh (bash 3.2: split on " | ").
+#
+# Supply-chain rule: an artifact is pinned only if it was released >= 14 days before its pin date.
+# doctor.sh re-checks that rule on every line. To bump an engine: change version/url/sha256/released,
+# set pinned to the day you adopt it, run scripts/doctor.sh, commit.
+#
+# Columns:  id | version | released | pinned | sha256 | size (bytes) | url
+#   - released/pinned are YYYY-MM-DD; "-" means not applicable.
+#   - url "brew:<formula>" = installed with Homebrew (bottles are not pinnable): version is the
+#     MINIMUM accepted, the installer warns below it. sha256/size "-" for those.
+#   - url "repo:<path>" = a file shipped in this repository (sha256 guards accidental edits).
+#
+# Pinned on 2026-11-01 with the engines (issue #8) and on 2026-11-02 with the installer (issue #12).
+
+# --- Homebrew tools (minimum versions; tested with ffmpeg 9.0.2, cmake 4.4.3, uv 0.12.7) ---
+ffmpeg | 7.0 | - | 2026-11-02 | - | - | brew:ffmpeg
+cmake | 3.28 | - | 2026-11-02 | - | - | brew:cmake
+uv | 0.9 | - | 2026-11-02 | - | - | brew:uv
+
+# --- Base tier ---
+# whisper.cpp source tarball (tag v1.9.5), built by scripts/build-whisper.sh (static, Metal embedded).
+whisper-src | 1.9.5 | 2026-10-06 | 2026-11-01 | ff1a9053feb509ff9d7729703355541ae9690073a6b1c40eb692c962e0dc1720 | - | https://github.com/ggml-org/whisper.cpp/archive/refs/tags/v1.9.5.tar.gz
+# ggml large-v3-turbo, official whisper.cpp model repo pinned to a revision; sha256 = the HF LFS oid.
+ggml-large-v3-turbo | hf@5359861c739e955e79d9a303bcbc70fb988958b1 | 2024-10-29 | 2026-11-01 | 1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69 | 1624555275 | https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3-turbo.bin
+# DeepFilterNet3 release binary (model embedded). The release publishes no checksum: hash of the asset.
+deep-filter | 0.5.6 | 2023-08-31 | 2026-11-01 | 4601e7f4e4c03e59a4c5b5000216ef3add3e808799cfccd95e14e83ea4611081 | 27877081 | https://github.com/Rikorose/DeepFilterNet/releases/download/v0.5.6/deep-filter-0.5.6-aarch64-apple-darwin
+
+# Sound-effect bank: 185 sounds rendered from earshot 0.3.0 (MIT, commit 0121eb6) by scripts/sfx-bank.py, shipped in the
+# repo (Resources/SFX). manifest.json holds every file's sha256, so pinning it pins the bank.
+sfx-bank | earshot 0.3.0 | 2026-10-18 | 2026-11-12 | ae69fcdf32d67c5925017000654a2a5ffa9697fcf6c8c198462e6d0b88b02f18 | 4198296 | repo:Resources/SFX/manifest.json
+
+# --- Medium tier (WhisperX) ---
+# The uv environment: engines/whisperx/uv.lock, resolved with exclude-newer 2026-10-18 (123 packages, all wheels).
+whisperx-env | whisperx 3.8.6 | 2026-10-18 | 2026-11-01 | 8f3adeef070c210869eb610d362ec4f84517e44e5b9d01923c203ea11815ac8a | - | repo:engines/whisperx/uv.lock
+# English aligner (the WhisperX default for "en", torchaudio WAV2VEC2_ASR_BASE_960H, MIT), official PyTorch download
+# (Last-Modified 2021-10-15); placed in models/torchaudio, where torchaudio finds it without downloading.
+wav2vec2-base-960h-en | WAV2VEC2_ASR_BASE_960H | 2021-10-15 | 2026-11-12 | 488fd4f16de84438ffc945334278c1b9fb9b7159a806c1080b16111a958c945d | 377664473 | https://download.pytorch.org/torchaudio/models/wav2vec2_fairseq_base_ls960_asr_ls960.pth
+# Portuguese aligner (the WhisperX default for "pt", Apache-2.0), Hugging Face repo pinned to a revision; sha256 = the
+# LFS oid for the weights, the file hash for the small files. Downloaded into models/wav2vec2-large-xlsr-53-portuguese,
+# which wx_align.py loads as a local folder (never the Hub).
+ptalign:pytorch_model.bin | hf@634ac655299bcdc46c83bc01da9bab52d2987e4f | 2022-12-14 | 2026-11-12 | c244caf8395a0c333bdc877e7b62ce5efea12ad8cfec0851c0fe6efb844b834e | 1262122456 | https://huggingface.co/jonatasgrosman/wav2vec2-large-xlsr-53-portuguese/resolve/634ac655299bcdc46c83bc01da9bab52d2987e4f/pytorch_model.bin
+ptalign:config.json | hf@634ac655299bcdc46c83bc01da9bab52d2987e4f | 2022-12-14 | 2026-11-12 | ea1d581f043b854671b11d6b7db606e1ec5aafbfdd6b964c3f2f5975e335761c | 1777 | https://huggingface.co/jonatasgrosman/wav2vec2-large-xlsr-53-portuguese/resolve/634ac655299bcdc46c83bc01da9bab52d2987e4f/config.json
+ptalign:preprocessor_config.json | hf@634ac655299bcdc46c83bc01da9bab52d2987e4f | 2022-12-14 | 2026-11-12 | ca5999a45e98bb76ea87a461ba28a23ad32a5bb9f733b8e0f6546ff38b6c612d | 262 | https://huggingface.co/jonatasgrosman/wav2vec2-large-xlsr-53-portuguese/resolve/634ac655299bcdc46c83bc01da9bab52d2987e4f/preprocessor_config.json
+ptalign:vocab.json | hf@634ac655299bcdc46c83bc01da9bab52d2987e4f | 2022-12-14 | 2026-11-12 | 66b0813833e1536fb028f675e10ceda8254e6ee400d8cfd48359f39982190696 | 430 | https://huggingface.co/jonatasgrosman/wav2vec2-large-xlsr-53-portuguese/resolve/634ac655299bcdc46c83bc01da9bab52d2987e4f/vocab.json
+ptalign:special_tokens_map.json | hf@634ac655299bcdc46c83bc01da9bab52d2987e4f | 2022-12-14 | 2026-11-12 | bb7068de1150661a10b55f9e4b12a0e77af8bf91f5e45e1b58afaf1d0e17f675 | 85 | https://huggingface.co/jonatasgrosman/wav2vec2-large-xlsr-53-portuguese/resolve/634ac655299bcdc46c83bc01da9bab52d2987e4f/special_tokens_map.json
+# Italian and French aligners below are CC BY-NC 4.0 (non-commercial, issue #20): opt-in only, the installer shows the
+# licence and asks (or --with aligner-it,aligner-fr); never installed by --yes alone.
+# Italian aligner (the WhisperX default for "it"), official PyTorch download.
+wav2vec2-voxpopuli-it | VOXPOPULI_ASR_BASE_10K_IT | 2021-10-27 | 2026-11-01 | 620bad579ee46ba1f67df2e7c858c111d14a09b349a62b1c672f0275a68484eb | 377689881 | https://download.pytorch.org/torchaudio/models/wav2vec2_voxpopuli_base_10k_asr_it.pt
+# French aligner (the WhisperX default for "fr"), official PyTorch download (Last-Modified 2021-10-15).
+wav2vec2-voxpopuli-fr | VOXPOPULI_ASR_BASE_10K_FR | 2021-10-15 | 2026-11-02 | 30eeb5e5000e011838a39328c21eadf5ddaedbef0ea3f7cf5a790fd8695b92b5 | 377708313 | https://download.pytorch.org/torchaudio/models/wav2vec2_voxpopuli_base_10k_asr_fr.pt
+# NLTK sentence splitter WhisperX loads at alignment time (it would otherwise download it unpinned at the first run);
+# extracted into the env's own nltk_data folder (<env>/.venv/nltk_data/tokenizers/punkt_tab).
+punkt_tab | nltk_data@4f15a3d89eefe9748ec1c05be495d91289197155 | 2025-02-17 | 2026-11-02 | e57f64187974277726a3417ca6f181ec5403676c717672eef6a748a7b20e0106 | 4319076 | https://raw.githubusercontent.com/nltk/nltk_data/4f15a3d89eefe9748ec1c05be495d91289197155/packages/tokenizers/punkt_tab.zip
+# faster-whisper model: converted locally (ctranslate2, float16) from OpenAI's own repo at a pinned revision.
+# The converted model.bin is checked against ct2-whisper-large-v3-turbo (a mismatch is reported, not fatal).
+ct2-whisper-large-v3-turbo | ct2 4.8.3 float16 | - | 2026-11-01 | e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da | - | -
+oai:model.safetensors | hf@41f01f3fe87f28c78e2fbf8b568835947dd65ed9 | 2024-10-04 | 2026-11-01 | 542566a422ae4f3fd23f1ba11add198fca01bbf82e66e6a2857b3f608b1eb9d1 | 1617824864 | https://huggingface.co/openai/whisper-large-v3-turbo/resolve/41f01f3fe87f28c78e2fbf8b568835947dd65ed9/model.safetensors
+oai:added_tokens.json | hf@41f01f3fe87f28c78e2fbf8b568835947dd65ed9 | 2024-10-04 | 2026-11-01 | 3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0 | 34648 | https://huggingface.co/openai/whisper-large-v3-turbo/resolve/41f01f3fe87f28c78e2fbf8b568835947dd65ed9/added_tokens.json
+oai:config.json | hf@41f01f3fe87f28c78e2fbf8b568835947dd65ed9 | 2024-10-04 | 2026-11-01 | c5b526b3e3cd64cd8940dabb45e8ba726629e22d8ed389c29b552f9140daf04a | 1256 | https://huggingface.co/openai/whisper-large-v3-turbo/resolve/41f01f3fe87f28c78e2fbf8b568835947dd65ed9/config.json
+oai:generation_config.json | hf@41f01f3fe87f28c78e2fbf8b568835947dd65ed9 | 2024-10-04 | 2026-11-01 | cce11bfe3aaa6ae9e072ea2637caaec8795e68d9b67e655a5af16ee509681a4c | 3772 | https://huggingface.co/openai/whisper-large-v3-turbo/resolve/41f01f3fe87f28c78e2fbf8b568835947dd65ed9/generation_config.json
+oai:merges.txt | hf@41f01f3fe87f28c78e2fbf8b568835947dd65ed9 | 2024-10-04 | 2026-11-01 | 2df2990a395e35e8dfbc7511e08c12d56018d8d04691e0133e5d63b21e154dc6 | 493869 | https://huggingface.co/openai/whisper-large-v3-turbo/resolve/41f01f3fe87f28c78e2fbf8b568835947dd65ed9/merges.txt
+oai:normalizer.json | hf@41f01f3fe87f28c78e2fbf8b568835947dd65ed9 | 2024-10-04 | 2026-11-01 | bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd | 52666 | https://huggingface.co/openai/whisper-large-v3-turbo/resolve/41f01f3fe87f28c78e2fbf8b568835947dd65ed9/normalizer.json
+oai:preprocessor_config.json | hf@41f01f3fe87f28c78e2fbf8b568835947dd65ed9 | 2024-10-04 | 2026-11-01 | 7ccc62c6f2765af1f3b46c00c9b5894426835a05021c8b9c01eecb6dfb542711 | 340 | https://huggingface.co/openai/whisper-large-v3-turbo/resolve/41f01f3fe87f28c78e2fbf8b568835947dd65ed9/preprocessor_config.json
+oai:special_tokens_map.json | hf@41f01f3fe87f28c78e2fbf8b568835947dd65ed9 | 2024-10-04 | 2026-11-01 | baea4ea09372eb4fca86b4e4346139fd73cb807d5087e9de0948e971739c3e74 | 2186 | https://huggingface.co/openai/whisper-large-v3-turbo/resolve/41f01f3fe87f28c78e2fbf8b568835947dd65ed9/special_tokens_map.json
+oai:tokenizer.json | hf@41f01f3fe87f28c78e2fbf8b568835947dd65ed9 | 2024-10-04 | 2026-11-01 | 297b13372ac43916285644fb9687add3cc62ee2a1adb60da3dc25cc94c1871fd | 2710337 | https://huggingface.co/openai/whisper-large-v3-turbo/resolve/41f01f3fe87f28c78e2fbf8b568835947dd65ed9/tokenizer.json
+oai:tokenizer_config.json | hf@41f01f3fe87f28c78e2fbf8b568835947dd65ed9 | 2024-10-04 | 2026-11-01 | 844b642c73a91359722f47b35705f7174686df33d252695d8572cf9ac03a6389 | 282843 | https://huggingface.co/openai/whisper-large-v3-turbo/resolve/41f01f3fe87f28c78e2fbf8b568835947dd65ed9/tokenizer_config.json
+oai:vocab.json | hf@41f01f3fe87f28c78e2fbf8b568835947dd65ed9 | 2024-10-04 | 2026-11-01 | e2aa043ef015641d363d8288e7c241c85e36a5c761fb303598e0710233344387 | 1036558 | https://huggingface.co/openai/whisper-large-v3-turbo/resolve/41f01f3fe87f28c78e2fbf8b568835947dd65ed9/vocab.json
+
+# --- Medium tier (VoxCPM2 voice-over, issues #38/#41) ---
+# The uv environment: engines/voxcpm/uv.lock, resolved with exclude-newer 2026-10-23 (170 packages; 5 pure-Python sdists built by uv).
+voxcpm-env | voxcpm 2.0.3 | 2026-10-23 | 2026-11-11 | 1c103c4e01bd8e3443802cfc9620a2ac26d44974b2f9e77b71c0269fc130e3f3 | - | repo:engines/voxcpm/uv.lock
+# openbmb/VoxCPM2 (Apache-2.0) pinned to the 2026-08-18 revision (the 2026-11-09 one is newer than 14 days); sha256 = HF LFS oid / file hash.
+vox:model.safetensors | hf@32279effe8c19989596f05d353d1447f51d9e915 | 2026-08-18 | 2026-11-11 | f7f964cfa9da23653baec6e6f7750719977ad944ed9f95fe52fe3a620506891d | 4580080592 | https://huggingface.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/model.safetensors
+vox:audiovae.pth | hf@32279effe8c19989596f05d353d1447f51d9e915 | 2026-08-18 | 2026-11-11 | 94b5d51e107e0507d4acc976cfdadb64edd6fd06d1f751dadbf2fd1594274bf1 | 376951122 | https://huggingface.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/audiovae.pth
+vox:config.json | hf@32279effe8c19989596f05d353d1447f51d9e915 | 2026-08-18 | 2026-11-11 | 405f0dcd92f7feba6011ed4eac5c8d4f74cba9712f07fd5cfa3063bbdd95402c | 4336 | https://huggingface.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/config.json
+vox:tokenizer.json | hf@32279effe8c19989596f05d353d1447f51d9e915 | 2026-08-18 | 2026-11-11 | f8984687e4a92a3503d521396d454b7d68e9fdaab2a0288eb3536c7c1aa4bc20 | 3676772 | https://huggingface.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/tokenizer.json
+vox:tokenizer_config.json | hf@32279effe8c19989596f05d353d1447f51d9e915 | 2026-08-18 | 2026-11-11 | e78a3ebb48a0b9437efd1823b6b726c823da89e49dd8bcc90c02419d9baa772b | 5059 | https://huggingface.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/tokenizer_config.json
+vox:special_tokens_map.json | hf@32279effe8c19989596f05d353d1447f51d9e915 | 2026-08-18 | 2026-11-11 | 068594063e37662c02b21acf42ebb334ef6a74fb810e68a2368f88f08351de76 | 1632 | https://huggingface.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/special_tokens_map.json
+vox:tokenization_voxcpm2.py | hf@32279effe8c19989596f05d353d1447f51d9e915 | 2026-08-18 | 2026-11-11 | 84489ea32b6ee0cae22ed5480cacb6df85c46624c3119be9a2021c3649a12729 | 2895 | https://huggingface.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/tokenization_voxcpm2.py
+
+# --- Medium tier (Node.js for HyperFrames, issue #60) ---
+# Official Node.js 24 LTS build for Apple Silicon, sha256 from nodejs.org/dist/v24.22.1/SHASUMS256.txt. Extracted into the
+# engines folder (nothing global: no Homebrew, no npm -g, no PATH change).
+node | 24.22.1 | 2026-10-20 | 2026-11-12 | 89c682593d76cd44233fa53b1563264e7de9cbb189cad169135c5b4fadfbc0a7 | 53062778 | https://nodejs.org/dist/v24.22.1/node-v24.22.1-darwin-arm64.tar.gz
+# The HyperFrames CLI and its 125 dependencies: engines/hyperframes/package-lock.json (integrity sha512 per package),
+# resolved with npm --before=2026-10-29 and installed with npm ci --ignore-scripts into the engines folder.
+hyperframes-env | 0.8.150 | 2026-10-12 | 2026-11-12 | db7317ad05a910ed5ecdaf7c0be759cef368177995ca4cf2bfa138f47c71142b | - | repo:engines/hyperframes/package-lock.json
+
+# --- Optional apps (asked by the installer, or --with blender,shotcut) ---
+blender | 5.2.2 | 2026-09-15 | 2026-11-02 | dc4125399b8bfefe283cc1624d6cfc7809d1cac20ace51072127eb371f31f210 | 346286611 | https://download.blender.org/release/Blender5.2/blender-5.2.2-macos-arm64.dmg
+shotcut | 26.9.28 | 2026-09-28 | 2026-11-02 | 0e4c95ad41f26d96c442642e03e0c107bf98abfceea78724e2b05aa704ef79c6 | 210616938 | https://github.com/mltframework/shotcut/releases/download/v26.9.27/shotcut-macos-26.9.28.dmg

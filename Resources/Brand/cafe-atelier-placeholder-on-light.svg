@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 200">
+  <!-- PLACEHOLDER wordmark of the fictional Café Atelier starter kit: replace it with your own logo (brandkit.setLogo). -->
+  <circle cx="100" cy="100" r="78" fill="none" stroke="#8A5A3C" stroke-width="5"/>
+  <text x="100" y="124" text-anchor="middle" font-family="Georgia" font-size="72" fill="#8A5A3C">CA</text>
+  <text x="200" y="112" font-family="Georgia" font-size="64" fill="#2B2018">Café Atelier</text>
+  <text x="203" y="150" font-family="Avenir Next" font-size="18" letter-spacing="4" fill="#8A5A3C">YOUR LOGO HERE</text>
+</svg>

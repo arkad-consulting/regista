@@ -1,0 +1,64 @@
+{
+  "name": "wesites-autocut",
+  "defaults": {"REGISTA_GOLDEN_MEDIA": "${HOME}/.config/regista/test-media/wesites-2026-10-26"},
+  "description": "Golden rough cut of the 2026-10-26 WeSites take with the local engines: transcript, takes, auto cut, voice. Pass = same take as the hand edit (work/segments.json) on 10/10 lines with every cut within 100 ms, and the cleaned voice at -15 ±0.5 LUFS, true peak <= -1.5 dBTP, in sync within one frame. Needs the engines and the footage: skipped by the pre-commit hook.",
+  "requires": ["engines", "footage"],
+  "footage": ["${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV", "${REGISTA_GOLDEN_MEDIA}/script.md", "${REGISTA_GOLDEN_MEDIA}/work/segments.json"],
+  "steps": [
+    {"command": "engines.status",
+     "expect": {"result.engines": {"includes": [{"id": "whisper.cpp", "available": true}, {"id": "whisper-model", "available": true},
+                                                {"id": "deepfilternet", "available": true}, {"id": "whisperx", "available": true}]}},
+     "capture": {"engines": "result"}},
+
+    {"command": "project.new", "params": {"name": "wesites", "directory": "${WORK}"},
+     "expect": {"result.settings.fps": 30}},
+
+    {"command": "media.import", "params": {"path": "${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV"},
+     "expect": {"result.asset.duration": {"approx": 94.703, "tol": 0.001}},
+     "capture": {"raw": "result.asset.id"}},
+
+    {"command": "media.extractAudio", "params": {"assetId": "${raw}"},
+     "expect": {"result.speech.sampleRate": 16000, "result.speech.duration": {"approx": 94.703, "tol": 0.01}}},
+
+    {"command": "transcript.run", "params": {"assetId": "${raw}", "language": "it"},
+     "expect": {"result.words": {"min": 190}, "result.text": {"contains": "lavora per"}}},
+
+    {"command": "transcript.evaluate", "params": {"assetId": "${raw}"},
+     "expect": {"result.pauses": 29, "result.starts.within100ms": {"min": 0.65}}},
+
+    {"command": "script.set", "params": {"path": "${REGISTA_GOLDEN_MEDIA}/script.md"},
+     "expect": {"result.count": 10}},
+
+    {"command": "takes.list",
+     "expect": {"result.read": 10, "result.missing": {"count": 0},
+                "result.lines.2.chosenLabel": "2/2", "result.lines.8.chosenLabel": "2/2"}},
+
+    {"command": "edit.autoCut",
+     "expect": {"result.segments": {"count": 11}, "state.tracks": {"count": 2},
+                "state.tracks.0.clips": {"count": 11}, "state.tracks.1.clips": {"count": 11},
+                "state.duration": {"min": 47, "max": 52}},
+     "capture": {"cut": "result"}},
+
+    {"command": "takes.compare", "params": {"reference": "${REGISTA_GOLDEN_MEDIA}/work/segments.json"},
+     "expect": {"result.summary.lines": 10, "result.summary.sameTake": 10, "result.summary.boundaries": 18,
+                "result.summary.maxAbsErrMs": {"max": 100}}},
+
+    {"command": "audio.clean",
+     "expect": {"result.loudness.integrated": {"approx": -15, "tol": 0.5}, "result.loudness.truePeak": {"max": -1.5},
+                "result.sync.lagFrames": {"min": -1, "max": 1}, "result.sync.correlation": {"min": 0.5},
+                "state.tracks.1.clips": {"count": 11}, "state.tracks.1.clips.0.asset": "a2",
+                "state.tracks.1.clips.10.sourceOut": {"equals": "${cut.segments.10.sourceOut}"}}},
+
+    {"command": "media.measureLoudness", "params": {"trackId": "${cut.audioTrackId}"},
+     "expect": {"result.integrated": {"approx": -15, "tol": 0.5}, "result.truePeak": {"max": -1.5}, "result.spans": 11}},
+
+    {"command": "history.undo",
+     "expect": {"result.undone": "audio.clean", "state.tracks.1.clips.0.asset": "${raw}"}},
+    {"command": "history.redo",
+     "expect": {"result.redone": "audio.clean", "state.tracks.1.clips.0.asset": "a2"}},
+
+    {"command": "project.save", "capture": {"saved": "state"}},
+    {"command": "project.open", "params": {"path": "${WORK}/wesites.regista"},
+     "expect": {"state.tracks": {"equals": "${saved.tracks}"}, "state.assets": {"equals": "${saved.assets}"}}}
+  ]
+}

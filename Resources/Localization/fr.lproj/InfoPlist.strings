@@ -1,0 +1,5 @@
+/* The permission prompts macOS shows (Config/Info.plist keeps the Italian defaults). */
+"NSCameraUsageDescription" = "Regista utilise la caméra pour enregistrer vos vidéos.";
+"NSMicrophoneUsageDescription" = "Regista utilise le micro pour enregistrer le son de vos vidéos.";
+"NSSpeechRecognitionUsageDescription" = "Regista écoute votre voix pour faire avancer le prompteur pendant que vous lisez.";
+"NSScreenCaptureUsageDescription" = "Regista enregistre l'écran (et, si vous le choisissez, l'audio du système) pour vos tutoriels. Les fenêtres de Regista et le prompteur n'apparaissent jamais dans l'enregistrement.";

@@ -1,0 +1,47 @@
+{
+ "name": "looks-layouts",
+ "description": "Speaker layouts, HUD and the blur transition (issue #22, rounds 2–3) on 12 s of the WeSites take, without engines: letterbox-headline with a headline (0–3 s), split-card (3–6 s), pip-bubble over B-roll from later in the same take (6–9 s), a neon inset-frame (9–12 s, zooming in from full frame); the status row with three chapters, level meters from the real mix over the inset, a blur transition at 6 s; then the console theme on a second project. Checks: each layout one undo step and the boxes where the geometry says (letterbox band 1080×608 at y 560, bubble clear of the Instagram rail and the caption band), the headline, every HUD shape and the blur visible in its window (effects.check: frame with vs without it), the export lasts the timeline, the bubble in the export exactly over its window (media.checkOverlay on the PiP track: luma PSNR against the render without it below 34 dB inside — the bubble is small — and above 30 dB outside), the console bundle one step. Needs only the footage (ffmpeg for the meters' mix).",
+ "requires": ["footage"],
+ "defaults": {"REGISTA_GOLDEN_MEDIA": "${HOME}/.config/regista/test-media/wesites-2026-10-26"},
+ "footage": ["${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV"],
+ "steps": [
+  {"command": "project.new", "params": {"name": "looks-layouts", "directory": "${WORK}"}},
+  {"command": "media.import", "params": {"path": "${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV"}, "capture": {"raw": "result.asset.id"}},
+  {"command": "track.add", "params": {"kind": "video"}, "capture": {"v1": "result.track.id"}},
+  {"command": "track.add", "params": {"kind": "audio"}, "capture": {"a1": "result.track.id"}},
+  {"command": "timeline.place", "params": {"assetId": "${raw}", "trackId": "${v1}", "sourceIn": 0, "sourceOut": 12}, "capture": {"c1": "result.clip.id"}},
+  {"command": "timeline.place", "params": {"assetId": "${raw}", "trackId": "${a1}", "sourceIn": 0, "sourceOut": 12, "linkTo": "${c1}"}},
+
+  {"command": "layout.speaker", "params": {"preset": "letterbox-headline", "from": 0, "to": 3, "headline": "Il sito sicuro non esiste"},
+   "expect": {"result.speakerBox": [0, 560, 1080, 608], "result.background": "#000000", "result.headlineClip": {"exists": true}}},
+  {"command": "layout.speaker", "params": {"preset": "split-card", "from": 3, "to": 6, "side": "left"},
+   "expect": {"result.speakerBox.0": {"approx": 65, "tol": 1}, "result.freeArea.0": {"min": 560}, "result.clips": {"count": 1}}},
+  {"command": "layout.speaker", "params": {"preset": "pip-bubble", "from": 6, "to": 9, "brollAssetId": "${raw}", "brollIn": 40, "corner": "bottomRight"},
+   "expect": {"result.speakerBox.0": {"max": 636}, "result.speakerBox.1": {"max": 878}, "result.warnings": {"count": 1}}, "capture": {"pip": "result.pipTrack"}},
+  {"command": "layout.speaker", "params": {"preset": "inset-frame", "from": 9, "to": 12, "frame": "neon", "badge": "9:16"},
+   "expect": {"result.speakerBox": [270, 240, 540, 960], "result.background": "#0C0C0E"}},
+  {"command": "history.undo", "expect": {"state.settings.background": "#F4F2EE"}},
+  {"command": "history.redo", "expect": {"state.settings.background": "#0C0C0E"}},
+
+  {"command": "status.add", "params": {"label": "MONTAGGIO LIVE", "chapters": [{"at": 0, "label": "LIVE"}, {"at": 6, "label": "B-ROLL"}, {"at": 9, "label": "PREVIEW"}], "timerRate": 8, "timerStart": 64},
+   "expect": {"result.chapters": {"count": 3}, "result.chapters.2.number": "03"}},
+  {"command": "meters.add", "params": {"start": 9.4, "end": 12}, "expect": {"result.samples": {"min": 70}, "result.rect.0": {"min": 150, "max": 240}}},
+  {"command": "transition.add", "params": {"kind": "blur", "at": 6}, "expect": {"result.transition.duration": 0.6}},
+
+  {"command": "effects.check", "params": {},
+   "expect": {"result.pass": true, "result.items": {"count": 4}, "result.items.0.visible": true, "result.items.1.visible": true, "result.items.2.visible": true, "result.items.3.visible": true}},
+  {"command": "export.render", "params": {"path": "${WORK}/looks-layouts.mp4"}, "expect": {"result.duration": {"approx": 12, "tol": 0.05}}},
+  {"command": "media.checkOverlay", "params": {"path": "${WORK}/looks-layouts.mp4", "trackId": "${pip}", "differ": 34}, "expect": {"result.pass": true}},
+  {"command": "frame.contactSheet", "params": {"times": [1.5, 4.5, 7.5, 9.1, 10.5, 11.9], "path": "${WORK}/looks-layouts.jpg"}},
+
+  {"command": "project.new", "params": {"name": "looks-console", "directory": "${WORK}"}},
+  {"command": "media.import", "params": {"path": "${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV"}},
+  {"command": "track.add", "params": {"kind": "video"}},
+  {"command": "timeline.place", "params": {"assetId": "a1", "trackId": "t1", "sourceIn": 0, "sourceOut": 8}},
+  {"command": "style.apply", "params": {"style": "console", "chapters": [{"at": 0, "label": "LIVE"}, {"at": 4, "label": "EFFECTS"}]},
+   "expect": {"result.applied": {"count": 4}, "result.skipped": {"count": 1}, "state.settings.background": "#0B0B0D", "state.tracks.0.name": "Backdrop"}},
+  {"command": "history.undo", "expect": {"state.settings.background": null}},
+  {"command": "history.redo"},
+  {"command": "frame.contactSheet", "params": {"times": [0.1, 1, 4.2], "path": "${WORK}/looks-console.jpg"}}
+ ]
+}

@@ -1,0 +1,253 @@
+{
+ "name": "app-ui",
+ "defaults": {"REGISTA_GOLDEN_MEDIA": "${HOME}/.config/regista/test-media/wesites-2026-10-26"},
+ "description": "The running app after wesites-v1 was replayed on it through MCP → socket (scripts/app-check.sh): its project.state is the live edit (history included), the editor window shows it (ui.screenshot of Pro and Quick at 1440×900 and 1920×1080; `shown` is the view model the timeline draws: lanes and clip counts), and the preview player's frames at five times next to frame.render's for the parity check (taken first: the playhead stays on the last one, 20.5 s, for the screenshots). Needs the app, so marked engines + footage and skipped by the pre-commit hook.",
+ "requires": [
+  "engines",
+  "footage",
+  "app"
+ ],
+ "footage": [
+  "${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV"
+ ],
+ "steps": [
+  {
+   "command": "project.state",
+   "expect": {
+    "result.name": "wesites-v1",
+    "result.tracks": {
+     "count": 3
+    },
+    "result.tracks.0.clips": {
+     "count": 11
+    },
+    "result.tracks.1.clips": {
+     "count": 11
+    },
+    "result.tracks.2.captions.chunks": {
+     "min": 55
+    },
+    "result.history.undo": {
+     "min": 8
+    }
+   },
+   "capture": {
+    "state": "result"
+   }
+  },
+  {
+   "command": "frame.render",
+   "params": {
+    "times": [
+     1.5,
+     11,
+     20.5,
+     31,
+     46
+    ],
+    "directory": "${WORK}/parity/export",
+    "inline": false
+   },
+   "expect": {
+    "result.frames": {
+     "count": 5
+    }
+   }
+  },
+  {
+   "command": "preview.frame",
+   "params": {
+    "time": 1.5,
+    "path": "${WORK}/parity/preview/frame-0001.500.png"
+   },
+   "expect": {
+    "result.width": 1080,
+    "result.height": 1920
+   }
+  },
+  {
+   "command": "preview.frame",
+   "params": {
+    "time": 11,
+    "path": "${WORK}/parity/preview/frame-0011.000.png"
+   },
+   "expect": {
+    "result.width": 1080,
+    "result.height": 1920
+   }
+  },
+  {
+   "command": "preview.frame",
+   "params": {
+    "time": 31,
+    "path": "${WORK}/parity/preview/frame-0031.000.png"
+   },
+   "expect": {
+    "result.width": 1080,
+    "result.height": 1920
+   }
+  },
+  {
+   "command": "preview.frame",
+   "params": {
+    "time": 46,
+    "path": "${WORK}/parity/preview/frame-0046.000.png"
+   },
+   "expect": {
+    "result.width": 1080,
+    "result.height": 1920
+   }
+  },
+  {
+   "command": "preview.frame",
+   "params": {
+    "time": 20.5,
+    "path": "${WORK}/parity/preview/frame-0020.500.png"
+   },
+   "expect": {
+    "result.width": 1080,
+    "result.height": 1920
+   }
+  },
+  {
+   "command": "ui.screenshot",
+   "params": {
+    "workspace": "pro",
+    "size": [
+     1440,
+     900
+    ],
+    "path": "${WORK}/pro-1440x900.png"
+   },
+   "expect": {
+    "result.host": "app",
+    "result.width": 1440,
+    "result.height": 900,
+    "result.shown.workspace": "pro",
+    "result.shown.project": "wesites-v1",
+    "result.shown.duration": {
+     "approx": "${state.duration}",
+     "tol": 0.001
+    },
+    "result.shown.lanes.0.label": "T1",
+    "result.shown.lanes.0.clips": "${state.tracks.2.captions.chunks}",
+    "result.shown.lanes.2.label": "V1",
+    "result.shown.lanes.2.clips": 11,
+    "result.shown.lanes.3.label": "A1",
+    "result.shown.lanes.3.clips": 11,
+    "result.shown.transcriptWords": {
+     "min": 130
+    },
+    "result.shown.agentConnected": true
+   },
+   "show": [
+    "result.path"
+   ]
+  },
+  {
+   "command": "ui.screenshot",
+   "params": {
+    "workspace": "pro",
+    "size": [
+     1920,
+     1080
+    ],
+    "path": "${WORK}/pro-1920x1080.png"
+   },
+   "expect": {
+    "result.host": "app",
+    "result.width": 1920,
+    "result.height": 1080,
+    "result.shown.workspace": "pro",
+    "result.shown.project": "wesites-v1",
+    "result.shown.duration": {
+     "approx": "${state.duration}",
+     "tol": 0.001
+    },
+    "result.shown.lanes.0.label": "T1",
+    "result.shown.lanes.0.clips": "${state.tracks.2.captions.chunks}",
+    "result.shown.lanes.2.label": "V1",
+    "result.shown.lanes.2.clips": 11,
+    "result.shown.lanes.3.label": "A1",
+    "result.shown.lanes.3.clips": 11,
+    "result.shown.transcriptWords": {
+     "min": 130
+    },
+    "result.shown.agentConnected": true
+   },
+   "show": [
+    "result.path"
+   ]
+  },
+  {
+   "command": "ui.screenshot",
+   "params": {
+    "workspace": "quick",
+    "size": [
+     1440,
+     900
+    ],
+    "path": "${WORK}/quick-1440x900.png"
+   },
+   "expect": {
+    "result.host": "app",
+    "result.width": 1440,
+    "result.height": 900,
+    "result.shown.workspace": "quick",
+    "result.shown.project": "wesites-v1",
+    "result.shown.duration": {
+     "approx": "${state.duration}",
+     "tol": 0.001
+    },
+    "result.shown.lanes.0.label": "T1",
+    "result.shown.lanes.0.clips": "${state.tracks.2.captions.chunks}",
+    "result.shown.lanes.2.label": "V1",
+    "result.shown.lanes.2.clips": 11,
+    "result.shown.lanes.3.label": "A1",
+    "result.shown.lanes.3.clips": 11,
+    "result.shown.transcriptWords": {
+     "min": 130
+    },
+    "result.shown.agentConnected": true
+   },
+   "show": [
+    "result.path"
+   ]
+  },
+  {
+   "command": "ui.screenshot",
+   "params": {
+    "workspace": "quick",
+    "size": [
+     1920,
+     1080
+    ],
+    "path": "${WORK}/quick-1920x1080.png"
+   },
+   "expect": {
+    "result.host": "app",
+    "result.width": 1920,
+    "result.height": 1080,
+    "result.shown.workspace": "quick",
+    "result.shown.project": "wesites-v1",
+    "result.shown.duration": {
+     "approx": "${state.duration}",
+     "tol": 0.001
+    },
+    "result.shown.lanes.0.label": "T1",
+    "result.shown.lanes.0.clips": "${state.tracks.2.captions.chunks}",
+    "result.shown.lanes.2.label": "V1",
+    "result.shown.lanes.2.clips": 11,
+    "result.shown.lanes.3.label": "A1",
+    "result.shown.lanes.3.clips": 11,
+    "result.shown.transcriptWords": {
+     "min": 130
+    },
+    "result.shown.agentConnected": true
+   },
+   "show": [
+    "result.path"
+   ]
+  }
+ ]
+}

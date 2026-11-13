@@ -1,0 +1,17 @@
+{
+  "name": "wesites-faces",
+  "defaults": {"REGISTA_GOLDEN_MEDIA": "${HOME}/.config/regista/test-media/wesites-2026-10-26"},
+  "description": "Face track of the raw 2026-10-26 WeSites take with Apple Vision. Pass = a face in at least 99% of the frames and smoothed jitter (RMS of the frame-to-frame second difference of the box centre) under 1 px. Needs the footage: skipped by the pre-commit hook.",
+  "requires": ["engines", "footage"],
+  "footage": ["${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV"],
+  "steps": [
+    {"command": "project.new", "params": {"name": "faces", "directory": "${WORK}"}},
+    {"command": "media.import", "params": {"path": "${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV"},
+     "capture": {"raw": "result.asset.id"}},
+    {"command": "faces.track", "params": {"assetId": "${raw}"},
+     "expect": {"result.frames": 2841, "result.detectedRatio": {"min": 0.99}, "result.jitterPx.smooth": {"max": 1},
+                "result.cuts": 0, "state.assets.0.analysis.faces.sidecar": {"contains": "faces.regista/media/"}}},
+    {"command": "history.undo", "expect": {"state.assets.0.analysis": {"exists": false}}},
+    {"command": "history.redo", "expect": {"state.assets.0.analysis.faces.frames": 2841}}
+  ]
+}

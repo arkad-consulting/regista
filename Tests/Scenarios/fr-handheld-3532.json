@@ -1,0 +1,267 @@
+{
+ "name": "fr-handheld-3532",
+ "description": "Real French footage without a script (issue #13): a speaker holding a small child, handheld, a quieter off-camera question. Script from the transcript, face-aware punch-ins that keep both faces (no head cut), captions in French (no chunk ending on a function word) kept off both faces, the interviewer's line level-matched. Checks: framing, caption/face overlap, −15 ±0.5 LUFS, captions timing, A/V sync < 1 frame. Footage: $REGISTA_TEST_MEDIA_DIR (default ~/Movies/Regista); outputs only in the scenario's work folder.",
+ "requires": [
+  "engines",
+  "footage"
+ ],
+ "defaults": {
+  "REGISTA_TEST_MEDIA_DIR": "${HOME}/Movies/Regista"
+ },
+ "footage": [
+  "${REGISTA_TEST_MEDIA_DIR}/IMG_3532.MOV"
+ ],
+ "steps": [
+  {
+   "command": "project.new",
+   "params": {
+    "name": "fr-handheld-3532",
+    "directory": "${WORK}"
+   }
+  },
+  {
+   "command": "media.import",
+   "params": {
+    "path": "${REGISTA_TEST_MEDIA_DIR}/IMG_3532.MOV"
+   },
+   "capture": {
+    "raw": "result.asset.id"
+   }
+  },
+  {
+   "command": "media.extractAudio",
+   "params": {
+    "assetId": "${raw}"
+   }
+  },
+  {
+   "command": "transcript.run",
+   "params": {
+    "assetId": "${raw}",
+    "language": "fr",
+    "engine": "whisper.cpp"
+   },
+   "expect": {
+    "result.words": {
+     "min": 50
+    },
+    "result.language": "fr"
+   }
+  },
+  {
+   "command": "script.fromTranscript",
+   "params": {
+    "dryRun": true
+   },
+   "expect": {
+    "result.count": {
+     "min": 6
+    },
+    "result.set": false
+   },
+   "show": [
+    "result.text"
+   ]
+  },
+  {
+   "command": "script.fromTranscript",
+   "expect": {
+    "result.set": true,
+    "result.count": {
+     "min": 6
+    }
+   }
+  },
+  {
+   "command": "takes.list",
+   "expect": {
+    "result.missing": {
+     "count": 0
+    }
+   }
+  },
+  {
+   "command": "edit.autoCut",
+   "capture": {
+    "cut": "result"
+   }
+  },
+  {
+   "command": "audio.clean",
+   "expect": {
+    "result.loudness.integrated": {
+     "approx": -15,
+     "tol": 0.5
+    },
+    "result.loudness.truePeak": {
+     "max": -1.5
+    },
+    "result.levelMatch.segments": {
+     "min": 5
+    }
+   },
+   "show": [
+    "result.levelMatch",
+    "result.sync"
+   ]
+  },
+  {
+   "command": "faces.track",
+   "params": {
+    "assetId": "${raw}"
+   },
+   "expect": {
+    "result.detectedRatio": {
+     "min": 0.95
+    },
+    "result.multiFaceFrames": {
+     "min": 500
+    }
+   },
+   "show": [
+    "result.multiFaceFrames",
+    "result.cuts"
+   ]
+  },
+  {
+   "command": "edit.punchIns",
+   "params": {
+    "by": "line"
+   },
+   "expect": {
+    "result.mode": "auto",
+    "result.allFit": true
+   },
+   "show": [
+    "result.clips"
+   ]
+  },
+  {
+   "command": "faces.checkFraming",
+   "params": {
+    "every": 1
+   },
+   "expect": {
+    "result.pass": true,
+    "result.framesCut": 0,
+    "result.framesChecked": {
+     "min": 300
+    }
+   }
+  },
+  {
+   "command": "clip.set",
+   "params": {
+    "trackId": "${cut.videoTrackId}",
+    "brightness": 0.02,
+    "contrast": 1.06,
+    "saturation": 1.08
+   }
+  },
+  {
+   "command": "captions.generate",
+   "params": {
+    "style": "talking-head-v1"
+   },
+   "expect": {
+    "result.language": "fr",
+    "result.stopWordEnds": {
+     "count": 0
+    },
+    "result.stale": false,
+    "result.placement.faces": true
+   },
+   "show": [
+    "result.placement",
+    "result.preview"
+   ]
+  },
+  {
+   "command": "captions.checkFaces",
+   "expect": {
+    "result.pass": true,
+    "result.overlappingChunks": 0,
+    "result.framesWithFaces": {
+     "min": 300
+    }
+   },
+   "show": [
+    "result.moved",
+    "result.framesChecked"
+   ]
+  },
+  {
+   "command": "export.render",
+   "params": {
+    "path": "${WORK}/fr-handheld-3532.mp4",
+    "preset": "9:16"
+   },
+   "expect": {
+    "result.loudness.integrated": {
+     "approx": -15,
+     "tol": 0.5
+    },
+    "result.loudness.truePeak": {
+     "max": -1.5
+    },
+    "result.warnings": {
+     "count": 0
+    }
+   },
+   "show": [
+    "result.loudness",
+    "result.frames"
+   ]
+  },
+  {
+   "command": "captions.checkTiming",
+   "params": {
+    "path": "${WORK}/fr-handheld-3532.mp4"
+   },
+   "expect": {
+    "result.pass": true,
+    "result.maxAbsError": {
+     "max": 1
+    },
+    "result.band.inside": true
+   },
+   "show": [
+    "result.maxAbsError",
+    "result.words",
+    "result.band"
+   ]
+  },
+  {
+   "command": "media.checkSync",
+   "params": {
+    "path": "${WORK}/fr-handheld-3532.mp4"
+   },
+   "expect": {
+    "result.lagFrames": {
+     "min": -0.99,
+     "max": 0.99
+    }
+   },
+   "show": [
+    "result.lagMs",
+    "result.correlation"
+   ]
+  },
+  {
+   "command": "frame.contactSheet",
+   "params": {
+    "count": 12,
+    "path": "${WORK}/fr-handheld-3532-contact.jpg"
+   }
+  },
+  {
+   "command": "export.srt",
+   "params": {
+    "path": "${WORK}/fr-handheld-3532.srt"
+   }
+  },
+  {
+   "command": "project.save"
+  }
+ ]
+}

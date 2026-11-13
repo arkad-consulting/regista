@@ -1,0 +1,36 @@
+{
+  "name": "wesites-teleprompter",
+  "defaults": {"REGISTA_GOLDEN_MEDIA": "${HOME}/.config/regista/test-media/wesites-2026-10-26"},
+  "description": "The teleprompter on the 2026-10-26 WeSites take, without a speaker: the take's audio is replayed in real time through the live on-device recognizer and the take tracker (teleprompter.simulate). Pass = live take markers pick the same take as the hand edit (work/segments.json) on >= 9/10 lines, restarts seen at lines 3, 9 and 10 (x3), the drawn highlight within 400 ms of the voice (median); then the markers drive takes.list (source live) and edit.autoCut, whose cut matches the hand edit. Needs Apple Speech (macOS 26 on-device model, downloaded once), whisper and the footage; takes ~2 min (real time): skipped by the pre-commit hook.",
+  "requires": ["engines", "footage"],
+  "footage": ["${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV", "${REGISTA_GOLDEN_MEDIA}/script.md", "${REGISTA_GOLDEN_MEDIA}/work/segments.json"],
+  "steps": [
+    {"command": "teleprompter.simulate",
+     "params": {"audio": "${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV", "script": "${REGISTA_GOLDEN_MEDIA}/script.md",
+                "reference": "${REGISTA_GOLDEN_MEDIA}/work/segments.json", "output": "${WORK}/teleprompter.json"},
+     "expect": {"result.comparison.lines": 10, "result.comparison.sameTake": {"min": 9},
+                "result.restarts": {"count": 5}, "result.restarts.0.sentence": 3, "result.restarts.1.sentence": 9,
+                "result.restarts.2.sentence": 10, "result.restarts.4.sentence": 10,
+                "result.takesPerLine.2": 2, "result.takesPerLine.8": 2, "result.takesPerLine.9": 4,
+                "result.highlightLagMs.median": {"max": 400}, "result.cursorLagMs.missed": {"max": 5}}},
+
+    {"command": "project.new", "params": {"name": "wesites-live", "directory": "${WORK}"}},
+    {"command": "media.import", "params": {"path": "${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV"},
+     "capture": {"raw": "result.asset.id"}},
+    {"command": "media.extractAudio", "params": {"assetId": "${raw}"}},
+    {"command": "transcript.run", "params": {"assetId": "${raw}", "language": "it"},
+     "expect": {"result.words": {"min": 190}}},
+    {"command": "script.set", "params": {"path": "${REGISTA_GOLDEN_MEDIA}/script.md"},
+     "expect": {"result.count": 10}},
+
+    {"command": "takes.live", "params": {"path": "${WORK}/teleprompter.json"},
+     "expect": {"result.markers": 15, "result.matchesScript": true}},
+    {"command": "takes.list",
+     "expect": {"result.source": "live", "result.read": 10, "result.missing": {"count": 0},
+                "result.lines.2.chosenLabel": "2/2", "result.lines.8.chosenLabel": "2/2", "result.lines.9.chosenLabel": "4/4"}},
+    {"command": "edit.autoCut",
+     "expect": {"state.tracks": {"count": 2}, "state.duration": {"min": 47, "max": 52}}},
+    {"command": "takes.compare", "params": {"reference": "${REGISTA_GOLDEN_MEDIA}/work/segments.json"},
+     "expect": {"result.summary.lines": 10, "result.summary.sameTake": 10, "result.summary.maxAbsErrMs": {"max": 100}}}
+  ]
+}

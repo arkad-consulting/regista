@@ -1,0 +1,72 @@
+{
+  "name": "wesites-v1",
+  "defaults": {"REGISTA_GOLDEN_MEDIA": "${HOME}/.config/regista/test-media/wesites-2026-10-26"},
+  "description": "Golden reel: the 2026-10-26 WeSites take edited end to end with commands only (import, transcript, takes, auto cut, voice, punch-ins, grade, captions, export) and checked against the hand-made reel-v1.mp4. The auto cut keeps 11 ranges where the hand edit kept 10 (it also removes the 0.6 s pause between script lines 4 and 5), so the duration is checked against the auto-cut timeline (49.0 s vs reel-v1 49.8 s) and the picture is compared source-aligned: each sampled frame is paired with the reel-v1 frame showing the same source frame, at least 5 frames from any cut in both edits. Punch-ins alternate by script line (by clip would flip the framing of 7 of 11 clips against v1 after the extra cut). Needs the engines and the footage.",
+  "requires": ["engines", "footage"],
+  "footage": ["${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV", "${REGISTA_GOLDEN_MEDIA}/script.md",
+              "${REGISTA_GOLDEN_MEDIA}/work/segments.json", "${REGISTA_GOLDEN_MEDIA}/work/keywords.json",
+              "${REGISTA_GOLDEN_MEDIA}/reel-v1.mp4"],
+  "steps": [
+    {"command": "project.new", "params": {"name": "wesites-v1", "directory": "${WORK}"}},
+    {"command": "media.import", "params": {"path": "${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV"},
+     "capture": {"raw": "result.asset.id"}},
+    {"command": "media.extractAudio", "params": {"assetId": "${raw}"}},
+    {"command": "transcript.run", "params": {"assetId": "${raw}", "language": "it"}, "expect": {"result.words": {"min": 190}}},
+    {"command": "script.set", "params": {"path": "${REGISTA_GOLDEN_MEDIA}/script.md"}, "expect": {"result.count": 10}},
+    {"command": "takes.list", "expect": {"result.read": 10}},
+
+    {"command": "edit.autoCut",
+     "expect": {"result.segments": {"count": 11}, "state.tracks.0.clips.0.link": {"exists": true},
+                "state.tracks.1.clips.0.fadeIn": 0.015, "state.tracks.1.clips.10.fadeOut": 0.015},
+     "capture": {"cut": "result"}},
+
+    {"command": "audio.clean",
+     "expect": {"result.loudness.integrated": {"approx": -15, "tol": 0.5}, "result.loudness.truePeak": {"max": -1.5},
+                "state.tracks.0.clips.0.link": "l1", "state.tracks.1.clips.0.link": "l1", "state.tracks.1.clips.0.fadeIn": 0.015}},
+
+    {"command": "edit.punchIns", "params": {"base": [864, 1536, 152, 384], "punch": [760, 1351, 204, 487], "by": "line"},
+     "expect": {"result.clips": {"count": 11}, "result.clips.0.framing": "base", "result.clips.1.framing": "punch",
+                "result.clips.4.framing": "base", "result.clips.5.framing": "base", "result.clips.10.framing": "punch"}},
+    {"command": "clip.set", "params": {"trackId": "${cut.videoTrackId}", "brightness": 0.02, "contrast": 1.06, "saturation": 1.08},
+     "expect": {"result.clips": {"count": 11}, "state.tracks.0.clips.3.color.contrast": 1.06}},
+
+    {"command": "captions.generate", "params": {"keywordsPath": "${REGISTA_GOLDEN_MEDIA}/work/keywords.json", "style": "talking-head-v1"},
+     "expect": {"result.chunks": {"min": 55, "max": 70}, "result.keywordsShown": {"min": 12}, "result.stale": false,
+                "result.preview.0": "TI HANNO DETTO"},
+     "capture": {"captions": "result"}},
+
+    {"command": "export.render", "params": {"path": "${WORK}/wesites-v1.mp4", "preset": "9:16"},
+     "expect": {"result.duration": {"approx": "${cut.duration}", "tol": 0.000001}, "result.frames": 1470, "result.width": 1080, "result.height": 1920,
+                "result.loudness.integrated": {"approx": -15, "tol": 0.5}, "result.loudness.truePeak": {"max": -1.5},
+                "result.warnings": {"count": 0}},
+     "capture": {"export": "result"}},
+
+    {"command": "media.probe", "params": {"path": "${WORK}/wesites-v1.mp4"},
+     "expect": {"result.duration": {"approx": "${cut.duration}", "tol": 0.067}, "result.video.codec": "h264", "result.video.profile": "High",
+                "result.video.pixFmt": "yuv420p", "result.video.fps": "30/1", "result.video.width": 1080, "result.video.height": 1920,
+                "result.faststart": true, "result.audio.codec": "aac", "result.audio.sampleRate": 48000,
+                "result.audio.bitRate": {"min": 185000, "max": 200000}}},
+
+    {"command": "media.compare",
+     "params": {"candidate": "${WORK}/wesites-v1.mp4", "reference": "${REGISTA_GOLDEN_MEDIA}/reel-v1.mp4", "align": "source",
+                "referenceSegments": "${REGISTA_GOLDEN_MEDIA}/work/segments.json", "samples": 48},
+     "expect": {"result.ssim.mean": {"min": 0.90}, "result.samples": {"min": 40}}},
+
+    {"command": "captions.checkTiming", "params": {"path": "${WORK}/wesites-v1.mp4"},
+     "expect": {"result.pass": true, "result.maxAbsError": {"max": 1}, "result.undetected": 0, "result.band.inside": true,
+                "result.band.inkTop": {"min": 1244}, "result.band.inkBottom": {"max": 1444}, "result.words": "${captions.words}"}},
+
+    {"command": "media.checkSync", "params": {"path": "${WORK}/wesites-v1.mp4"},
+     "expect": {"result.lagFrames": {"min": -0.99, "max": 0.99}, "result.correlation": {"min": 0.5}}},
+
+    {"command": "frame.render", "params": {"times": [1.5, 11, 20.5, 31, 46], "directory": "${WORK}/frames"},
+     "expect": {"result.frames": {"count": 5}}},
+    {"command": "export.srt", "params": {"path": "${WORK}/wesites-v1.srt"}, "expect": {"result.cues": "${captions.chunks}"}},
+    {"command": "export.mlt", "params": {"path": "${WORK}/wesites-v1.mlt"},
+     "expect": {"result.captionImages": {"min": 100}, "result.warnings": {"count": 0}}},
+
+    {"command": "project.save"},
+    {"command": "history.undo", "expect": {"result.undone": "captions.generate"}},
+    {"command": "history.redo", "expect": {"result.redone": "captions.generate"}}
+  ]
+}

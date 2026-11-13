@@ -1,0 +1,25 @@
+.build/
+build/
+.DS_Store
+*.xcodeproj
+xcuserdata/
+.swiftpm/
+.venv/
+__pycache__/
+engines/whisperx/models/
+dist/
+# Voice data is biometric and belongs to one person's profile (#41): never in the repo or the hand-off package.
+/profiles/
+*.safetensors
+lora_weights.*
+# Build id written by scripts/build-stamp.sh (#45)
+Sources/RegistaCore/BuildStamp.generated.swift
+engines/hyperframes/node_modules/
+
+# Internal material lives in the private companion checkout .arkad/ (see scripts/check-public.sh)
+/.arkad/
+/specs/
+AGENTS.md
+CLAUDE.md
+.agents/
+.claude/

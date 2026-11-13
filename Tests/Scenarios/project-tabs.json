@@ -1,0 +1,20 @@
+{
+  "name": "project-tabs",
+  "description": "S2 #76, headless: the engine holds one project; project.list lists it as tab-1, and project commands accept project when it names it (tab id or path) and refuse another one. app-tabs.json runs the two-tab version on the running app.",
+  "steps": [
+    {"command": "project.list", "expect": {"result.tabs": {"count": 0}}},
+    {"command": "project.new", "params": {"name": "tabs", "directory": "${WORK}"}, "capture": {"path": "result.path"}},
+    {"command": "project.list",
+     "expect": {"result.tabs": {"count": 1}, "result.active": "tab-1", "result.tabs.0.id": "tab-1", "result.tabs.0.name": "tabs",
+                "result.tabs.0.path": "${path}", "result.tabs.0.active": true, "result.tabs.0.recording": false}},
+    {"command": "track.add", "params": {"kind": "video"}, "expect": {"state.tracks": {"count": 1}}},
+    {"command": "track.add", "params": {"kind": "audio", "project": "tab-1"}, "expect": {"state.tracks": {"count": 2}}},
+    {"command": "track.add", "params": {"kind": "audio", "project": "${path}"}, "expect": {"state.tracks": {"count": 3}}},
+    {"command": "track.add", "params": {"kind": "audio", "project": "tab-2"}, "expectError": "no open project matches"},
+    {"command": "history.undo", "params": {"project": "tab-1"}, "expect": {"state.tracks": {"count": 2}}},
+    {"command": "project.save", "params": {"project": "${path}"}},
+    {"command": "project.list", "expect": {"result.tabs.0.dirty": false}},
+    {"command": "project.close", "params": {"project": "tab-1"}, "expect": {"result.closed": "tabs"}},
+    {"command": "project.list", "expect": {"result.tabs": {"count": 0}}}
+  ]
+}

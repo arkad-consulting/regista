@@ -1,0 +1,5 @@
+/* The permission prompts macOS shows (Config/Info.plist keeps the Italian defaults). */
+"NSCameraUsageDescription" = "Regista uses the camera to record your videos.";
+"NSMicrophoneUsageDescription" = "Regista uses the microphone to record the sound of your videos.";
+"NSSpeechRecognitionUsageDescription" = "Regista listens to your voice to move the teleprompter on as you read.";
+"NSScreenCaptureUsageDescription" = "Regista records the screen (and, if you choose, the system audio) for your tutorials. Regista's windows and the teleprompter never appear in the recording.";

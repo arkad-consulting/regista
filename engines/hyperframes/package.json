@@ -1,0 +1,9 @@
+{
+  "name": "regista-hyperframes",
+  "private": true,
+  "description": "The pinned HyperFrames CLI graphics.hyperframes runs (scripts/install.sh: npm ci --ignore-scripts). Regenerate package-lock.json with: npm install --package-lock-only --ignore-scripts --before=<14 days ago>",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "hyperframes": "0.8.150"
+  }
+}

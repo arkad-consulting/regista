@@ -1,0 +1,362 @@
+import AppKit
+import RegistaCore
+import SwiftUI
+import UniformTypeIdentifiers
+
+// MARK: Media
+
+struct MediaTab: View {
+    @EnvironmentObject private var store: EditorStore
+    @EnvironmentObject private var media: MediaCache
+
+    var body: some View {
+        let assets = store.project?.assets ?? []
+        VStack(spacing: 0) {
+            if assets.isEmpty {
+                EmptyHint(symbol: "square.and.arrow.down", text: loc("Importa video, audio o immagini (⌘I) o trascinali qui"))
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 84, maximum: 120), spacing: 8)], spacing: 10) {
+                        ForEach(assets, id: \.id) { a in tile(a) }
+                    }
+                    .padding(10)
+                }
+                if let a = store.sourceAssetID.flatMap({ store.project?.asset($0) }) { details(a) }
+            }
+        }
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            for p in providers {
+                _ = p.loadObject(ofClass: URL.self) { url, _ in
+                    if let url { DispatchQueue.main.async { store.importMedia([url]) } }
+                }
+            }
+            return true
+        }
+    }
+
+    /// What Regista knows about the selected file (and what the engines already did with it).
+    private func details(_ a: MediaAsset) -> some View {
+        // (label key, value already in the user's language)
+        var rows: [(String, String)] = []
+        if let v = a.video {
+            let fps = String(format: "%g", (v.frameRate.doubleValue * 100).rounded() / 100)
+            rows.append(("Video", "\(v.width)×\(v.height) · \(fps) fps · \(v.codec)"))
+        }
+        if let au = a.audio {
+            let channels = au.channels == 1 ? loc("mono") : loc("%@ canali", String(au.channels))
+            rows.append(("Audio", "\(au.sampleRate / 1000) kHz · " + channels + " · " + au.codec))
+        }
+        if let o = a.origin { rows.append(("Origine", loc("%@ di %@", o.process, store.project?.asset(o.assetID)?.name ?? o.assetID))) }
+        if let t = a.analysis?.transcript { rows.append(("Trascrizione", loc("%@ parole · %@", String(t.words.count), t.engine))) }
+        if let f = a.analysis?.faces { rows.append(("Volto", loc("%@/%@ fotogrammi", String(f.detected), String(f.frames)))) }
+        return VStack(alignment: .leading, spacing: 5) {
+            Text(verbatim: a.name).font(Ed.ui(11, .semibold)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
+            ForEach(rows, id: \.0) { k, v in
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(verbatim: loc(k)).font(Ed.ui(10)).foregroundStyle(Ed.text3).lineLimit(1).minimumScaleFactor(0.8)
+                        .frame(width: 80, alignment: .leading)
+                    Text(verbatim: v).font(Ed.mono(10)).foregroundStyle(Ed.text2).lineLimit(1).truncationMode(.tail)
+                }
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Ed.header)
+        .overlay(alignment: .top) { Ed.line.frame(height: 1) }
+    }
+
+    private func tile(_ a: MediaAsset) -> some View {
+        let selected = store.sourceAssetID == a.id
+        let _ = media.revision
+        return VStack(alignment: .leading, spacing: 4) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 4).fill(Ed.well)
+                if a.video != nil, let img = media.picture(a, at: min(1, a.duration.seconds / 2)) {
+                    Image(decorative: img, scale: 1).resizable().aspectRatio(contentMode: .fill)
+                } else {
+                    Image(systemName: a.video == nil ? "waveform" : "film").font(Ed.icon(18, .light)).foregroundStyle(Ed.text3)
+                }
+            }
+            .frame(height: 76)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(selected ? Ed.gold : Ed.line, lineWidth: selected ? 1.5 : 1))
+            .overlay(alignment: .bottomTrailing) {
+                Text(verbatim: a.image?.kind == .still ? loc("Immagine") : shortTime(a.duration.seconds)).font(Ed.mono(9, .medium)).foregroundStyle(Ed.text)
+                    .padding(.horizontal, 4).padding(.vertical, 1)
+                    .background(RoundedRectangle(cornerRadius: 3).fill(Color.black.opacity(0.65)))
+                    .padding(4)
+            }
+            HStack(spacing: 4) {
+                if a.origin != nil { Image(systemName: "sparkle").font(Ed.icon(8)).foregroundStyle(Ed.gold) }
+                Text(verbatim: a.name).font(Ed.ui(10)).foregroundStyle(Ed.text2).lineLimit(1).truncationMode(.middle)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) { store.sourceAssetID = a.id }
+        .onTapGesture { store.sourceAssetID = a.id }
+        // Drag it onto a track of the timeline (E1 #53).
+        .draggable(MediaDrop.assetPrefix + a.id) {
+            Label(a.name, systemImage: a.image != nil ? "photo" : a.video == nil ? "waveform" : "film")
+                .font(Ed.ui(12)).padding(6).background(RoundedRectangle(cornerRadius: 6).fill(Ed.control))
+        }
+        .contextMenu {
+            Button("Mostra in Sorgente") { store.sourceAssetID = a.id }
+            Button("Metti in timeline al cursore") {
+                if let p = store.project { store.dropMedia(assets: [a.id], files: [], at: MediaDrop.snap(store.preview.time, project: p, playhead: store.preview.time, tolerance: 0), on: .auto) }
+            }
+            Button("Mostra nel Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: a.path)]) }
+        }
+        .tip(a.origin.map { loc("Generato (%@) da %@", $0.process, $0.assetID) } ?? a.path)
+    }
+}
+
+// MARK: Testi (script + captions)
+
+struct TextsTab: View {
+    @EnvironmentObject private var store: EditorStore
+
+    var body: some View {
+        let captions = store.project?.tracks.first { $0.kind == .caption && $0.captions != nil }?.captions
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                section("Sottotitoli") {
+                    if let c = captions {
+                        Text(verbatim: loc("%@ blocchi · stile %@ · %@ parole chiave", String(c.chunks.count), c.style.id, String(c.keywords.count)))
+                            .font(Ed.ui(10.5)).foregroundStyle(Ed.text3)
+                        // Caption style presets (issue #22): the approved look and the three round-2 styles.
+                        FlowLayout(spacing: 4, lineSpacing: 4) {
+                            ForEach(CaptionStyle.all, id: \.id) { st in
+                                let on = c.style.id == st.id || c.style.id.hasPrefix(st.id + "+")
+                                Button { store.run("captions.setStyle", ["style": .string(st.id)]) } label: {
+                                    styleName(st.id).font(Ed.ui(10, on ? .semibold : .regular))
+                                        .foregroundStyle(on ? Ed.text : Ed.text2)
+                                        .padding(.horizontal, 7).padding(.vertical, 3)
+                                        .background(RoundedRectangle(cornerRadius: 4).fill(on ? Ed.gold.opacity(0.22) : Ed.raised))
+                                        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(on ? Ed.gold.opacity(0.7) : Ed.line))
+                                }
+                                .buttonStyle(.plain)
+                                .tip("Cambia lo stile dei sottotitoli (parole chiave e posizioni restano)")
+                            }
+                        }
+                        FlowLayout(spacing: 4, lineSpacing: 4) {
+                            ForEach(c.keywords, id: \.self) { k in
+                                Button { store.run("captions.setKeywords", ["remove": [.string(k)]]) } label: {
+                                    HStack(spacing: 3) {
+                                        Text(verbatim: k).font(Ed.ui(10, .semibold))
+                                        Image(systemName: "xmark").font(Ed.icon(7, .bold))
+                                    }
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 6).padding(.vertical, 2)
+                                    .background(RoundedRectangle(cornerRadius: 3).fill(Ed.keyword.opacity(0.85)))
+                                }
+                                .buttonStyle(.plain)
+                                .tip("Togli dalle parole chiave")
+                            }
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(Array(c.chunks.enumerated()), id: \.offset) { _, ch in
+                                Button { store.preview.seek(ch.words.first?.start.seconds ?? 0) } label: {
+                                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                        Text(verbatim: shortTime(ch.words.first?.start.seconds ?? 0)).font(Ed.mono(9.5)).foregroundStyle(Ed.text3)
+                                            .frame(width: 40, alignment: .leading)
+                                        chunkText(ch)
+                                        Spacer(minLength: 0)
+                                    }
+                                    .padding(.vertical, 2)
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    } else {
+                        // No captions yet: the step (or the step missing first), never a command name (E2 #54).
+                        StepOffer(step: .captions, compact: true)
+                    }
+                }
+                section("Copione") {
+                    if let s = store.project?.script {
+                        ForEach(Array(s.lines.enumerated()), id: \.offset) { i, line in
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text(verbatim: "\(i + 1)").font(Ed.mono(10)).foregroundStyle(Ed.gold).frame(width: 16, alignment: .trailing)
+                                Text(verbatim: line).font(Ed.ui(11)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    } else {
+                        Text(verbatim: loc("Nessun copione: incollalo o crealo dal parlato nei Passi (è facoltativo).")).font(Ed.ui(11)).foregroundStyle(Ed.text3)
+                        AccentLinkButton(title: loc("Apri il passo Copione")) { store.nav.textsTab = .steps }
+                    }
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// The name of a caption style preset (looked up).
+    private func styleName(_ id: String) -> Text {
+        switch id {
+        case "elegant-serif": Text("Serif elegante")
+        case "bold-keyword": Text("Bold + parola chiave")
+        case "ghost-karaoke": Text("Karaoke fantasma")
+        default: Text("Talking head")
+        }
+    }
+
+    private func chunkText(_ ch: RegistaCore.CaptionChunk) -> Text {
+        ch.words.enumerated().reduce(Text(verbatim: "")) { acc, item in
+            let w = Text(verbatim: (item.offset > 0 ? " " : "") + item.element.text)
+                .font(Ed.ui(11, item.element.keyword ? .bold : .regular))
+                .foregroundColor(item.element.keyword ? Ed.keyword : Ed.text)
+            return acc + w
+        }
+    }
+}
+
+func section<Content: View>(_ title: String, @ViewBuilder _ content: () -> Content) -> some View {
+    VStack(alignment: .leading, spacing: 8) {
+        SectionLabel(title)
+        content()
+    }
+}
+
+// MARK: Grafica
+
+struct GraphicsTab: View {
+    @EnvironmentObject private var store: EditorStore
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 6) {
+                EdButton(title: "Filtri e regolazioni", symbol: "camera.filters") { store.studio = .filters }
+                EdButton(title: "Stili", symbol: "wand.and.stars") { store.studio = .styles }
+                Spacer()
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 38)
+            if store.project?.duration ?? .zero > .zero {
+                GalleryDeck(layout: .grid)
+            } else {
+                EmptyHint(symbol: "sparkles.rectangle.stack", text: StudioText.empty)
+            }
+        }
+    }
+}
+
+// MARK: Cronologia
+
+struct HistoryTab: View {
+    @EnvironmentObject private var store: EditorStore
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                EdButton(title: "menu.undo", symbol: "arrow.uturn.backward", disabled: store.undoNames.isEmpty) { store.undo() }
+                EdButton(title: "menu.redo", symbol: "arrow.uturn.forward", disabled: store.redoNames.isEmpty) { store.redo() }
+                Spacer()
+            }
+            .padding(10)
+            if store.undoNames.isEmpty && store.redoNames.isEmpty {
+                EmptyHint(symbol: "clock.arrow.circlepath", text: "Ogni modifica (tua o di Claude) è un passo annullabile.")
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(store.redoNames.enumerated()).reversed(), id: \.offset) { _, name in row(name, done: false, current: false) }
+                        ForEach(Array(store.undoNames.enumerated()).reversed(), id: \.offset) { i, name in
+                            row(name, done: true, current: i == store.undoNames.count - 1)
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                }
+            }
+        }
+    }
+
+    private func row(_ name: String, done: Bool, current: Bool) -> some View {
+        HStack(spacing: 8) {
+            Circle().fill(current ? Ed.gold : (done ? Ed.text3 : .clear)).frame(width: 6, height: 6)
+                .overlay(Circle().strokeBorder(Ed.text3, lineWidth: done ? 0 : 1))
+            Text(verbatim: CommandTitles.title(name)).font(Ed.ui(11)).foregroundStyle(done ? (current ? Ed.text : Ed.text2) : Ed.text3)
+                .strikethrough(!done, color: Ed.text3)
+            Spacer()
+        }
+        .frame(height: 22)
+    }
+}
+
+// MARK: - Panels (open / save dialogs → commands)
+
+@MainActor
+enum Panels {
+    /// `newProject`: the files start a new project (Inizio); `level`: then show Monta at that level.
+    static func importMedia(_ store: EditorStore, newProject: Bool = false, level: EditorStore.Workspace? = nil) {
+        let p = NSOpenPanel()
+        p.allowsMultipleSelection = true
+        p.allowedContentTypes = [.movie, .audio, .image]
+        p.directoryURL = Paths.root
+        guard p.runModal() == .OK else { return }
+        store.importMedia(p.urls, newProject: newProject)
+        if let level { store.workspace = level } else if newProject { store.showEditor() }
+    }
+
+    static func openProject(_ store: EditorStore) {
+        let p = NSOpenPanel()
+        p.canChooseDirectories = true
+        p.canChooseFiles = true
+        p.treatsFilePackagesAsDirectories = false
+        p.message = loc("Scegli una cartella di progetto .regista")
+        p.directoryURL = EditorStore.projectsFolder
+        guard p.runModal() == .OK, let url = p.url else { return }
+        store.openProject(url)
+    }
+
+    static func newProject(_ store: EditorStore) {
+        let p = NSSavePanel()
+        p.nameFieldStringValue = loc("Nuovo reel")
+        p.directoryURL = EditorStore.projectsFolder
+        p.message = loc("Nome e cartella del nuovo progetto")
+        guard p.runModal() == .OK, let url = p.url else { return }
+        // In this tab when it is empty, otherwise in a new tab (S2 #76).
+        let tab = store.tabForNewProject()
+        tab.run("project.new", GeneralPrefs.newProject(name: url.deletingPathExtension().lastPathComponent, directory: url.deletingLastPathComponent()))
+        tab.showEditor()
+    }
+
+    static func save(_ store: EditorStore) {
+        guard store.project != nil else { return }
+        if store.projectURL != nil { return store.run("project.save") }
+        guard let url = askProjectFolder(store) else { return }
+        store.run("project.save", ["path": .string(url.path)])
+    }
+
+    /// Where to save a project that has no folder yet (nil = cancelled).
+    static func askProjectFolder(_ store: EditorStore) -> URL? {
+        let p = NSSavePanel()
+        p.nameFieldStringValue = (store.project?.name ?? loc("Progetto")) + ".regista"
+        p.directoryURL = EditorStore.projectsFolder
+        guard p.runModal() == .OK else { return nil }
+        return p.url
+    }
+
+    /// File › Salva con nome…: project.save with a new folder (the project then lives there, and joins the recents).
+    static func saveAs(_ store: EditorStore) {
+        guard store.project != nil else { return }
+        let p = NSSavePanel()
+        p.nameFieldStringValue = (store.project?.name ?? loc("Progetto")) + ".regista"
+        p.directoryURL = store.projectURL?.deletingLastPathComponent() ?? EditorStore.projectsFolder
+        p.canCreateDirectories = true
+        p.message = loc("Nome e cartella della copia del progetto")
+        guard p.runModal() == .OK, var url = p.url else { return }
+        if url.pathExtension != ProjectStore.fileExtension { url.appendPathExtension(ProjectStore.fileExtension) }
+        store.run("project.save", ["path": .string(url.path)])
+    }
+
+    /// Aggiungi musica…: a file goes on the Musica lane through audio.addMusic (fitted to the edit, faded, ducked under
+    /// the voice), then the check under the voice, as a job (E3 #55).
+    static func addMusic(_ store: EditorStore) {
+        let p = NSOpenPanel()
+        p.allowedContentTypes = [.audio]
+        p.message = loc("Scegli la musica: va sulla pista Musica e si abbassa quando parli")
+        guard p.runModal() == .OK, let url = p.url else { return }
+        store.addMusic(url)
+    }
+}

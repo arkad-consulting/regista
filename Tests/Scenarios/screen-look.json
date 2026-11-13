@@ -1,0 +1,42 @@
+{
+ "name": "screen-look",
+ "description": "The Schermo inspector's commands on a synthetic screen + camera session (R2 #51, #42 #43 #44): a synthetic talking head (media.synthesize) as the camera of recording.synthesize (no microphone, cursor not in the video), imported into a 16:9 project. Each change is one undo step and lands where the inspector reads it: layout.apply (side-by-side with the face on the left, then a framed bubble on the dusk background), cursor.style, keys.overlay (its options kept on the recording), edit.autoZoom (kept, cleared, back), project.format 9:16 (the side-by-side becomes the stack, the zoom and the badges recomputed), and a picture fade on the screen clip (#79). Needs no footage and no analysis engine.",
+ "steps": [
+  {"command": "project.new", "params": {"name": "camera-take"}},
+  {"command": "media.synthesize", "params": {"path": "${WORK}/talking-head.mov", "duration": 7}, "capture": {"take": "result.asset.path"}},
+  {"command": "recording.synthesize",
+   "params": {"directory": "${WORK}/session", "camera": "${take}", "sources": ["screen", "camera"], "duration": 6, "cursor": false},
+   "expect": {"result.cursorInVideo": false}, "capture": {"synth": "result"}},
+
+  {"command": "project.new", "params": {"name": "screen-look", "directory": "${WORK}", "width": 1920, "height": 1080}},
+  {"command": "recording.import", "params": {"path": "${synth.session}", "layout": "bubble"},
+   "expect": {"result.layouts.0.layout": "bubble bottomRight circle M", "state.recordings.0.cursorInVideo": false}},
+
+  {"command": "layout.apply", "params": {"preset": "split", "side": "left"},
+   "expect": {"result.layout": "split face left", "state.recordings.0.layouts.0.layout": "split face left", "state.history.nextUndo": "layout.apply"}},
+  {"command": "layout.apply", "params": {"preset": "bubble", "corner": "topLeft", "background": "dusk", "padding": 0.08, "radius": 0.03, "shadow": 0.6},
+   "expect": {"result.layout": "bubble topLeft circle M framed dusk", "state.settings.backdrop": "linear dusk"}},
+  {"command": "history.undo", "expect": {"state.recordings.0.layouts.0.layout": "split face left"}},
+  {"command": "history.redo", "expect": {"state.recordings.0.layouts.0.layout": "bubble topLeft circle M framed dusk"}},
+
+  {"command": "cursor.style", "params": {"scale": 2.5, "smoothing": 0.8, "hideWhenIdle": false, "clickRipple": false},
+   "expect": {"result.drawn": true, "state.recordings.0.cursor.scale": 2.5, "state.recordings.0.cursor.clickRipple": false}},
+  {"command": "keys.overlay", "params": {"position": "top", "allKeys": true},
+   "expect": {"result.badges": {"count": 1}, "state.history.nextUndo": "keys.overlay"}},
+  {"command": "edit.autoZoom", "params": {"zoom": 2.2, "follow": true},
+   "expect": {"result.zoom": 2.2, "result.follow": true, "state.history.nextUndo": "edit.autoZoom"}},
+  {"command": "edit.autoZoom", "params": {"clear": true}, "expect": {"result.cleared": {"count": 1}}},
+  {"command": "history.undo", "expect": {"result.undone": "edit.autoZoom"}},
+
+  {"command": "layout.apply", "params": {"preset": "split"}, "expect": {"result.layout": "split face right"}},
+  {"command": "project.format", "params": {"preset": "9:16"},
+   "expect": {"result.width": 1080, "result.height": 1920, "result.layouts.0.layout": "stack face bottom",
+              "state.settings.width": 1080, "state.recordings.0.layouts.0.layout": "stack face bottom", "state.history.nextUndo": "project.format"}},
+  {"command": "history.undo", "expect": {"state.settings.width": 1920, "state.recordings.0.layouts.0.layout": "split face right"}},
+
+  {"command": "clip.set", "params": {"trackId": "t1", "pictureFadeIn": 0.5, "pictureFadeOut": 0.4},
+   "expect": {"state.tracks.0.clips.0.pictureFadeIn": 0.5, "state.tracks.0.clips.0.pictureFadeOut": 0.4}},
+  {"command": "frame.render", "params": {"times": [0, 3], "directory": "${WORK}/frames", "inline": false},
+   "expect": {"result.frames": {"count": 2}}}
+ ]
+}

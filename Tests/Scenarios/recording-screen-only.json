@@ -1,0 +1,20 @@
+{
+  "name": "recording-screen-only",
+  "description": "Screen-only take (issue #50, R1): Registra with the camera and microphone switched off writes a session with the screen alone. recording.synthesize sources [\"screen\"] writes it in the real format (screen.mov with an animated desktop, clicks and cursor; session.json with one source): no camera.mov, no mic.wav, screen.mov without an audio stream. recording.import gives one track (Schermo) laid out as the screen alone, no camera asset; the 16:9 export renders with no audio stream. Needs no footage and no analysis engine.",
+  "steps": [
+    {"command": "recording.synthesize", "params": {"directory": "${WORK}/session", "sources": ["screen"], "duration": 6},
+     "expect": {"result.sources": {"count": 1}, "result.sources.0": "screen", "result.files.screen": {"exists": true},
+                "result.files.camera": {"exists": false}, "result.files.mic": {"exists": false}},
+     "capture": {"synth": "result"}},
+    {"command": "media.probe", "params": {"path": "${synth.files.screen}"},
+     "expect": {"result.video.width": 1920, "result.video.height": 1080, "result.audio": {"exists": false}}},
+    {"command": "project.new", "params": {"name": "screen-only", "directory": "${WORK}", "width": 1920, "height": 1080}},
+    {"command": "recording.import", "params": {"path": "${synth.session}"},
+     "expect": {"result.assets.camera": {"exists": false}, "result.assets.mic": {"exists": false}, "result.layouts.0.layout": "screen",
+                "state.tracks": {"count": 1}, "state.tracks.0.name": "Schermo", "state.recordings.0.camera": {"exists": false}}},
+    {"command": "export.render", "params": {"path": "${WORK}/screen-only.mp4", "preset": "16:9"},
+     "expect": {"result.width": 1920, "result.height": 1080}},
+    {"command": "media.probe", "params": {"path": "${WORK}/screen-only.mp4"},
+     "expect": {"result.video.width": 1920, "result.audio": {"exists": false}}}
+  ]
+}

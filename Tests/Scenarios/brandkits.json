@@ -1,0 +1,265 @@
+{
+ "name": "brandkits",
+ "description": "Brand kits (issue #17) on the WeSites take (or $REGISTA_TEST_MEDIA): 12 s placed, transcribed, captioned with keywords, then Arkad, WeSites and Café Atelier applied in turn with a hook title and the kit logo (logo.add once; each brandkit.apply restyles the captions, rebuilds the title and swaps the logo). brandkit.check on each renders the first keyword's frame (${WORK}/brandkit-<kit>.png) and checks: the rendered keyword box colour = the kit's highlight (RGB distance ≤ 12), the logo inside its safe zone (Instagram limits, out of the caption band), every font role resolved or its fallback reported. Ends with the layout check (caption band clean). Needs whisper for the captions and the footage: skipped by the pre-commit hook.",
+ "requires": [
+  "engines",
+  "footage"
+ ],
+ "defaults": {
+  "REGISTA_GOLDEN_MEDIA": "${HOME}/.config/regista/test-media/wesites-2026-10-26",
+  "REGISTA_TEST_MEDIA": "${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV"
+ },
+ "footage": [
+  "${REGISTA_TEST_MEDIA}"
+ ],
+ "steps": [
+  {
+   "command": "project.new",
+   "params": {
+    "name": "brandkits",
+    "directory": "${WORK}"
+   }
+  },
+  {
+   "command": "media.import",
+   "params": {
+    "path": "${REGISTA_TEST_MEDIA}"
+   },
+   "capture": {
+    "raw": "result.asset.id"
+   }
+  },
+  {
+   "command": "track.add",
+   "params": {
+    "kind": "video"
+   },
+   "capture": {
+    "v1": "result.track.id"
+   }
+  },
+  {
+   "command": "timeline.place",
+   "params": {
+    "assetId": "${raw}",
+    "trackId": "${v1}",
+    "sourceIn": 0,
+    "sourceOut": 12
+   }
+  },
+  {
+   "command": "transcript.run",
+   "params": {
+    "assetId": "${raw}",
+    "language": "it"
+   },
+   "expect": {
+    "result.words": {
+     "min": 20
+    }
+   }
+  },
+  {
+   "command": "captions.generate",
+   "params": {
+    "keywords": [
+     "SITO",
+     "SICURO",
+     "AGGIORNATO"
+    ]
+   },
+   "expect": {
+    "result.chunks": {
+     "min": 4
+    }
+   }
+  },
+  {
+   "command": "brandkit.apply",
+   "params": {
+    "kit": "arkad"
+   },
+   "expect": {
+    "result.kit": "arkad",
+    "result.captionTracks": {
+     "count": 1
+    },
+    "result.fonts.display.resolved": {
+     "exists": true
+    }
+   },
+   "show": [
+    "result.missingFonts"
+   ]
+  },
+  {
+   "command": "title.add",
+   "params": {
+    "text": "Il tuo sito è sicuro?",
+    "start": 0.4,
+    "duration": 4,
+    "preset": "hook"
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    }
+   }
+  },
+  {
+   "command": "logo.add",
+   "params": {},
+   "expect": {
+    "result.insideSafeZone": true
+   }
+  },
+  {
+   "command": "brandkit.check",
+   "params": {
+    "path": "${WORK}/brandkit-arkad.png"
+   },
+   "expect": {
+    "result.pass": true,
+    "result.kit": "arkad",
+    "result.captions.keywordBoxColor": "#F4BD56",
+    "result.captions.kitHighlight": "#F4BD56",
+    "result.captions.styleMatch": true,
+    "result.captions.pixelMatch": true,
+    "result.captions.distance": {
+     "max": 12
+    },
+    "result.logoCount": 1,
+    "result.logosInside": true,
+    "result.fonts.display.resolved": {
+     "exists": true
+    },
+    "result.fontFallbacks": {
+     "exists": true
+    }
+   },
+   "show": [
+    "result.captions.rendered",
+    "result.captions.word",
+    "result.captions.time",
+    "result.logos.0.box",
+    "result.fontsResolved",
+    "result.fontFallbacks"
+   ]
+  },
+  {
+   "command": "brandkit.apply",
+   "params": {
+    "kit": "wesites"
+   },
+   "expect": {
+    "result.kit": "wesites",
+    "result.captionTracks": {
+     "count": 1
+    },
+    "result.fonts.display.resolved": {
+     "exists": true
+    },
+    "result.titlesRestyled": 1,
+    "result.logos": 1
+   },
+   "show": [
+    "result.missingFonts"
+   ]
+  },
+  {
+   "command": "brandkit.check",
+   "params": {
+    "path": "${WORK}/brandkit-wesites.png"
+   },
+   "expect": {
+    "result.pass": true,
+    "result.kit": "wesites",
+    "result.captions.keywordBoxColor": "#FF2D6F",
+    "result.captions.kitHighlight": "#FF2D6F",
+    "result.captions.styleMatch": true,
+    "result.captions.pixelMatch": true,
+    "result.captions.distance": {
+     "max": 12
+    },
+    "result.logoCount": 1,
+    "result.logosInside": true,
+    "result.fonts.display.resolved": {
+     "exists": true
+    },
+    "result.fontFallbacks": {
+     "exists": true
+    }
+   },
+   "show": [
+    "result.captions.rendered",
+    "result.captions.word",
+    "result.captions.time",
+    "result.logos.0.box",
+    "result.fontsResolved",
+    "result.fontFallbacks"
+   ]
+  },
+  {
+   "command": "brandkit.apply",
+   "params": {
+    "kit": "cafe-atelier"
+   },
+   "expect": {
+    "result.kit": "cafe-atelier",
+    "result.captionTracks": {
+     "count": 1
+    },
+    "result.fonts.display.resolved": {
+     "exists": true
+    },
+    "result.titlesRestyled": 1,
+    "result.logos": 1
+   },
+   "show": [
+    "result.missingFonts"
+   ]
+  },
+  {
+   "command": "brandkit.check",
+   "params": {
+    "path": "${WORK}/brandkit-cafe-atelier.png"
+   },
+   "expect": {
+    "result.pass": true,
+    "result.kit": "cafe-atelier",
+    "result.captions.keywordBoxColor": "#D2603A",
+    "result.captions.kitHighlight": "#D2603A",
+    "result.captions.styleMatch": true,
+    "result.captions.pixelMatch": true,
+    "result.captions.distance": {
+     "max": 12
+    },
+    "result.logoCount": 1,
+    "result.logosInside": true,
+    "result.fonts.display.resolved": {
+     "exists": true
+    },
+    "result.fontFallbacks": {
+     "exists": true
+    }
+   },
+   "show": [
+    "result.captions.rendered",
+    "result.captions.word",
+    "result.captions.time",
+    "result.logos.0.box",
+    "result.fontsResolved",
+    "result.fontFallbacks"
+   ]
+  },
+  {
+   "command": "graphics.checkLayout",
+   "params": {
+    "step": 3
+   },
+   "expect": {
+    "result.pass": true
+   }
+  }
+ ]
+}

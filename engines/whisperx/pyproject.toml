@@ -1,0 +1,19 @@
+# WhisperX environment for Regista's Medium tier (and up), ported from the Python prototype.
+# scripts/install.sh copies this folder to ~/Library/Application Support/Regista/engines/whisperx and runs
+# `uv sync --frozen` there: every package comes from uv.lock, all wheels, nothing runs a build script.
+# mediapipe is dropped (Regista tracks faces with Apple Vision). Never add litellm.
+[project]
+name = "regista-whisperx"
+version = "0.1.0"
+description = "WhisperX word alignment for Regista (wx_align.py)"
+requires-python = "==3.12.*"
+dependencies = [
+    "scipy==1.18.1",
+    "soundfile==0.14.0",
+    "whisperx==3.8.6",
+]
+
+[tool.uv]
+# Supply-chain buffer: only resolve packages published >= 2 weeks before the pin date (2026-11-01).
+exclude-newer = "2026-10-18T00:00:00Z"
+package = false

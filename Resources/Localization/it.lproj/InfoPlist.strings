@@ -1,0 +1,5 @@
+/* The permission prompts macOS shows (Config/Info.plist keeps the Italian defaults). */
+"NSCameraUsageDescription" = "Regista usa la camera per registrare i tuoi video.";
+"NSMicrophoneUsageDescription" = "Regista usa il microfono per registrare l'audio dei tuoi video.";
+"NSSpeechRecognitionUsageDescription" = "Regista ascolta la tua voce per far avanzare il gobbo mentre leggi il testo.";
+"NSScreenCaptureUsageDescription" = "Regista registra lo schermo (e, se lo scegli, l'audio di sistema) per i tuoi tutorial. Le finestre di Regista e il gobbo non compaiono nella registrazione.";

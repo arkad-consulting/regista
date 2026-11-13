@@ -1,0 +1,53 @@
+#!/bin/bash
+# Pre-commit gate (issue #9, L1 + L2): the unit tests, then every Tests/Scenarios/*.json that does
+# not need the analysis engines, replayed directly and through regista-mcp. Scenarios marked
+# "requires": ["engines"] (whisper/DeepFilterNet/Vision) are skipped: run them by hand, see
+# docs/architecture.md "Engine scenarios"; "requires": ["footage"] ones skip themselves when the test take is missing. Enable once per clone: git config core.hooksPath .githooks
+# Skip in an emergency: git commit --no-verify
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+log="$(mktemp -t regista-precommit)"
+trap 'rm -f "$log"' EXIT
+fail() { echo "pre-commit: $1 failed:" >&2; tail -40 "$log" >&2; exit 1; }
+
+scripts/check-voice-data.sh --staged || exit 1
+# No internal names, personal paths or real e-mail addresses in the public repository (private deny-list outside it).
+scripts/check-public.sh --self-test >"$log" 2>&1 || fail "scripts/check-public.sh --self-test"
+scripts/check-public.sh --staged || exit 1
+python3 -I Tests/Installer/test_homebrew_bootstrap.py >"$log" 2>&1 || fail "Homebrew bootstrap tests"
+python3 -I Tests/Distribution/test_package.py >"$log" 2>&1 || fail "source package tests"
+
+# The engine manifest is consistent with engines.lock, and docs/engines.md is what it generates (#58).
+scripts/engines.py validate >"$log" 2>&1 || fail "scripts/engines.py validate"
+scripts/engines.py docs --check >"$log" 2>&1 || fail "scripts/engines.py docs --check (run scripts/engines.py docs)"
+# Every word the app shows is in the tables of every UI language, and no text bypasses the lookup (L0 #48).
+python3 -I scripts/l10n.py >"$log" 2>&1 || fail "scripts/l10n.py"
+
+echo "pre-commit: unit tests…"
+scripts/test.sh >"$log" 2>&1 || fail "scripts/test.sh"
+grep -E "Test run with" "$log" | tail -1
+
+swift build --product regista-engine >"$log" 2>&1 || fail "swift build regista-engine"
+swift build --product regista-mcp >"$log" 2>&1 || fail "swift build regista-mcp"
+BIN="$(swift build --show-bin-path)"
+# Scenarios never reach the owner's running app: regista-engine already starts regista-mcp with REGISTA_ENGINE=local, and
+# the engine socket points at a path where nothing listens. A scenario that hangs (e.g. an export stuck in AVFoundation,
+# #71) fails after SCENARIO_TIMEOUT seconds, its regista-mcp child included, instead of blocking the commit forever.
+sockdir="$(mktemp -d -t regista-precommit-sock)"
+trap 'rm -f "$log"; rmdir "$sockdir" 2>/dev/null || true' EXIT
+export REGISTA_ENGINE_SOCKET="$sockdir/none.sock"
+SCENARIO_TIMEOUT="${REGISTA_SCENARIO_TIMEOUT:-600}"
+. scripts/lib.sh   # with_timeout
+scenario() {   # scenario <label> <regista-engine args…>
+  local label="$1" rc=0; shift
+  with_timeout "$SCENARIO_TIMEOUT" "$BIN/regista-engine" run "$@" >"$log" 2>&1 || rc=$?
+  [ "$rc" = 124 ] && { echo "pre-commit: $label hung: no result after ${SCENARIO_TIMEOUT}s (stopped; last lines below)" >&2; fail "$label"; }
+  [ "$rc" = 0 ] || fail "$label"
+}
+for s in Tests/Scenarios/*.json; do
+  scenario "scenario $s" "$s" --skip-requiring engines
+  tail -1 "$log"
+  scenario "scenario $s (MCP)" "$s" --skip-requiring engines --mcp "$BIN/regista-mcp"
+  echo "  (MCP) $(tail -1 "$log")"
+done

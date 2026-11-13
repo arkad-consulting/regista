@@ -1,0 +1,27 @@
+{
+  "name": "tutorial-cursor",
+  "description": "Drawn cursor (issue #42) on a synthetic take recorded without the system cursor: recording.synthesize cursor: false (no cursor or ripples in screen.mov, cursorInVideo false, mouse-ups, one drag, pointing hand over the buttons), recording.import (the recording keeps cursorInVideo false and reports the drag), the default style in project.state, cursor.style as one undo step, auto-zoom, then frames at a click (pointing hand + ripple, magnified by the zoom) and during the drag, and a contact sheet to look at. Needs only the footage (ffmpeg for the camera stretch).",
+  "requires": ["footage"],
+  "defaults": {"REGISTA_GOLDEN_MEDIA": "${HOME}/.config/regista/test-media/wesites-2026-10-26"},
+  "footage": ["${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV"],
+  "steps": [
+    {"command": "recording.synthesize",
+     "params": {"directory": "${WORK}/session", "camera": "${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV", "cameraIn": 20, "duration": 12, "cursor": false},
+     "expect": {"result.cursorInVideo": false, "result.drags": 1, "result.clicks": {"count": 3}},
+     "capture": {"synth": "result"}},
+    {"command": "project.new", "params": {"name": "tutorial-cursor", "directory": "${WORK}", "width": 1920, "height": 1080}},
+    {"command": "recording.import", "params": {"path": "${synth.session}", "layout": "bubble"},
+     "expect": {"result.cursorInVideo": false, "result.events.drags": 1, "result.events.clicks": 4,
+                "state.recordings.0.cursorInVideo": false, "state.recordings.0.cursor.scale": 1.5, "state.recordings.0.cursor.hideWhenIdle": true}},
+    {"command": "cursor.style", "params": {"scale": 2, "color": "#FFD166"},
+     "expect": {"result.drawn": true, "result.warnings": {"count": 0}, "state.recordings.0.cursor.scale": 2,
+                "state.recordings.0.cursor.color": "#FFD166", "state.history.nextUndo": "cursor.style"}},
+    {"command": "history.undo", "expect": {"result.undone": "cursor.style", "state.recordings.0.cursor.scale": 1.5}},
+    {"command": "history.redo", "expect": {"result.redone": "cursor.style", "state.recordings.0.cursor.scale": 2}},
+    {"command": "edit.autoZoom", "params": {"zoom": 1.8}, "expect": {"result.clicks": {"count": 4}}},
+    {"command": "frame.render", "params": {"times": [2.45, 6.4], "directory": "${WORK}/frames", "inline": false},
+     "expect": {"result.frames": {"count": 2}, "result.frames.0.path": {"exists": true}}},
+    {"command": "frame.contactSheet", "params": {"times": [1.0, 2.37, 2.5, 3.77, 6.3, 6.77, 9.0], "path": "${WORK}/tutorial-cursor.jpg"},
+     "expect": {"result.path": {"exists": true}}}
+  ]
+}

@@ -1,0 +1,313 @@
+# Voice recording script — Français
+
+consent: Je m'appelle {name}, et j'accepte que Regista apprenne ma voix pour en faire un clone.
+
+## neutral
+- Aujourd'hui, je vous montre comment j'ai refait mon site en une soirée.
+- La plupart de vos clients vous cherchent d'abord sur Google.
+- Votre site WordPress a encore besoin d'une mise à jour.
+- J'ai reçu les premiers résultats ce matin, juste avant le café.
+- ChatGPT répond déjà aux questions de vos clients à votre place.
+- Il reste deux jours avant la fin de l'offre.
+- On a perdu toutes les vidéos, il faut tout recommencer.
+- Je vous montre exactement ce qui a changé sur la page d'accueil.
+- Le Wi-Fi a encore coupé pendant l'appel sur Zoom.
+- Et voilà, c'est terminé pour aujourd'hui.
+- Bonjour à tous, aujourd'hui on parle de la façon de filmer une vidéo avec un simple téléphone.
+- Pas besoin d'une caméra chère : un iPhone récent suffit largement pour commencer.
+- La première règle, c'est la lumière : placez-vous face à une fenêtre.
+- Évitez d'avoir la fenêtre derrière vous, sinon votre visage sera dans l'ombre.
+- Le son compte encore plus que l'image, croyez-moi.
+- Un petit micro-cravate coûte une trentaine d'euros et change complètement le résultat.
+- Filmez à la verticale si la vidéo part sur Instagram ou sur TikTok.
+- Pour YouTube, en revanche, on garde le format horizontal.
+- Une vidéo courte dure entre trente secondes et une minute.
+- Les trois premières secondes décident si les gens restent ou s'en vont.
+- Commencez donc directement par l'idée principale, sans long générique.
+- Ensuite, expliquez une seule chose, clairement, avec un exemple concret.
+- Terminez par une phrase simple qui donne envie de passer à l'action.
+- Pour le montage, beaucoup de créateurs utilisent CapCut ou Final Cut.
+- Ajoutez toujours des sous-titres, parce que la moitié des gens regardent sans le son.
+- Parlons maintenant de votre site internet.
+- Un site, c'est votre adresse sur le web, celle qui vous appartient vraiment.
+- Les réseaux sociaux peuvent changer leurs règles du jour au lendemain.
+- Votre site, lui, reste à vous, avec votre propre nom de domaine.
+- Un nom de domaine coûte en général une dizaine d'euros par an.
+- Choisissez un nom court, facile à dire et facile à écrire.
+- Sur la page d'accueil, il faut répondre à trois questions : qui, quoi et où.
+- Mettez votre numéro de téléphone et votre adresse e-mail bien en évidence.
+- La plupart des visiteurs arrivent depuis un smartphone, pas depuis un ordinateur.
+- Testez donc toujours votre site sur un petit écran avant de le publier.
+- Un site lent fait fuir les visiteurs en quelques secondes.
+- Compressez vos photos avant de les mettre en ligne, c'est le geste le plus simple.
+- Le référencement, qu'on appelle aussi SEO, sert à être trouvé sur Google.
+- Google aime les pages rapides, claires et utiles.
+- Écrivez pour vos clients, pas pour les robots.
+- Aujourd'hui, beaucoup de gens posent aussi leurs questions directement à ChatGPT ou à Gemini.
+- Ces assistants citent les sites qui donnent des réponses précises.
+- Une bonne page répond à une question, et une seule.
+- Parlons un peu des e-mails, maintenant.
+- Une newsletter, c'est le seul canal où vous parlez directement à vos abonnés.
+- Envoyez-la toujours au même rythme, par exemple un mardi sur deux.
+- Un bon objet d'e-mail tient en moins de dix mots.
+- Évitez les majuscules et les points d'exclamation dans l'objet.
+- Pour organiser mes idées, j'utilise un simple tableau dans Excel.
+- Une colonne pour l'idée, une pour la date, une pour le réseau social.
+- Certains préfèrent Notion ou Google Sheets, et c'est très bien aussi.
+- L'important, c'est d'avoir un seul endroit pour tout noter.
+- Je bloque deux heures chaque lundi matin pour préparer les contenus de la semaine.
+- Le mercredi, je filme trois ou quatre vidéos d'un coup.
+- Le vendredi, je réponds aux commentaires et aux messages privés.
+- Sur LinkedIn, les textes un peu plus longs fonctionnent bien.
+- Sur Instagram, l'image et les premières secondes font tout le travail.
+- Sur YouTube, les gens cherchent souvent un tutoriel précis.
+- Un podcast demande moins de matériel qu'une vidéo, mais plus de régularité.
+- Il suffit d'un bon micro, d'une pièce calme et d'un sujet qui vous passionne.
+- Vous vous demandez sans doute combien de temps ça prend, en vrai ?
+- Est-ce qu'il faut publier tous les jours pour réussir ?
+- Et si je n'ai aucune idée de quoi parler cette semaine ?
+- Pourquoi certaines vidéos marchent, et d'autres pas du tout ?
+- Comment savoir si mon contenu plaît vraiment ?
+- La réponse se trouve souvent dans vos statistiques.
+- Regardez le temps de visionnage moyen, plus que le nombre de vues.
+- Une vidéo de quarante secondes regardée jusqu'au bout vaut mieux qu'une vidéo de dix minutes abandonnée.
+- Le mois dernier, j'ai publié douze vidéos et deux articles de blog.
+- La meilleure a fait vingt-cinq mille vues, la moins bonne à peine trois cents.
+- Mon abonnement au logiciel de montage coûte neuf euros quatre-vingt-dix par mois.
+- Le lancement est prévu pour le jeudi douze mars, à dix-huit heures.
+- La conférence a lieu le premier octobre deux mille vingt-sept.
+- En deux mille vingt-six, la majorité des recherches se font sur un téléphone.
+- Le taux d'ouverture de la newsletter est passé de vingt à trente-cinq pour cent.
+- On a dépassé les mille abonnés en un peu moins de six mois.
+- Pour une startup, le marketing commence souvent avec un budget de zéro.
+- Dans ce cas, le contenu gratuit est votre meilleur allié.
+- Un plugin, c'est un petit module qu'on ajoute à un site pour une fonction précise.
+- Chaque plugin ajoute du code, et chaque ligne de code doit être maintenue.
+- Un formulaire de contact envoie les messages directement dans votre boîte mail.
+- Vous pouvez aussi recevoir les demandes sur WhatsApp, si vous préférez.
+- Le paiement en ligne passe souvent par Stripe ou par PayPal.
+- Pour les visuels, Canva permet de créer une image propre en quelques minutes.
+- L'intelligence artificielle peut vous aider à écrire un premier brouillon.
+- Relisez toujours le texte, et remettez-y vos propres mots.
+- Une bonne miniature sur YouTube montre un visage et trois mots au maximum.
+- Le hashtag n'a plus autant d'importance qu'avant.
+- Ce qui compte, c'est que les gens partagent et enregistrent votre publication.
+- Première étape : définir à qui vous parlez.
+- Deuxième étape : choisir un ou deux réseaux sociaux, pas plus.
+- Troisième étape : publier régulièrement pendant au moins trois mois.
+- Quatrième étape : regarder ce qui marche, et en faire davantage.
+- Gardez une copie de toutes vos vidéos sur un disque dur ou dans le cloud.
+- Un mot de passe différent pour chaque compte, c'est la base de la sécurité.
+- Activez la double authentification sur Instagram, Gmail et LinkedIn.
+- Pour une réunion à distance, Zoom et Google Meet font très bien l'affaire.
+- Coupez les notifications pendant l'enregistrement, sinon on les entend.
+- Parlez un peu plus lentement que d'habitude, le micro adore ça.
+- Buvez un verre d'eau avant de commencer, la voix sera plus claire.
+- Si vous vous trompez, faites une pause et reprenez la phrase depuis le début.
+- Au montage, on coupe les silences trop longs, mais pas tous.
+- Une petite musique de fond doit rester discrète, presque invisible.
+- Exportez la vidéo en haute définition, et vérifiez-la sur votre téléphone.
+- Un bon titre fait une promesse, et la vidéo tient cette promesse.
+- Le marketing, au fond, c'est simplement expliquer clairement ce que vous faites.
+- Personne n'a envie de lire un jargon compliqué.
+- Parlez comme vous parleriez à un ami autour d'un café.
+- Bref, commencez petit, soyez régulier, et améliorez-vous à chaque vidéo.
+- Merci de m'avoir écouté, et à très bientôt pour la suite.
+## enthusiastic
+- Aujourd'hui, je vous montre comment j'ai refait mon site en une soirée.
+- La plupart de vos clients vous cherchent d'abord sur Google.
+- Votre site WordPress a encore besoin d'une mise à jour.
+- J'ai reçu les premiers résultats ce matin, juste avant le café.
+- ChatGPT répond déjà aux questions de vos clients à votre place.
+- Il reste deux jours avant la fin de l'offre.
+- On a perdu toutes les vidéos, il faut tout recommencer.
+- Je vous montre exactement ce qui a changé sur la page d'accueil.
+- Le Wi-Fi a encore coupé pendant l'appel sur Zoom.
+- Et voilà, c'est terminé pour aujourd'hui.
+- C'est en ligne ! Mon nouveau site est enfin en ligne, et il est magnifique !
+- Incroyable, la vidéo a dépassé les cent mille vues en une nuit !
+- On vient de passer la barre des dix mille abonnés, merci à vous !
+- J'adore ce projet, franchement, c'est mon préféré de l'année !
+- Regardez-moi ça, la page d'accueil est parfaite sur iPhone !
+- Bonne nouvelle : la newsletter part enfin chaque semaine !
+- Ça y est, mon site est premier sur Google pour ma recherche préférée !
+- Je n'en reviens pas, c'est encore mieux que ce que j'imaginais !
+- Le formulaire marche, les e-mails arrivent, tout fonctionne !
+- Trop bien, quelqu'un m'a écrit pour dire que mon tutoriel l'avait aidé !
+- Allez, on fête ça : trois nouvelles vidéos publiées cette semaine !
+- Vous allez adorer le prochain épisode du podcast !
+- C'est exactement ce que je voulais vous montrer, c'est génial !
+- Le nouveau micro est arrivé, et le son est juste parfait !
+- Waouh, regardez la lumière ce soir, c'est le moment idéal pour filmer !
+- Ma startup a trouvé ses cent premiers clients, je suis aux anges !
+- On a été invités dans un vrai studio, c'est un rêve qui se réalise !
+- Le live sur Instagram a réuni plus de deux mille personnes !
+- Bravo à toute l'équipe, vous avez été absolument au top !
+- J'ai enfin compris comment marchent les formules dans Excel, quel bonheur !
+- Demain, on part tourner au bord de la mer, j'ai trop hâte !
+- Et le meilleur, c'est que tout ça, on l'a fait nous-mêmes !
+## serious
+- Aujourd'hui, je vous montre comment j'ai refait mon site en une soirée.
+- La plupart de vos clients vous cherchent d'abord sur Google.
+- Votre site WordPress a encore besoin d'une mise à jour.
+- J'ai reçu les premiers résultats ce matin, juste avant le café.
+- ChatGPT répond déjà aux questions de vos clients à votre place.
+- Il reste deux jours avant la fin de l'offre.
+- On a perdu toutes les vidéos, il faut tout recommencer.
+- Je vous montre exactement ce qui a changé sur la page d'accueil.
+- Le Wi-Fi a encore coupé pendant l'appel sur Zoom.
+- Et voilà, c'est terminé pour aujourd'hui.
+- Ce que je vais dire maintenant est important, écoutez bien.
+- Si votre site n'a pas été mis à jour depuis un an, il est exposé.
+- Un pirate n'a pas besoin de votre mot de passe pour exploiter une faille connue.
+- Vous êtes responsable des données de vos clients, même si vous travaillez seul.
+- Vérifiez qui possède réellement votre nom de domaine.
+- S'il est enregistré au nom de quelqu'un d'autre, il ne vous appartient pas.
+- Une sauvegarde qu'on n'a jamais testée n'est pas une sauvegarde.
+- Ne partagez jamais vos accès par e-mail ou par message.
+- Avant de signer, lisez attentivement la clause de résiliation.
+- Les chiffres sont clairs, et ils ne vont pas dans le bon sens.
+- Je préfère vous le dire franchement : ce plugin n'est plus maintenu.
+- L'intelligence artificielle aide, mais elle ne remplace pas la relecture humaine.
+- Une publicité trompeuse peut coûter très cher à votre réputation.
+- Chaque information publiée doit pouvoir être vérifiée.
+- Vos abonnés vous font confiance, ne trahissez pas cette confiance.
+- Sur le long terme, la régularité compte plus que le talent.
+- Nous avons pris une décision, et nous allons nous y tenir.
+- C'est un choix réfléchi, et nous l'assumons entièrement.
+- Respectez les droits d'auteur, même pour une simple musique de fond.
+- Un accord oral ne vous protège pas en cas de litige.
+- Gardez une trace écrite de chaque accord avec vos partenaires.
+- Voilà les règles, et elles sont les mêmes pour tout le monde.
+## calm
+- Aujourd'hui, je vous montre comment j'ai refait mon site en une soirée.
+- La plupart de vos clients vous cherchent d'abord sur Google.
+- Votre site WordPress a encore besoin d'une mise à jour.
+- J'ai reçu les premiers résultats ce matin, juste avant le café.
+- ChatGPT répond déjà aux questions de vos clients à votre place.
+- Il reste deux jours avant la fin de l'offre.
+- On a perdu toutes les vidéos, il faut tout recommencer.
+- Je vous montre exactement ce qui a changé sur la page d'accueil.
+- Le Wi-Fi a encore coupé pendant l'appel sur Zoom.
+- Et voilà, c'est terminé pour aujourd'hui.
+- Venez, je vais vous confier un petit secret.
+- Entre nous, la plupart des créateurs n'ont pas besoin de tout ce matériel.
+- Prenez le temps de respirer, on va regarder ça ensemble.
+- Doucement, une chose à la fois.
+- Ce soir, quand tout sera calme, ouvrez votre site sur votre téléphone.
+- Regardez-le comme si vous le découvriez pour la première fois.
+- Est-ce que vous trouvez ce que vous cherchez en moins de trois secondes ?
+- Si ce n'est pas le cas, ce n'est pas grave, ça se corrige.
+- Le matin, avec un café, je relis tranquillement les messages de la veille.
+- C'est un moment silencieux, où je prends les décisions importantes.
+- Vous n'êtes pas obligé de suivre toutes les tendances.
+- Gardez ce qui marche, et laissez tomber le reste.
+- Pas besoin de tout refaire, souvent trois petites choses suffisent.
+- Fermez les yeux un instant, et pensez à la personne qui va vous écouter.
+- Parlez-lui à elle, comme si elle était assise juste à côté de vous.
+- Il n'y a aucune urgence, la vidéo peut attendre demain.
+- Éteignez les notifications, posez le téléphone, et écoutez le silence.
+- Je vais vous dire ce que je me répète les jours difficiles.
+- Personne ne remarque les petites erreurs autant que vous.
+- Avancez à votre rythme, c'est le seul qui compte vraiment.
+- Prenez votre temps, et revenez quand vous voulez.
+- Voilà, c'est aussi simple que ça.
+## playful
+- Aujourd'hui, je vous montre comment j'ai refait mon site en une soirée.
+- La plupart de vos clients vous cherchent d'abord sur Google.
+- Votre site WordPress a encore besoin d'une mise à jour.
+- J'ai reçu les premiers résultats ce matin, juste avant le café.
+- ChatGPT répond déjà aux questions de vos clients à votre place.
+- Il reste deux jours avant la fin de l'offre.
+- On a perdu toutes les vidéos, il faut tout recommencer.
+- Je vous montre exactement ce qui a changé sur la page d'accueil.
+- Le Wi-Fi a encore coupé pendant l'appel sur Zoom.
+- Et voilà, c'est terminé pour aujourd'hui.
+- Ah, WordPress… notre vieil ami de toujours.
+- Vingt-trois plugins pour afficher le menu d'un restaurant, bravo !
+- Oui, oui, votre neveu peut faire le site, on en reparle dans six mois ?
+- Le site provisoire de deux mille dix-neuf, toujours en ligne, évidemment.
+- Mise à jour disponible. Encore. Pour la quatrième fois cette semaine.
+- Mon site met six secondes à charger ? Parfait, j'ai le temps de faire un café.
+- J'ai demandé une blague sur le SEO à ChatGPT, il l'a cachée en page deux de Google.
+- Bien sûr, le carrousel d'images est indispensable, personne ne le regarde, mais bon.
+- Vous aussi, vous payez un abonnement pour une application que vous n'ouvrez jamais ?
+- Spoiler : la réponse est toujours « ça dépend ».
+- On m'a dit « c'est juste un petit changement », et trois jours plus tard, me voilà.
+- Le client voulait quelque chose de simple, mais qui en jette, évidemment.
+- J'ai filmé vingt prises pour une phrase de six mots, record personnel !
+- Le Wi-Fi de l'hôtel, ce grand ami des créateurs de contenu.
+- Mon chat a plus d'abonnés que moi sur Instagram, et il ne fait aucun effort.
+- Ma to-do list a sa propre to-do list, c'est dire.
+- Rien de tel qu'un tableau Excel pour se sentir organisé sans rien faire.
+- L'algorithme a encore changé, quelle surprise, vraiment.
+- Cette réunion aurait pu être un e-mail, et cet e-mail aurait pu ne pas exister.
+- Vous m'entendez ? Non ? Ah, j'étais en sourdine depuis dix minutes.
+- Mon bureau est parfaitement rangé, enfin, la partie qu'on voit à la caméra.
+- Allez, avouez, vous êtes restés juste pour voir la fin.
+## alarmed
+- Aujourd'hui, je vous montre comment j'ai refait mon site en une soirée.
+- La plupart de vos clients vous cherchent d'abord sur Google.
+- Votre site WordPress a encore besoin d'une mise à jour.
+- J'ai reçu les premiers résultats ce matin, juste avant le café.
+- ChatGPT répond déjà aux questions de vos clients à votre place.
+- Il reste deux jours avant la fin de l'offre.
+- On a perdu toutes les vidéos, il faut tout recommencer.
+- Je vous montre exactement ce qui a changé sur la page d'accueil.
+- Le Wi-Fi a encore coupé pendant l'appel sur Zoom.
+- Et voilà, c'est terminé pour aujourd'hui.
+- Attention ! Ne cliquez surtout pas sur ce lien !
+- Le site est en panne depuis ce matin !
+- Stop ! Arrêtez tout, il y a un problème avec les paiements !
+- Il faut faire la mise à jour maintenant, pas demain !
+- Le nom de domaine expire dans quarante-huit heures !
+- Quelqu'un essaie de se connecter à mon compte en ce moment !
+- Vite, changez votre mot de passe tout de suite !
+- Les formulaires ne marchent plus, on perd des messages !
+- Alerte : une faille critique touche des milliers de sites WordPress !
+- Le certificat de sécurité a expiré, le navigateur affiche un avertissement rouge !
+- C'est la dernière chance, l'offre se termine ce soir à minuit !
+- Ne répondez pas à cet e-mail, c'est une arnaque !
+- On a reçu des centaines de faux messages en une heure !
+- La batterie est à deux pour cent et le live commence dans une minute !
+- Le site affiche une page blanche, sur tous les téléphones !
+- Appelez-moi dès que vous voyez ce message !
+- La carte mémoire est pleine, on ne filme plus rien !
+- Mon compte Instagram vient d'être piraté !
+- Le fichier ne s'enregistre pas, ne fermez surtout pas l'ordinateur !
+- Il reste dix minutes avant la mise en ligne, et rien n'est prêt !
+- Débranchez tout, tout de suite, ça sent le brûlé !
+- Attention, ce n'est pas un exercice !
+## sad
+- Aujourd'hui, je vous montre comment j'ai refait mon site en une soirée.
+- La plupart de vos clients vous cherchent d'abord sur Google.
+- Votre site WordPress a encore besoin d'une mise à jour.
+- J'ai reçu les premiers résultats ce matin, juste avant le café.
+- ChatGPT répond déjà aux questions de vos clients à votre place.
+- Il reste deux jours avant la fin de l'offre.
+- On a perdu toutes les vidéos, il faut tout recommencer.
+- Je vous montre exactement ce qui a changé sur la page d'accueil.
+- Le Wi-Fi a encore coupé pendant l'appel sur Zoom.
+- Et voilà, c'est terminé pour aujourd'hui.
+- On a fait de notre mieux, mais ça n'a pas suffi.
+- La petite boutique du coin a fermé le mois dernier.
+- J'aurais aimé vous annoncer une meilleure nouvelle.
+- Le projet s'est arrêté, sans vraiment d'explication.
+- Des années de photos et de vidéos, perdues en une nuit.
+- Et bien sûr, il n'y avait aucune sauvegarde.
+- Je suis vraiment déçu, je ne vais pas vous mentir.
+- On y croyait vraiment, à ce projet.
+- Les chiffres de ce mois sont mauvais, il faut le reconnaître.
+- Personne n'a répondu à la newsletter, cette fois.
+- C'est dommage, le site était beau, mais personne ne le trouvait.
+- J'ai relu le message trois fois, en espérant m'être trompé.
+- Parfois, on a beau tout faire bien, ça ne marche pas.
+- La vidéo sur laquelle j'ai passé une semaine a fait quarante vues.
+- Il faudra tout reprendre depuis le début.
+- Je pensais vraiment que cette fois serait la bonne.
+- Le podcast s'arrête après trois ans, c'était une belle aventure.
+- On a annulé le voyage, et le tournage avec.
+- Mon vieil ordinateur ne s'est jamais rallumé.
+- Je n'ai pas eu le courage de filmer aujourd'hui.
+- On va prendre un peu de recul, ça vaut mieux.
+- Merci quand même d'être restés jusqu'ici.

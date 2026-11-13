@@ -1,0 +1,25 @@
+{
+ "name": "image-overlay",
+ "description": "A picture dragged from Media onto the timeline (E1 #53), headless: media.import of a PNG gives a still image asset; the drop on V2 (the first overlay track above the footage) runs overlay.add with that file, 5 s, fitted inside the frame, which reuses the asset; timeline.place of the same still lasts 5 s by default; one undo step each. Checks: the overlay is in the render exactly in its window (media.checkOverlay: the frames with it differ from the timeline drawn without it inside 1–6 s and match outside); a frame at 3 s is written for a look. Synthetic talking head (media.synthesize), no engines, no footage (ffmpeg only for the export).",
+ "steps": [
+  {"command": "project.new", "params": {"name": "image-overlay", "directory": "${WORK}"}},
+  {"command": "media.synthesize", "params": {"path": "${WORK}/talking-head.mov", "duration": 8}, "capture": {"cam": "result.asset.id"}},
+  {"command": "track.add", "params": {"kind": "video"}, "capture": {"v1": "result.track.id"}},
+  {"command": "timeline.place", "params": {"assetId": "${cam}", "trackId": "${v1}", "sourceIn": 0, "sourceOut": 8}},
+  {"command": "media.import", "params": {"path": "${SCENARIO_DIR}/../Fixtures/overlay-card.png"},
+   "expect": {"result.asset.image.kind": "still", "result.existing": false}, "capture": {"card": "result.asset.id"}},
+  {"command": "track.add", "params": {"kind": "overlay"}, "capture": {"v2": "result.track.id"}},
+  {"command": "overlay.add", "params": {"path": "${SCENARIO_DIR}/../Fixtures/overlay-card.png", "start": 1, "duration": 5, "fit": "contain", "trackId": "${v2}"},
+   "expect": {"result.asset.id": "${card}", "result.trackId": "${v2}", "state.tracks.1.clips": {"count": 1}, "state.tracks.1.clips.0.start": 1,
+              "state.tracks.1.clips.0.duration": 5},
+   "capture": {"overlay": "result.clip.id"}},
+  {"command": "history.undo", "expect": {"state.tracks.1.clips": {"count": 0}}},
+  {"command": "history.redo", "expect": {"state.tracks.1.clips": {"count": 1}}},
+  {"command": "track.add", "params": {"kind": "video"}, "capture": {"v3": "result.track.id"}},
+  {"command": "timeline.place", "params": {"assetId": "${card}", "trackId": "${v3}", "start": 0}, "expect": {"state.tracks.2.clips.0.duration": 5}},
+  {"command": "track.delete", "params": {"trackId": "${v3}", "force": true}},
+  {"command": "export.render", "params": {"path": "${WORK}/image-overlay.mp4"}, "expect": {"result.duration": {"approx": 8, "tol": 0.05}}},
+  {"command": "media.checkOverlay", "params": {"path": "${WORK}/image-overlay.mp4", "trackId": "${v2}"}, "expect": {"result.pass": true}},
+  {"command": "frame.render", "params": {"time": 3, "path": "${WORK}/image-overlay-3s.png", "inline": false}}
+ ]
+}

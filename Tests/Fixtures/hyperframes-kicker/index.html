@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=360" />
+    <title>Regista fixture: kicker chips</title>
+    <!-- Test fixture for graphics.hyperframes: transparent 1080×360, 3 s. GSAP pinned (3.14.2). -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      html, body { margin: 0; background: transparent; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; }
+      .kicker { position: absolute; left: 0; right: 0; top: 34px; text-align: center; }
+      /* A mono label on a cream surface (like the kit's kicker preset): readable on light and dark backgrounds. */
+      .kicker span { display: inline-block; font: 24px Menlo, monospace; letter-spacing: 0.14em; text-transform: uppercase;
+                     color: #141414; background: #F7F4EC; padding: 8px 16px; border-radius: 8px; }
+      .row { position: absolute; left: 0; right: 0; top: 120px; display: flex; justify-content: center; gap: 18px; }
+      .chip { font: 700 34px "Helvetica Neue", Helvetica, sans-serif; padding: 14px 28px; border-radius: 999px; color: #F7F4EC;
+              box-shadow: 0 18px 40px -16px rgba(0,0,0,.5); }
+      .ok { background: #2E7D5B; }
+      .no { background: #141414; text-decoration: line-through; text-decoration-color: #E8442E; text-decoration-thickness: 3px; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="kicker" data-start="0" data-width="1080" data-height="360" data-duration="3">
+      <div class="kicker" id="k"><span>WeSites · come funziona</span></div>
+      <div class="row">
+        <span class="chip ok" id="c1">pagine statiche ✓</span>
+        <span class="chip no" id="c2">database</span>
+        <span class="chip no" id="c3">plugin</span>
+      </div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.from("#k", { y: 16, opacity: 0, duration: 0.35, ease: "expo.out" }, 0.1);
+      tl.from("#c1", { y: 24, opacity: 0, scale: 0.9, duration: 0.35, ease: "back.out(2)" }, 0.5);
+      tl.from("#c2", { y: 24, opacity: 0, scale: 0.9, duration: 0.35, ease: "back.out(2)" }, 1.0);
+      tl.from("#c3", { y: 24, opacity: 0, scale: 0.9, duration: 0.35, ease: "back.out(2)" }, 1.5);
+      tl.to("#root", { opacity: 0, duration: 0.25, ease: "power2.in" }, 2.75);
+      window.__timelines["kicker"] = tl;
+    </script>
+  </body>
+</html>

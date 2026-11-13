@@ -1,0 +1,278 @@
+{
+ "name": "fr-arkad-3531",
+ "description": "Real French footage without a script (issue #13): the Arkad spot, one man on camera and a quieter second voice off-mic (the skit's director). Script from the transcript with the off-script chatter dropped, face-aware punch-ins, French captions (no chunk ending on a function word) off the face, the second voice level-matched. Checks: framing, caption/face overlap, −15 ±0.5 LUFS, captions timing, A/V sync < 1 frame. Footage: $REGISTA_TEST_MEDIA_DIR (default ~/Movies/Regista); outputs only in the scenario's work folder.",
+ "requires": [
+  "engines",
+  "footage"
+ ],
+ "defaults": {
+  "REGISTA_TEST_MEDIA_DIR": "${HOME}/Movies/Regista"
+ },
+ "footage": [
+  "${REGISTA_TEST_MEDIA_DIR}/IMG_3531.MOV"
+ ],
+ "steps": [
+  {
+   "command": "project.new",
+   "params": {
+    "name": "fr-arkad-3531",
+    "directory": "${WORK}"
+   }
+  },
+  {
+   "command": "media.import",
+   "params": {
+    "path": "${REGISTA_TEST_MEDIA_DIR}/IMG_3531.MOV"
+   },
+   "capture": {
+    "raw": "result.asset.id"
+   }
+  },
+  {
+   "command": "media.extractAudio",
+   "params": {
+    "assetId": "${raw}"
+   }
+  },
+  {
+   "command": "transcript.run",
+   "params": {
+    "assetId": "${raw}",
+    "language": "fr",
+    "engine": "whisper.cpp"
+   },
+   "expect": {
+    "result.words": {
+     "min": 50
+    },
+    "result.language": "fr"
+   }
+  },
+  {
+   "command": "script.fromTranscript",
+   "params": {
+    "dryRun": true
+   },
+   "expect": {
+    "result.count": 15,
+    "result.lines.3.text": "Tu as ras le bol.",
+    "result.lines.4.text": "Dites, va te faire foutre.",
+    "result.lines.7.text": "Tu regardes, tu lis,",
+    "result.lines.10.text": "Vas-y.",
+    "result.lines.8.relativeDB": {
+     "max": -10
+    }
+   },
+   "show": [
+    "result.text"
+   ]
+  },
+  {
+   "command": "script.fromTranscript",
+   "params": {
+    "drop": [
+     4,
+     5,
+     8,
+     11
+    ]
+   },
+   "expect": {
+    "result.set": true,
+    "result.count": 11
+   }
+  },
+  {
+   "command": "takes.list",
+   "expect": {
+    "result.missing": {
+     "count": 0
+    }
+   }
+  },
+  {
+   "command": "edit.autoCut",
+   "capture": {
+    "cut": "result"
+   }
+  },
+  {
+   "command": "audio.clean",
+   "expect": {
+    "result.loudness.integrated": {
+     "approx": -15,
+     "tol": 0.5
+    },
+    "result.loudness.truePeak": {
+     "max": -1.5
+    },
+    "result.levelMatch.segments": {
+     "min": 5
+    }
+   },
+   "show": [
+    "result.levelMatch",
+    "result.sync"
+   ]
+  },
+  {
+   "command": "faces.track",
+   "params": {
+    "assetId": "${raw}"
+   },
+   "expect": {
+    "result.detectedRatio": {
+     "min": 0.95
+    }
+   },
+   "show": [
+    "result.multiFaceFrames",
+    "result.cuts"
+   ]
+  },
+  {
+   "command": "edit.punchIns",
+   "params": {
+    "by": "line"
+   },
+   "expect": {
+    "result.mode": "auto",
+    "result.allFit": true
+   },
+   "show": [
+    "result.clips"
+   ]
+  },
+  {
+   "command": "faces.checkFraming",
+   "params": {
+    "every": 1
+   },
+   "expect": {
+    "result.pass": true,
+    "result.framesCut": 0,
+    "result.framesChecked": {
+     "min": 300
+    }
+   }
+  },
+  {
+   "command": "clip.set",
+   "params": {
+    "trackId": "${cut.videoTrackId}",
+    "brightness": 0.02,
+    "contrast": 1.06,
+    "saturation": 1.08
+   }
+  },
+  {
+   "command": "captions.generate",
+   "params": {
+    "style": "talking-head-v1",
+    "fixes": {
+     "ARCADE": "ARKAD"
+    }
+   },
+   "expect": {
+    "result.language": "fr",
+    "result.stopWordEnds": {
+     "count": 0
+    },
+    "result.stale": false,
+    "result.placement.faces": true,
+    "result.preview.0": "BONJOUR"
+   },
+   "show": [
+    "result.placement",
+    "result.preview"
+   ]
+  },
+  {
+   "command": "captions.checkFaces",
+   "expect": {
+    "result.pass": true,
+    "result.overlappingChunks": 0,
+    "result.framesWithFaces": {
+     "min": 300
+    }
+   },
+   "show": [
+    "result.moved",
+    "result.framesChecked"
+   ]
+  },
+  {
+   "command": "export.render",
+   "params": {
+    "path": "${WORK}/fr-arkad-3531.mp4",
+    "preset": "9:16"
+   },
+   "expect": {
+    "result.loudness.integrated": {
+     "approx": -15,
+     "tol": 0.5
+    },
+    "result.loudness.truePeak": {
+     "max": -1.5
+    },
+    "result.warnings": {
+     "count": 0
+    }
+   },
+   "show": [
+    "result.loudness",
+    "result.frames"
+   ]
+  },
+  {
+   "command": "captions.checkTiming",
+   "params": {
+    "path": "${WORK}/fr-arkad-3531.mp4"
+   },
+   "expect": {
+    "result.pass": true,
+    "result.maxAbsError": {
+     "max": 1
+    },
+    "result.band.inside": true
+   },
+   "show": [
+    "result.maxAbsError",
+    "result.words",
+    "result.band"
+   ]
+  },
+  {
+   "command": "media.checkSync",
+   "params": {
+    "path": "${WORK}/fr-arkad-3531.mp4"
+   },
+   "expect": {
+    "result.lagFrames": {
+     "min": -0.99,
+     "max": 0.99
+    }
+   },
+   "show": [
+    "result.lagMs",
+    "result.correlation"
+   ]
+  },
+  {
+   "command": "frame.contactSheet",
+   "params": {
+    "count": 12,
+    "path": "${WORK}/fr-arkad-3531-contact.jpg"
+   }
+  },
+  {
+   "command": "export.srt",
+   "params": {
+    "path": "${WORK}/fr-arkad-3531.srt"
+   }
+  },
+  {
+   "command": "project.save"
+  }
+ ]
+}

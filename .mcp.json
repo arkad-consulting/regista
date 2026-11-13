@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "regista": {
+      "type": "stdio",
+      "command": "${HOME}/code/regista/.build/release/regista-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}

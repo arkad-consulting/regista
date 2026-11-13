@@ -1,0 +1,313 @@
+# Voice recording script — Português
+
+consent: O meu nome é {name}, e aceito que o Regista aprenda a minha voz para criar um clone dela.
+
+## neutral
+- Hoje vou mostrar a vocês como refiz o meu site numa só noite.
+- Hoje, quase todos os clientes começam por uma pesquisa no Google.
+- O site em WordPress precisa de mais uma atualização.
+- Recebi os primeiros resultados hoje de manhã, logo antes do café.
+- O ChatGPT já responde às perguntas dos clientes no lugar de vocês.
+- Faltam só dois dias para o fim da promoção.
+- Perdemos todos os vídeos, vai ser preciso começar tudo de novo.
+- Vou mostrar exatamente o que mudou na página inicial.
+- O Wi-Fi caiu outra vez no meio da chamada no Zoom.
+- E pronto, por hoje terminamos aqui.
+- Olá a todos, hoje vamos falar de como gravar um vídeo só com o telefone.
+- Não é preciso nenhum equipamento caro, um iPhone recente basta para começar.
+- A primeira regra é a luz: fiquem de frente para uma janela.
+- Evitem ficar de costas para a janela, senão o rosto fica na sombra.
+- O som conta ainda mais do que a imagem, acreditem.
+- Um pequeno microfone de lapela custa uns trinta euros e muda completamente o resultado.
+- Gravem na vertical se o vídeo for para o Instagram ou para o TikTok.
+- Para o YouTube, pelo contrário, mantemos o formato horizontal.
+- Um vídeo curto dura entre trinta segundos e um minuto.
+- Os primeiros três segundos decidem se as pessoas ficam ou vão embora.
+- Por isso, comecem logo pela ideia principal, sem grandes introduções.
+- Depois expliquem uma única coisa, com clareza e com um exemplo concreto.
+- Terminem com uma frase simples que dê vontade de agir.
+- Para a edição, muitos criadores usam o CapCut ou o Final Cut.
+- Coloquem sempre legendas, porque metade das pessoas vê os vídeos sem som.
+- Agora vamos falar do seu site.
+- O site é o seu endereço na internet, aquele que é realmente seu.
+- As redes sociais podem mudar as regras de um dia para o outro.
+- O site, esse, é seu para sempre, com o seu próprio domínio.
+- Um domínio custa normalmente uns dez euros por ano.
+- Escolham um nome curto, fácil de dizer e fácil de escrever.
+- Na página inicial, é preciso responder a três perguntas: quem, o quê e onde.
+- Ponham o número de telefone e o e-mail bem à vista.
+- A maior parte dos visitantes chega por um smartphone, e não por um computador.
+- Por isso, testem sempre o site num telefone antes da publicação.
+- Um site lento faz os visitantes desistirem em poucos segundos.
+- Reduzam o peso das fotos antes do envio, é o truque mais simples de todos.
+- O SEO, ou otimização para motores de busca, serve para aparecer no Google.
+- O Google gosta de páginas rápidas, claras e úteis.
+- Escrevam para os clientes, não para os robôs.
+- Hoje, muita gente faz as perguntas diretamente ao ChatGPT ou ao Gemini.
+- Esses assistentes citam os sites que dão respostas precisas.
+- Uma boa página responde a uma pergunta, e só a uma.
+- Agora vamos falar um pouco de e-mail.
+- A newsletter é o único canal em que se fala diretamente com os assinantes.
+- Enviem sempre com o mesmo ritmo, por exemplo, terça sim, terça não.
+- Um bom assunto de e-mail cabe em menos de dez palavras.
+- Evitem as maiúsculas e os pontos de exclamação no assunto.
+- Para organizar as ideias, uso uma tabela simples no Excel.
+- Uma coluna para a ideia, outra para a data, outra para a rede social.
+- Há quem prefira o Notion ou o Google Sheets, e também está ótimo.
+- O importante é ter um único lugar para anotar tudo.
+- Todas as segundas-feiras de manhã, reservo duas horas para preparar os conteúdos da semana.
+- Às quartas, gravo três ou quatro vídeos de uma vez.
+- Às sextas, respondo aos comentários e às mensagens privadas.
+- No LinkedIn, os textos um pouco mais longos funcionam bem.
+- No Instagram, a imagem e os primeiros segundos fazem todo o trabalho.
+- No YouTube, as pessoas procuram muitas vezes um tutorial específico.
+- Um podcast pede menos equipamento do que um vídeo, mas mais constância.
+- Basta um bom microfone, uma sala silenciosa e um tema de que gostem muito.
+- Será que tudo isto demora muito tempo, na prática?
+- É preciso publicar todos os dias para ter sucesso?
+- E se esta semana eu não tiver nenhuma ideia sobre o que falar?
+- O que faz um vídeo funcionar e outro passar despercebido?
+- Como posso saber se as pessoas gostam mesmo do meu conteúdo?
+- A resposta, muitas vezes, está nas estatísticas.
+- Olhem para o tempo médio de visualização, mais do que para o número de visualizações.
+- Um vídeo de quarenta segundos visto inteiro vale mais do que um de dez minutos abandonado no meio.
+- No mês passado, publiquei doze vídeos e dois artigos no blog.
+- O melhor teve vinte e cinco mil visualizações, o pior mal chegou às trezentas.
+- A assinatura do programa de edição custa nove euros e noventa por mês.
+- O lançamento está marcado para quinta-feira, doze de março, às dezoito horas.
+- A conferência acontece no dia três de outubro de dois mil e vinte e sete.
+- Em dois mil e vinte e seis, a maior parte das pesquisas é feita no telefone.
+- A taxa de abertura da newsletter passou de vinte para trinta e cinco por cento.
+- Já são mais de mil assinantes, em pouco menos de seis meses.
+- Para uma startup, o marketing muitas vezes começa com orçamento zero.
+- Nesse caso, o conteúdo gratuito é o seu melhor aliado.
+- Um plugin é um pequeno módulo que se acrescenta a um site para uma função específica.
+- Cada plugin acrescenta código, e cada linha de código precisa de manutenção.
+- O formulário do site envia as mensagens diretamente para a caixa de e-mail.
+- Também é possível receber os pedidos no WhatsApp, se preferirem.
+- O pagamento online passa muitas vezes pelo Stripe ou pelo PayPal.
+- Para as imagens, o Canva permite criar um visual limpo em poucos minutos.
+- A inteligência artificial pode ajudar a escrever um primeiro rascunho.
+- Releiam sempre o texto, e coloquem nele as suas próprias palavras.
+- Uma boa miniatura no YouTube mostra um rosto e no máximo três palavras.
+- As hashtags já não têm a importância de antes.
+- O que conta é que as pessoas guardem a publicação e a enviem aos amigos.
+- Primeiro passo: definir para quem é o conteúdo.
+- Segundo passo: escolher uma ou duas redes sociais, não mais.
+- Terceiro passo: publicar com regularidade durante pelo menos três meses.
+- Quarto passo: ver o que funciona e fazer mais disso.
+- Guardem uma cópia de todos os vídeos num disco externo ou na nuvem.
+- Uma senha diferente para cada conta é a base da segurança.
+- Ativem a autenticação de dois fatores no Instagram, no Gmail e no LinkedIn.
+- Para uma reunião à distância, o Zoom e o Google Meet resolvem perfeitamente.
+- Desliguem as notificações durante a gravação, senão elas aparecem no som.
+- Falem um pouco mais devagar do que o normal, o microfone agradece.
+- Bebam um copo de água antes de começar, a voz fica mais limpa.
+- Se errarem, façam uma pausa e leiam a frase outra vez desde o início.
+- Na edição, cortem os silêncios muito longos, mas não todos.
+- Uma música de fundo deve ser discreta, quase invisível.
+- Exportem o vídeo em alta definição e verifiquem o resultado no telefone.
+- Um bom título faz uma promessa, e o vídeo cumpre essa promessa.
+- No fundo, marketing é só explicar com clareza aquilo que fazem.
+- Ninguém tem vontade de ler um jargão complicado.
+- Falem como falariam com um amigo, durante um café.
+- Resumindo, comecem pequeno, sejam regulares e melhorem a cada vídeo.
+- Agradeço a atenção, e até muito em breve para a próxima.
+## enthusiastic
+- Hoje vou mostrar a vocês como refiz o meu site numa só noite.
+- Hoje, quase todos os clientes começam por uma pesquisa no Google.
+- O site em WordPress precisa de mais uma atualização.
+- Recebi os primeiros resultados hoje de manhã, logo antes do café.
+- O ChatGPT já responde às perguntas dos clientes no lugar de vocês.
+- Faltam só dois dias para o fim da promoção.
+- Perdemos todos os vídeos, vai ser preciso começar tudo de novo.
+- Vou mostrar exatamente o que mudou na página inicial.
+- O Wi-Fi caiu outra vez no meio da chamada no Zoom.
+- E pronto, por hoje terminamos aqui.
+- Está no ar! O meu site novo finalmente está no ar, e ficou lindo!
+- Inacreditável, o vídeo passou das cem mil visualizações numa noite!
+- Já somos dez mil no canal, um enorme obrigado a todos!
+- Adoro este projeto, de verdade, é o meu preferido do ano!
+- Olhem só para isto, a página inicial fica perfeita no iPhone!
+- Boa notícia: a newsletter agora sai todas as semanas!
+- Conseguimos, o site está em primeiro lugar no Google para a minha pesquisa preferida!
+- Nem acredito, ficou ainda melhor do que eu imaginava!
+- O formulário funciona, os e-mails chegam, está tudo perfeito!
+- Que bom, alguém me escreveu porque o meu tutorial ajudou muito!
+- Vamos festejar: três vídeos novos publicados esta semana!
+- Vocês vão adorar o próximo episódio do podcast!
+- É exatamente isto que eu queria mostrar, é genial!
+- O microfone novo chegou, e o som está simplesmente perfeito!
+- Uau, olhem para esta luz, é o momento ideal para gravar!
+- A minha startup já tem os primeiros cem clientes, que felicidade!
+- Fomos convidados para um estúdio de verdade, é um sonho realizado!
+- Mais de duas mil pessoas assistiram à live no Instagram!
+- Parabéns a todos, foram absolutamente fantásticos!
+- Finalmente entendi como funcionam as fórmulas do Excel, que alegria!
+- Amanhã vamos gravar à beira-mar, que vontade!
+- E o melhor de tudo é que fizemos tudo com as nossas próprias mãos!
+## serious
+- Hoje vou mostrar a vocês como refiz o meu site numa só noite.
+- Hoje, quase todos os clientes começam por uma pesquisa no Google.
+- O site em WordPress precisa de mais uma atualização.
+- Recebi os primeiros resultados hoje de manhã, logo antes do café.
+- O ChatGPT já responde às perguntas dos clientes no lugar de vocês.
+- Faltam só dois dias para o fim da promoção.
+- Perdemos todos os vídeos, vai ser preciso começar tudo de novo.
+- Vou mostrar exatamente o que mudou na página inicial.
+- O Wi-Fi caiu outra vez no meio da chamada no Zoom.
+- E pronto, por hoje terminamos aqui.
+- O que vou dizer agora é importante, ouçam com atenção.
+- Se o site não é atualizado há um ano, está exposto.
+- Um hacker não precisa da senha para explorar uma falha conhecida.
+- A responsabilidade pelos dados dos clientes é sua, mesmo numa empresa de uma só pessoa.
+- Verifiquem quem é realmente o dono do domínio.
+- Se estiver em nome de outra pessoa, o domínio não é de vocês.
+- Uma cópia de segurança que nunca foi testada não é uma cópia de segurança.
+- Nunca enviem as senhas por e-mail ou por mensagem.
+- Antes de assinar, leiam com atenção a cláusula de rescisão.
+- Os números são claros, e não vão no bom caminho.
+- Prefiro dizer as coisas com franqueza: este plugin já não tem manutenção.
+- A inteligência artificial ajuda, mas não substitui a revisão humana.
+- Uma publicidade enganosa pode custar muito caro à sua reputação.
+- Cada informação publicada deve poder ser verificada.
+- A confiança de quem acompanha o canal não se trai.
+- A longo prazo, a constância conta mais do que o talento.
+- A decisão está tomada, e não vamos voltar atrás.
+- É uma escolha pensada, e assumimos toda a responsabilidade por ela.
+- Respeitem os direitos de autor, mesmo numa simples música de fundo.
+- Um acordo verbal não protege ninguém em caso de conflito.
+- Guardem por escrito cada acordo feito com os parceiros.
+- Estas são as regras, e valem para todos.
+## calm
+- Hoje vou mostrar a vocês como refiz o meu site numa só noite.
+- Hoje, quase todos os clientes começam por uma pesquisa no Google.
+- O site em WordPress precisa de mais uma atualização.
+- Recebi os primeiros resultados hoje de manhã, logo antes do café.
+- O ChatGPT já responde às perguntas dos clientes no lugar de vocês.
+- Faltam só dois dias para o fim da promoção.
+- Perdemos todos os vídeos, vai ser preciso começar tudo de novo.
+- Vou mostrar exatamente o que mudou na página inicial.
+- O Wi-Fi caiu outra vez no meio da chamada no Zoom.
+- E pronto, por hoje terminamos aqui.
+- Venham cá, vou contar um pequeno segredo.
+- Cá entre nós, a maioria dos criadores não precisa de tanto equipamento.
+- Respirem fundo, vamos ver isto juntos, com calma.
+- Devagar, uma coisa de cada vez.
+- Hoje à noite, quando estiver tudo tranquilo, abram o site no telefone.
+- Olhem para ele como se fosse a primeira vez.
+- Conseguem encontrar o que procuram em menos de três segundos?
+- Se não conseguirem, não faz mal, tem solução.
+- De manhã, com um café, releio com calma as mensagens da véspera.
+- É um momento silencioso, em que tomo as decisões importantes.
+- Ninguém é obrigado a seguir todas as modas.
+- Fiquem com o que funciona, e deixem o resto para trás.
+- Não é preciso refazer tudo, muitas vezes bastam três pequenas coisas.
+- Fechem os olhos por um instante e pensem na pessoa que vai ouvir.
+- Falem para essa pessoa, como se estivesse sentada bem ao lado.
+- Não há pressa nenhuma, o vídeo pode esperar até amanhã.
+- Desliguem as notificações, deixem o telefone de lado e ouçam o silêncio.
+- Vou contar o que costumo repetir nos dias mais difíceis.
+- Ninguém nota os pequenos erros tanto quanto vocês.
+- Cada um tem o seu ritmo, e é esse que conta.
+- Tirem o tempo que precisarem, e voltem quando quiserem.
+- E pronto, no fundo é simples assim.
+## playful
+- Hoje vou mostrar a vocês como refiz o meu site numa só noite.
+- Hoje, quase todos os clientes começam por uma pesquisa no Google.
+- O site em WordPress precisa de mais uma atualização.
+- Recebi os primeiros resultados hoje de manhã, logo antes do café.
+- O ChatGPT já responde às perguntas dos clientes no lugar de vocês.
+- Faltam só dois dias para o fim da promoção.
+- Perdemos todos os vídeos, vai ser preciso começar tudo de novo.
+- Vou mostrar exatamente o que mudou na página inicial.
+- O Wi-Fi caiu outra vez no meio da chamada no Zoom.
+- E pronto, por hoje terminamos aqui.
+- Ah, o WordPress… o nosso velho amigo de sempre.
+- Vinte e três plugins para mostrar o menu de um restaurante, parabéns!
+- Sim, sim, o sobrinho pode fazer o site, voltamos a falar daqui a seis meses?
+- O site provisório de dois mil e dezoito, ainda no ar, claro.
+- Atualização disponível. Outra vez. Pela quarta vez esta semana.
+- Seis segundos para abrir o site? Ótimo, dá tempo para um café.
+- Pedi ao ChatGPT uma piada sobre SEO, e a piada ficou escondida na segunda página do Google.
+- Claro, o carrossel de imagens é indispensável, ninguém olha para ele, mas enfim.
+- Vocês também pagam todos os meses por algo que nunca abrem?
+- Spoiler: a resposta é sempre “depende”.
+- A frase foi “é só uma pequena alteração”, e três dias depois, cá estou eu.
+- O cliente queria uma coisa simples, mas com impacto, claro.
+- Gravei vinte takes para uma frase de seis palavras, recorde pessoal!
+- O Wi-Fi do hotel, o melhor amigo de quem cria conteúdo.
+- O meu gato tem mais seguidores no Instagram do que eu, e não faz nada o dia todo.
+- A minha lista de tarefas já tem a sua própria lista de tarefas.
+- Nada como um bom Excel para nos sentirmos organizados sem fazer nada.
+- O algoritmo mudou outra vez, que grande surpresa, não é?
+- Esta reunião podia ter sido um e-mail, e esse e-mail podia nem existir.
+- Alguém me ouve? Não? Ah, o microfone estava sem som há dez minutos.
+- A minha mesa está perfeitamente arrumada, pelo menos a parte que aparece no vídeo.
+- Podem admitir, vocês só ficaram para ver o final.
+## alarmed
+- Hoje vou mostrar a vocês como refiz o meu site numa só noite.
+- Hoje, quase todos os clientes começam por uma pesquisa no Google.
+- O site em WordPress precisa de mais uma atualização.
+- Recebi os primeiros resultados hoje de manhã, logo antes do café.
+- O ChatGPT já responde às perguntas dos clientes no lugar de vocês.
+- Faltam só dois dias para o fim da promoção.
+- Perdemos todos os vídeos, vai ser preciso começar tudo de novo.
+- Vou mostrar exatamente o que mudou na página inicial.
+- O Wi-Fi caiu outra vez no meio da chamada no Zoom.
+- E pronto, por hoje terminamos aqui.
+- Atenção! Não cliquem nesse link de maneira nenhuma!
+- O site está fora do ar desde hoje de manhã!
+- Parem! Parem tudo, há um problema com os pagamentos!
+- Façam a atualização agora, não amanhã!
+- O domínio expira daqui a quarenta e oito horas!
+- Alguém tenta entrar na minha conta neste preciso momento!
+- Rápido, mudem a senha de todas as contas!
+- Os formulários deixaram de funcionar, e as mensagens não chegam!
+- Alerta: uma falha crítica afeta milhares de sites WordPress!
+- O certificado de segurança expirou, o navegador mostra um aviso vermelho!
+- É a última oportunidade, a promoção acaba hoje à meia-noite!
+- Não respondam a esse e-mail, é uma fraude!
+- Chegaram centenas de mensagens falsas numa só hora!
+- A bateria está nos dois por cento e a live começa daqui a um minuto!
+- O site mostra uma página em branco, em todos os telefones!
+- Preciso de falar com vocês assim que virem esta mensagem!
+- O cartão de memória está cheio, o resto não vai ficar gravado!
+- A minha conta do Instagram acabou de ser invadida!
+- Não desliguem o computador, o trabalho ainda não foi guardado!
+- Faltam dez minutos para a publicação, e não há nada pronto!
+- Desliguem tudo da tomada, cheira a queimado!
+- Atenção, pessoal, isto não é um exercício!
+## sad
+- Hoje vou mostrar a vocês como refiz o meu site numa só noite.
+- Hoje, quase todos os clientes começam por uma pesquisa no Google.
+- O site em WordPress precisa de mais uma atualização.
+- Recebi os primeiros resultados hoje de manhã, logo antes do café.
+- O ChatGPT já responde às perguntas dos clientes no lugar de vocês.
+- Faltam só dois dias para o fim da promoção.
+- Perdemos todos os vídeos, vai ser preciso começar tudo de novo.
+- Vou mostrar exatamente o que mudou na página inicial.
+- O Wi-Fi caiu outra vez no meio da chamada no Zoom.
+- E pronto, por hoje terminamos aqui.
+- Fizemos o nosso melhor, mas não foi suficiente.
+- A pequena loja da esquina fechou no mês passado.
+- Gostaria de ter uma notícia melhor para dar.
+- O projeto parou, sem qualquer explicação.
+- Anos de fotos e de vídeos, perdidos numa noite.
+- E, claro, não havia nenhuma cópia de segurança.
+- Fiquei muito triste com isso, não vou mentir.
+- A verdade é que acreditávamos mesmo neste projeto.
+- Os números deste mês são fracos, é preciso admitir.
+- Ninguém respondeu à newsletter, desta vez.
+- Que pena, o site era bonito, mas ninguém o encontrava.
+- Li a mensagem três vezes, com esperança de ter entendido mal.
+- Às vezes fazemos tudo bem, e mesmo assim não funciona.
+- O vídeo em que trabalhei uma semana inteira teve quarenta visualizações.
+- Agora é recomeçar tudo do zero, outra vez.
+- Achei mesmo que desta vez ia ser diferente.
+- O podcast termina depois de três anos, foi uma bela aventura.
+- A viagem foi cancelada, e as gravações também.
+- O meu computador antigo nunca mais ligou.
+- Hoje não tive coragem de gravar nada.
+- Vamos dar um tempo para pensar, é melhor assim.
+- Mesmo assim, agradeço a quem ficou até aqui.

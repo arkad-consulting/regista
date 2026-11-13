@@ -1,0 +1,52 @@
+{
+ "name": "looks",
+ "description": "Caption styles and hand tracking (issue #22, rounds 2–3) on real footage. 12 s of the WeSites take, transcribed and face-tracked, captioned in each new style — elegant-serif, bold-keyword, ghost-karaoke — and exported: every word's reveal in the export within one frame of its word start (captions.checkTiming; the flat-fill and ghosted styles are measured by glyph contrast), no caption on a face (captions.checkFaces), keywords typed in capitals still shown on the mixed-case styles; then the letterbox-headline layout framed on the tracked face. Then 5 s of IMG_3531 (a hand on the chin): hands.track over the gesture, a sticker held over the palm with clip.follow (hover, 3D spin, halo), exported: the sticker where the plan puts it in the export (media.checkPlacement) and the halo visible (effects.check). Needs whisper (cached transcript), Vision and the footage: skipped by the pre-commit hook.",
+ "requires": ["engines", "footage"],
+ "defaults": {"REGISTA_GOLDEN_MEDIA": "${HOME}/.config/regista/test-media/wesites-2026-10-26", "REGISTA_HANDS_MEDIA": "${HOME}/Movies/Regista/IMG_3531.MOV"},
+ "footage": ["${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV", "${REGISTA_HANDS_MEDIA}"],
+ "steps": [
+  {"command": "project.new", "params": {"name": "looks", "directory": "${WORK}"}},
+  {"command": "media.import", "params": {"path": "${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV"}, "capture": {"raw": "result.asset.id"}},
+  {"command": "track.add", "params": {"kind": "video"}, "capture": {"v1": "result.track.id"}},
+  {"command": "timeline.place", "params": {"assetId": "${raw}", "trackId": "${v1}", "sourceIn": 0, "sourceOut": 12}},
+  {"command": "transcript.run", "params": {"assetId": "${raw}", "language": "it"}, "expect": {"result.words": {"min": 20}}},
+  {"command": "faces.track", "params": {"assetId": "${raw}"}, "expect": {"result.detectedRatio": {"min": 0.95}}},
+
+  {"command": "captions.generate", "params": {"style": "elegant-serif", "keywords": ["SITO", "SICURO", "AGGIORNATO"]},
+   "expect": {"result.style": "elegant-serif", "result.keywordsShown": {"min": 3}, "result.placement.overlapping": {"count": 0}}},
+  {"command": "export.render", "params": {"path": "${WORK}/elegant-serif.mp4"}},
+  {"command": "captions.checkTiming", "params": {"path": "${WORK}/elegant-serif.mp4"}, "expect": {"result.pass": true, "result.maxAbsError": {"max": 1}}},
+  {"command": "captions.checkFaces", "params": {}, "expect": {"result.pass": true}},
+
+  {"command": "captions.setStyle", "params": {"style": "bold-keyword"}, "expect": {"result.style": "bold-keyword", "result.keywordsShown": {"min": 3}}},
+  {"command": "export.render", "params": {"path": "${WORK}/bold-keyword.mp4"}},
+  {"command": "captions.checkTiming", "params": {"path": "${WORK}/bold-keyword.mp4"}, "expect": {"result.pass": true, "result.maxAbsError": {"max": 1}}},
+  {"command": "captions.checkFaces", "params": {}, "expect": {"result.pass": true}},
+
+  {"command": "captions.setStyle", "params": {"style": "ghost-karaoke"}, "expect": {"result.style": "ghost-karaoke"}},
+  {"command": "export.render", "params": {"path": "${WORK}/ghost-karaoke.mp4"}},
+  {"command": "captions.checkTiming", "params": {"path": "${WORK}/ghost-karaoke.mp4"}, "expect": {"result.pass": true, "result.maxAbsError": {"max": 1}}},
+  {"command": "captions.checkFaces", "params": {}, "expect": {"result.pass": true}},
+  {"command": "frame.contactSheet", "params": {"times": [3.3, 3.6, 3.9, 5.2], "path": "${WORK}/ghost-karaoke.jpg"}},
+
+  {"command": "layout.speaker", "params": {"preset": "letterbox-headline", "from": 0, "to": 12, "headline": "Il sito sicuro non esiste"},
+   "expect": {"result.warnings": {"count": 0}, "result.speakerBox.1": 560}},
+  {"command": "frame.contactSheet", "params": {"times": [2, 6, 10], "path": "${WORK}/letterbox.jpg"}},
+
+  {"command": "project.new", "params": {"name": "looks-hands", "directory": "${WORK}"}},
+  {"command": "media.import", "params": {"path": "${REGISTA_HANDS_MEDIA}"}, "capture": {"take": "result.asset.id"}},
+  {"command": "track.add", "params": {"kind": "video"}, "capture": {"v": "result.track.id"}},
+  {"command": "timeline.place", "params": {"assetId": "${take}", "trackId": "${v}", "sourceIn": 53, "sourceOut": 58}},
+  {"command": "hands.track", "params": {"assetId": "${take}", "from": 52, "to": 59}, "expect": {"result.withHand": {"min": 60}, "result.openPalm": {"min": 20}}},
+  {"command": "sticker.add", "params": {"symbol": "sparkle", "start": 0, "duration": 5, "size": 150, "color": "#FFFFFF", "badge": "#FF7A1A"},
+   "capture": {"obj": "result.clip.id"}},
+  {"command": "clip.follow", "params": {"clipId": "${obj}", "target": "hand", "hover": 90, "spin": 2.5, "halo": true},
+   "expect": {"result.visibleRatio": {"min": 0.2}, "result.keyframes": {"min": 60}, "result.haloClip": {"exists": true}}},
+  {"command": "clip.follow", "params": {"clipId": "${obj}", "target": "hand", "hover": 90, "spin": 2.5, "halo": true},
+   "expect": {"state.tracks": {"count": 3}}},
+  {"command": "export.render", "params": {"path": "${WORK}/hands.mp4"}},
+  {"command": "media.checkPlacement", "params": {"path": "${WORK}/hands.mp4", "clipId": "${obj}", "time": 2.5, "tolerance": 8}, "expect": {"result.pass": true}},
+  {"command": "effects.check", "params": {}, "expect": {"result.pass": true}},
+  {"command": "frame.contactSheet", "params": {"times": [2.3, 2.45, 2.6, 2.75], "path": "${WORK}/hands.jpg"}}
+ ]
+}

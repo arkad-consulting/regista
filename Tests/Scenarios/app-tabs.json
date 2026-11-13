@@ -1,0 +1,24 @@
+{
+  "name": "app-tabs",
+  "description": "S2 #76 on the running app (regista-engine run Tests/Scenarios/app-tabs.json --mcp <regista-mcp> --engine app): two temporary projects open in two tabs, each edited and undone by project while the second stays the active tab, project.list shows both, then both are closed. Touches only ${WORK}; skipped elsewhere (requires app).",
+  "requires": ["app"],
+  "steps": [
+    {"command": "project.new", "params": {"name": "tabs-uno", "directory": "${WORK}"}, "capture": {"uno": "result.path"}},
+    {"command": "project.save"},
+    {"command": "project.new", "params": {"name": "tabs-due", "directory": "${WORK}"}, "capture": {"due": "result.path"}},
+    {"command": "project.save"},
+    {"command": "project.list", "capture": {"active": "result.active"}},
+    {"command": "track.add", "params": {"kind": "video", "project": "${uno}"}, "expect": {"result.track.name": "V1"}},
+    {"command": "track.add", "params": {"kind": "audio", "project": "${uno}"}},
+    {"command": "track.add", "params": {"kind": "audio", "project": "${due}"}, "expect": {"result.track.name": "A1"}},
+    {"command": "project.state", "params": {"project": "${uno}"}, "expect": {"result.name": "tabs-uno", "result.tracks": {"count": 2}}},
+    {"command": "project.state", "expect": {"result.name": "tabs-due", "result.tracks": {"count": 1}}},
+    {"command": "history.undo", "params": {"project": "${uno}"}, "expect": {"result.undone": "track.add"}},
+    {"command": "project.state", "params": {"project": "${uno}"}, "expect": {"result.tracks": {"count": 1}, "result.history.redo": 1}},
+    {"command": "project.state", "expect": {"result.name": "tabs-due", "result.tracks": {"count": 1}, "result.history.redo": 0}},
+    {"command": "project.list", "expect": {"result.active": "${active}"}},
+    {"command": "project.close", "params": {"project": "${uno}"}, "expectError": "unsaved changes"},
+    {"command": "project.close", "params": {"project": "${uno}", "discard": true}, "expect": {"result.closed": "tabs-uno"}},
+    {"command": "project.close", "params": {"project": "${due}", "discard": true}, "expect": {"result.closed": "tabs-due"}}
+  ]
+}
