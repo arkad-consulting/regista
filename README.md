@@ -103,7 +103,7 @@ Shotcut is offered on every tier. Every engine with the RAM, disk and licence it
 
 ## Languages
 
-- **Interface**: Italian, English and French, following the macOS language (Portuguese is in progress).
+- **Interface**: Italian, English, French and Portuguese, following the macOS language.
 - **Captions, teleprompter and transcription**: Italian, French, English and Portuguese.
 - **Installer messages**: all four.
 
@@ -167,15 +167,15 @@ corriger.
 
 ### Português
 
-É preciso um Mac com chip Apple e macOS 15 ou mais recente, o Claude Desktop ou o Claude Code, e as ferramentas de
-linha de comandos (`xcode-select --install`). No Terminal:
+É preciso um Mac com chip Apple e macOS 15 ou mais novo, o Claude Desktop ou o Claude Code, e as ferramentas de
+linha de comando (`xcode-select --install`). No Terminal:
 
 ```bash
 git clone https://github.com/arkad-consulting/regista.git ~/code/regista && ~/code/regista/scripts/install.sh
 ```
 
-Depois fecha completamente o Claude Desktop (⌘Q) e volta a abri-lo. Para atualizar, volta a executar
-`~/code/regista/scripts/install.sh`; se algo correr mal, `~/code/regista/scripts/doctor.sh` diz como o resolver.
+Depois feche completamente o Claude Desktop (⌘Q) e abra-o de novo. Para atualizar, execute de novo
+`~/code/regista/scripts/install.sh`; se algo der errado, `~/code/regista/scripts/doctor.sh` diz como resolver.
 
 ## Licence
 

@@ -326,6 +326,7 @@ struct VoiceSetupView: View {
         VStack(alignment: .leading, spacing: 4) {
             SectionLabel(label)
             Text(verbatim: value).font(Ed.mono(17, .medium)).foregroundStyle(ok ? Ed.text : Ed.warn)
+                .lineLimit(1).minimumScaleFactor(0.6)
         }
         .padding(Ed.Space.m)
         .frame(width: 138, alignment: .leading)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Checks the app's words (L0 #48) against Resources/Localization/<lang>.lproj/Localizable.strings for each language in
-LANGS (it, en, fr; pt is PENDING until it is translated).
+LANGS (it, en, fr, pt).
 
 The scheme is in Sources/Regista/App/Words.swift: keys are the Italian text, or `area.meaning` where one Italian text has
 two meanings; interpolated texts are format keys (`loc("%@ clip", n)`); data goes through `Text(verbatim:)`.
@@ -27,10 +27,10 @@ usage: python3 -I scripts/l10n.py [--todo it|en|fr|pt]   (--todo prints the keys
 import glob, json, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# The UI languages that must be complete. Portuguese is declared but not translated yet: move it from PENDING to LANGS
-# when pt.lproj is complete (the app shows English wherever a language has no table).
-LANGS = ['it', 'en', 'fr']
-PENDING = ['pt']
+# The UI languages that must be complete. A language declared but not translated yet goes in PENDING until its table is
+# complete (the app shows English wherever a language has no table).
+LANGS = ['it', 'en', 'fr', 'pt']
+PENDING = []
 SRC = os.path.join(ROOT, 'Sources/Regista')
 
 ENTRY = re.compile(r'^"((?:[^"\\]|\\.)*)"\s*=\s*"((?:[^"\\]|\\.)*)";\s*$')

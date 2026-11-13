@@ -9,7 +9,7 @@ sua conta Claude).
 ## 1. Antes de começar
 
 - Um Mac com chip Apple (M1 ou mais novo) e **macOS 15** ou mais novo (menu  → Sobre Este Mac).
-- Uns **15 GB livres** no disco, uma boa conexão de internet, 20 a 40 minutos na primeira vez.
+- Uns **16 GB livres** no disco, uma boa conexão de internet, 20 a 40 minutos na primeira vez.
 - **Claude Desktop** (https://claude.ai/download) **ou** Claude Code, conectado com a **sua** conta Claude.
   Instale **antes** do Regista: a instalação conecta automaticamente (senão, execute `INSTALLA.command` de novo depois).
 - A senha do seu Mac (conta de administrador): pode ser pedida para instalar as ferramentas da Apple ou o Homebrew.
@@ -40,16 +40,16 @@ O script faz as mesmas perguntas descritas abaixo (passos 4 e 5); no fim, siga p
    - Se ainda não funcionar: abra o app **Terminal**, digite `bash` e um espaço, **arraste `INSTALLA.command` para a
      janela** e aperte Enter. É exatamente a mesma coisa.
    - Se o macOS pedir para o Terminal acessar a pasta Downloads: **Permitir**.
-4. O script faz algumas perguntas (em inglês). **Aperte só Enter** para a resposta padrão:
-   - *Install Blender / Shotcut?* (programas opcionais) → Enter = não;
-   - *Connect Regista to Claude Desktop?* → Enter = sim.
+4. O script faz algumas perguntas, em português. **Aperte só Enter** para a resposta padrão:
+   - *Instalar o Blender… / Instalar o Shotcut…?* (programas opcionais) → Enter = não;
+   - *Conectar o Regista ao Claude Desktop?* → Enter = sim.
 5. **Se ele parar** com uma mensagem em vermelho, quase sempre é um passo a fazer e depois executar de novo:
    - *Command Line Tools are missing*: abriu uma janela da Apple → **Instalar**, espere terminar e clique duas
      vezes de novo em `INSTALLA.command`;
    - Homebrew ausente: aceite a instalação oferecida no Terminal. O instalador oficial pode pedir a senha de
      administrador (nada aparece enquanto você digita). O Regista continua automaticamente depois. Se recusar
      ou a instalação falhar, siga a mensagem e execute `INSTALLA.command` de novo.
-6. No fim aparece **"Regista est installé"** e **"Concluído"**. O app Regista fica em **Aplicativos**.
+6. No fim aparece **"O Regista está instalado"** e **"Concluído"**. O app Regista fica em **Aplicativos**.
 
 Executar a instalação de novo (o comando ou `INSTALLA.command`) não estraga nada: o que já está instalado e verificado é mantido.
 
@@ -61,8 +61,8 @@ No Terminal, cole esta linha e aperte Enter:
 ~/code/regista/scripts/doctor.sh
 ```
 
-A última linha deve ser **"Tout est en ordre"** (tudo certo). Se não, cada problema vem com uma linha **FR:** que diz
-como resolver (em francês).
+A última linha deve ser **"Está tudo em ordem"**. Se não, cada problema vem seguido de uma linha que diz como
+resolver.
 
 ## 4. Conectar o Claude
 
@@ -78,17 +78,16 @@ como resolver (em francês).
 
 **Claude Code** (se você usa): no Terminal, `claude mcp list` deve mostrar `regista … ✓ Connected`.
 A instalação também adiciona o skill **regista** (`~/.claude/skills/regista`): o Claude sabe quando usar o Regista
-e quais regras seguir, sem colar nada. Basta pedir « edite este vídeo ».
+e quais regras seguir, sem colar nada. Basta pedir "edite este vídeo".
 
 ## 5. Onde colocar os vídeos
 
 Na pasta **Filmes › Regista** (`~/Movies/Regista`, criada pela instalação). O Claude só enxerga essa pasta: coloque o
-vídeo lá (e o roteiro em `.txt` ou `.md`, se tiver). Os resultados (vídeo `.mp4`, legendas `.srt`, projeto Shotcut)
-também são salvos lá; o Claude diz onde.
+vídeo lá (e o roteiro em `.txt` ou `.md`, se tiver). Os vídeos prontos (`.mp4`) e as legendas (`.srt`) vão para a
+subpasta **Export**, os projetos para **Progetti** e as gravações feitas no app para **Registrazioni**; o Claude diz onde.
 
-**Abra o app Regista antes de falar com o Claude**: no canto superior direito ele mostra que o Claude está conectado
-("Claude Desktop connected", a interface ainda não está em português) e você vê a edição acontecendo ao vivo. Com o app fechado o Claude trabalha mesmo
-assim, sem janela.
+**Abra o app Regista antes de falar com o Claude**: no canto superior direito ele mostra "Claude Desktop conectado" (ou
+Claude Code) e você vê a edição acontecendo ao vivo. Com o app fechado o Claude trabalha mesmo assim, sem janela.
 
 ## 6. Primeiros prompts para testar
 
@@ -101,11 +100,16 @@ Um reel falando para a câmera:
 > Com o Regista, monte o vídeo X.mov como reel talking-head: escolha as melhores tomadas, tire as pausas, voz limpa,
 > legendas em francês no estilo aprovado, com o meu kit de marca. Me mostre o resultado.
 
-Um tutorial de tela (gravado com o modo **Tutorial** do app Regista):
+Um tutorial de tela (gravado no app: **Gravar** → "Só a tela" ou "Tela + rosto"):
 
 > Com o Regista, monte o tutorial Y: a tela grande, meu rosto numa bolha embaixo à direita, zoom automático nos
 > cliques, corte os silêncios e as hesitações, voz limpa, legendas em francês, export 16:9. Me mostre algumas imagens
 > antes de exportar.
+
+Um vídeo sem ninguém na imagem, com a sua voz clonada (veja 7 bis):
+
+> Com o Regista, faça um vídeo narrado de 30 segundos com este texto: "…". Minha voz em francês, minhas capturas de
+> tela da pasta como imagens, legendas, sem música. Me mostre o resultado antes de exportar.
 
 Depois, corrija falando normalmente: "tire a segunda frase", "legendas maiores", "o nome da minha marca está errado em
 0:12". Uma edição leva vários minutos; para testar, vídeos de 1 a 3 minutos bastam.
@@ -118,7 +122,7 @@ Depois, corrija falando normalmente: "tire a segunda frase", "legendas maiores",
 4. Um reel falando para a câmera **em francês**: boas tomadas escolhidas? pausas bem cortadas? som limpo? legendas
    certas e legíveis (nomes próprios, divisão das linhas)? enquadramento (a cabeça não fica cortada)?
 5. Um tutorial: grave 1–2 minutos de tela + câmera no app e peça a edição.
-6. Correções pedidas ao Claude e retoques à mão no app (visões **Pro** e **Rapido**), depois um export.
+6. Correções pedidas ao Claude e retoques à mão no app (níveis **Simples** e **Pro**), depois um export.
 7. Anote quanto tempo leva cada passo, travamentos e mensagens incompreensíveis.
 
 ## 7 bis. A sua própria voz (opcional)
@@ -126,19 +130,20 @@ Depois, corrija falando normalmente: "tire a segunda frase", "legendas maiores",
 O Regista pode fazer uma narração **com a sua voz clonada**, no Mac e de graça, num Mac com 16 GB ou mais. O seu Regista chega **sem perfil e
 sem nenhuma voz**: nenhuma voz de outra pessoa vem com o Regista.
 
-1. Crie o seu perfil: **Ajustes → Perfil e voz** → o seu nome (ou peça ao Claude « crie o meu perfil, eu sou o Marco »).
-2. Peça ao Claude « grave a minha voz em português » (ou em francês): ele dá o texto para ler (~30 min, uma frase de
-   consentimento com o seu nome e depois 7 blocos de tom). O ideal: o celular com um microfone externo, num lugar
-   silencioso; um arquivo por bloco.
+1. Crie o seu perfil: **Ajustes → Perfil e voz** → o seu nome (ou peça ao Claude "crie o meu perfil, eu sou o Marco").
+2. No app, painel **Voz** → botão de gravação: a leitura guiada aparece no teleprompter. Ou peça ao Claude "grave a
+   minha voz em português" (ou em francês): ele dá o texto para ler (~30 min, uma frase de consentimento com o seu nome
+   e depois 7 blocos de tom). O ideal: o celular com um microfone externo, num lugar silencioso; um arquivo por bloco.
 3. Passe os arquivos ao Claude, um por um. Depois do bloco neutro, a sua voz já funciona.
-4. Para o melhor resultado (Mac com 32 GB ou mais): « treine a minha voz em português » — cerca de 2 h.
+4. Para o melhor resultado (Mac com 32 GB ou mais): "treine a minha voz em português" — cerca de 2 h.
 
 A sua voz fica no seu Mac, no seu perfil. Você pode apagá-la quando quiser em Ajustes → Perfil e voz.
 
 ## 8. Limites conhecidos
 
-- **Interface**: o app segue o idioma do Mac em francês, italiano ou inglês; o português ainda não está traduzido,
-  então o app aparece em inglês. O instalador e este guia estão em português. O que não encontrar à mão, peça ao Claude.
+- **Interface**: o app segue o idioma do Mac, em português, francês, italiano ou inglês. Ainda não está pronto em todo
+  lugar: o nível **Simples** e os painéis Gráficos e Gerar ainda são provisórios. O que não encontrar à mão, peça ao Claude.
+- **Motores**: Ajustes → Motores mostra o que está instalado no seu Mac de acordo com a memória dele e instala o resto.
 - **Gerações pagas** (imagens/vídeos Higgsfield): não instaladas por padrão; mesmo configuradas, cada geração
   precisa ser **aprovada por você no app Regista** e o total tem um **limite fixo**. A geração local gratuita
   (ComfyUI) é configurada à mão e exige um Mac de 32 GB.

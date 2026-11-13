@@ -44,10 +44,10 @@ in engines.json), **Profile and voice**, **Claude** (connection and build, wheth
 connected, the start prompt) and **Shortcuts** (the catalog the menus use, searchable). No API key is needed: the old
 paid pipeline (OpenAI / Anthropic / ElevenLabs keys) was removed; keys stored earlier stay in the Keychain untouched.
 
-**UI languages.** The interface is written with Italian literals; `Resources/Localization/en.lproj` and `fr.lproj`
-hold the English and French text (Italian keys) and `it.lproj` maps each key to itself (the engine manifest's phrases
-are keyed by their English text). The app follows the macOS language, English otherwise; Portuguese is declared
-pending in one place in `scripts/l10n.py`. `python3 -I scripts/l10n.py` (also in the pre-commit hook) fails when a
+**UI languages.** The interface is written with Italian literals; `Resources/Localization/en.lproj`, `fr.lproj` and
+`pt.lproj` hold the English, French and Portuguese (Brazilian) text (Italian keys) and `it.lproj` maps each key to
+itself (the engine manifest's phrases are keyed by their English text). The app follows the macOS language, English
+otherwise; a language not translated yet is declared pending in one place in `scripts/l10n.py`. `python3 -I scripts/l10n.py` (also in the pre-commit hook) fails when a
 string is missing from a table (run it after adding UI text; `--todo <lang>` prints the keys a table lacks). The terms used in
 every language are in `Resources/Localization/glossary.md`.
 

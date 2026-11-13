@@ -1,0 +1,5 @@
+/* The permission prompts macOS shows (Config/Info.plist keeps the Italian defaults). */
+"NSCameraUsageDescription" = "O Regista usa a câmera para gravar seus vídeos.";
+"NSMicrophoneUsageDescription" = "O Regista usa o microfone para gravar o áudio dos seus vídeos.";
+"NSSpeechRecognitionUsageDescription" = "O Regista escuta sua voz para avançar o teleprompter enquanto você lê.";
+"NSScreenCaptureUsageDescription" = "O Regista grava a tela (e, se você escolher, o áudio do sistema) para seus tutoriais. As janelas do Regista e o teleprompter nunca aparecem na gravação.";

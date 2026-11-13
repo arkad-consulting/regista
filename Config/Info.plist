@@ -9,6 +9,7 @@
 		<string>en</string>
 		<string>it</string>
 		<string>fr</string>
+		<string>pt</string>
 	</array>
 	<key>CFBundleExecutable</key><string>Regista</string>
 	<key>CFBundleIdentifier</key><string>com.arkad.regista</string>

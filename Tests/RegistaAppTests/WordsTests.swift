@@ -14,8 +14,8 @@ private func table(_ lang: String) -> [String: String] {
     return (NSDictionary(contentsOf: url) as? [String: String]) ?? [:]
 }
 
-/// The complete languages: the same list as LANGS in scripts/l10n.py (Portuguese joins both when pt.lproj is done).
-private let languages = ["it", "en", "fr"]
+/// The complete languages: the same list as LANGS in scripts/l10n.py.
+private let languages = ["it", "en", "fr", "pt"]
 
 @Test func everyCommandHasATitleInEveryLanguage() {
     let ids = Set(RegistaCore.Commands.all.map { $0.id }).union(CommandTitles.ids)
