@@ -86,20 +86,15 @@ final class EditorStore: ObservableObject {
         get { bench.showVoiceSetup }
         set { bench.showVoiceSetup = newValue }
     }
-    /// Activity, editor level, Studio and the right panel's tab: the window's, shared by all tabs (`Workbench.nav`).
+    /// Activity, editor level and the right panel's tab: the window's, shared by all tabs (`Workbench.nav`).
     var nav: Navigation {
         get { bench.nav }
         set { bench.nav = newValue }
     }
-    /// The workspace in the main area; setting one leaves the Studio (the editor levels keep the library activity).
+    /// The workspace in the main area (the editor levels keep the library activity).
     var workspace: Workspace {
         get { nav.workspace }
         set { nav.show(newValue) }
-    }
-    /// The effects Studio, a sub-screen of the editor (nil = closed); opening it from elsewhere goes to the editor.
-    var studio: StudioMode? {
-        get { nav.studio }
-        set { if let m = newValue { nav.openStudio(m) } else { nav.closeStudio() } }
     }
     /// An activity of the bar, ⌘1…⌘9.
     func select(_ activity: Navigation.Activity) { nav.select(activity) }
@@ -123,7 +118,7 @@ final class EditorStore: ObservableObject {
     @Published var sourceAssetID: String?
     /// Instagram UI guides on the Program monitor: off until asked for (they are guides, not a crop).
     @Published var safeZones = false
-    /// The brand kit gallery sheet (issue #17).
+    /// The Marca picker (the toolbar's "Marca: <kit>" popover, ⇧⌘B): the one place the project's kit is picked (E4 #3).
     var showBrandKits: Bool {
         get { bench.showBrandKits }
         set { bench.showBrandKits = newValue }
@@ -337,6 +332,8 @@ final class EditorStore: ObservableObject {
             if case .success = result, id == "project.open" || id == "project.save", let url = snap.url { recents.note(url) }
             if case .success = result, kind == .session { bench.persistTabs() }
             if id.hasPrefix("generate.") { refreshApprovals() }
+            // A kit written or put back by undo (E4 #3): the Marca picker and Settings › Brand kit read the kits again.
+            if case .success = result, id.hasPrefix("brandkit.") || id.hasPrefix("history.") { BrandKitLibrary.shared.reload() }
         }
         return result
     }

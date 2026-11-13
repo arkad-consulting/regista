@@ -44,7 +44,7 @@ struct MotionForm: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(verbatim: loc(spec.label)).font(Ed.display(17, .medium)).foregroundStyle(Ed.text)
                 Spacer()
-                EdButton(title: StudioText.apply, symbol: "wand.and.stars", prominent: true) { apply() }
+                EdButton(title: "Applica", symbol: "wand.and.stars", prominent: true) { apply() }
             }
             ForEach(spec.form, id: \.self) { name in
                 if let f = spec.field(name) { row(f) }
@@ -104,10 +104,16 @@ struct MotionForm: View {
         }
     }
 
-    private func apply() {
+    /// The motion.add params of Applica: the template at the playhead with the fields changed in the form (the others
+    /// keep the template's defaults, so Applica alone is enough).
+    static func params(_ spec: MotionSpec, values: [String: JSONValue], at time: Double) -> JSONValue {
         var fields: [String: JSONValue] = [:]
         for (k, v) in values where spec.field(k) != nil { fields[k] = v }
-        store.run("motion.add", ["template": .string(spec.id), "start": .number(playhead.time), "fields": .object(fields)])
-        Gallery.flash(loc(spec.label))
+        return ["template": .string(spec.id), "start": .number(time), "fields": .object(fields)]
+    }
+
+    private func apply() {
+        store.run("motion.add", Self.params(spec, values: values, at: playhead.time))
+        GraphicsActions.playAround(store, at: playhead.time)
     }
 }

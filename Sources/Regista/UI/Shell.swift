@@ -2,7 +2,7 @@ import AppKit
 import RegistaCore
 import SwiftUI
 
-/// The navigation an offscreen ui.screenshot render shows instead of the store's (activity, level, Studio, tabs).
+/// The navigation an offscreen ui.screenshot render shows instead of the store's (activity, level, tabs).
 private struct NavOverrideKey: EnvironmentKey { static let defaultValue: Navigation? = nil }
 /// The side panel's width, for content that lays itself out to it (Registra's display picker).
 private struct SidePanelWidthKey: EnvironmentKey { static let defaultValue: CGFloat = Chrome.sideDefault }
@@ -97,9 +97,6 @@ struct EditorRoot: View {
         .onAppear { if live { KeyMonitor.install(store.bench) } }
         .sheet(isPresented: Binding(get: { live && store.pendingApproval != nil }, set: { if !$0 { store.pendingApproval = nil } })) {
             if let e = store.pendingApproval { ApprovalSheet(entry: e) }
-        }
-        .sheet(isPresented: Binding(get: { live && store.showBrandKits }, set: { store.showBrandKits = $0 })) {
-            BrandKitSheet(onClose: { store.showBrandKits = false })
         }
         .sheet(isPresented: Binding(get: { live && store.showVoiceSetup }, set: { store.showVoiceSetup = $0 })) {
             VoiceSetupSheet()

@@ -18,7 +18,7 @@ final class Workbench: ObservableObject {
     @Published private(set) var tabs: [EditorStore] = []
     @Published private(set) var activeID = ""
 
-    /// Activity, editor level, Studio and the right panel's tab (`Navigation`); the activity, the level and the tab
+    /// Activity, editor level and the right panel's tab (`Navigation`); the activity, the level and the tab
     /// are remembered across launches.
     @Published var nav: Navigation {
         didSet {

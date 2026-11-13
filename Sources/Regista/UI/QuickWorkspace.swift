@@ -8,7 +8,7 @@ struct QuickWorkspace: View {
     @EnvironmentObject private var meter: LoudnessMeter
     @State private var panel: QuickPanel?
 
-    enum QuickPanel: String, Identifiable { case takes, captions, graphics, music; var id: String { rawValue } }
+    enum QuickPanel: String, Identifiable { case takes, captions, music; var id: String { rawValue } }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -36,7 +36,6 @@ struct QuickWorkspace: View {
                 switch p {
                 case .takes: TakesView().frame(width: 420, height: 460)
                 case .captions: TextsTab().frame(width: 420, height: 460)
-                case .graphics: GraphicsTab().frame(width: 360, height: 260)
                 case .music: AudioMixTab().frame(width: 360, height: 420)
                 }
             }
@@ -101,7 +100,7 @@ struct QuickWorkspace: View {
         HStack(spacing: 10) {
             big("Riprese", "person.crop.rectangle.stack") { panel = .takes }
             big("Sottotitoli", "captions.bubble") { panel = .captions }
-            big("Grafica", "sparkles.rectangle.stack") { store.studio = .filters }
+            big("Grafica", "sparkles.rectangle.stack") { store.nav.showGraphics(.filters) }
             big("Musica", "music.note") { panel = .music }
             big("Esporta", "square.and.arrow.up", prominent: true) { store.workspace = .export }
         }
@@ -149,8 +148,8 @@ struct Filmstrip: View {
     @EnvironmentObject private var store: EditorStore
     @EnvironmentObject private var media: MediaCache
     @EnvironmentObject private var playhead: Playhead
-    @ObservedObject private var studio = StudioState.shared
-    /// Show the effect bars (the studio); the Quick view keeps them too.
+    @ObservedObject private var studio = GraphicsState.shared
+    /// Show the effect bars.
     var effects = true
 
     static let ruler: CGFloat = 18, lane: CGFloat = 16, maxLanes = 3, pad: CGFloat = 16
@@ -193,13 +192,13 @@ struct Filmstrip: View {
             }
             .padding(.horizontal, Self.pad)
             .padding(.top, 4)
-            // An effects-gallery tile dropped on the strip applies at that moment (issue #16).
+            // A Graphics panel row dropped on the strip applies at that moment (issue #16, E4 #3).
             .onDrop(of: [.text], isTargeted: nil) { providers, loc in
                 guard let pr = providers.first else { return false }
                 let time = Double(min(max(loc.x - Self.pad, 0), W) / W) * duration
                 _ = pr.loadObject(ofClass: NSString.self) { s, _ in
                     guard let id = s as? String else { return }
-                    DispatchQueue.main.async { Gallery.apply(id, store: store, at: time) }
+                    DispatchQueue.main.async { GraphicsActions.apply(id, store: store, at: time) }
                 }
                 return true
             }

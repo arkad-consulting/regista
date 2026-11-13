@@ -46,7 +46,7 @@ struct SidePanel: View {
         case .texts: TextsPanel(tab: nav.textsTab)
         case .audio: AudioPanel(tab: nav.soundTab)
         case .voice: VoiceTab()
-        case .graphics: GraphicsPanel(tab: nav.graphicsTab)
+        case .graphics: GraphicsPanel(section: nav.graphicsSection)
         case .generate: GeneratePlaceholder()
         case .export: ExportSettingsPanel()
         }
@@ -145,26 +145,6 @@ struct TextsPanel: View {
     }
 }
 
-/// Grafica: the effects gallery (and the Studio's filters and styles), and the brand (kit, logo, app colour).
-struct GraphicsPanel: View {
-    @EnvironmentObject private var store: EditorStore
-    let tab: Navigation.GraphicsTab
-
-    var body: some View {
-        VStack(spacing: 0) {
-            RSegmented(items: [(.gallery, "Effetti"), (.brand, "Marca")], selection: Binding(get: { tab }, set: { store.nav.graphicsTab = $0 }))
-                .padding(.horizontal, 12).padding(.vertical, 10)
-            Group {
-                switch tab {
-                case .gallery: GraphicsTab()
-                case .brand: BrandTab()
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-}
-
 /// Genera until node G1: what it will do, honestly, and what works today.
 struct GeneratePlaceholder: View {
     var body: some View {
@@ -185,7 +165,7 @@ struct GeneratePlaceholder: View {
 // MARK: - Main area
 
 /// The project tabs at the top, then what the activity shows: Inizio, Registra's live preview, Esporta's program
-/// monitor, or the editor (toolbar, monitors, transport, timeline; the Studio inside it until node E4).
+/// monitor, or the editor (toolbar, monitors, transport, timeline).
 struct MainArea: View {
     @EnvironmentObject private var store: EditorStore
     @Environment(\.navOverride) private var navOverride
@@ -203,9 +183,7 @@ struct MainArea: View {
                 default:
                     VStack(spacing: 0) {
                         EditorToolbar(level: nav.level)
-                        if let mode = nav.studio {
-                            EffectsStudio(mode: mode)
-                        } else if nav.level == .pro {
+                        if nav.level == .pro {
                             ProWorkspace()
                         } else {
                             QuickWorkspace()
@@ -518,13 +496,14 @@ struct ToolbarIcon: View {
     }
 }
 
-/// "Marca: WeSites": the project's brand kit; opens the kit gallery (node E4 owns the rest of the brand clean-up).
+/// "Marca: WeSites": the project's brand kit; opens the Marca picker, the one place that picks it (E4 #3, ⇧⌘B).
 struct MarcaButton: View {
     @EnvironmentObject private var store: EditorStore
+    @Environment(\.navOverride) private var navOverride
     @State private var hover = false
 
     var body: some View {
-        Button { store.showBrandKits = true } label: {
+        Button { store.showBrandKits.toggle() } label: {
             HStack(spacing: 6) {
                 if let k = store.project?.brand { KitBubble(kit: k, size: 14) } else {
                     Image(systemName: "paintpalette").font(Ed.icon(11)).foregroundStyle(Ed.text3)
@@ -540,6 +519,13 @@ struct MarcaButton: View {
         .buttonStyle(.plain)
         .onHover { hover = $0 }
         .tip("Marca del progetto: il brand kit di sottotitoli, titoli e logo", shortcut: "⇧⌘B")
+        // Only the live window opens it (an offscreen render draws the picker as its own workspace, brand-picker).
+        .popover(isPresented: Binding(get: { navOverride == nil && store.showBrandKits }, set: { store.showBrandKits = $0 }), arrowEdge: .bottom) {
+            BrandPicker(onPick: { store.showBrandKits = false })
+                .frame(height: BrandPicker.height(kits: BrandKitLibrary.shared.kits.count))
+                .background(Ed.side)
+                .environment(\.colorScheme, .dark)
+        }
     }
 }
 

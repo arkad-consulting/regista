@@ -27,8 +27,12 @@
 #   then the steps from a clip to captions from sample data (E2 #54): texts-<state> (Testi e sottotitoli › Passi: fresh,
 #   transcribing, transcribed, cut, keywords, captions, stale, doall, failed), jobs (the status bar's jobs list open over the
 #   Pro editor, sample jobs in two tabs) and jobs-closed (the compact jobs item only);
-#   then Impostazioni (M2 #59), each tab at the window's own size: settings-general, settings-engines, settings-claude,
-#   settings-shortcuts (settings-voice above), and settings-engines-<base|medium|pro> (Motori with the Mac's real engine
+#   then the one Graphics panel (E4 #3), one render per section (with --private-lang, on the inspector's synthetic
+#   project, opened in the private copy's tab): graphics-filters,
+#   graphics-adjust, graphics-effects, graphics-styles, graphics-motion, graphics-logo; brand-picker (the Marca picker,
+#   the one place that picks the project's kit, at its own size);
+#   then Impostazioni (M2 #59), each tab at the window's own size: settings-general, settings-engines, settings-brand
+#   (the brand kit editor), settings-claude, settings-shortcuts (settings-voice above), and settings-engines-<base|medium|pro> (Motori with the Mac's real engine
 #   states drawn as on that tier, for the render only: engines.json is never touched);
 #   then music, sound effects and level (E3 #55) on synthetic projects made here in a temporary folder: audio-empty (the mix,
 #   no music yet), audio-music (music added by audio.addMusic, ducked, its clip in the Ispettore, a sample "ducking OK"),
@@ -50,8 +54,9 @@ done
 [ ${#LIST[@]} -gt 0 ] || LIST=(home record media texts audio voice graphics generate export edit-pro edit-semplice edit-tabs settings
                                panel-prompter panel-claude panel-inspector
                                record-screen-only record-screen-face record-face record-voice record-open-screen
-                               record-open-camera record-displays effects-filters effects-adjust effects-effects effects-styles
-                               brand-inspector brandkits brandkit-editor teleprompter teleprompter-mirror
+                               record-open-camera record-displays
+                               graphics-filters graphics-adjust graphics-effects graphics-styles graphics-motion graphics-logo
+                               brand-picker teleprompter teleprompter-mirror
                                voice-engine-missing voice-no-profile voice-no-voice voice-ready voice-rendering voice-placed voice-lexicon
                                voice-setup-profile voice-setup-language voice-setup-consent voice-setup-record voice-setup-check-good
                                voice-setup-check-poor voice-setup-train voice-setup-train-low-ram voice-setup-training settings-voice
@@ -60,7 +65,7 @@ done
                                inspector-screen-cutout inspector-screen-screen inspector-screen-clip
                                texts-fresh texts-transcribing texts-transcribed texts-cut texts-keywords texts-captions texts-stale
                                texts-doall texts-failed jobs jobs-closed
-                               settings-general settings-engines settings-claude settings-shortcuts
+                               settings-general settings-engines settings-brand settings-claude settings-shortcuts
                                settings-engines-base settings-engines-medium settings-engines-pro
                                audio-empty audio-music audio-sfx audio-loud)
 SOCK="${REGISTA_ENGINE_SOCKET:-$HOME/Library/Application Support/Regista/engine.sock}"
@@ -189,7 +194,7 @@ if printf '%s\n' "${LIST[@]}" | grep -q '^inspector-screen'; then
 JSON
   "$ENGINE" run "$SCREEN_DEMO/demo.json" --work "$SCREEN_DEMO" >/dev/null || { echo "could not build the screen inspector demo projects" >&2; exit 1; }
 fi
-if printf '%s\n' "${LIST[@]}" | grep -q '^inspector-'; then
+if printf '%s\n' "${LIST[@]}" | grep -Eq '^(inspector|graphics)-'; then
   DEMO_DIR="$(mktemp -d -t regista-inspector)"
   swift build --product regista-engine >/dev/null
   ENGINE="$(swift build --show-bin-path)/regista-engine"
@@ -211,6 +216,7 @@ if printf '%s\n' "${LIST[@]}" | grep -q '^inspector-'; then
  {"command": "track.add", "params": {"kind": "overlay"}, "capture": {"v2": "result.track.id"}},
  {"command": "overlay.add", "params": {"path": "$PWD/Tests/Fixtures/overlay-card.png", "start": 1, "duration": 5, "fit": "contain", "trackId": "\${v2}"}},
  {"command": "title.add", "params": {"text": "Il sito sicuro non esiste", "start": 4, "duration": 3}},
+ {"command": "brandkit.apply", "params": {"kit": "arkad"}},
  {"command": "project.save"}
 ]}
 JSON
@@ -250,9 +256,10 @@ JSON
   "$ENGINE" run "$AUDIO_DEMO/demo.json" --work "$AUDIO_DEMO" >/dev/null || { echo "could not build the audio demo projects" >&2; exit 1; }
 fi
 
-python3 -I - "$SOCK" "$OUT" "$W" "$H" "$DEMO" "$SCREEN_DEMO" "$AUDIO_DEMO" "${LIST[@]}" <<'PY'
+python3 -I - "$SOCK" "$OUT" "$W" "$H" "$DEMO" "$SCREEN_DEMO" "$AUDIO_DEMO" "$PRIVATE_LANG" "${LIST[@]}" <<'PY'
 import json, socket, sys
-sock, out, w, h, demo, screen_demo, audio_demo, names = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8:]
+sock, out, w, h, demo, screen_demo, audio_demo, private, names = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8], sys.argv[9:]
+opened = False
 s = socket.socket(socket.AF_UNIX)
 s.connect(sock)
 f = s.makefile('rwb')
@@ -282,6 +289,16 @@ for name in names:
         layout = 'bubble' if layout == 'clip' else layout
         params.update(workspace='edit-pro', size=[w, max(h, 2200)],
                       inspector={'select': select, 'project': f'{screen_demo}/schermo-{layout}.regista'})
+    elif name.startswith('graphics-'):
+        # The Graphics panel draws its previews for the tab on screen: the private copy opens the synthetic project in
+        # its own tab first (the owner's app is never asked to open anything: there it shows the project open now).
+        if private and not opened:
+            f.write((json.dumps({'op': 'execute', 'command': 'project.open', 'params': {'path': demo}}) + '\n').encode()); f.flush()
+            if not json.loads(f.readline()).get('ok'):
+                print('graphics: could not open the demo project in the private copy', file=sys.stderr)
+            opened = True
+    elif name == 'brand-picker':
+        del params['size']   # the picker's own size
     elif name.startswith('inspector-'):
         select = {'video': 'first-video', 'audio': 'first-audio', 'overlay': 'first-overlay'}.get(name[10:], name[10:])
         params.update(workspace='edit-pro', inspector={'select': select, 'project': demo})

@@ -558,11 +558,11 @@ UI/                     Shell (top bar, status bar, shortcuts), ProWorkspace, Qu
   lights are moved onto the bar's middle (`WindowChrome.centreTrafficLights`, re-applied whenever AppKit lays them out).
   Every slot has a fixed width (`WorkspaceTab.width`, `AgentPill.width`, fixed icon buttons), so the bar is the same on
   every screen; the title sits on the window's centre, truncated there, and slides between the clusters only in a
-  window too narrow to leave it 160 pt (`TopBarLayout`). Screens, Monta's level and the Studio are `Navigation` (UI
+  window too narrow to leave it 160 pt (`TopBarLayout`). Screens, Monta's level and the Graphics section are `Navigation` (UI
   state, no command), remembered in `nav.workspace` / `nav.montaLevel`; the recent projects in `recentProjects`
   (`RecentProjects`, updated after every successful `project.open` / `project.save`, also from MCP).
 - **Screenshots of every screen**: `scripts/ui-shots.sh <outdir> [--lang it|en]` renders each `ui.screenshot`
-  workspace (home, record, pro, semplice, export, the studio decks, …) at 1920×1050 through the engine socket and
+  workspace (home, record, pro, semplice, export, the Graphics sections, …) at 1920×1050 through the engine socket and
   prints the paths; `--lang` relaunches the app in that language for the renders. `--real` instead captures the real
   window as it is on screen, native title bar included (`ui.screenshot {real: true}`: ScreenCaptureKit on the app's own
   window, only with the Screen Recording permission already granted — it never asks), and prints its geometry: window
@@ -983,7 +983,9 @@ Next Heavy, **placeholder** SVG wordmark).
 
 **Commands**: `brandkit.create {name, from?, colors?, fonts?, …}`, `brandkit.update {kit, …}` (merge; a built-in becomes
 a user copy), `brandkit.setLogo {kit, path, variant}`, `brandkit.setFont {kit, path, role}`, `brandkit.export {kit, path}`,
-`brandkit.import {path, replace?}`, `brandkit.delete {kit}`, `brandkit.apply {kit}` (recolours captions, rebuilds titles
+`brandkit.import {path, replace?}`, `brandkit.delete {kit}` — each one undo step: the command records the kit folder
+before and after (`KitChange`, `KitSnapshot` in `BrandKitStore.swift`) and `history.undo` / `redo` put it back, with or
+without a project open (E4 #3) —, `brandkit.apply {kit}` (recolours captions — their style is kept, #17 —, rebuilds titles
 made from presets — `Clip.titlePreset`; hand-styled titles keep their look — and swaps logo clips),
 `logo.add {corner?, width?, opacity?, animation?, start?, duration?, replace?}` (track role `logo`, the whole timeline by
 default; SVG rasterised at 2× the drawn size), `brandkit.preview {kit | definition, width}` (9:16 PNG through the
@@ -992,10 +994,11 @@ compositor: hook title, caption with keyword, logo, over a frame of the open pro
 SVGs are normalised before rasterising (root width/height moved into the viewBox: CoreSVG otherwise leaves
 userSpaceOnUse gradients unscaled), tested sharp at 64/600/2400 px.
 
-**App**: gallery + editor sheet (`UI/BrandKitViews.swift`: `BrandKitSheet`, `BrandKitGallery`, `KitCard`,
-`BrandKitEditor`, `LogoDropZone`, `LogoPlacementControls`), library tab **Brand** (`BrandTab`), top-bar `KitPill`,
-⇧⌘B. Previews render with `BrandKitPreview.render` on their own queue (never behind the agent's commands), cached by kit
-content. `ui.screenshot {workspace: "brandkits" | "brandkit-editor" | "brand-inspector"}`.
+**App** (E4 #3): one place picks the project's kit — the Marca picker, the editor toolbar's "Marca: <kit>" popover
+(`BrandPicker`, ⇧⌘B; `ui.screenshot {workspace: "brand-picker"}`). Kits are created and edited only in Settings › Brand
+kit (`Settings/BrandKitSettings.swift`, `settings-brand`), through the brandkit.* commands (no view writes kit files).
+The logo in the video is a Graphics element (Graphics › Logo: `logo.add`, `LogoPlacementControls`). Previews render
+with `BrandKitPreview.render` on their own queue (never behind the agent's commands), cached by kit content.
 
 **Controls** (`UI/Controls.swift`, reusable): `RSlider` (gradient track, value bubble, onCommit at release, ← →),
 `RSegmented` (sliding pill), `IntensityBar` (poco ↔ tanto), `RToggle`, `ColorSwatch` (system colour panel via
@@ -1094,8 +1097,8 @@ none of its ink in the caption band (except `coversFrame` templates).
 | machine | hopper, preview window, gears, status rows, conveyor with checked outputs |
 | logo-tile | the kit logo in an app-icon tile with a glow |
 
-**App.** The Effects studio gallery has a **Motion** chip (category `templates`): animated tiles (the tile previews run
-`motion.add` on a scratch engine), click opens the template's form (`UI/MotionForm.swift`: text, lists, numbers, choices,
+**App.** The Graphics panel has a **Motion** section (category `templates`): rows with animated previews (they run
+`motion.add` on a scratch engine), a click opens the template's form (`UI/MotionForm.swift`: text, lists, numbers, choices,
 toggles, an image picker) and Applica adds it at the playhead.
 
 ### `motion-gallery` — every template on a synthetic speaker
@@ -1117,8 +1120,8 @@ animations are transform keyframes; text reveal does not fit them cleanly — `p
 From a round of reference ads. Every item is in `effects.catalog` with an
 English description / useWhen / avoid and example fields (`Commands/LooksCatalog.swift`; categories `captions` and
 `layouts`, plus `transition-blur`, `follow-hand-object`, `follow-face`, `status-bar`, `audio-meters`, `style-console`),
-so Claude can propose and apply them; the app shows the same tiles (Effects studio tabs Sottotitoli / Layout, the
-caption style chips in Testi, the Console card in Stili).
+so Claude can propose and apply them; the app shows the same items (Graphics › Effects, categories Sottotitoli / Layout, the
+caption style chips in Testi, the Console card in Graphics › Stili).
 
 ```
 RegistaCore/Captions/Captions.swift       CaptionStyle presets elegant-serif, bold-keyword, ghost-karaoke (+ the optional style fields)

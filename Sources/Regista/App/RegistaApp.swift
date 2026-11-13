@@ -154,7 +154,11 @@ struct EditorCommands: Commands {
                 .shortcut(AppShortcuts.rightPanel)
             Divider()
             Button("Zone di sicurezza") { store.safeZones.toggle() }
-            Button("Brand kit…") { store.showBrandKits = true }.shortcut(AppShortcuts.brandKit)
+            // The Marca picker lives on the editor's toolbar: go to the editor, then open it.
+            Button("Brand kit…") {
+                if !store.nav.inEditor { store.showEditor() }
+                store.showBrandKits = true
+            }.shortcut(AppShortcuts.brandKit)
         }
     }
 }

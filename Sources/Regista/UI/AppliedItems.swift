@@ -2,8 +2,8 @@ import RegistaCore
 import SwiftUI
 
 /// Something put on the reel over a time range — an effect on a clip, a graphic (title, sticker, callout, motion
-/// template, picture insert), a transition, a speed change — with what removes it. The studio strip draws them as bars
-/// and the deck lists the ones under the playhead, so every tile click shows where it landed. `label` is in the user's
+/// template, picture insert), a transition, a speed change — with what removes it. The Semplice strip draws them as
+/// bars and the Graphics panel lists the ones under the playhead, so every click shows where it landed. `label` is in the user's
 /// language (looked up when the list is built).
 struct AppliedItem: Identifiable, Hashable {
     enum Kind { case effect, graphic, transition, speed }
@@ -114,7 +114,7 @@ enum AppliedItems {
 struct AppliedHere: View {
     @EnvironmentObject private var store: EditorStore
     @EnvironmentObject private var playhead: Playhead
-    @ObservedObject private var state = StudioState.shared
+    @ObservedObject private var state = GraphicsState.shared
 
     var body: some View {
         let all = AppliedItems.list(store.project)
@@ -126,8 +126,8 @@ struct AppliedHere: View {
                 Text(verbatim: loc("%@ nel video", String(all.count))).font(Ed.ui(10)).foregroundStyle(Ed.text3)
             }
             if here.isEmpty {
-                Text(verbatim: all.isEmpty ? loc("Ancora nessun effetto. Clicca una tessera: compare qui e come barra sulla striscia sotto il video.")
-                                 : loc("Niente in questo punto. Le barre sulla striscia sotto il video mostrano dove sono gli effetti."))
+                Text(verbatim: all.isEmpty ? loc("Ancora nessun effetto. Clicca un elemento qui sotto: compare in questo elenco e nella timeline.")
+                                 : loc("Niente in questo punto: porta la testina su un effetto per vederlo qui."))
                     .font(Ed.ui(11)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
             } else {
                 ForEach(here) { it in row(it) }

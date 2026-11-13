@@ -191,8 +191,8 @@ extension Recipes {
            approve it in the Regista app, read the token from generate_list, generate_run {provider: "higgsfield",
            approval}. The budget is 2 Higgsfield calls in total — never ask for drafts there.
         6. Catalog first: effects_catalog lists every effect, look, style and motion template with description (what it
-           looks like), useWhen, avoid and fields with examples — the same tiles the user sees in the app's effects
-           studio. For each beat picked in step 2, propose 1–3 fitting items to the user with a one-line reason
+           looks like), useWhen, avoid and fields with examples — the same items the user sees in the app's Graphics
+           panel. For each beat picked in step 2, propose 1–3 fitting items to the user with a one-line reason
            ("23:46 → counter over a dimmed shot: the time is the hook"; "the three steps → checklist card, ticks on the
            words"), never a menu of everything. effects_preview {item, fields, at} renders one on a throwaway copy
            (frames: 6 for an animated template) when they ask "show me"; apply with the command and params

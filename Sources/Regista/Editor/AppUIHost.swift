@@ -17,10 +17,10 @@ final class AppUIHost: UIHost, @unchecked Sendable {
     /// The recorder (Registra renders draw its devices and permissions).
     weak var recorder: Recorder?
 
-    /// Builds a root view showing a navigation state (activity, level, Studio, tabs), with the app's environment (set
+    /// Builds a root view showing a navigation state (activity, level, tabs), with the app's environment (set
     /// by AppState).
     var makeRoot: (@MainActor (Navigation) -> AnyView)?
-    /// Wraps any view in the app's environment (brand kit sheets).
+    /// Wraps any view in the app's environment (the Marca picker, Settings, the voice sheet).
     var makeView: (@MainActor (AnyView) -> AnyView)?
     /// Builds a root view for another store (a scratch tab a render opened a project in, ui.screenshot `inspector.project`).
     var makeRootFor: (@MainActor (EditorStore, Navigation) -> AnyView)?
@@ -67,14 +67,15 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                     shown = ["workspace": .string(w), "sentences": .number(Double(c.prompt.sentences.count)),
                              "cursor": .number(Double(c.follower.cursor)), "keywords": .array(c.prompt.keywords.map { .string($0) }),
                              "excludedFromScreenCapture": .bool(TeleprompterController.makePanel(frame: .zero, capturable: false).sharingType == .none)]
-                } else if let w = workspace, w == "brandkits" || w == "brandkit-editor", let makeView {
-                    // The brand kit gallery or the editor of the active kit (a sheet in the app).
-                    let size = CGSize(width: width ?? 1040, height: height ?? 700)
-                    let editing = w == "brandkit-editor" ? (store.project?.brand?.id ?? "arkad") : nil
-                    view = NSHostingView(rootView: makeView(AnyView(BrandKitSheet(startEditing: editing))))
+                } else if workspace == "brand-picker", let makeView {
+                    // The Marca picker (the toolbar's popover in the app): the one place the project's kit is picked (E4 #3).
+                    BrandKitLibrary.shared.reload()
+                    let size = CGSize(width: width ?? Int(BrandPicker.width), height: height ?? Int(BrandPicker.height(kits: BrandKitLibrary.shared.kits.count)))
+                    view = NSHostingView(rootView: makeView(AnyView(BrandPicker().frame(width: size.width, height: size.height).background(Ed.side)
+                        .environment(\.colorScheme, .dark))))
                     view.frame = CGRect(origin: .zero, size: size)
-                    shown = ["workspace": .string(w), "kits": .array(BrandKitLibrary.shared.kits.map { .string($0.id) }),
-                             "active": store.project?.brand.map { .string($0.id) } ?? .null, "editing": editing.map { .string($0) } ?? .null]
+                    shown = ["workspace": "brand-picker", "kits": .array(BrandKitLibrary.shared.kits.map { .string($0.id) }),
+                             "active": store.project?.brand.map { .string($0.id) } ?? .null]
                 } else if let w = workspace, w == "voice" || w == "voice-setup" || w == "settings-voice", let makeView {
                     // The voice screens (V1 #61, V2 #62), from sample data when `voice` names a state.
                     let state = voice?["state"]?.stringValue
@@ -106,9 +107,10 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                     // The Settings window (its own size) on one tab (M2 #59): settings = the General tab; settings-engines-<tier>
                     // draws Motori as on that tier, from engines.status taken for the render (engines.json is not touched).
                     let tab = SettingsTab.allCases.first { w.hasPrefix($0.screenshotName) } ?? .general
-                    // Motori is drawn whole (every engine of the manifest), the other tabs at the window's size.
+                    // Motori and Brand kit are drawn whole (every engine, the whole kit editor), the other tabs at the window's size.
                     let size = CGSize(width: width ?? Int(SettingsView.size.width),
-                                      height: height ?? (tab == .engines ? SettingsView.enginesRenderHeight : Int(SettingsView.size.height)))
+                                      height: height ?? (tab == .engines ? SettingsView.enginesRenderHeight
+                                                                       : tab == .brand ? SettingsView.brandRenderHeight : Int(SettingsView.size.height)))
                     let demo = enginesStatus.map { EnginesDemo(status: $0, tier: enginesTier) }
                     view = NSHostingView(rootView: makeView(AnyView(SettingsView(pinned: tab, engines: demo, height: size.height)
                         .environment(\.colorScheme, .dark).background(Color(nsColor: .windowBackgroundColor)))))
@@ -182,12 +184,6 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                         shown = .object(o)
                     }
                     canvasShown = demo != nil
-                    if let studio = nav.studio, case .object(var o) = shown {
-                        o["studio"] = .string(studio.rawValue)
-                        o["looks"] = .number(Double(store.previews.lookThumbs.count))
-                        o["tiles"] = .number(Double(store.previews.tiles.count))
-                        shown = .object(o)
-                    }
                 }
                 let w = NSWindow(contentRect: view.frame, styleMask: [.borderless], backing: .buffered, defer: false)
                 w.isReleasedWhenClosed = false
@@ -199,7 +195,8 @@ final class AppUIHost: UIHost, @unchecked Sendable {
         }
         if let problem { throw CommandError(.io, "ui.screenshot: \(problem)") }  // l10n-ignore
         // Let SwiftUI lay out, the monitors draw their frame and thumbnails arrive.
-        settle(workspace?.hasPrefix("brand") == true ? 4 : 1.5)   // brand kit previews are rendered by the compositor
+        // Brand kit previews, look thumbnails and the Graphics panel's tile previews are rendered by the compositor.
+        settle(workspace?.hasPrefix("brand") == true || workspace == "settings-brand" ? 4 : workspace?.hasPrefix("graphics") == true ? 8 : 1.5)
         var result: Result<(Int, Int), Error> = .failure(CommandError(.io, "ui.screenshot: nothing drawn"))  // l10n-ignore
         DispatchQueue.main.sync {
             MainActor.assumeIsolated {
@@ -306,15 +303,16 @@ final class AppUIHost: UIHost, @unchecked Sendable {
 
     /// The navigation a ui.screenshot workspace name shows. Activities: home, record, media, texts, audio, voice,
     /// graphics, generate, export (the library activities with the editor at the Pro level); the editor: edit-pro (also
-    /// pro, pro-fullscreen), edit-semplice (also quick, semplice); brand-inspector = Grafica on its Marca tab;
-    /// panel-prompter / panel-claude / panel-inspector = the Pro editor with that right-panel tab; effects-<mode> = the
-    /// Studio at the current level. nil or unknown: what the window shows now.
+    /// pro, pro-fullscreen), edit-semplice (also quick, semplice); graphics-<section> = Grafica on one section
+    /// (filters, adjust, effects, styles, motion, logo); panel-prompter / panel-claude / panel-inspector = the Pro editor
+    /// with that right-panel tab. nil or unknown: what the window shows now.
     @MainActor
     static func navigation(for name: String?, current: Navigation) -> Navigation {
         var nav = current
         guard let name else { return nav }
-        if name.hasPrefix("effects-"), let mode = StudioMode(rawValue: String(name.dropFirst(8))) {
-            nav.openStudio(mode)
+        if name.hasPrefix("graphics-"), let section = Navigation.GraphicsSection(rawValue: String(name.dropFirst(9))) {
+            nav.show(.pro)
+            nav.showGraphics(section)
             return nav
         }
         if name.hasPrefix("panel-"), let tab = Navigation.RightTab(rawValue: String(name.dropFirst(6))) {
@@ -325,10 +323,6 @@ final class AppUIHost: UIHost, @unchecked Sendable {
         switch name {
         case "edit-pro", "pro", "pro-fullscreen": nav.show(.pro)
         case "edit-semplice", "quick", "semplice": nav.show(.quick)
-        case "brand-inspector":
-            nav.show(.pro)
-            nav.select(.graphics)
-            nav.graphicsTab = .brand
         default:
             guard let a = Navigation.Activity(rawValue: name) else { return nav }
             if a.isLibrary { nav.show(.pro) }
@@ -362,7 +356,10 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                     ["minX": .number(Double($0.minX)), "midY": .number(Double($0.midY))]
                 }),
                 "titleBarHeight": store.ui.window.map { .number(Double(WindowChrome.titleBarHeight($0))) } ?? .null,
-                "recentProjects": .number(Double(store.recents.paths.count))]
+                "recentProjects": .number(Double(store.recents.paths.count)),
+                // The Graphics panel's section and how many catalog items it lists (E4 #3).
+                "graphicsSection": nav.activity == .graphics ? .string(nav.graphicsSection.rawValue) : .null,
+                "graphicsItems": nav.activity == .graphics ? .number(Double(GraphicsCatalog.items(in: nav.graphicsSection).count)) : .null]
     }
 
     /// ui.screenshot's `inspector.select`: a clip id, the first video / audio / overlay clip, the captions (first block),

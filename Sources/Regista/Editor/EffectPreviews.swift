@@ -3,9 +3,9 @@ import Foundation
 import RegistaCore
 import RegistaEngines
 
-/// Pictures for the effects studio, all drawn by the export compositor: the current frame without any look (the
-/// "before" of press-and-hold, the base of the filter thumbnails), the frame through a grade while a slider moves,
-/// and the short animated previews of the gallery tiles (each tile's command applied to a scratch copy of the
+/// Pictures for the Graphics panel, all drawn by the export compositor: the current frame without any look (the
+/// base of the filter thumbnails), the frame through a grade while a slider moves,
+/// and the short animated previews of the catalog rows (each tile's command applied to a scratch copy of the
 /// project, a few frames rendered). Cached per tile and per source frame, so editing does not re-render them.
 @MainActor
 final class EffectPreviews: ObservableObject {
@@ -71,7 +71,7 @@ final class EffectPreviews: ObservableObject {
         guard k != baseKey else { return }
         baseKey = k
         Self.queue.async {
-            let job = RenderJob(project: plain, preset: ExportPreset(id: "studio", width: Self.baseSize.width, height: Self.baseSize.height), captions: true)
+            let job = RenderJob(project: plain, preset: ExportPreset(id: "graphics", width: Self.baseSize.width, height: Self.baseSize.height), captions: true)
             guard let img = (try? AVRenderer().renderImages(job, at: [t]))?.first else { return }
             let small = Self.scaled(img, width: Self.thumbSize.width, height: Self.thumbSize.height)
             var thumbs: [String: CGImage] = ["none": small ?? img]

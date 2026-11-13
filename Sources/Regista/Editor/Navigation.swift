@@ -4,8 +4,7 @@ import RegistaCore
 
 /// What the window shows (S1 #75, window shell A): the activity chosen in the activity bar (Inizio, Registra, the
 /// library activities Media … Genera, Esporta), the level the editor returns to (Semplice = the Quick workspace, or
-/// Pro), the effects Studio (a sub-screen of the editor that any choice of activity or level closes), the right panel's
-/// tab and the sub-tabs of two side panels. Pure UI state (no command); the activity, the level and the right panel's
+/// Pro), the right panel's tab and the sub-tabs (sections) of three side panels. Pure UI state (no command); the activity, the level and the right panel's
 /// tab survive a relaunch.
 struct Navigation: Equatable {
     /// The activity bar, top to bottom: ⌘1…⌘9 follow this order.
@@ -37,8 +36,22 @@ struct Navigation: Equatable {
 
     /// Testi e sottotitoli: the steps from a clip to captions (E2 #54), the captions and script, the transcript, the takes.
     enum TextsTab: String, CaseIterable { case steps, captions, transcript, takes }
-    /// Grafica: the effects gallery, the brand (kit and logo).
-    enum GraphicsTab: String, CaseIterable { case gallery, brand }
+    /// Grafica (E4 #3): the sections of the one Graphics panel — looks, adjustments, effects, one-click styles, motion
+    /// templates, the logo. Every category of the effects catalog belongs to exactly one (`categories`).
+    enum GraphicsSection: String, CaseIterable {
+        case filters, adjust, effects, styles, motion, logo
+
+        var categories: [EffectsCatalog.Category] {
+            switch self {
+            case .filters: [.filters]
+            case .adjust: [.adjust]
+            case .effects: [.zoom, .motion, .text, .stickers, .transitions, .speed, .captions, .layouts]
+            case .styles: [.styles]
+            case .motion: [.templates]
+            case .logo: [.logo]
+            }
+        }
+    }
     /// Audio: the mix (level, music, voice, tracks), the sound-effect browser (E3 #55).
     enum SoundTab: String, CaseIterable { case mix, sfx }
 
@@ -47,10 +60,9 @@ struct Navigation: Equatable {
     private(set) var level: EditorStore.Workspace
     /// The library activity the editor comes back to from Inizio, Registra or Esporta.
     private(set) var library: Activity = .media
-    private(set) var studio: StudioMode?
     var rightTab: RightTab
     var textsTab: TextsTab = .steps
-    var graphicsTab: GraphicsTab = .gallery
+    var graphicsSection: GraphicsSection = .effects
     var soundTab: SoundTab = .mix
 
     init(activity: Activity = .home, level: EditorStore.Workspace = .pro, rightTab: RightTab = .prompter) {
@@ -75,15 +87,14 @@ struct Navigation: Equatable {
     /// The editor (a library activity) is on screen.
     var inEditor: Bool { activity.isLibrary }
 
-    /// An activity of the bar (or ⌘1…⌘9); leaves the Studio.
+    /// An activity of the bar (or ⌘1…⌘9).
     mutating func select(_ a: Activity) {
         activity = a
         if a.isLibrary { library = a }
-        studio = nil
     }
 
     /// A workspace by name (the D1 API many callers keep): Inizio, Registra, Esporta, or the editor at that level, on
-    /// the current library activity (the last one used when coming from elsewhere). Leaves the Studio.
+    /// the current library activity (the last one used when coming from elsewhere).
     mutating func show(_ ws: EditorStore.Workspace) {
         switch ws {
         case .home: select(.home)
@@ -92,20 +103,18 @@ struct Navigation: Equatable {
         case .pro, .quick:
             level = ws
             if !activity.isLibrary { activity = library }
-            studio = nil
         }
     }
 
     /// The editor at the level used last.
     mutating func showEditor() { show(level) }
 
-    /// The Studio opens inside the editor (at the current level).
-    mutating func openStudio(_ mode: StudioMode) {
+    /// The Graphics panel on one of its sections (the editor stays at its level).
+    mutating func showGraphics(_ section: GraphicsSection) {
         if !inEditor { showEditor() }
-        studio = mode
+        select(.graphics)
+        graphicsSection = section
     }
-
-    mutating func closeStudio() { studio = nil }
 
     /// The window at launch: the activity used last (Inizio when there is nothing to come back to, no recent project, or
     /// nothing remembered), the editor level and the right panel's tab.

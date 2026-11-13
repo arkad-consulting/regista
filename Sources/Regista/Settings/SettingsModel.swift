@@ -4,7 +4,7 @@ import SwiftUI
 
 /// The Settings window's tabs (M2 #59).
 enum SettingsTab: String, CaseIterable, Identifiable {
-    case general, engines, voice, claude, shortcuts
+    case general, engines, voice, brand, claude, shortcuts
 
     var id: String { rawValue }
 
@@ -13,6 +13,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .general: loc("Generale")
         case .engines: loc("Motori")
         case .voice: loc("Profilo e voce")
+        case .brand: loc("Brand kit")
         case .claude: loc("Claude")
         case .shortcuts: loc("Scorciatoie")
         }
@@ -23,6 +24,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .general: "gearshape"
         case .engines: "cpu"
         case .voice: "person.wave.2"
+        case .brand: "paintpalette"
         case .claude: "sparkles"
         case .shortcuts: "keyboard"
         }

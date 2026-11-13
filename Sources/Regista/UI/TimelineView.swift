@@ -182,7 +182,7 @@ struct TimelinePanel: View {
                     let at = MediaDrop.snap(time, project: project, playhead: store.preview.time, tolerance: Double(8 / pps))
                     store.dropMedia(assets: [String(id.dropFirst(MediaDrop.assetPrefix.count))], files: [], at: at, on: target)
                 } else {
-                    Gallery.apply(id, store: store, at: time, clipID: clip)
+                    GraphicsActions.apply(id, store: store, at: time, clipID: clip)
                 }
             }
         }
@@ -216,7 +216,7 @@ struct TimelinePanel: View {
                         .frame(width: contentWidth, height: g.size.height, alignment: .topLeading)
                         .contentShape(Rectangle())
                         .gesture(gesture(rows))
-                        // An effects-gallery tile dropped on a clip or a moment (issue #16).
+                        // A Graphics panel row dropped on a clip or a moment (issue #16, E4 #3).
                         // A Media tile or a Finder file: placed on the track under the pointer (E1 #53).
                         .onDrop(of: [.text, .fileURL], isTargeted: nil) { providers, loc in dropEffect(providers, at: loc, rows: rows) }
                         // Right click on a clip: its actions (E1 #53).

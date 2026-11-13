@@ -1,7 +1,7 @@
 import RegistaCore
 import SwiftUI
 
-/// Impostazioni (M2 #59): Generale, Motori, Profilo e voce, Claude, Scorciatoie. The tab follows `SettingsRoute` (the
+/// Impostazioni (M2 #59): Generale, Motori, Profilo e voce, Brand kit (E4 #3), Claude, Scorciatoie. The tab follows `SettingsRoute` (the
 /// activity bar's Motori button and the "Installa" links open it on Motori); a render pins one tab and draws it from
 /// injected data.
 struct SettingsView: View {
@@ -17,6 +17,8 @@ struct SettingsView: View {
     static let size = CGSize(width: 720, height: 600)
     /// The height a render of Motori needs to show every engine.
     static let enginesRenderHeight = 2560
+    /// The height a render of Brand kit needs to show the whole kit editor.
+    static let brandRenderHeight = 1180
 
     var body: some View {
         if let pinned {
@@ -41,6 +43,7 @@ struct SettingsView: View {
         case .general: GeneralSettings(demo: pinned != nil)
         case .engines: EnginesSettings(demo: engines)
         case .voice: ProfileSettings(demoProfiles: voiceProfiles)
+        case .brand: BrandKitSettings(demo: pinned != nil)
         case .claude: ClaudeSettings()
         case .shortcuts: ShortcutsSettings()
         }
@@ -77,6 +80,7 @@ private struct GeneralSettings: View {
     @AppStorage(GeneralPrefs.formatKey) private var format = GeneralPrefs.formats[0].id
     @AppStorage(GeneralPrefs.autoSaveKey) private var autoSave = false
     @AppStorage(GeneralPrefs.folderKey) private var folder = ""
+    @AppStorage(Accent.followKey) private var accentFollows = false
     @State private var interface = GeneralPrefs.interfaceLanguage
     @State private var changedInterface = false
 
@@ -112,6 +116,11 @@ private struct GeneralSettings: View {
                 Toggle("Salvataggio automatico", isOn: demo ? .constant(autoSave) : $autoSave)
             } header: { Text("Progetti") } footer: {
                 Text("I progetti, le registrazioni e gli export vanno nella cartella di Regista. Con il salvataggio automatico, ogni minuto Regista salva i progetti aperti che hanno già una cartella; quelli mai salvati li salvi tu con ⌘S. Una registrazione dello schermo resta sempre in 16:9.")
+            }
+            Section {
+                Toggle("Colore dell'app dal kit", isOn: demo ? .constant(accentFollows) : $accentFollows)
+            } header: { Text("Aspetto") } footer: {
+                Text("Evidenziazioni e pulsanti nel colore del brand")
             }
         }
         .formStyle(.grouped)

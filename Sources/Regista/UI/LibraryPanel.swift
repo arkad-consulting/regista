@@ -219,29 +219,6 @@ func section<Content: View>(_ title: String, @ViewBuilder _ content: () -> Conte
     }
 }
 
-// MARK: Grafica
-
-struct GraphicsTab: View {
-    @EnvironmentObject private var store: EditorStore
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 6) {
-                EdButton(title: "Filtri e regolazioni", symbol: "camera.filters") { store.studio = .filters }
-                EdButton(title: "Stili", symbol: "wand.and.stars") { store.studio = .styles }
-                Spacer()
-            }
-            .padding(.horizontal, 10)
-            .frame(height: 38)
-            if store.project?.duration ?? .zero > .zero {
-                GalleryDeck(layout: .grid)
-            } else {
-                EmptyHint(symbol: "sparkles.rectangle.stack", text: StudioText.empty)
-            }
-        }
-    }
-}
-
 // MARK: Cronologia
 
 struct HistoryTab: View {

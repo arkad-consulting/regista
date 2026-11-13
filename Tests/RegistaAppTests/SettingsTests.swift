@@ -121,7 +121,7 @@ private final class BundleToken {}
 }
 
 @Test func everySettingsTabHasARender() {
-    #expect(SettingsTab.allCases.map(\.screenshotName) == ["settings-general", "settings-engines", "settings-voice", "settings-claude", "settings-shortcuts"])
+    #expect(SettingsTab.allCases.map(\.screenshotName) == ["settings-general", "settings-engines", "settings-voice", "settings-brand", "settings-claude", "settings-shortcuts"])
     let shots = (try? String(contentsOf: sourceRoot.appendingPathComponent("scripts/ui-shots.sh"), encoding: .utf8)) ?? ""
     for name in SettingsTab.allCases.map(\.screenshotName) + ["settings-engines-base", "settings-engines-medium", "settings-engines-pro"] {
         #expect(shots.contains(name), "scripts/ui-shots.sh renders \(name)")

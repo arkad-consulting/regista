@@ -33,13 +33,12 @@ the same) and one line with this Mac's RAM, tier and engines ready.
 
 **The editor** (Media, Text and captions, Audio, Voice, Graphics, Generate keep it in the main area and change the side
 panel): a slim toolbar with the level (**Simple** · **Pro**, ⌥⌘1 · ⌥⌘2; the editor returns to the last one used), the
-format, undo · redo · history, and the project's **Brand** button. The effects **Studio** opens inside the editor
-(Graphics › Filters and adjustments / Styles); any activity, a level change or its own *Fine* closes it.
+format, undo · redo · history, and the project's **Brand** button (the one place that picks the project's brand kit).
 - **Media** (thumbnails and durations; double-click → Source monitor), **Text and captions** (captions, keywords and
   script · the **transcript** following the playhead: click a word → go there, ⌥click and ⇧click select, *Remove from
   the edit* takes those words out · the **takes** of each script line: approve, or pick another take and redo the cut),
-  **Audio** (loudness, voice cleanup, music), **Voice** (text to voice-over), **Graphics** (effects gallery · Brand: kit,
-  logo, app colour), **Generate** (placeholder: Claude starts generations for now);
+  **Audio** (loudness, voice cleanup, music), **Voice** (text to voice-over), **Graphics** (filters, adjustments, effects,
+  styles, motion templates, logo), **Generate** (placeholder: Claude starts generations for now);
 - **Pro**: **Source** and **Program 9:16** monitors with the **safe zones** (caption band, Instagram interface); at the
   bottom the tools (select, blade, text, hand), the **timeline** with tracks T1 captions · V2 graphics/AI · V1 takes ·
   A1 voice · A2 music · A3 effects (lock, show/hide, mute, solo), thumbnails and waveforms, and the **meter** M/S/I LUFS
@@ -53,8 +52,7 @@ format, undo · redo · history, and the project's **Brand** button. The effects
 words, yours too; looks such as screenshots and reads of the project collapse into one quiet line you can expand;
 a calm "not connected" state), **Inspector** (the selected clip; its controls arrive with node E1).
 
-**Panels and tooltips**: drag the thin lines between panels to resize them (side panel, Program, timeline height, the
-Effects Studio's tools); double-click a line to go back to the automatic size. Sizes are remembered. Rest the pointer on
+**Panels and tooltips**: drag the thin lines between panels to resize them (side panel, Program, timeline height); double-click a line to go back to the automatic size. Sizes are remembered. Rest the pointer on
 any icon: its name and shortcut appear after a moment.
 
 | Shortcut | |
@@ -97,26 +95,32 @@ Captions, titles, stickers and the logo can be moved on the preview with the mou
 
 ## Effects: retouching like a photo
 
-The **Graphics** button (Simple view) and the **Graphics** tab (Pro view) open the **Studio**: the big preview on the
-left, the tools on the right, one panel at a time. **Press and hold the picture** to see the original.
+The **Graphics** activity (the Simple view's *Graphics* button opens it too) shows one panel in the side panel, with
+the edit in the main area: a search, then six sections — **Filters**, **Adjust**, **Effects**, **Styles**, **Motion**,
+**Logo**. Every item has its plain name, one line saying what it does and, where the engine can draw one, a preview made
+from **your** frame (it plays when the pointer rests on it). **Click** applies it to the selected clip, or at the
+playhead; text items and motion templates open a small form under the row (already filled in: *Add* / *Apply* is
+enough). An item that cannot run now stays visible, greyed, with the reason (a 3D title without Blender, a caption
+style before captions exist). You can also **drag** a row onto a clip or a point of the timeline, or onto the Simple
+view's strip. What is on the reel at the playhead is listed at the top of the section, each with × to remove it.
 
 - **Filters**: 14 looks (Dorato, Brina, Pellicola, Grafite, Inchiostro, Vivido, Velluto, Riviera, Archivio, Opaco,
-  Tramonto, Fiordo, Notte, Luce) in a strip of thumbnails made from **your** frame. Click to apply, click again for the
-  **intensity** (ruler; double-click = 100). On the whole video or only *this clip*; titles, stickers and logo keep
-  their colours.
-- **Adjust**: Exposure, Brilliance, Highlights, Shadows, Contrast, Saturation, Warmth, Tint, Sharpness, Vignette. Pick
-  the tool, drag the ruler (the preview changes while you drag), double-click to reset. *Applied* lists what the video
-  carries: a × removes that item.
-- **Effects**: the gallery — Filters, Adjust, Zoom, Motion, Text, Stickers, Transitions, Speed, Logo, Captions (four
-  caption styles), Layout (letterbox with headline, side card, bubble over B-roll, neon/glass inset card) — with animated
-  previews made on your video, a search and a single **Intensity** control (a little ↔ a lot). Click: apply at the
-  playhead (to the selected clip, if any). Or **drag** the tile onto the picture, onto the Simple view's strip or onto a
-  clip/point of the timeline.
+  Tramonto, Fiordo, Notte, Luce), each shown on your frame. Click to apply, click again to remove; the **intensity**
+  slider appears once a look is on. On the whole video or only *this clip*; titles, stickers and logo keep their
+  colours.
+- **Adjust**: quick adjustments (brighter, warm, cool, contrast, vignette, sharpness, black and white), then one slider
+  per tool: Exposure, Brilliance, Highlights, Shadows, Contrast, Saturation, Warmth, Tint, Sharpness, Vignette.
+  *Applied* lists what the video carries: a × removes that item.
+- **Effects**: Zoom, Motion, Text, Stickers, Transitions, Speed, Captions (four caption styles), Layout (letterbox with
+  headline, side card, bubble, neon inset card, full frame), with one **Intensity** control (a little ↔ a lot).
 - **Styles**: *Energetic reel* (vivid colours, a punch-in on every sentence, whooshes on a few cuts, word-by-word
   captions), *Clean* (soft light, gentle contrast, whole-sentence captions), *Tutorial* (zooms and circles on clicks,
   progress bar), *Console* (the video in a neon card with a PREVIEW chip, a REC bar with timer and chapters, bold
   captions with the keyword in the accent). One click = many steps, **a single ⌘Z** undoes them; it uses the brand kit's
   colours.
+- **Motion**: animated cards, checklists, counters, charts, carousels, device frames…
+- **Logo**: the brand's logo in the video (corner — always out of the captions and of Instagram's buttons —, size,
+  presence, entrance) and the logo animations (end sting, spin, pulse, orbit).
 - **Caption style**: in the Texts panel, under the captions — *Talking head* (the approved look), *Elegant serif*
   (cream italic, one phrase at a time), *Bold + keyword* (two lines, keyword in the brand colour), *Ghost karaoke* (the
   whole phrase, words light up as they are said). Keywords and hand placements stay.
@@ -133,21 +137,20 @@ style. Built in: **Arkad** (official SVG logo), **WeSites** and **Café Atelier*
 its logo is a placeholder). The WeSites fonts and logo are not in the repository: put them in `~/Library/Application Support/Regista/brandkits/wesites/assets` (or point
 `REGISTA_WESITES_ASSETS` at their folder).
 
-- **Choose and apply** — the top bar (in Edit) shows the project's kit: one click opens the gallery (also ⇧⌘B). Each
-  card shows a 9:16 preview drawn by the export engine on your footage: caption with the keyword, title, logo. **Apply
-  to the project** changes captions (the keyword box takes the *Highlight* colour), preset titles and logo in one go.
-  Or, in the library's **Brand** panel, tap one of the kit bubbles.
-- **Create or edit** — *New kit* or *Edit*: tap a colour to change it (the macOS picker opens), *Import…* next to a font
-  to use a TTF/OTF/WOFF2 file, drop the logo on a box. The preview follows every change. Editing a built-in kit creates
-  your own copy (the original is restored from the card's menu).
-- **The logo in the video** — Brand panel → *Logo in the video*: corner (always out of the captions and of Instagram's
-  buttons), size, presence (discreet ↔ full), animation. *Logo on the whole video* in the kit adds it by itself every
-  time you apply the kit.
-- **App colour** — Brand panel → *App colour from the kit*: buttons and highlights take the brand's colour (of its
-  colours, the one readable on the dark background).
+- **Choose** — the editor's toolbar shows the project's kit: one click (also ⇧⌘B) opens the **Brand** picker, the
+  only place that picks it. A click on a kit applies it: captions are recoloured (the keyword box takes the *Highlight*
+  colour; the caption style you chose stays), preset titles and the logo change in one go.
+- **Create or edit** — in **Settings › Brand kit**: the kits on the left (+ new, − delete, *Import…*), the selected kit
+  on the right: name, colours by role (the macOS colour picker), fonts and logos (*Choose…*), the logo's corner, size,
+  entrance and presence, *Duplicate*, *Export…*. The preview is drawn by the export engine. Every change is one step:
+  **⌘Z** (or the *Undo* button there) puts the kit back. Editing a built-in kit creates your own copy (− restores the
+  original).
+- **The logo in the video** — Graphics › Logo → *Logo in the video*.
+- **App colour** — Settings › General → *App colour from the kit*: buttons and highlights take the brand's colour (of
+  its colours, the one readable on the dark background).
 
-**Adding your logo**: gallery → the kit's card → *Edit* → drop the SVG file (better: it stays sharp at
-any size) on the *On dark video* box (light logo, for footage) and, if there is one, the dark version on *On light*.
+**Adding your logo**: Settings › Brand kit → the kit → *Logo* → *Choose…* next to *On dark video* (an SVG is better:
+it stays sharp at any size; the light logo, for footage) and, if there is one, the dark version next to *On light*.
 Or ask Claude: `brandkit.setLogo {kit, path}`.
 
 **Sharing a kit** — gallery → *Export…*: a single `.registakit` file (colours, fonts and logo inside).

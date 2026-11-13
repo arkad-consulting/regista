@@ -4,7 +4,7 @@ import SwiftUI
 import Testing
 @testable import Regista
 
-// S1 (#75): the activities of the window shell, the editor's level, the Studio as a sub-screen of the editor and the
+// S1 (#75): the activities of the window shell, the editor's level, the Graphics panel's sections (E4 #3) and the
 // right panel's tab; N0 (#49): the recent projects.
 
 private func appTempDir() -> URL {
@@ -56,26 +56,19 @@ private func scratchDefaults() -> UserDefaults {
     #expect(Navigation.Activity(stored: "export") == .export && Navigation.Activity(stored: "bogus") == nil)
 }
 
-@Test func studioIsASubScreenOfTheEditorThatAnyActivityLeaves() {
-    for a in Navigation.Activity.allCases {
-        var nav = Navigation(activity: .graphics)
-        nav.openStudio(.filters)
-        #expect(nav.studio == .filters && nav.inEditor)
-        nav.select(a)                                        // a click in the activity bar or ⌘1…⌘9
-        #expect(nav.studio == nil && nav.activity == a)
-    }
-    // Its own "Fine".
-    var nav = Navigation(activity: .media, level: .quick)
-    nav.openStudio(.styles)
-    nav.closeStudio()
-    #expect(nav.studio == nil && nav.workspace == .quick)
-    // Opened from another activity, it goes to the editor at the remembered level.
-    nav = Navigation(activity: .export, level: .quick)
-    nav.openStudio(.adjust)
-    #expect(nav.workspace == .quick && nav.inEditor && nav.studio == .adjust)
-    // Changing level from the editor toolbar leaves it too.
+/// E4 (#3): no Studio sub-screen any more — effects, looks, styles and motion templates are sections of the Graphics
+/// panel in the side panel, and every category of the effects catalog belongs to exactly one section.
+@MainActor
+@Test func graphicsSectionsOpenInTheSidePanelWithTheEditorInTheMainArea() {
+    var nav = Navigation(activity: .export, level: .quick)
+    nav.showGraphics(.styles)
+    #expect(nav.activity == .graphics && nav.graphicsSection == .styles && nav.workspace == .quick && nav.inEditor)
     nav.show(.pro)
-    #expect(nav.studio == nil && nav.level == .pro)
+    #expect(nav.activity == .graphics && nav.graphicsSection == .styles && nav.workspace == .pro)
+    let all = Navigation.GraphicsSection.allCases.flatMap(\.categories)
+    #expect(all.count == Set(all).count && Set(all) == Set(EffectsCatalog.Category.allCases))
+    #expect(AppUIHost.navigation(for: "graphics-motion", current: Navigation()).graphicsSection == .motion)
+    #expect(AppUIHost.navigation(for: "graphics-motion", current: Navigation()).activity == .graphics)
 }
 
 @Test func launchRestoresTheLastActivityAndTheRightPanelTab() {
@@ -190,7 +183,7 @@ private func pixel(_ rep: NSBitmapImageRep, _ x: Int, _ y: Int) -> UInt32 {
     return UInt32(p[0]) << 24 | UInt32(p[1]) << 16 | UInt32(p[2]) << 8 | UInt32(p[3])
 }
 
-/// The whole window rendered for every activity (and the editor's two levels, and the Studio): the right panel is drawn
+/// The whole window rendered for every activity (and the editor's two levels, and each Graphics section): the right panel is drawn
 /// at the same place with the same width everywhere — its left edge on the same column, its pixels identical — and the
 /// title row does not change.
 @MainActor
@@ -236,9 +229,11 @@ private func pixel(_ rep: NSBitmapImageRep, _ x: Int, _ y: Int) -> UInt32 {
     var semplice = Navigation(activity: .media, level: .quick, rightTab: .inspector)
     semplice.show(.quick)
     states.append(("edit-semplice", semplice))
-    var studio = Navigation(activity: .graphics, rightTab: .inspector)
-    studio.openStudio(.filters)
-    states.append(("studio", studio))
+    for section in Navigation.GraphicsSection.allCases {
+        var g = Navigation(activity: .graphics, rightTab: .inspector)
+        g.showGraphics(section)
+        states.append(("graphics-\(section.rawValue)", g))
+    }
     let shots = try states.map { try render($0.1) }
     if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
         for (s, rep) in zip(states, shots) {

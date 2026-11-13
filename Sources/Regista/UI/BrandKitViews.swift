@@ -4,9 +4,10 @@ import RegistaEngines
 import SwiftUI
 import UniformTypeIdentifiers
 
-// Brand kits in the app (issue #17): the gallery (cards with a live 9:16 preview drawn by the real compositor),
-// the editor (swatches by role, fonts, logo drop zones, logo placement), and the Brand inspector tab.
-// Instagram/Apple-simple: pick a card, tap "Applica"; everything else is one level down.
+// Brand kits in the app (issue #17, E4 #3): the kits on disk with their live 9:16 previews (drawn by the real
+// compositor), the pieces that show a kit (palette, bubble, preview), the Marca picker — the one place in the editor
+// that picks the project's kit — and the logo placement controls of the Grafica panel. Kits are created and edited in
+// Settings › Brand kit (BrandKitSettings.swift), through the brandkit.* commands only.
 
 /// Kits on disk and their rendered previews (the brandkit.preview renderer on a queue of its own, so previews
 /// never wait behind the agent's commands; cached by kit content).
@@ -129,421 +130,80 @@ struct KitPreviewImage: View {
     }
 }
 
-// MARK: - Sheet
+// MARK: - Marca picker
 
-/// The gallery, and the editor one level down.
-struct BrandKitSheet: View {
+/// The one place in the editor that picks the project's brand kit (E4 #3): the toolbar's "Marca: <kit>" popover
+/// (⇧⌘B). Each kit is a row — its bubble, name and palette — and a click runs brandkit.apply. Kits are made and
+/// edited in Settings › Brand kit.
+struct BrandPicker: View {
     @EnvironmentObject private var store: EditorStore
+    @Environment(\.openSettings) private var openSettings
     @ObservedObject private var library = BrandKitLibrary.shared
-    /// Starts on the editor of this kit (ui.screenshot "brandkit-editor").
-    var startEditing: String? = nil
-    var onClose: () -> Void = {}
+    var onPick: () -> Void = {}
 
-    @State private var editing: BrandKit?
-    @State private var selected: String?
+    static let width: CGFloat = 300
+    static func height(kits: Int) -> CGFloat { CGFloat(118 + 40 * max(kits, 1)) }
 
     var body: some View {
-        ZStack {
-            if let kit = editing {
-                BrandKitEditor(kit: kit, onDone: { saved in
-                    library.reload()
-                    if let saved { selected = saved.id }
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) { editing = nil }
-                })
-                .transition(.move(edge: .trailing).combined(with: .opacity))
-            } else {
-                BrandKitGallery(selected: $selected, onEdit: { k in
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) { editing = k }
-                }, onClose: onClose)
-                .transition(.move(edge: .leading).combined(with: .opacity))
+        let active = store.project?.brand?.id
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(verbatim: loc("Marca del progetto")).font(Ed.ui(13, .semibold)).foregroundStyle(Ed.text)
+                Text(verbatim: loc(store.project == nil ? "Apri un progetto per scegliere la sua marca." : "Sottotitoli, titoli e logo prendono i colori del kit."))
+                    .font(Ed.ui(11)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
             }
-        }
-        .frame(width: 1040, height: 700)
-        .background(Ed.panel)
-        .environment(\.colorScheme, .dark)
-        .onAppear {
-            library.reload()
-            selected = store.project?.brand?.id ?? library.kits.first?.id
-            if let id = startEditing { editing = library.kit(id) ?? library.kits.first }
-        }
-    }
-}
-
-// MARK: - Gallery
-
-struct BrandKitGallery: View {
-    @EnvironmentObject private var store: EditorStore
-    @ObservedObject private var library = BrandKitLibrary.shared
-    @Binding var selected: String?
-    var onEdit: (BrandKit) -> Void
-    var onClose: () -> Void
-    @State private var message: String?
-
-    private var active: String? { store.project?.brand?.id }
-    private var current: BrandKit? { library.kit(selected) }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            header
-            Spacer(minLength: 0)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 18) {
+            .padding(.horizontal, 14).padding(.top, 12).padding(.bottom, 8)
+            ScrollView {
+                VStack(spacing: 2) {
                     ForEach(library.kits, id: \.id) { kit in
-                        KitCard(kit: kit, image: library.previews[kit.id], busy: library.rendering.contains(kit.id),
-                                selected: kit.id == selected, active: kit.id == active)
-                            .onTapGesture { withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { selected = kit.id } }
-                            .onTapGesture(count: 2) { onEdit(kit) }
-                            .contextMenu {
-                                Button("Modifica") { onEdit(kit) }
-                                Button("Duplica") { duplicate(kit) }
-                                Button("Esporta…") { export(kit) }
-                                if BrandKitLibrary.isUserKit(kit.id) {
-                                    Divider()
-                                    Button(loc(BrandKit.builtInIDs.contains(kit.id) ? "Ripristina l'originale" : "Elimina"), role: .destructive) { delete(kit) }
-                                }
-                            }
-                            .onAppear { library.preview(kit, store: store) }
-                    }
-                    NewKitCard { create() }
-                }
-                .padding(.horizontal, 28)
-                .padding(.vertical, 22)
-            }
-            .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-            footer
-        }
-    }
-
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 14) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(verbatim: loc("Brand kit")).font(Ed.display(26, .medium)).foregroundStyle(Ed.text)
-                Text(verbatim: loc("Colori, caratteri e logo di ogni cliente. Scegli un kit e applicalo al montaggio con un clic."))
-                    .font(Ed.ui(12)).foregroundStyle(Ed.text3)
-            }
-            Spacer()
-            EdButton(title: "Importa…", symbol: "square.and.arrow.down") { importKit() }
-            EdButton(title: "Esporta…", symbol: "square.and.arrow.up", disabled: current == nil) { if let k = current { export(k) } }
-            EdButton(title: "button.done") { onClose() }
-        }
-        .padding(.horizontal, 28)
-        .padding(.top, 24)
-    }
-
-    private var footer: some View {
-        HStack(spacing: 14) {
-            if let k = current {
-                KitBubble(kit: k, size: 34)
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 8) {
-                        Text(verbatim: k.name).font(Ed.ui(13, .semibold)).foregroundStyle(Ed.text)
-                        Text(verbatim: BrandKitLibrary.isUserKit(k.id) ? loc("tuo") : loc("integrato")).font(Ed.mono(9.5)).foregroundStyle(Ed.text3)
-                            .padding(.horizontal, 6).padding(.vertical, 1).background(Capsule().strokeBorder(Ed.line2))
-                    }
-                    Text(verbatim: message ?? k.notes ?? "").font(Ed.ui(11)).foregroundStyle(message == nil ? Ed.text3 : Ed.gold).lineLimit(2)
-                        .frame(maxWidth: 520, alignment: .leading)
-                }
-                Spacer()
-                EdButton(title: "Modifica", symbol: "slider.horizontal.3") { onEdit(k) }
-                EdButton(title: "Duplica", symbol: "plus.square.on.square") { duplicate(k) }
-                EdButton(title: k.id == active ? "Applica di nuovo" : "Applica al progetto", symbol: "wand.and.stars", prominent: true,
-                         disabled: store.project == nil) {
-                    store.run("brandkit.apply", ["kit": .string(k.id)])
-                    message = loc("%@ applicato: sottotitoli, titoli e logo aggiornati.", k.name)
-                }
-            } else {
-                Spacer()
-            }
-        }
-        .padding(.horizontal, 28)
-        .frame(height: 72)
-        .background(Ed.header)
-        .overlay(alignment: .top) { Ed.line.frame(height: 1) }
-    }
-
-    // MARK: Actions
-
-    private func create() {
-        var k = BrandKit.arkad
-        k.name = loc("Nuovo kit")
-        k.id = uniqueID("nuovo-kit")
-        k.notes = nil
-        onEdit(k)
-    }
-
-    private func duplicate(_ kit: BrandKit) {
-        var k = kit
-        k.id = uniqueID(kit.id + "-copia")
-        k.name = loc("%@ (copia)", kit.name)
-        if let saved = try? BrandKitStore().save(k) {
-            library.reload()
-            selected = saved.id
-            message = loc("Copia creata: %@.", saved.name)
-        }
-    }
-
-    private func delete(_ kit: BrandKit) {
-        try? BrandKitStore().delete(kit.id)
-        library.reload()
-        selected = library.kit(kit.id)?.id ?? library.kits.first?.id
-    }
-
-    private func uniqueID(_ base: String) -> String {
-        var id = BrandKitStore.slug(base), n = 2
-        while library.kit(id) != nil { id = "\(BrandKitStore.slug(base))-\(n)"; n += 1 }
-        return id
-    }
-
-    private func importKit() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [UTType(filenameExtension: BrandKitStore.fileExtension) ?? .zip, .json, .folder]
-        panel.message = loc("Scegli un file .registakit ricevuto da un partner")
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        do {
-            let kit = try BrandKitStore().importKit(from: url)
-            library.reload()
-            selected = kit.id
-            message = loc("Importato: %@.", kit.name)
-        } catch { store.errorMessage = loc("Il kit non si è potuto importare: %@", "\(error)") }
-    }
-
-    private func export(_ kit: BrandKit) {
-        let panel = NSSavePanel()
-        panel.nameFieldStringValue = "\(kit.id).\(BrandKitStore.fileExtension)"
-        panel.message = loc("Un file solo con colori, caratteri e logo: mandalo ai partner")
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        do {
-            let file = try BrandKitStore().export(kit, to: url)
-            message = loc("Esportato in %@.", file.lastPathComponent)
-        } catch { store.errorMessage = loc("Il kit non si è potuto esportare: %@", "\(error)") }
-    }
-}
-
-struct KitCard: View {
-    let kit: BrandKit
-    let image: NSImage?
-    var busy = false
-    var selected = false
-    var active = false
-    @State private var hover = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            KitPreviewImage(image: image, busy: busy)
-                .frame(width: 214)
-                .overlay(alignment: .topTrailing) {
-                    if active {
-                        Text(verbatim: loc("In uso")).font(Ed.ui(10, .semibold)).foregroundStyle(Accent.on)
-                            .padding(.horizontal, 8).padding(.vertical, 3).background(Capsule().fill(Ed.gold)).padding(8)
-                    }
-                }
-                .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Ed.gold, lineWidth: selected ? 2.5 : 0).padding(-5))
-                .shadow(color: .black.opacity(selected || hover ? 0.5 : 0.25), radius: selected || hover ? 14 : 6, y: selected ? 8 : 3)
-            HStack(spacing: 8) {
-                Text(verbatim: kit.name).font(Ed.display(15, .medium)).foregroundStyle(selected ? Ed.text : Ed.text2).lineLimit(1)
-                Spacer(minLength: 4)
-                PaletteDots(kit: kit, size: 11)
-            }
-            .frame(width: 214)
-        }
-        .scaleEffect(selected ? 1.02 : hover ? 1.01 : 1, anchor: .bottom)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selected)
-        .onHover { h in withAnimation(.easeOut(duration: 0.15)) { hover = h } }
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(active ? loc("Kit %@, in uso", kit.name) : loc("Kit %@", kit.name))
-        .accessibilityAddTraits(selected ? .isSelected : [])
-    }
-}
-
-struct NewKitCard: View {
-    let action: () -> Void
-    @State private var hover = false
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 10) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14).strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [5, 5]))
-                        .foregroundStyle(hover ? Ed.gold : Ed.line2)
-                    VStack(spacing: 8) {
-                        Image(systemName: "plus").font(Ed.icon(22, .light)).foregroundStyle(hover ? Ed.gold : Ed.text2)
-                        Text(verbatim: loc("Nuovo kit")).font(Ed.ui(12, .medium)).foregroundStyle(Ed.text2)
-                        Text(verbatim: loc("per un cliente")).font(Ed.ui(10.5)).foregroundStyle(Ed.text3)
-                    }
-                }
-                .aspectRatio(9 / 16, contentMode: .fit)
-                .frame(width: 150)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hover = $0 }
-    }
-}
-
-// MARK: - Editor
-
-struct BrandKitEditor: View {
-    @EnvironmentObject private var store: EditorStore
-    @ObservedObject private var library = BrandKitLibrary.shared
-    @State var kit: BrandKit
-    var onDone: (BrandKit?) -> Void
-    @State private var problem: String?
-
-    static let roleNames: [(String, String)] = [("primary", "Principale"), ("accent", "Accento"), ("highlight", "Evidenza"),
-                                                 ("onHighlight", "Su evidenza"), ("ink", "Inchiostro"), ("paper", "Carta"),
-                                                 ("surface", "Superficie"), ("success", "Conferma")]
-    static let fontNames: [(String, String)] = [("display", "Titoli"), ("text", "Testo"), ("textBold", "Testo forte"), ("mono", "Etichette")]
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                Button { onDone(nil) } label: {
-                    HStack(spacing: 4) { Image(systemName: "chevron.left"); Text(verbatim: loc("Brand kit")) }.font(Ed.ui(12, .medium)).foregroundStyle(Ed.text2)
-                }
-                .buttonStyle(.plain)
-                Spacer()
-                if BrandKit.builtInIDs.contains(kit.id) && !BrandKitLibrary.isUserKit(kit.id) {
-                    Text(verbatim: loc("Le modifiche creano la tua copia di questo kit")).font(Ed.ui(10.5)).foregroundStyle(Ed.text3)
-                }
-                EdButton(title: "Annulla") { onDone(nil) }
-                EdButton(title: "Salva") { if let s = save() { onDone(s) } }
-                EdButton(title: "Salva e applica", symbol: "wand.and.stars", prominent: true, disabled: store.project == nil) {
-                    if let s = save() { store.run("brandkit.apply", ["kit": .string(s.id)]); onDone(s) }
-                }
-            }
-            .padding(.horizontal, 24)
-            .frame(height: 52)
-            .overlay(alignment: .bottom) { Ed.line.frame(height: 1) }
-            HStack(alignment: .top, spacing: 26) {
-                VStack(spacing: 10) {
-                    KitPreviewImage(image: library.previews["editor"], busy: library.rendering.contains("editor"), radius: 18)
-                        .frame(width: 300)
-                        .shadow(color: .black.opacity(0.45), radius: 18, y: 10)
-                    HStack(spacing: 6) {
-                        Circle().fill(library.rendering.contains("editor") ? Ed.gold : Ed.ok).frame(width: 6, height: 6)
-                        Text(verbatim: library.rendering.contains("editor") ? loc("Aggiorno l'anteprima…") : loc("Anteprima dal vivo, stesso motore dell'export"))
-                            .font(Ed.ui(10.5)).foregroundStyle(Ed.text3)
-                    }
-                }
-                .padding(.top, 22)
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 26) {
-                        TextField(loc("Nome del kit"), text: $kit.name)
-                            .textFieldStyle(.plain)
-                            .font(Ed.display(28, .medium))
-                            .foregroundStyle(Ed.text)
-                        InspectorSection(title: "Colori") {
-                            LazyVGrid(columns: Array(repeating: GridItem(.fixed(64), spacing: 8), count: 8), alignment: .leading, spacing: 10) {
-                                ForEach(Self.roleNames, id: \.0) { role, name in
-                                    ColorSwatch(role: role, hex: colorBinding(role), caption: name)
-                                }
-                            }
-                            captionSample
+                        KitRow(kit: kit, on: kit.id == active, enabled: store.project != nil) {
+                            store.run("brandkit.apply", ["kit": .string(kit.id)])
+                            onPick()
                         }
-                        HStack(alignment: .top, spacing: 28) {
-                            InspectorSection(title: "Logo") {
-                                HStack(spacing: 10) {
-                                    LogoDropZone(title: "Su video scuro", path: kit.logoPathIfSet("onDark"), dark: true) { setLogo($0, "onDark") }
-                                    LogoDropZone(title: "Su chiaro", path: kit.logoPathIfSet("onLight"), dark: false) { setLogo($0, "onLight") }
-                                    LogoDropZone(title: "Simbolo", path: kit.logoPathIfSet("mark"), dark: true) { setLogo($0, "mark") }
-                                }
-                                Text(verbatim: loc("SVG (nitido a ogni misura) o PNG trasparente:\ntrascinalo su un riquadro o fai clic."))
-                                    .font(Ed.ui(10.5)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
-                            }
-                            InspectorSection(title: "Posizione del logo") {
-                                LogoPlacementControls(placement: placementBinding, watermark: Binding(get: { kit.watermark ?? false }, set: { kit.watermark = $0 }))
-                            }
-                            .frame(width: 250)
-                        }
-                        InspectorSection(title: "Caratteri") {
-                            VStack(spacing: 6) { ForEach(Self.fontNames, id: \.0) { role, name in fontRow(role, name) } }
-                        }
-                        if let problem { Text(verbatim: problem).font(Ed.ui(11)).foregroundStyle(Ed.danger) }
                     }
-                    .padding(.vertical, 22)
-                    .padding(.trailing, 24)
                 }
+                .padding(.horizontal, 6)
             }
-            .padding(.leading, 28)
-        }
-        .onAppear { library.preview(kit, slot: "editor", store: store, width: 480) }
-        .onChange(of: kit) { _, k in
-            // Debounced: the preview follows the edit a beat later.
-            Task { try? await Task.sleep(for: .milliseconds(250)); if k == kit { library.preview(kit, slot: "editor", store: store, width: 480) } }
-        }
-    }
-
-    private var captionSample: some View {
-        let box = kit.colors["highlight"] ?? "#FF2D6F"
-        let text = kit.captionOverrides()["keywordTextColor"]?.stringValue ?? "#FFFFFF"
-        return HStack(spacing: 10) {
-            Text(verbatim: loc("Sottotitoli")).font(Ed.ui(10.5)).foregroundStyle(Ed.text3).lineLimit(2).minimumScaleFactor(0.8)
-                .frame(width: 76, alignment: .leading)
-            HStack(spacing: 6) {
-                Text(verbatim: loc("IL TUO")).font(Ed.captionSample(17)).foregroundStyle(.white).shadow(color: .black, radius: 0.5)
-                Text(verbatim: loc("BRAND")).font(Ed.captionSample(17)).foregroundStyle(Color(hexString: text))
-                    .padding(.horizontal, 6).padding(.vertical, 2).background(Color(hexString: box))
+            Ed.rule2.frame(height: 1).padding(.top, 6)
+            AccentLinkButton(title: loc("Crea e modifica i kit in Impostazioni…"), tip: "Impostazioni › Brand kit") {
+                onPick()
+                SettingsRoute.open(.brand, with: openSettings)
             }
-            .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Ed.captionBackdrop))
-            Text(verbatim: loc("La parola chiave prende il colore Evidenza")).font(Ed.ui(10.5)).foregroundStyle(Ed.text3)
+            .padding(.horizontal, 14).padding(.vertical, 10)
         }
+        .frame(width: Self.width)
+        .onAppear { library.reload() }
     }
 
-    private func fontRow(_ role: String, _ name: String) -> some View {
-        let spec = kit.fonts[role] ?? "—"
-        let resolved = kit.font(role)
-        let fallback = kit.fontReport().first { $0.role == role }?.fallback ?? false
-        return HStack(spacing: 12) {
-            Text(verbatim: loc(name)).font(Ed.ui(11)).foregroundStyle(Ed.text2).lineLimit(2).minimumScaleFactor(0.8)
-                .frame(width: 86, alignment: .leading)
-            Text(verbatim: loc("Aa Il tuo titolo")).font(Self.font(resolved, size: role == "display" ? 20 : 15)).foregroundStyle(Ed.text).lineLimit(1)
-                .frame(width: 200, alignment: .leading)
-            Text(verbatim: URL(fileURLWithPath: spec).lastPathComponent).font(Ed.mono(10)).foregroundStyle(fallback ? Ed.danger : Ed.text3).lineLimit(1)
-                .tip(fallback ? loc("File mancante: uso %@", resolved) : spec)
-            if fallback { Text(verbatim: loc("sostituito")).font(Ed.ui(10)).foregroundStyle(Ed.danger) }
-            Spacer()
-            EdButton(title: "Importa…", symbol: "textformat") { importFont(role) }
+    private struct KitRow: View {
+        let kit: BrandKit
+        let on: Bool
+        let enabled: Bool
+        let action: () -> Void
+        @State private var hover = false
+
+        var body: some View {
+            Button(action: action) {
+                HStack(spacing: 10) {
+                    KitBubble(kit: kit, size: 24)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(verbatim: kit.name).font(Ed.ui(13)).foregroundStyle(Ed.text).lineLimit(1)
+                        Text(verbatim: loc(BrandKitLibrary.isUserKit(kit.id) ? "tuo" : "integrato")).font(Ed.ui(10.5)).foregroundStyle(Ed.text3)
+                    }
+                    Spacer(minLength: 4)
+                    PaletteDots(kit: kit, size: 10)
+                    Image(systemName: "checkmark").font(Ed.icon(10, .bold)).foregroundStyle(on ? Ed.gold : .clear).frame(width: 14)
+                }
+                .padding(.horizontal, 8).frame(height: 38)
+                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(on ? Ed.goldSoft : (hover && enabled ? Ed.hover : .clear)))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!enabled)
+            .opacity(enabled ? 1 : 0.5)
+            .onHover { hover = $0 }
+            .accessibilityAddTraits(on ? .isSelected : [])
         }
-        .padding(.horizontal, 12).frame(height: 40)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Ed.well))
-    }
-
-    /// A SwiftUI font for a kit font (a file is registered for the process first).
-    static func font(_ spec: String, size: CGFloat) -> Font { Ed.kitFont(spec, size: size) }
-
-    private func colorBinding(_ role: String) -> Binding<String> {
-        Binding(get: { kit.colors[role] ?? "#808080" }, set: { kit.colors[role] = $0 })
-    }
-
-    private var placementBinding: Binding<LogoPlacement> {
-        Binding(get: { kit.logoPlacement ?? LogoPlacement() }, set: { kit.logoPlacement = $0 })
-    }
-
-    @discardableResult
-    private func save() -> BrandKit? {
-        do {
-            let saved = try BrandKitStore().save(kit)
-            kit = saved
-            library.reload()
-            return saved
-        } catch { problem = loc("Il kit non si è potuto salvare: %@", "\(error)"); return nil }
-    }
-
-    private func setLogo(_ url: URL, _ variant: String) {
-        do { kit = try BrandKitStore().setLogo(kit, file: url, variant: variant); library.reload(); problem = nil }
-        catch { problem = loc("Il logo non si è potuto usare: %@", "\(error)") }
-    }
-
-    private func importFont(_ role: String) {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = ["ttf", "otf", "woff2"].compactMap { UTType(filenameExtension: $0) }
-        panel.message = loc("Scegli il file del carattere (TTF, OTF o WOFF2)")
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        do { kit = try BrandKitStore().setFont(kit, file: url, role: role); library.reload(); problem = nil }
-        catch { problem = loc("Il carattere non si è potuto usare: %@", "\(error)") }
     }
 }
 
@@ -555,59 +215,9 @@ extension BrandKit {
     }
 }
 
-/// A logo tile: shows the logo on a dark or light ground; drop an SVG/PNG on it or click to choose one.
-struct LogoDropZone: View {
-    let title: String
-    let path: String?
-    var dark = true
-    let onFile: (URL) -> Void
-    @State private var targeted = false
-
-    var body: some View {
-        Button(action: choose) {
-            VStack(spacing: 6) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10).fill(dark ? Ed.logoOnDark : Ed.logoOnLight)
-                    if let path, let img = NSImage(contentsOfFile: path) {
-                        Image(nsImage: img).resizable().aspectRatio(contentMode: .fit).padding(14)
-                    } else {
-                        VStack(spacing: 4) {
-                            Image(systemName: "arrow.down.doc").font(Ed.icon(16, .light))
-                            Text(verbatim: loc("SVG o PNG")).font(Ed.ui(10))
-                        }
-                        .foregroundStyle(dark ? Ed.text3 : Color.black.opacity(0.4))
-                    }
-                }
-                .frame(width: 112, height: 70)
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(targeted ? Ed.gold : Ed.line2,
-                                                                         style: StrokeStyle(lineWidth: targeted ? 2 : 1, dash: path == nil ? [4, 4] : [])))
-                Text(verbatim: loc(title)).font(Ed.ui(10.5)).foregroundStyle(Ed.text2)
-            }
-        }
-        .buttonStyle(.plain)
-        .onDrop(of: [.fileURL], isTargeted: $targeted) { providers in
-            guard let p = providers.first else { return false }
-            _ = p.loadObject(ofClass: URL.self) { url, _ in
-                guard let url, ["svg", "png"].contains(url.pathExtension.lowercased()) else { return }
-                DispatchQueue.main.async { onFile(url) }
-            }
-            return true
-        }
-        .tip("Trascina qui il logo (SVG o PNG)")
-    }
-
-    private func choose() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.svg, .png]
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        onFile(url)
-    }
-}
-
-/// Corner, size, opacity of the logo, and the kit's watermark switch (only where it is stored: the kit editor).
+/// Corner, size, entrance and presence of the logo in the video (Grafica › Logo).
 struct LogoPlacementControls: View {
     @Binding var placement: LogoPlacement
-    var watermark: Binding<Bool>? = nil
     var onCommit: () -> Void = {}
 
     static let corners: [(String, String)] = [("topLeft", ""), ("topCenter", ""), ("topRight", ""), ("bottomLeft", ""), ("bottomRight", "")]
@@ -628,89 +238,6 @@ struct LogoPlacementControls: View {
             }
             IntensityBar(value: Binding(get: { placement.opacity ?? 1 }, set: { placement.opacity = $0 }), steps: 8, low: "discreto", high: "pieno",
                          label: "Presenza", onCommit: { _ in onCommit() })
-            if let watermark {
-                RToggle(title: "Logo su tutto il video", isOn: Binding(get: { watermark.wrappedValue }, set: { watermark.wrappedValue = $0; onCommit() }),
-                        subtitle: "Applicando il kit, resta in un angolo per tutto il reel")
-            }
         }
-    }
-}
-
-// MARK: - Inspector tab
-
-/// Library tab "Brand": the active kit, one-tap kit switch, logo on/off and placement, app accent.
-struct BrandTab: View {
-    @EnvironmentObject private var store: EditorStore
-    @ObservedObject private var library = BrandKitLibrary.shared
-    @AppStorage(Accent.followKey) private var accentFollows = false
-    @State private var placement = LogoPlacement()
-
-    private var active: BrandKit? { store.project?.brand }
-    private var logoClips: [String] { store.project?.tracks.filter { $0.role == "logo" }.flatMap(\.clips).map(\.id) ?? [] }
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                HStack(alignment: .top, spacing: 12) {
-                    KitPreviewImage(image: active.flatMap { library.previews[$0.id] }, busy: active.map { library.rendering.contains($0.id) } ?? false, radius: 8)
-                        .frame(width: 72)
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(verbatim: active?.name ?? loc("Nessun kit")).font(Ed.display(17, .medium)).foregroundStyle(active == nil ? Ed.text3 : Ed.text)
-                        if let a = active { PaletteDots(kit: a, size: 12) }
-                        Text(verbatim: active == nil ? loc("Scegli un kit: sottotitoli, titoli e logo prendono i suoi colori.") : loc("Applicato al progetto"))
-                            .font(Ed.ui(10.5)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
-                        EdButton(title: "Tutti i kit…", symbol: "square.grid.2x2") { store.showBrandKits = true }
-                    }
-                }
-                InspectorSection(title: "Kit") {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 14) {
-                            ForEach(library.kits, id: \.id) { kit in
-                                Button { store.run("brandkit.apply", ["kit": .string(kit.id)]) } label: {
-                                    VStack(spacing: 5) {
-                                        KitBubble(kit: kit, selected: kit.id == active?.id, size: 44)
-                                        Text(verbatim: kit.name).font(Ed.ui(9.5)).foregroundStyle(kit.id == active?.id ? Ed.text : Ed.text3).lineLimit(1).frame(width: 60)
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                                .disabled(store.project == nil)
-                                .tip(loc("Applica %@", kit.name))
-                            }
-                        }
-                        .padding(4)
-                    }
-                }
-                InspectorSection(title: "Logo") {
-                    RToggle(title: "Logo nel video", isOn: Binding(get: { !logoClips.isEmpty }, set: { on in on ? addLogo() : removeLogo() }),
-                            subtitle: active?.logoPath() == nil ? "Questo kit non ha ancora un logo" : nil)
-                        .disabled(active?.logoPath() == nil)
-                    LogoPlacementControls(placement: $placement, onCommit: { if !logoClips.isEmpty { addLogo() } })
-                        .disabled(active == nil)
-                        .opacity(active == nil ? 0.45 : 1)
-                }
-                InspectorSection(title: "Aspetto") {
-                    RToggle(title: "Colore dell'app dal kit", isOn: $accentFollows, subtitle: "Evidenziazioni e pulsanti nel colore del brand")
-                }
-            }
-            .padding(14)
-        }
-        .onAppear { sync() }
-        .onChange(of: active?.id) { _, _ in sync() }
-    }
-
-    private func sync() {
-        library.reload()
-        placement = active?.logoPlacement ?? LogoPlacement()
-        if let a = active { library.preview(a, store: store) }
-    }
-
-    private func addLogo() {
-        store.run("logo.add", ["replace": true, "corner": .string(placement.corner), "width": .number(placement.width),
-                               "opacity": .number(placement.opacity ?? 1), "animation": .string(placement.animation ?? "fade")])
-    }
-
-    private func removeLogo() {
-        guard !logoClips.isEmpty else { return }
-        store.run("timeline.delete", ["clipIds": .array(logoClips.map { .string($0) })])
     }
 }
