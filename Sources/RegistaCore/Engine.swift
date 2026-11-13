@@ -82,6 +82,11 @@ public final class Engine {
         case .query, .session, .history:
             break
         }
+        if let change = ctx.kitChange {
+            // A brand kit written (create, update, logo, font, import, delete): one step that puts the folder back.
+            ctx.kitChange = nil
+            ctx.history.record(.init(command: id, params: raw, before: ctx.project, after: ctx.project, kit: change))
+        }
         context = ctx
         return result
     }

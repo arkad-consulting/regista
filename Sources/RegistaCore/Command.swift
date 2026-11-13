@@ -218,6 +218,8 @@ public struct CommandContext {
     public var projectURL: URL?
     public var history = History()
     public var dirty = false
+    /// Set by a command that wrote a user brand kit: the engine records it as one undo step.
+    public var kitChange: KitChange?
     public var prober: MediaProber
     public var services: EngineServices
     /// Where derived media goes while the project has no folder yet.
@@ -256,13 +258,24 @@ public struct CommandContext {
 }
 
 /// Undo/redo as project snapshots: projects are small values, so storing the state before and
-/// after each edit is the simplest scheme that is obviously correct (no inverse to get wrong).
+/// after each edit is the simplest scheme that is obviously correct (no inverse to get wrong). A brand kit edit
+/// (the kit lives outside the project) is a step too: its folder before and after.
 public struct History: Sendable {
     public struct Entry: Sendable {
         public var command: String
         public var params: JSONValue
-        public var before: Project
-        public var after: Project
+        /// nil for a kit edit made with no project open.
+        public var before: Project?
+        public var after: Project?
+        public var kit: KitChange?
+
+        public init(command: String, params: JSONValue, before: Project?, after: Project?, kit: KitChange? = nil) {
+            self.command = command
+            self.params = params
+            self.before = before
+            self.after = after
+            self.kit = kit
+        }
     }
 
     public var undoStack: [Entry] = []

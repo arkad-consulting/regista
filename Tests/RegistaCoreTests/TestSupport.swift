@@ -15,8 +15,19 @@ struct FakeProber: MediaProber {
     }
 }
 
+/// The user brand kits folder of the whole test process (#18): `$REGISTA_BRANDKITS` points at one scratch folder,
+/// set before any test reads a kit, so no test sees (or writes) the kits of the person running the suite. Touched by
+/// `tempDir()` and `editingEngine()`, which nearly every test calls first, and by the brand kit tests.
+let testKitsDirectory: URL = {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tests-kits-\(UUID().uuidString)")
+    try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    setenv("REGISTA_BRANDKITS", url.path, 1)
+    return url
+}()
+
 /// A fresh temporary directory per call.
 func tempDir() -> URL {
+    _ = testKitsDirectory
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tests-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     return url
@@ -33,6 +44,7 @@ func t(_ seconds: Double) -> MediaTime { MediaTime(seconds: seconds) }
 
 /// Engine with a project, one imported 94.7 s asset (a1), tracks V1 (t1) and A1 (t2).
 func editingEngine(directory: URL? = nil) throws -> Engine {
+    _ = testKitsDirectory
     let e = Engine(prober: FakeProber())
     var params: JSONValue = ["name": "test"]
     if let directory { params = ["name": "test", "directory": .string(directory.path)] }

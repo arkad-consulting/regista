@@ -2,12 +2,8 @@ import Foundation
 import Testing
 @testable import RegistaCore
 
-/// Brand kit commands write to `$REGISTA_BRANDKITS`: point it at a scratch folder before any of them runs.
-private let kitsDirectory: URL = {
-    let d = tempDir()
-    setenv("REGISTA_BRANDKITS", d.path, 1)
-    return d
-}()
+/// Brand kit commands write to `$REGISTA_BRANDKITS`: the test process's scratch kits folder (TestSupport).
+private var kitsDirectory: URL { testKitsDirectory }
 
 /// Writes empty files; SVGs "rasterise" to width × width/4.
 private final class SVGImages: ImageToolkit {
@@ -110,7 +106,8 @@ private func captionedEngine() throws -> Engine {
 
     let r = try e.checkUndoRedo("brandkit.apply", ["kit": "cafe-atelier"])
     style = try #require(e.project!.tracks.first { $0.kind == .caption }?.captions?.style)
-    #expect(style.keywordBoxColor == "#D2603A" && style.keywordTextColor == "#FFFFFF" && style.font == "AvenirNext-Heavy")
+    // Recoloured only (#17): the kit's caption font override does not replace the font the captions already had.
+    #expect(style.keywordBoxColor == "#D2603A" && style.keywordTextColor == "#FFFFFF" && style.font == "Impact")
     #expect(style.maxWords == CaptionStyle.talkingHeadV1.maxWords)
     let titles = e.project!.tracks.flatMap(\.clips).compactMap(\.title)
     let hook = try #require(titles.first { $0.text == "Ciao" })
@@ -182,3 +179,67 @@ private func captionedEngine() throws -> Engine {
     #expect(list["kits"]?.arrayValue?.compactMap { $0["id"]?.stringValue }.contains("patisserie-lune") == true)
     #expect(throws: CommandError.self) { try e.execute("brandkit.delete", params: ["kit": "arkad"]) }   // built-in
 }
+
+/// #17: a caption style the user chose (an elegant serif) survives brandkit.apply; only its colours follow the kit.
+@Test func applyingAKitKeepsTheCaptionStyleTheUserChose() throws {
+    _ = kitsDirectory
+    let e = try captionedEngine()
+    try e.execute("captions.setStyle", params: ["style": "elegant-serif"])
+    let chosen = try #require(e.project!.tracks.first { $0.kind == .caption }?.captions?.style)
+    try e.execute("brandkit.apply", params: ["kit": "cafe-atelier"])
+    let style = try #require(e.project!.tracks.first { $0.kind == .caption }?.captions?.style)
+    #expect(style.font == chosen.font && style.fontSize == chosen.fontSize && style.reveal == chosen.reveal)
+    #expect(style.id == chosen.id)
+    #expect(style.keywordBoxColor == "#D2603A")
+}
+
+/// #3: a kit edit made through the command is one undo step that puts the kit folder back exactly; redo applies it
+/// again; creating, deleting and replacing a logo undo the same way, with or without a project open.
+@Test func kitEditsUndoAndRedoThroughTheHistory() throws {
+    let store = BrandKitStore(directory: kitsDirectory)
+    let e = Engine(prober: FakeProber())
+    // No project open: a kit is still created and undone.
+    try e.execute("brandkit.create", params: ["name": "Undo Kit", "id": "undo-kit", "from": "cafe-atelier"])
+    #expect(FileManager.default.fileExists(atPath: store.folder("undo-kit").path))
+    try e.execute("history.undo")
+    #expect(!FileManager.default.fileExists(atPath: store.folder("undo-kit").path))
+    try e.execute("history.redo")
+    let created = try #require(try KitSnapshot.read(store.folder("undo-kit")))
+
+    try e.execute("project.new", params: ["name": "kits", "directory": .string(tempDir().path)])
+    try e.execute("brandkit.create", params: ["name": "Undo Kit 2", "id": "undo-kit-2", "from": "cafe-atelier"])
+    let before = try #require(try KitSnapshot.read(store.folder("undo-kit-2")))
+    let project = e.project
+    let u = try e.execute("brandkit.update", params: ["kit": "undo-kit-2", "name": "Changed", "colors": ["highlight": "#112233"]])
+    #expect(u["kit"]?["name"] == "Changed")
+    #expect(BrandKit.all()["undo-kit-2"]?.colors["highlight"] == "#112233")
+    #expect(e.project == project)                                  // the project did not change
+    #expect(e.context.history.undoStack.last?.command == "brandkit.update")
+    let r = try e.execute("history.undo")
+    #expect(r["undone"] == "brandkit.update")
+    #expect(try KitSnapshot.read(store.folder("undo-kit-2")) == before)
+    #expect(BrandKit.all()["undo-kit-2"]?.name == "Undo Kit 2")
+    try e.execute("history.redo")
+    #expect(BrandKit.all()["undo-kit-2"]?.colors["highlight"] == "#112233")
+
+    // A logo set and a kit deleted come back with undo.
+    let logo = tempDir().appendingPathComponent("mark.svg")
+    try Data("<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'/>".utf8).write(to: logo)
+    let beforeLogo = try KitSnapshot.read(store.folder("undo-kit-2"))
+    try e.execute("brandkit.setLogo", params: ["kit": "undo-kit-2", "path": .string(logo.path), "variant": "mark"])
+    #expect(try KitSnapshot.read(store.folder("undo-kit-2")) != beforeLogo)
+    try e.execute("history.undo")
+    #expect(try KitSnapshot.read(store.folder("undo-kit-2")) == beforeLogo)
+    try e.execute("brandkit.delete", params: ["kit": "undo-kit"])
+    #expect(BrandKit.all()["undo-kit"] == nil)
+    try e.execute("history.undo")
+    #expect(try KitSnapshot.read(store.folder("undo-kit")) == created)
+
+    // A built-in edited gets a user copy; undo removes the copy and the built-in shows again.
+    try e.execute("brandkit.update", params: ["kit": "cafe-atelier", "name": "Café edited"])
+    #expect(BrandKit.all()["cafe-atelier"]?.name == "Café edited")
+    try e.execute("history.undo")
+    #expect(BrandKit.all()["cafe-atelier"]?.name == BrandKit.cafeAtelier.name)
+    #expect(!FileManager.default.fileExists(atPath: store.folder("cafe-atelier").path))
+}
+

@@ -18,7 +18,16 @@ private func pixels(_ url: URL) throws -> (width: Int, height: Int, data: [UInt8
     return (img.width, img.height, data)
 }
 
+/// No user kits (#18): kits are looked up by id, and the folder of the person running the suite must not change the result.
+private let emptyKitsFolder: URL = {
+    let d = FileManager.default.temporaryDirectory.appendingPathComponent("regista-brand-kits-\(UUID().uuidString)")
+    try! FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
+    setenv("REGISTA_BRANDKITS", d.path, 1)
+    return d
+}()
+
 private func scratch() -> URL {
+    _ = emptyKitsFolder
     let d = FileManager.default.temporaryDirectory.appendingPathComponent("regista-brand-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
     return d

@@ -173,3 +173,56 @@ public struct BrandKitStore {
         throw CommandError.invalid("not a Regista kit: no kit.json inside")
     }
 }
+
+/// A user kit folder as bytes (kit.json and its assets), nil when the folder does not exist: what a kit command
+/// changed, so history.undo can put the folder back (brand kits live outside the project, #3).
+public struct KitSnapshot: Sendable, Equatable {
+    /// Paths relative to the kit folder → contents.
+    public var files: [String: Data]
+
+    /// The folder as it is now (nil: no such folder).
+    public static func read(_ folder: URL) throws -> KitSnapshot? {
+        let fm = FileManager.default
+        var isDir: ObjCBool = false
+        guard fm.fileExists(atPath: folder.path, isDirectory: &isDir), isDir.boolValue else { return nil }
+        var files: [String: Data] = [:]
+        let root = folder.standardizedFileURL.path
+        for case let url as URL in fm.enumerator(at: folder, includingPropertiesForKeys: [.isRegularFileKey]) ?? FileManager.DirectoryEnumerator() {
+            guard (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true else { continue }
+            let path = url.standardizedFileURL.path
+            guard path.hasPrefix(root + "/") else { continue }
+            files[String(path.dropFirst(root.count + 1))] = try Data(contentsOf: url)
+        }
+        return KitSnapshot(files: files)
+    }
+
+    /// Makes `folder` hold exactly `snapshot` (nil removes the folder).
+    public static func restore(_ snapshot: KitSnapshot?, to folder: URL) throws {
+        let fm = FileManager.default
+        if fm.fileExists(atPath: folder.path) { try fm.removeItem(at: folder) }
+        guard let snapshot else { return }
+        try fm.createDirectory(at: folder, withIntermediateDirectories: true)
+        for (rel, data) in snapshot.files {
+            let url = folder.appendingPathComponent(rel)
+            try fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try data.write(to: url, options: .atomic)
+        }
+    }
+}
+
+/// One kit command's change to a user kit folder: undone and redone by history.undo / history.redo.
+public struct KitChange: Sendable {
+    public var kit: String
+    public var folder: URL
+    public var before: KitSnapshot?
+    public var after: KitSnapshot?
+
+    /// Runs `body` (which writes the kit `id` in `store`) and returns its result with the change it made.
+    static func record<T>(_ id: String, in store: BrandKitStore, _ body: () throws -> T) throws -> (T, KitChange) {
+        let folder = store.folder(id)
+        let before = try KitSnapshot.read(folder)
+        let result = try body()
+        return (result, KitChange(kit: id, folder: folder, before: before, after: try KitSnapshot.read(folder)))
+    }
+}
+

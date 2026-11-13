@@ -176,6 +176,15 @@ public struct BrandKit: Codable, Hashable, Sendable {
         return style
     }
 
+    /// The caption style `base` recoloured by the kit and nothing else (#17): the preset, fonts, sizes and chunking the
+    /// user chose stay; only the colour fields the kit sets (keyword box, its text, any `…Color` override) change.
+    public func captionColors(over base: CaptionStyle) throws -> CaptionStyle {
+        let colors = captionOverrides().filter { $0.key.hasSuffix("Color") }
+        guard !colors.isEmpty, case .object(var current) = try JSONValue.from(base) else { return base }
+        for (k, v) in colors where current[k] != nil { current[k] = v }
+        return try JSONDecoder().decode(CaptionStyle.self, from: JSONValue.object(current).data())
+    }
+
     /// #RRGGBB as 0…255 components.
     public static func rgb(_ hex: String) -> [Double] {
         let v = UInt32(hex.trimmingCharacters(in: CharacterSet(charactersIn: "#")), radix: 16) ?? 0

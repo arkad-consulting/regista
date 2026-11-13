@@ -32,7 +32,7 @@ enum BrandKits {
                 "notes": k.notes.map { .string($0) } ?? .null]
     }
 
-    /// Restyles the project with `kit`: captions recoloured, preset titles rebuilt, logo overlays swapped
+    /// Restyles the project with `kit`: captions recoloured (their style otherwise kept, #17), preset titles rebuilt, logo overlays swapped
     /// (and laid over the whole video for a watermark kit). Returns what changed.
     static func apply(_ kit: BrandKit, to project: inout Project, _ ctx: inout CommandContext, captions: Bool, command: String) throws -> [String: JSONValue] {
         let stored = kit.absolutized()
@@ -40,7 +40,7 @@ enum BrandKits {
         var restyled: [JSONValue] = []
         if captions {
             for t in project.tracks.indices where project.tracks[t].captions != nil {
-                project.tracks[t].captions!.style = try stored.captionStyle(over: project.tracks[t].captions!.style)
+                project.tracks[t].captions!.style = try stored.captionColors(over: project.tracks[t].captions!.style)
                 restyled.append(.string(project.tracks[t].id))
             }
         }
@@ -212,7 +212,7 @@ enum BrandkitList: Command {
 
 enum BrandkitApply: Command {
     static let id = "brandkit.apply"
-    static let summary = "Apply a brand kit to the project in one go: its title presets become available to title.add, colour/font roles (primary, ink, paper, accent, success, highlight; display, text, mono) resolve in title params, captions are recoloured (keyword box = the kit's highlight, its text = onHighlight), titles made from presets are rebuilt in the new kit, and logo overlays (logo.add) are swapped for the new kit's logo and placement. Missing font files fall back to system fonts (reported). Run it before adding titles, and again any time to switch kit. Returns what was restyled."
+    static let summary = "Apply a brand kit to the project in one go: its title presets become available to title.add, colour/font roles (primary, ink, paper, accent, success, highlight; display, text, mono) resolve in title params, captions are recoloured (keyword box = the kit's highlight, its text = onHighlight; the caption style the user chose — preset, font, size — is kept), titles made from presets are rebuilt in the new kit, and logo overlays (logo.add) are swapped for the new kit's logo and placement. Missing font files fall back to system fonts (reported). Run it before adding titles, and again any time to switch kit. Returns what was restyled."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("kit", .string, "Kit id (arkad, wesites, cafe-atelier, or a user kit)."),
@@ -252,21 +252,24 @@ enum BrandkitCreate: Command {
         }
         kit.notes = nil
         try BrandKits.edit(&kit, p, command: id)
-        let saved = try store.save(kit)
+        let (saved, change) = try KitChange.record(kit.id, in: store) { try store.save(kit) }
+        ctx.kitChange = change
         return ["kit": BrandKits.summary(saved)]
     }
 }
 
 enum BrandkitUpdate: Command {
     static let id = "brandkit.update"
-    static let summary = "Change a brand kit: name, colours by role (merged; null removes), fonts, caption style, logo placement (corner, width, margin, opacity, animation, variant), title presets, watermark, notes. Updating a built-in saves a user copy with the same id that replaces it. The project keeps its applied copy until brandkit.apply is run again. Returns the kit."
+    static let summary = "Change a brand kit: name, colours by role (merged; null removes), fonts, caption style, logo placement (corner, width, margin, opacity, animation, variant), title presets, watermark, notes. Updating a built-in saves a user copy with the same id that replaces it. The project keeps its applied copy until brandkit.apply is run again. history.undo puts the kit back as it was. Returns the kit."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [.required("kit", .string, "Kit id.")] + BrandKits.editParams
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         var kit = try BrandKits.find(p.requiredString("kit"), command: id)
         try BrandKits.edit(&kit, p, command: id)
-        let saved = try BrandKitStore().save(kit)
+        let store = BrandKitStore()
+        let (saved, change) = try KitChange.record(kit.id, in: store) { try store.save(kit) }
+        ctx.kitChange = change
         return ["kit": BrandKits.summary(saved)]
     }
 }
@@ -283,7 +286,11 @@ enum BrandkitSetLogo: Command {
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         let kit = try BrandKits.find(p.requiredString("kit"), command: id)
-        let saved = try BrandKitStore().setLogo(kit, file: URL(fileURLWithPath: EngineConfig.expand(p.requiredString("path"))), variant: p.string("variant") ?? "onDark")
+        let store = BrandKitStore()
+        let (saved, change) = try KitChange.record(kit.id, in: store) {
+            try store.setLogo(kit, file: URL(fileURLWithPath: EngineConfig.expand(p.requiredString("path"))), variant: p.string("variant") ?? "onDark")
+        }
+        ctx.kitChange = change
         return ["kit": BrandKits.summary(saved)]
     }
 }
@@ -300,7 +307,11 @@ enum BrandkitSetFont: Command {
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         let kit = try BrandKits.find(p.requiredString("kit"), command: id)
-        let saved = try BrandKitStore().setFont(kit, file: URL(fileURLWithPath: EngineConfig.expand(p.requiredString("path"))), role: p.requiredString("role"))
+        let store = BrandKitStore()
+        let (saved, change) = try KitChange.record(kit.id, in: store) {
+            try store.setFont(kit, file: URL(fileURLWithPath: EngineConfig.expand(p.requiredString("path"))), role: p.requiredString("role"))
+        }
+        ctx.kitChange = change
         return ["kit": BrandKits.summary(saved)]
     }
 }
@@ -335,7 +346,14 @@ enum BrandkitImport: Command {
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
-        let kit = try BrandKitStore().importKit(from: URL(fileURLWithPath: EngineConfig.expand(p.requiredString("path"))), replace: p.bool("replace") ?? false)
+        let store = BrandKitStore()
+        // The kit's id is known only once the file is read: a new kit is one undo step (undo removes it); replacing a
+        // user kit (replace: true) is not undoable.
+        let existing = Set(store.userKits().map(\.id))
+        let kit = try store.importKit(from: URL(fileURLWithPath: EngineConfig.expand(p.requiredString("path"))), replace: p.bool("replace") ?? false)
+        if !existing.contains(kit.id) {
+            ctx.kitChange = KitChange(kit: kit.id, folder: store.folder(kit.id), before: nil, after: try KitSnapshot.read(store.folder(kit.id)))
+        }
         return ["kit": BrandKits.summary(kit)]
     }
 }
@@ -348,7 +366,9 @@ enum BrandkitDelete: Command {
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         let kit = p.requiredString("kit")
-        try BrandKitStore().delete(kit)
+        let store = BrandKitStore()
+        let (_, change) = try KitChange.record(kit, in: store) { try store.delete(kit) }
+        ctx.kitChange = change
         return ["deleted": .string(kit)]
     }
 }

@@ -176,12 +176,13 @@ import Testing
     let e = try editingEngine()
     try e.execute("timeline.place", params: ["assetId": "a1", "trackId": "t1", "sourceIn": 0, "sourceOut": 10])
     #expect(throws: CommandError.self) { try e.execute("title.add", params: ["text": "X", "start": 0, "preset": "hook"]) }   // no kit yet
-    try e.execute("brandkit.apply", params: ["kit": "wesites"])
+    // The Arkad kit: its fonts ship with Regista (#18 — never a font of the user's kit folder).
+    try e.execute("brandkit.apply", params: ["kit": "arkad"])
     let r = try e.checkUndoRedo("title.add", ["text": "AGGIORNATO", "preset": "hook", "start": 0.5, "duration": 3])
     let clip = e.project!.tracks.last!.clips[0]
     #expect(e.project!.tracks.last!.role == "titles" && clip.assetID.isEmpty)
-    #expect(clip.title?.font.hasSuffix("young-serif-latin-400-normal.woff2") == true)   // role resolved to the kit's file
-    #expect(clip.title?.background?.color == "#002FA7" && clip.title?.color == "#F7F4EC")
+    #expect(clip.title?.font.hasSuffix("Resources/Fonts/Fraunces.ttf") == true)   // role resolved to the kit's file
+    #expect(clip.title?.background?.color == "#070501" && clip.title?.color == "#FFF2E9")
     #expect(abs(clip.placement!.y - 375.0 / 1920) < 1e-9)                               // top band centre
     let boxValues = r["box"]?.arrayValue?.compactMap(\.doubleValue)
     let box = try #require(boxValues)
