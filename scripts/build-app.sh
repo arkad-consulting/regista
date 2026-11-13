@@ -66,16 +66,16 @@ sign() {
   codesign --force "$@" --entitlements Config/Regista.entitlements "$APP"
 }
 why=""
-if ! scripts/signing-identity.sh --quiet 2>build/signing.log; then
-  why="$(sed $'s/\033\\[[0-9;]*m//g' build/signing.log | grep -v '^[[:space:]]*$' | tail -1 | sed 's/^[^[:alnum:]]*//')"
+if ! scripts/signing-identity.sh --quiet 2>build.noindex/signing.log; then
+  why="$(sed $'s/\033\\[[0-9;]*m//g' build.noindex/signing.log | grep -v '^[[:space:]]*$' | tail -1 | sed 's/^[^[:alnum:]]*//')"
 elif ! HASH="$(sign_hash)"; then
   why="no certificate in $SIGN_KEYCHAIN"
 else
-  rc=0; with_timeout 60 sign --keychain "$SIGN_KEYCHAIN" --sign "$HASH" 2>build/codesign.log || rc=$?
+  rc=0; with_timeout 60 sign --keychain "$SIGN_KEYCHAIN" --sign "$HASH" 2>build.noindex/codesign.log || rc=$?
   if [ "$rc" = 0 ]; then
     echo "Signed with the dedicated Regista identity $HASH (stable: privacy permissions survive rebuilds)"
   elif [ "$rc" = 124 ]; then why="codesign did not finish in 60 s"
-  else why="codesign: $(tail -1 build/codesign.log)"; fi
+  else why="codesign: $(tail -1 build.noindex/codesign.log)"; fi
   find "$APP" -name '*.cstemp' -delete   # left behind by a codesign that was stopped
 fi
 if [ -n "$why" ]; then
