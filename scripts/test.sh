@@ -92,4 +92,10 @@ if [ "$rc" != 0 ] && grep -q "unexpected signal code 11" "$log"; then
     echo "test.sh: nothing was compiled in this run, so this is not a stale build: a bug in the code (stack above). No retry."
   fi
 fi
+# A run that ended without its summary did not finish: something ended the test process (exit code 0 included, e.g. a
+# quit reached from a click), and the tests not yet run are missing. Never green.
+if [ "$rc" = 0 ] && ! grep -qE "Test run with [0-9]+ tests? .*passed" "$log"; then
+  echo "test.sh: the test process ended before the run's summary: the run did not finish (the last tests started are above)."
+  rc=1
+fi
 exit "$rc"

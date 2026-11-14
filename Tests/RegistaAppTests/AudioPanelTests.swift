@@ -1,3 +1,4 @@
+import AVFoundation
 import AppKit
 import Foundation
 import RegistaCore
@@ -132,6 +133,7 @@ private func voiceProject(_ store: EditorStore, _ dir: URL, voice: URL) async th
     // The longest whoosh: a short one can end during the pause below on a busy Mac, and the second click then starts it again.
     let sound = try #require(SoundLibrary.bank().filter { $0.group == "whoosh" }.max { ($0.duration ?? 0) < ($1.duration ?? 0) })
     let player = SoundPreview.shared
+    RigGuard.install()   // muted: nothing is heard on the machine running the tests
     player.toggle(sound)
     #expect(player.playing == sound.name)
     try? await Task.sleep(nanoseconds: 200_000_000)
@@ -147,4 +149,20 @@ private func voiceProject(_ store: EditorStore, _ dir: URL, voice: URL) async th
     let loud = AudioCalls.duckingResult(["pass": false, "underDB": 8, "minUnder": 15], lookup: lookup)
     #expect(!loud.pass && loud.line.contains("8") && loud.line.contains("15"))
     #expect(!ok.line.contains("audio.") && !loud.line.contains("audio."))             // no command ids in the words
+}
+
+/// The suite is silent: every player a test starts is muted by the rig's guard before it plays.
+@MainActor
+@Test func aTestRunPlaysNothingAloud() throws {
+    RigGuard.install()
+    let started = AVPlayer(), shuttled = AVPlayer()
+    started.play()
+    shuttled.rate = 2
+    #expect(started.isMuted && shuttled.isMuted)
+    started.pause(); shuttled.pause()
+    let sound = try #require(SoundLibrary.bank().first)
+    let effect = try AVAudioPlayer(contentsOf: URL(fileURLWithPath: sound.path))
+    effect.play()
+    #expect(effect.volume == 0)
+    effect.stop()
 }

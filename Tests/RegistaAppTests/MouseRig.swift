@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import ObjectiveC
 import Testing
 import SwiftUI
@@ -379,13 +380,14 @@ struct RigElement: CustomStringConvertible {
 // MARK: - Side effects of a click
 
 /// What a click does outside the window: a modal open/save panel or alert (each would block the test until a person
-/// answers), a URL or a Finder window opened, another window put on screen, a context menu. The guard answers the
-/// modal ones itself (Cancel, unless told otherwise), never opens a URL, moves every other window the code shows far
-/// outside the displays (so nothing appears on the screen of the person running the tests), and records each.
+/// answers), a URL or a Finder window opened, another window put on screen, a context menu, a quit. The guard answers
+/// the modal ones itself (Cancel, unless told otherwise), never opens a URL, never quits, moves every other window the
+/// code shows far outside the displays (so nothing appears on the screen of the person running the tests), and
+/// records each. It also mutes every player: nothing is heard.
 @MainActor
 enum RigGuard {
     struct Event: Equatable, CustomStringConvertible {
-        enum Kind: String { case panel, alert, url, finder, window, menu }
+        enum Kind: String { case panel, alert, url, finder, window, menu, quit }
         let kind: Kind
         let detail: String
         var description: String { "\(kind.rawValue): \(detail)" }
@@ -411,6 +413,31 @@ enum RigGuard {
         swap(NSWindow.self, #selector(NSWindow.makeKeyAndOrderFront(_:)), #selector(NSWindow.rig_makeKeyAndOrderFront(_:)))
         swap(NSWindow.self, #selector(NSWindow.orderFront(_:)), #selector(NSWindow.rig_orderFront(_:)))
         swap(NSMenu.self, #selector(NSMenu.popUp(positioning:at:in:)), #selector(NSMenu.rig_popUp(positioning:at:in:)))
+        // Nothing is heard on the machine running the tests: every player the code starts is muted first (it still
+        // plays, so the playhead and the "playing" states move as in the app).
+        swap(AVPlayer.self, #selector(AVPlayer.play), #selector(AVPlayer.rig_play))
+        swap(AVPlayer.self, #selector(setter: AVPlayer.rate), #selector(AVPlayer.rig_setRate(_:)))
+        swap(AVAudioPlayer.self, #selector(AVAudioPlayer.play as (AVAudioPlayer) -> () -> Bool), #selector(AVAudioPlayer.rig_play))
+        // The test runner's main loop is a bare CFRunLoopRun followed by exit(0): one stop reaching it ends the process
+        // with a green exit code and the tests not yet run missing. AppKit stops the running loop for ordinary reasons
+        // (an event posted, the accessibility tree read), which an app's own loop simply survives. So the runner's loop
+        // is never the one running: from here on the main thread stays in this loop of ours, which starts again when
+        // stopped. It is a run loop block, not a main-queue block, so the main queue (the tests) is served inside it.
+        CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue) {
+            while true {
+                if CFRunLoopRunInMode(.defaultMode, 1e10, false) == .finished { usleep(1000) }
+            }
+        }
+        CFRunLoopWakeUp(CFRunLoopGetMain())
+        // A click must never end the test run: a quit is recorded, not obeyed (the process would exit with 0 and the
+        // tests not yet run would be missing from a run that looks green). Any other exit than the test runner's own,
+        // at the end of the run, prints where it came from.
+        swap(NSApplication.self, #selector(NSApplication.terminate(_:)), #selector(NSApplication.rig_terminate(_:)))
+        atexit {
+            let stack = Thread.callStackSymbols
+            guard !stack.contains(where: { $0.contains("RunnerV4main") }) else { return }
+            FileHandle.standardError.write(Data(("MouseRig: the test process is exiting from inside a test:\n" + stack.joined(separator: "\n") + "\n").utf8))
+        }
         if let real = class_getClassMethod(NSMenu.self, #selector(NSMenu.popUpContextMenu(_:with:for:))),
            let fake = class_getClassMethod(NSMenu.self, #selector(NSMenu.rig_popUpContextMenu(_:with:for:))) {
             method_exchangeImplementations(real, fake)
@@ -457,6 +484,33 @@ extension NSAlert {
             RigGuard.record(.alert, messageText)
             return RigGuard.alertAnswer
         }
+    }
+}
+
+extension NSApplication {
+    @objc fileprivate func rig_terminate(_ sender: Any?) {
+        let stack = Thread.callStackSymbols.prefix(12).joined(separator: "\n")
+        FileHandle.standardError.write(Data("MouseRig: a quit was asked for inside a test (recorded, not obeyed):\n\(stack)\n".utf8))
+        MainActor.assumeIsolated { RigGuard.record(.quit, "NSApplication.terminate") }
+    }
+}
+
+extension AVPlayer {
+    @objc fileprivate func rig_play() {
+        isMuted = true
+        rig_play()
+    }
+
+    @objc fileprivate func rig_setRate(_ rate: Float) {
+        isMuted = true
+        rig_setRate(rate)
+    }
+}
+
+extension AVAudioPlayer {
+    @objc fileprivate func rig_play() -> Bool {
+        volume = 0
+        return rig_play()
     }
 }
 

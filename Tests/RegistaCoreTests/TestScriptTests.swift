@@ -1,10 +1,11 @@
 import Foundation
 import Testing
 
-// #19: scripts/test.sh on a crashed test process (signal 11). A fake `swift` plays the three cases: a crash in a run
-// that compiled (maybe a stale build: one clean rebuild and one retry), a crash with nothing compiled (the code's: no
-// retry) and an ordinary failure (no retry, no crash talk). The crashed thread of the crash report is printed. Also
-// what test.sh sets for every run: the parallelism cap (#80).
+// #19: scripts/test.sh on a crashed test process (signal 11). A fake `swift` plays the cases: a crash in a run that
+// compiled (maybe a stale build: one clean rebuild and one retry), a crash with nothing compiled (the code's: no
+// retry), an ordinary failure (no retry, no crash talk) and a process that ends with 0 before the run's summary (the
+// run did not finish: not green). The crashed thread of the crash report is printed. Also what test.sh sets for every
+// run: the parallelism cap (#80).
 
 private let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 
@@ -24,6 +25,7 @@ case "$FAKE_MODE:$n" in
   stale:*) echo "[3/9] Compiling RegistaCore Engine.swift"; echo "✔ Test run with 1 test passed"; exit 0 ;;
   code:*) crash ;;
   fail:*) echo "✘ Test run with 1 test failed"; exit 1 ;;
+  quit:*) echo "◇ Test aTest() started."; exit 0 ;;
 esac
 """#
 
@@ -80,4 +82,8 @@ private func runTestScript(_ mode: String) throws -> (status: Int32, output: Str
     let fail = try runTestScript("fail")
     #expect(fail.status != 0 && fail.calls == 1 && fail.debugKept)
     #expect(!fail.output.contains("signal 11"))
+
+    // The test process ended with 0 before the run's summary (a quit reached from a click): not a green run.
+    let quit = try runTestScript("quit")
+    #expect(quit.status != 0 && quit.calls == 1 && quit.output.contains("did not finish"), "\(quit.output)")
 }
