@@ -126,7 +126,7 @@ private struct SimpleRail: View {
     /// The reel at −15 LUFS, into Esporta (format 9:16 chosen, the checks beside it).
     private var exportBar: some View {
         let ready = snap.hasProject && snap.next == nil && snap[.cut].status == .done
-        return VStack(alignment: .leading, spacing: Ed.Space.xs + 2) {
+        return VStack(alignment: .leading, spacing: 6) {
             EdButton(title: loc("Esporta il reel"), symbol: "square.and.arrow.up", prominent: ready, fill: true,
                      disabled: !snap.hasProject || snap[.cut].needsImport) {
                 ExportOptions.shared.preset = "9:16"
@@ -154,15 +154,13 @@ private struct SimpleStepRow: View {
     var body: some View {
         Button(action: action) {
             HStack(alignment: .top, spacing: 10) {
-                SimpleGlyph(status: state.status, number: number).padding(.top, 1)
+                StateGlyph(state.status.rawValue, number: number).padding(.top, 1)
                 VStack(alignment: .leading, spacing: Ed.Space.xxs) {
                     HStack(spacing: 6) {
                         Text(verbatim: step.title()).font(Ed.ui(Ed.TypeSize.control, open ? .semibold : .medium))
                             .foregroundStyle(state.status == .blocked ? Ed.text2 : Ed.text).lineLimit(1)
                         if next {
-                            Text(verbatim: loc("Prossimo")).font(Ed.ui(Ed.TypeSize.micro, .semibold)).foregroundStyle(Ed.text2)
-                                .padding(.horizontal, 5).frame(height: 15)
-                                .background(Capsule().fill(Ed.control))
+                            RTag("Prossimo")
                         }
                     }
                     // Before a video is imported only the first step says so: the others wait silently.
@@ -193,40 +191,6 @@ private struct SimpleStepRow: View {
         case .unavailable: Ed.warn
         default: Ed.text3
         }
-    }
-}
-
-/// The state as a glyph: a number to do, a check done, a dash not needed, a warning unavailable, a spinner running.
-struct SimpleGlyph: View {
-    let status: SimpleState.Status
-    let number: Int
-
-    var body: some View {
-        ZStack {
-            switch status {
-            case .done:
-                Circle().fill(Ed.ok.opacity(0.18))
-                Image(systemName: "checkmark").font(Ed.icon(Ed.TypeSize.micro, .bold)).foregroundStyle(Ed.ok)
-            case .notNeeded:
-                Circle().strokeBorder(Ed.line2, lineWidth: 1)
-                Image(systemName: "minus").font(Ed.icon(Ed.TypeSize.tiny, .bold)).foregroundStyle(Ed.text3)
-            case .unavailable:
-                Circle().strokeBorder(Ed.warn.opacity(0.7), lineWidth: 1.2)
-                Image(systemName: "exclamationmark").font(Ed.icon(Ed.TypeSize.micro, .bold)).foregroundStyle(Ed.warn)
-            case .running:
-                Circle().strokeBorder(Ed.line2, lineWidth: 1.2)
-                Circle().trim(from: 0, to: 0.3).stroke(Ed.gold, style: StrokeStyle(lineWidth: 1.6, lineCap: .round)).padding(0.8)
-                    .rotationEffect(.degrees(-90))
-                Circle().fill(Ed.gold).frame(width: 5, height: 5)
-            case .blocked:
-                Circle().strokeBorder(Ed.line2, lineWidth: 1)
-                Text(verbatim: "\(number)").font(Ed.mono(Ed.TypeSize.caption, .medium)).foregroundStyle(Ed.text4)
-            case .todo:
-                Circle().strokeBorder(Ed.text3, lineWidth: 1.2)
-                Text(verbatim: "\(number)").font(Ed.mono(Ed.TypeSize.caption, .semibold)).foregroundStyle(Ed.text2)
-            }
-        }
-        .frame(width: 22, height: 22)
     }
 }
 
@@ -276,7 +240,7 @@ private struct SimplePanel: View {
                 .frame(width: 34, height: 34)
                 .background(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).fill(Ed.raised))
             VStack(alignment: .leading, spacing: 3) {
-                Text(verbatim: step.title()).font(Ed.ui(Ed.TypeSize.heading - 1, .semibold)).foregroundStyle(Ed.text)
+                Text(verbatim: step.title()).font(Ed.ui(Ed.TypeSize.heading, .semibold)).foregroundStyle(Ed.text)
                 Text(verbatim: Self.purpose(step)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -297,12 +261,7 @@ private struct SimplePanel: View {
 
     /// Why the step cannot run, and the way to what is missing.
     @ViewBuilder private var wayOn: some View {
-        VStack(alignment: .leading, spacing: Ed.Space.s + 2) {
-            HStack(alignment: .firstTextBaseline, spacing: 7) {
-                Image(systemName: state.status == .unavailable ? "exclamationmark.triangle" : "lock").font(Ed.icon(Ed.TypeSize.caption))
-                    .foregroundStyle(state.status == .unavailable ? Ed.warn : Ed.text3)
-                Text(verbatim: state.line).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
-            }
+        ReasonNote(text: state.line, warning: state.status == .unavailable) {
             if state.needsImport {
                 EdButton(title: loc("Importa un video…"), symbol: "square.and.arrow.down", prominent: true) { Panels.importMedia(store) }
             } else if let engine = state.install {
@@ -311,10 +270,6 @@ private struct SimplePanel: View {
                 EdButton(title: String(format: loc("Vai a «%@»"), need.title()), symbol: "arrow.turn.left.up") { onOpen(need) }
             }
         }
-        .padding(Ed.Space.m)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).fill(Ed.well))
-        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).strokeBorder(Ed.line))
     }
 
     @ViewBuilder private var content: some View {
@@ -355,25 +310,6 @@ private struct SimplePanel: View {
     }
 }
 
-/// A group of controls under its small heading (none when the title is empty).
-private struct StepGroup<C: View>: View {
-    let title: String
-    @ViewBuilder let content: () -> C
-
-    init(_ title: String, @ViewBuilder content: @escaping () -> C) {
-        self.title = title
-        self.content = content
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Ed.Space.s + 2) {
-            if !title.isEmpty { SectionLabel(title) }
-            content()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
 /// A dim sentence under a control.
 private func note(_ text: String) -> some View {
     Text(verbatim: text).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
@@ -400,7 +336,7 @@ private struct CutPanel: View {
         let preset = cut ? (snap.cutPreset ?? .medium) : draft
         let pauses = cut ? snap.pauses : pausesDraft
         VStack(alignment: .leading, spacing: Ed.Space.xl) {
-            StepGroup("PAUSE") {
+            RSection("PAUSE") {
                 RToggle(title: "Togli le pause lunghe", isOn: Binding(get: { pauses }, set: { on in
                     if cut { store.simpleCut(preset, pauses: on) } else { pausesDraft = on }
                 }), subtitle: "Resta un respiro prima e dopo ogni frase.")
@@ -415,7 +351,7 @@ private struct CutPanel: View {
                     store.simpleCut(draft, pauses: pausesDraft)
                 }
             } else if cut {
-                StepGroup("RIPRESE") {
+                RSection("RIPRESE") {
                     if snap.retakes.isEmpty {
                         note(loc("Ogni frase è stata detta una volta sola: non c'è niente da scegliere."))
                     } else {
@@ -472,12 +408,12 @@ private struct CaptionsPanel: View {
         let on = snap.captionsTrack != nil
         let style = on ? snap.captionStyle : saved
         VStack(alignment: .leading, spacing: Ed.Space.xl) {
-            StepGroup("") {
+            RSection("") {
                 RToggle(title: "Sottotitoli nel video", isOn: Binding(get: { on }, set: { store.simpleCaptions(on: $0, style: style) }),
                         subtitle: on ? String(format: loc("%d parole evidenziate"), snap.keywords) : "Si creano dal parlato, in pochi secondi.")
             }
-            StepGroup("STILE") {
-                RChips(items: CaptionStyle.all.map { .init(id: $0.id, title: captionStyleName($0.id)) }, selection: style, columns: 2, height: 30) {
+            RSection("STILE") {
+                RChips(items: CaptionStyle.all.map { .init(id: $0.id, title: captionStyleName($0.id)) }, selection: style, columns: 2) {
                     store.simpleCaptionStyle($0)
                 }
                 note(loc("Talking head è lo stile dei reel approvati: maiuscole, parola chiave in un riquadro."))
@@ -497,13 +433,13 @@ private struct LookPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Ed.Space.xl) {
-            StepGroup("LUCE") {
+            RSection("LUCE") {
                 RToggle(title: "Luce leggera", isOn: Binding(get: { snap.light }, set: { on in
                     if let t = snap.videoTrack { store.runSimple(SimpleCalls.light(on, trackID: t)) }
                 }), subtitle: "Un po' più di luce, contrasto e colore.")
             }
-            StepGroup("COLORE") {
-                RChips(items: SimpleLooks.ids.map { .init(id: $0, title: SimpleLooks.title($0)) }, selection: snap.look, columns: 3, height: 30) { id in
+            RSection("COLORE") {
+                RChips(items: SimpleLooks.ids.map { .init(id: $0, title: SimpleLooks.title($0)) }, selection: snap.look, columns: 3) { id in
                     store.runSimple(SimpleCalls.look(id, amount: snap.look == "none" ? 0.6 : SimpleLooks.nearestAmount(snap.lookAmount)))
                 }
                 if snap.look != "none" {
@@ -527,7 +463,7 @@ private struct SoundPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Ed.Space.xl) {
-            StepGroup("MUSICA") {
+            RSection("MUSICA") {
                 if let m = snap.music {
                     HStack(spacing: Ed.Space.s) {
                         Image(systemName: "music.note").font(Ed.icon(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.musicWave)
@@ -555,7 +491,7 @@ private struct SoundPanel: View {
             .task(id: snap.music?.trackID) {
                 if let p = store.project, let m = AudioCalls.musicTrack(p), let a = p.asset(m.clips[0].assetID) { await store.measureMusic(a) }
             }
-            StepGroup("EFFETTI SONORI") {
+            RSection("EFFETTI SONORI") {
                 RToggle(title: "Un whoosh sui tagli", isOn: Binding(get: { snap.effects > 0 }, set: { store.runSimple(SimpleCalls.soundEffects($0)) }),
                         subtitle: canCutSounds ? "Leggero, al massimo sei, a qualche secondo l'uno dall'altro."
                                                : "Prima taglia il video: i suoni vanno sui tagli.")
@@ -575,11 +511,11 @@ private struct VoicePanelSimple: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Ed.Space.xl) {
-            StepGroup("PULIZIA") {
+            RSection("PULIZIA") {
                 RToggle(title: "Pulisci la voce", isOn: Binding(get: { snap.cleaned }, set: { store.simpleClean($0) }),
                         subtitle: "Toglie il rumore e porta la voce a −15 LUFS, il volume giusto per Instagram.")
             }
-            StepGroup("VOCE FUORI CAMPO") { voiceOver }
+            RSection("VOCE FUORI CAMPO") { voiceOver }
         }
     }
 
@@ -610,11 +546,7 @@ private struct VoiceOverComposer: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Ed.Space.s) {
-            TextField(loc("Scrivi cosa deve dire la tua voce"), text: $model.text, axis: .vertical)
-                .textFieldStyle(.plain).font(Ed.ui(Ed.TypeSize.body)).lineLimit(3...6)
-                .padding(Ed.Space.s)
-                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
-                .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.line2))
+            RTextEditor(placeholder: "Scrivi cosa deve dire la tua voce", text: $model.text)
             EdButton(title: loc("Metti nel video"), symbol: "waveform.badge.plus",
                      disabled: model.paragraphs.isEmpty || model.jobs?.latest("voice")?.isRunning == true) { model.place() }
         }
@@ -630,16 +562,16 @@ private struct GraphicsPanelSimple: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Ed.Space.xl) {
-            StepGroup("TITOLO") {
+            RSection("TITOLO") {
                 if let item = EffectsCatalog.named("text-hook") { CatalogRowItem(item: item) }
             }
-            StepGroup("LOGO") {
+            RSection("LOGO") {
                 RToggle(title: "Logo nel video", isOn: Binding(get: { !snap.logoClips.isEmpty }, set: { on in
                     store.runSimple(on ? SimpleCalls.logo(snap.logoPlacement) : SimpleCalls.removeClips(snap.logoClips))
                 }), subtitle: snap.logoReason ?? "Nell'angolo della marca, per tutto il video.")
                 .disabled(snap.logoReason != nil && snap.logoClips.isEmpty)
             }
-            StepGroup("SCHEDE ANIMATE") {
+            RSection("SCHEDE ANIMATE") {
                 ForEach(SimpleGraphics.templates, id: \.self) { id in
                     if let item = EffectsCatalog.named(id) { CatalogRowItem(item: item) }
                 }
@@ -698,7 +630,7 @@ struct Filmstrip: View {
                 // Playhead through ruler, bars and frames, with its timecode.
                 Rectangle().fill(Ed.gold).frame(width: 2, height: g.size.height - 4)
                     .offset(x: x(playhead.time) - 1, y: 2).shadow(color: .black.opacity(0.6), radius: 2).allowsHitTesting(false)
-                Text(verbatim: shortTime(playhead.time)).font(Ed.mono(Ed.TypeSize.micro, .semibold)).foregroundStyle(Color.black.opacity(0.85))
+                Text(verbatim: shortTime(playhead.time)).font(Ed.mono(Ed.TypeSize.micro, .semibold)).foregroundStyle(Accent.on)
                     .padding(.horizontal, Ed.Space.xs).frame(height: 14).background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(Ed.gold))
                     .fixedSize().offset(x: min(max(x(playhead.time) - 18, 0), W - 36), y: 1).allowsHitTesting(false)
             }

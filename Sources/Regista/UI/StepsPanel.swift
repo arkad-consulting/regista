@@ -163,7 +163,7 @@ private struct StepRow<Body: View>: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             VStack(spacing: 0) {
-                StepGlyph(status: state.status, number: number)
+                StateGlyph(state.status.rawValue, number: number, size: 20).padding(.vertical, 1)
                 if !last { Rectangle().fill(state.status == .done ? Ed.ok.opacity(0.35) : Ed.line2).frame(width: 1).frame(maxHeight: .infinity) }
             }
             .frame(width: 20)
@@ -172,9 +172,9 @@ private struct StepRow<Body: View>: View {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         VStack(alignment: .leading, spacing: Ed.Space.xxs) {
                             HStack(spacing: 5) {
-                                Text(verbatim: step.title()).font(Ed.ui(Ed.TypeSize.label, .semibold))
+                                Text(verbatim: step.title()).font(Ed.ui(Ed.TypeSize.control, .semibold))
                                     .foregroundStyle(state.status == .blocked ? Ed.text2 : Ed.text)
-                                if step.optional { Text(verbatim: loc("facoltativo")).font(Ed.ui(Ed.TypeSize.micro)).foregroundStyle(Ed.text3) }
+                                if step.optional { RTag("facoltativo") }
                             }
                             Text(verbatim: state.line).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(lineColor)
                                 .lineLimit(open ? nil : 2).fixedSize(horizontal: false, vertical: open)
@@ -200,36 +200,6 @@ private struct StepRow<Body: View>: View {
         case .running: Ed.gold
         default: Ed.text3
         }
-    }
-}
-
-/// The state on the rail: number to do, check done, a turning arrow out of date, a spinner running, a lock blocked.
-private struct StepGlyph: View {
-    let status: StepState.Status
-    let number: Int
-
-    var body: some View {
-        ZStack {
-            switch status {
-            case .done:
-                Circle().fill(Ed.ok.opacity(0.18))
-                Image(systemName: "checkmark").font(Ed.icon(Ed.TypeSize.tiny, .bold)).foregroundStyle(Ed.ok)
-            case .stale:
-                Circle().strokeBorder(Ed.warn, lineWidth: 1.2)
-                Image(systemName: "arrow.clockwise").font(Ed.icon(Ed.TypeSize.tiny, .bold)).foregroundStyle(Ed.warn)
-            case .running:
-                Circle().strokeBorder(Ed.gold.opacity(0.5), lineWidth: 1.2)
-                ProgressView().controlSize(.mini).scaleEffect(0.55).tint(Ed.gold)
-            case .blocked:
-                Circle().strokeBorder(Ed.line2, lineWidth: 1)
-                Text(verbatim: "\(number)").font(Ed.mono(Ed.TypeSize.micro, .medium)).foregroundStyle(Ed.text3.opacity(0.7))
-            case .todo:
-                Circle().strokeBorder(Ed.text3, lineWidth: 1.2)
-                Text(verbatim: "\(number)").font(Ed.mono(Ed.TypeSize.micro, .semibold)).foregroundStyle(Ed.text2)
-            }
-        }
-        .frame(width: 20, height: 20)
-        .padding(.vertical, 1)
     }
 }
 
@@ -275,14 +245,12 @@ private struct StepBody: View {
 
     /// Why the step cannot run, and the way to what is missing.
     @ViewBuilder private var missing: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Image(systemName: "lock").font(Ed.icon(Ed.TypeSize.micro)).foregroundStyle(Ed.text3)
-            Text(verbatim: state.line).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
-        }
-        if state.needsImport {
-            EdButton(title: loc("Importa un video…"), symbol: "square.and.arrow.down") { Panels.importMedia(store) }
-        } else if let need = state.needs {
-            EdButton(title: String(format: loc("Vai a «%@»"), need.title()), symbol: "arrow.turn.left.up") { openStep(need) }
+        ReasonNote(text: state.line) {
+            if state.needsImport {
+                EdButton(title: loc("Importa un video…"), symbol: "square.and.arrow.down") { Panels.importMedia(store) }
+            } else if let need = state.needs {
+                EdButton(title: String(format: loc("Vai a «%@»"), need.title()), symbol: "arrow.turn.left.up") { openStep(need) }
+            }
         }
     }
 
@@ -292,7 +260,7 @@ private struct StepBody: View {
         switch step {
         case .transcribe:
             label(loc("Lingua del parlato"))
-            RChips(items: StepSettings.languages.map { .init(id: $0, title: StepSettings.languageName($0)) }, selection: language, columns: 3, height: 26) {
+            RChips(items: StepSettings.languages.map { .init(id: $0, title: StepSettings.languageName($0)) }, selection: language, columns: 3) {
                 language = $0
             }
             Text(verbatim: engineLine).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
@@ -325,7 +293,7 @@ private struct StepBody: View {
             VStack(alignment: .leading, spacing: 3) {
                 ForEach(Array(snap.scriptLines.prefix(3).enumerated()), id: \.offset) { i, line in
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(verbatim: "\(i + 1)").font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.gold).frame(width: 12, alignment: .trailing)
+                        Text(verbatim: "\(i + 1)").font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.text3).frame(width: 12, alignment: .trailing)
                         Text(verbatim: line).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).lineLimit(1)
                     }
                 }
@@ -335,11 +303,7 @@ private struct StepBody: View {
             }
             EdButton(title: loc("Cambia il copione"), symbol: "pencil") { editingScript = true }
         } else {
-            TextField(loc("Incolla qui il copione, una frase per riga"), text: $draft, axis: .vertical)
-                .textFieldStyle(.plain).font(Ed.ui(Ed.TypeSize.small)).lineLimit(4...8)
-                .padding(Ed.Space.s)
-                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
-                .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.line2))
+            RTextEditor(placeholder: "Incolla qui il copione, una frase per riga", text: $draft, kind: .grows(4...8))
             FlowLayout(spacing: 6, lineSpacing: 6) {
                 EdButton(title: loc("Usa questo copione"), symbol: "checkmark", prominent: !trimmed.isEmpty,
                          disabled: trimmed.isEmpty || snap.busy != nil) {
@@ -367,7 +331,7 @@ private struct StepBody: View {
 
     @ViewBuilder private var captionControls: some View {
         label(loc("Stile"))
-        RChips(items: CaptionStyle.all.map { .init(id: $0.id, title: styleName($0.id)) }, selection: style, columns: 2, height: 26) { style = $0 }
+        RChips(items: CaptionStyle.all.map { .init(id: $0.id, title: styleName($0.id)) }, selection: style, columns: 2) { style = $0 }
         label(loc("Parole chiave"))
         if snap.suggestions.isEmpty && keywords.isEmpty {
             Text(verbatim: loc("Cerco le parole da evidenziare…")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
@@ -390,7 +354,7 @@ private struct StepBody: View {
             }
         }
         HStack(spacing: 6) {
-            RTextField(placeholder: loc("Aggiungi una parola"), text: $newWord)
+            RTextField(placeholder: "Aggiungi una parola", text: $newWord)
                 .onSubmit { addWord() }
             EdButton(title: loc("Aggiungi"), disabled: newWord.trimmingCharacters(in: .whitespaces).isEmpty) { addWord() }
         }
