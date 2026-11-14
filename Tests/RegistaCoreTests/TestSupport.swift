@@ -17,9 +17,10 @@ struct FakeProber: MediaProber {
 
 /// The user brand kits folder of the whole test process (#18): `$REGISTA_BRANDKITS` points at one scratch folder,
 /// set before any test reads a kit, so no test sees (or writes) the kits of the person running the suite. Touched by
-/// `tempDir()` and `editingEngine()`, which nearly every test calls first, and by the brand kit tests.
+/// `tempDir()` and `editingEngine()`, which nearly every test calls first, and by the brand kit tests. Named after the
+/// pid, so RegistaEnginesTests (same process, no access to this file) sets the very same value.
 let testKitsDirectory: URL = {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tests-kits-\(UUID().uuidString)")
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tests-kits-\(ProcessInfo.processInfo.processIdentifier)")
     try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     setenv("REGISTA_BRANDKITS", url.path, 1)
     return url

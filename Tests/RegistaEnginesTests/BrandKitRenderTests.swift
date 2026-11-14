@@ -18,16 +18,19 @@ private func pixels(_ url: URL) throws -> (width: Int, height: Int, data: [UInt8
     return (img.width, img.height, data)
 }
 
-/// No user kits (#18): kits are looked up by id, and the folder of the person running the suite must not change the result.
-private let emptyKitsFolder: URL = {
-    let d = FileManager.default.temporaryDirectory.appendingPathComponent("regista-brand-kits-\(UUID().uuidString)")
+/// No user kits (#18): kits are looked up by id, and the folder of the person running the suite must not change the
+/// result. The same folder as RegistaCoreTests' `testKitsDirectory` (one per test process, named after the pid): the two
+/// targets run in one process, and two different values of the variable made a kit command write where the other
+/// target's test was not looking.
+private let testKitsFolder: URL = {
+    let d = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tests-kits-\(ProcessInfo.processInfo.processIdentifier)")
     try! FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
     setenv("REGISTA_BRANDKITS", d.path, 1)
     return d
 }()
 
 private func scratch() -> URL {
-    _ = emptyKitsFolder
+    _ = testKitsFolder
     let d = FileManager.default.temporaryDirectory.appendingPathComponent("regista-brand-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
     return d

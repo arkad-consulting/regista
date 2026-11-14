@@ -63,6 +63,10 @@ run() {
   return "$rc"
 }
 
+# The tests' scratch brand-kit folders are named after the test process's pid (the test targets share one): folders
+# left by runs of other days go, so a reused pid never meets an old kit.
+find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'regista-tests-kits-*' -mtime +0 -exec rm -rf {} + 2>/dev/null || true
+
 log="$scratch/run1.log"
 touch "$scratch/start"
 rc=0; run "$@" || rc=$?
