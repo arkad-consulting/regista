@@ -14,6 +14,15 @@ final class ExportOptions: ObservableObject {
     @Published var lastFile: URL?
 }
 
+/// The commands behind Esporta's buttons (the same calls a test replays).
+enum ExportCalls {
+    /// Esporta video…: the mix brought to the house loudness (−15 LUFS, also with music and sound effects in it).
+    static func render(path: String, preset: String, captions: Bool, bitrate: Double) -> StepCall {
+        StepCall(id: "export.render", params: ["path": .string(path), "preset": .string(preset), "captions": .bool(captions),
+                                               "bitrate": .number(bitrate), "loudness": .number(LoudnessTarget.integrated)])
+    }
+}
+
 /// Esporta's main area: the program monitor, what the export will look like.
 struct ExportWorkspace: View {
     var body: some View {
@@ -54,8 +63,7 @@ struct ExportSettingsPanel: View {
                              disabled: store.project == nil || store.jobs.latest("export")?.isRunning == true) {
                         guard let url = ask("mp4", .mpeg4Movie, "Esporta il video") else { return }
                         // A job (E2 #54): progress by frames, Cancel removes the partial file; the window stays usable.
-                        store.exportVideo(["path": .string(url.path), "preset": .string(o.preset),
-                                           "captions": .bool(o.captions), "bitrate": .number(o.bitrate)], to: url)
+                        store.exportVideo(ExportCalls.render(path: url.path, preset: o.preset, captions: o.captions, bitrate: o.bitrate).params, to: url)
                     }
                     FlowLayout(spacing: 6, lineSpacing: 6) {
                         EdButton(title: "Sottotitoli .srt…", symbol: "captions.bubble", disabled: !hasCaptions) {

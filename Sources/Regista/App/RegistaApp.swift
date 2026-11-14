@@ -140,7 +140,7 @@ struct EditorCommands: Commands {
                 Button(ActivityInfo.of(a).title) { store.select(a) }.shortcut(AppShortcuts.activity(i, title: ActivityInfo.of(a).title))
             }
             Divider()
-            Button("Monta — Semplice") { store.workspace = .quick }.shortcut(AppShortcuts.simple)
+            Button("Monta — Semplice") { store.workspace = .simple }.shortcut(AppShortcuts.simple)
             Button("Monta — Pro") { store.workspace = .pro }.shortcut(AppShortcuts.pro)
             Divider()
             Button("Scheda successiva") { bench.selectNext(1) }.shortcut(AppShortcuts.nextTab)

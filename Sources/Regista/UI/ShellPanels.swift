@@ -186,7 +186,7 @@ struct MainArea: View {
                         if nav.level == .pro {
                             ProWorkspace()
                         } else {
-                            QuickWorkspace()
+                            SimpleWorkspace()
                         }
                     }
                 }
@@ -435,9 +435,9 @@ struct EditorToolbar: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            RSegmented(items: [(EditorStore.Workspace.quick, "Semplice"), (.pro, "Pro")], selection: Binding(get: { level }, set: { store.workspace = $0 }),
-                       fill: false, tips: [.quick: "Livello semplice: anteprima grande e pochi pulsanti", .pro: "Livello Pro: timeline, monitor e pannelli"],
-                       shortcuts: [.quick: "⌥⌘1", .pro: "⌥⌘2"])
+            RSegmented(items: [(EditorStore.Workspace.simple, "Semplice"), (.pro, "Pro")], selection: Binding(get: { level }, set: { store.workspace = $0 }),
+                       fill: false, tips: [.simple: "Livello semplice: sei passi guidati, un'anteprima e Fai tutto", .pro: "Livello Pro: timeline, monitor e pannelli"],
+                       shortcuts: [.simple: "⌥⌘1", .pro: "⌥⌘2"])
             Ed.rule.frame(width: 1, height: 16)
             Text(verbatim: format).font(Ed.ui(12)).foregroundStyle(Ed.text3).lineLimit(1)
             Spacer(minLength: 8)

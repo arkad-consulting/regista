@@ -43,8 +43,16 @@ format, undo · redo · history, and the project's **Brand** button (the one pla
   bottom the tools (select, blade, text, hand), the **timeline** with tracks T1 captions · V2 graphics/AI · V1 takes ·
   A1 voice · A2 music · A3 effects (lock, show/hide, mute, solo), thumbnails and waveforms, and the **meter** M/S/I LUFS
   + true peak (reel target −15 LUFS, peak ≤ −1.5 dBTP);
-- **Simple**: a big 9:16 preview, a filmstrip, the buttons Takes · Captions · Graphics · Music · Export. This is the view
-  that shows a project Claude creates or opens while you are in the editor or Export.
+- **Simple**: six guided steps — **Cut & takes · Captions · Look · Music & sounds · Voice · Graphics** — each with its
+  state worked out from the project (to do, done, optional, or unavailable with the reason and *Install…* when an engine
+  is missing), one monitor in the project's format and the edit as a filmstrip underneath. Click a step to open its short
+  panel of switches and presets (how tight the cut is and the take of each line read more than once; captions on/off and
+  their style; the light grade and one colour look; music with its level and ducking, a whoosh on the cuts; voice
+  cleaning on/off and a voice-over from text when your voice is ready; an opening title, the logo, three animated cards).
+  **Do everything** cuts, picks the takes, cleans the voice, adds the captions and the light grade as one job you can
+  stop; run twice, it adds nothing. **Export the reel** opens Export on the Reel 9:16 format (−15 LUFS, the checks).
+  Every switch is one command (⌘Z undoes it) and Pro shows the same edit. This is the view that shows a project Claude
+  creates or opens while you are in the editor or Export.
 
 **Export**: format, checks and files in the side panel, the program monitor in the main area.
 
@@ -78,7 +86,7 @@ any icon: its name and shortcut appear after a moment.
 
 Captions, titles, stickers and the logo can be moved on the preview with the mouse, like text in an Instagram story.
 
-- **Click** a caption, a title, a sticker or the logo on the **Program** monitor (Pro) or on the big preview (Simple):
+- **Click** a caption, a title, a sticker or the logo on the **Program** monitor (Pro) or on the monitor (Simple):
   a gold frame appears. **Drag it** where you want. While you drag, **guides** appear (centre, thirds, the edges of
   the other graphics: it snaps by itself; hold ⌘ not to snap) and, in **red**, the zones of Instagram's interface
   (account bar at the top, buttons and caption at the bottom, the action column on the right): an element that
@@ -95,7 +103,7 @@ Captions, titles, stickers and the logo can be moved on the preview with the mou
 
 ## Effects: retouching like a photo
 
-The **Graphics** activity (the Simple view's *Graphics* button opens it too) shows one panel in the side panel, with
+The **Graphics** activity (Simple's *More graphics in Pro* opens it too) shows one panel in the side panel, with
 the edit in the main area: a search, then six sections — **Filters**, **Adjust**, **Effects**, **Styles**, **Motion**,
 **Logo**. Every item has its plain name, one line saying what it does and, where the engine can draw one, a preview made
 from **your** frame (it plays when the pointer rests on it). **Click** applies it to the selected clip, or at the

@@ -34,12 +34,12 @@ private func scratchDefaults() -> UserDefaults {
     #expect(nav.activity == .home && nav.workspace == .home && !nav.inEditor)
     nav.select(.texts)
     #expect(nav.workspace == .pro && nav.inEditor)            // nothing used yet: Pro
-    nav.show(.quick)                                         // Semplice: the side panel stays on Testi
-    #expect(nav.activity == .texts && nav.workspace == .quick)
+    nav.show(.simple)                                         // Semplice: the side panel stays on Testi
+    #expect(nav.activity == .texts && nav.workspace == .simple)
     nav.select(.export)
     #expect(nav.workspace == .export && !nav.inEditor)
     nav.showEditor()                                         // the project tab: back to Testi, at Semplice
-    #expect(nav.activity == .texts && nav.workspace == .quick)
+    #expect(nav.activity == .texts && nav.workspace == .simple)
     nav.select(.record)
     nav.show(.pro)                                           // a recording opened in Pro goes to the last library activity
     #expect(nav.activity == .texts && nav.level == .pro)
@@ -60,9 +60,9 @@ private func scratchDefaults() -> UserDefaults {
 /// panel in the side panel, and every category of the effects catalog belongs to exactly one section.
 @MainActor
 @Test func graphicsSectionsOpenInTheSidePanelWithTheEditorInTheMainArea() {
-    var nav = Navigation(activity: .export, level: .quick)
+    var nav = Navigation(activity: .export, level: .simple)
     nav.showGraphics(.styles)
-    #expect(nav.activity == .graphics && nav.graphicsSection == .styles && nav.workspace == .quick && nav.inEditor)
+    #expect(nav.activity == .graphics && nav.graphicsSection == .styles && nav.workspace == .simple && nav.inEditor)
     nav.show(.pro)
     #expect(nav.activity == .graphics && nav.graphicsSection == .styles && nav.workspace == .pro)
     let all = Navigation.GraphicsSection.allCases.flatMap(\.categories)
@@ -73,15 +73,15 @@ private func scratchDefaults() -> UserDefaults {
 
 @Test func launchRestoresTheLastActivityAndTheRightPanelTab() {
     let export = Navigation.restored(activity: "export", level: "quick", rightTab: "claude", hasRecents: true)
-    #expect(export.activity == .export && export.level == .quick && export.rightTab == .claude)
+    #expect(export.activity == .export && export.level == .simple && export.rightTab == .claude)
     let voice = Navigation.restored(activity: "voice", level: "quick", rightTab: "inspector", hasRecents: true)
-    #expect(voice.activity == .voice && voice.workspace == .quick && voice.rightTab == .inspector)
+    #expect(voice.activity == .voice && voice.workspace == .simple && voice.rightTab == .inspector)
     // D1's remembered Monta comes back as the editor at the remembered level.
     let monta = Navigation.restored(activity: "pro", level: "quick", rightTab: nil, hasRecents: true)
-    #expect(monta.activity == .media && monta.workspace == .quick && monta.rightTab == .prompter)
+    #expect(monta.activity == .media && monta.workspace == .simple && monta.rightTab == .prompter)
     // Nothing to come back to, or nothing remembered: Inizio (the level and the tab are still remembered).
     let empty = Navigation.restored(activity: "export", level: "quick", rightTab: "claude", hasRecents: false)
-    #expect(empty.activity == .home && empty.level == .quick && empty.rightTab == .claude)
+    #expect(empty.activity == .home && empty.level == .simple && empty.rightTab == .claude)
     #expect(Navigation.restored(activity: nil, level: nil, rightTab: nil, hasRecents: true).activity == .home)
     let bogus = Navigation.restored(activity: "bogus", level: "export", rightTab: "bogus", hasRecents: true)
     #expect(bogus.level == .pro && bogus.rightTab == .prompter && bogus.activity == .home)
@@ -97,11 +97,11 @@ private func scratchDefaults() -> UserDefaults {
     try makeProject("recente", in: seeds, date: Date())
     let store = EditorStore(defaults: defaults, seedFolders: [seeds])
     store.select(.graphics)
-    store.workspace = .quick
+    store.workspace = .simple
     store.nav.rightTab = .claude
     #expect(defaults.string(forKey: Navigation.activityKey) == "graphics")
     let next = EditorStore(defaults: defaults, seedFolders: [seeds])
-    #expect(next.nav.activity == .graphics && next.workspace == .quick && next.nav.rightTab == .claude)
+    #expect(next.nav.activity == .graphics && next.workspace == .simple && next.nav.rightTab == .claude)
     // D1's key alone (an older install) opens the editor on Media.
     let old = scratchDefaults()
     old.set("pro", forKey: Navigation.legacyWorkspaceKey)
@@ -226,8 +226,8 @@ private func pixel(_ rep: NSBitmapImageRep, _ x: Int, _ y: Int) -> UInt32 {
         n.select(a)
         states.append((a.rawValue, n))
     }
-    var semplice = Navigation(activity: .media, level: .quick, rightTab: .inspector)
-    semplice.show(.quick)
+    var semplice = Navigation(activity: .media, level: .simple, rightTab: .inspector)
+    semplice.show(.simple)
     states.append(("edit-semplice", semplice))
     for section in Navigation.GraphicsSection.allCases {
         var g = Navigation(activity: .graphics, rightTab: .inspector)

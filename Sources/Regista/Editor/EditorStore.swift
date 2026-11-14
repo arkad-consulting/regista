@@ -13,7 +13,7 @@ import RegistaMCP
 @MainActor
 final class EditorStore: ObservableObject {
     enum Workspace: String, CaseIterable, Identifiable {
-        case home, record, pro, quick, export
+        case home, record, pro, simple, export
         var id: String { rawValue }
     }
 
@@ -67,6 +67,8 @@ final class EditorStore: ObservableObject {
     @Published var errorMessage: String?
     /// The last ducking check of this tab's music (E3 #55), shown while the audio it measured is unchanged.
     @Published var musicCheck: MusicCheck?
+    /// The measured loudness of the music files of this tab, by path (the Semplice level's music presets).
+    @Published var musicLoudness: [String: Double] = [:]
     var socketProblem: String? {
         get { bench.socketProblem }
         set { bench.socketProblem = newValue }
@@ -426,7 +428,7 @@ final class EditorStore: ObservableObject {
     /// agent did, in plain view). Projects opened by hand go to the level used last (`openProject`).
     private func noteEditor(command: String, kind: CommandKind?, agent: Bool) {
         guard agent, kind == .session, command == "project.new" || command == "project.open" else { return }
-        if nav.inEditor || workspace == .export { workspace = .quick }
+        if nav.inEditor || workspace == .export { workspace = .simple }
     }
 
     // MARK: Convenience actions (each one is commands)
@@ -601,7 +603,8 @@ final class EditorStore: ObservableObject {
                 errorMessage = loc("Importa prima un video")
                 return
             }
-            runAll(settings: StepSettings.saved(project: project), script: script)
+            // In Semplice, its own "Fai tutto" (with the light grade, without the steps this Mac cannot run).
+            if nav.level == .simple { doEverything(script: script) } else { runAll(settings: StepSettings.saved(project: project), script: script) }
         }
     }
 

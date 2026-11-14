@@ -31,7 +31,8 @@ final class AppUIHost: UIHost, @unchecked Sendable {
     /// Renders the editor into an offscreen window at the requested size: works while the screen is locked
     /// or the window is hidden, and never changes what the user is looking at.
     func screenshot(workspace: String?, width: Int?, height: Int?, canvas: JSONValue?, record: JSONValue?, voice: JSONValue?, tabs: Int?,
-                    inspector: JSONValue?, texts: JSONValue?, jobs: JSONValue?, audio: JSONValue?, to output: URL) throws -> (width: Int, height: Int, shown: JSONValue) {
+                    inspector: JSONValue?, texts: JSONValue?, jobs: JSONValue?, audio: JSONValue?, simple: JSONValue?,
+                    to output: URL) throws -> (width: Int, height: Int, shown: JSONValue) {
         precondition(!Thread.isMainThread)
         // `inspector.project`: a project opened in a scratch store for this render only (never a tab, never saved).
         var scratch: EditorStore?
@@ -161,9 +162,15 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                     let recordDemo = ws == .record ? recorder.map { Self.recordDemo(record, from: $0.sources) } : nil
                     // `tabs`: the active tab and sample ones, drawn instead of the open tabs (no project is opened).
                     let tabsDemo = tabs.map { TabInfo.samples($0, active: TabInfo(store)) }
+                    // `simple`: the Semplice level's steps from sample data over the project shown, and the step open (E5 #4).
+                    let simpleOpen = simple?["step"]?.stringValue.flatMap(SimpleStep.init(rawValue:))
+                    let simpleDemo: SimpleDemoValue? = simple.map { s in
+                        s["state"]?.stringValue.map { SimpleDemo.value($0, open: simpleOpen, live: store.simpleSnapshot) }
+                            ?? SimpleDemoValue(snapshot: store.simpleSnapshot, open: simpleOpen)
+                    }
                     view = NSHostingView(rootView: makeRoot(nav).environment(\.canvasDemo, demo).environment(\.recordDemo, recordDemo)
                         .environment(\.tabsDemo, tabsDemo).environment(\.stepsDemo, stepsDemo).environment(\.jobsDemo, jobsDemo)
-                        .environment(\.audioDemo, audioDemo))
+                        .environment(\.audioDemo, audioDemo).environment(\.simpleDemo, simpleDemo))
                     view.frame = CGRect(origin: .zero, size: size)
                     shown = Self.describe(store, nav: nav, width: size.width)
                     if case .object(var o) = shown {
@@ -177,6 +184,12 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                         o["textsTab"] = .string(nav.textsTab.rawValue)
                         o["steps"] = .object(Dictionary(uniqueKeysWithValues: TextStep.allCases.map { ($0.rawValue, JSONValue.string(steps[$0].status.rawValue)) }))
                         if let jobsDemo { o["jobs"] = .number(Double(jobsDemo.groups.flatMap(\.jobs).count)) }
+                        shown = .object(o)
+                    }
+                    if let simpleDemo, case .object(var o) = shown {
+                        let snap = simpleDemo.snapshot
+                        o["simple"] = ["steps": .object(Dictionary(uniqueKeysWithValues: SimpleStep.allCases.map { ($0.rawValue, JSONValue.string(snap[$0].status.rawValue)) })),
+                                       "open": .string((simpleDemo.open ?? snap.next ?? .cut).rawValue), "next": snap.next.map { .string($0.rawValue) } ?? .null]
                         shown = .object(o)
                     }
                     if let recordDemo, let recorder, case .object(var o) = shown {
@@ -303,7 +316,7 @@ final class AppUIHost: UIHost, @unchecked Sendable {
 
     /// The navigation a ui.screenshot workspace name shows. Activities: home, record, media, texts, audio, voice,
     /// graphics, generate, export (the library activities with the editor at the Pro level); the editor: edit-pro (also
-    /// pro, pro-fullscreen), edit-semplice (also quick, semplice); graphics-<section> = Grafica on one section
+    /// pro, pro-fullscreen), edit-semplice (also semplice); graphics-<section> = Grafica on one section
     /// (filters, adjust, effects, styles, motion, logo); panel-prompter / panel-claude / panel-inspector = the Pro editor
     /// with that right-panel tab. nil or unknown: what the window shows now.
     @MainActor
@@ -322,7 +335,7 @@ final class AppUIHost: UIHost, @unchecked Sendable {
         }
         switch name {
         case "edit-pro", "pro", "pro-fullscreen": nav.show(.pro)
-        case "edit-semplice", "quick", "semplice": nav.show(.quick)
+        case "edit-semplice", "semplice": nav.show(.simple)
         default:
             guard let a = Navigation.Activity(rawValue: name) else { return nav }
             if a.isLibrary { nav.show(.pro) }

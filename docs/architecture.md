@@ -57,7 +57,7 @@ every language are in `Resources/Localization/glossary.md`.
 Sources/Regista/
   App/          launch, menus, settings, Keychain
   Editor/       EditorStore (the app's engine + socket), preview, media cache, meter, ui.screenshot
-  UI/           the views: Shell (top bar), Pro, Quick, Export, timeline, Agent panel, theme
+  UI/           the views: Shell (top bar), Pro, Simple (guided steps), Export, timeline, Agent panel, theme
   Recording/    camera+microphone and screen recording (tutorials), teleprompter
   Pipeline/ Edit/   the old paid automatic edit (no longer reachable, kept for reference)
 ```
@@ -537,13 +537,14 @@ during a window capture are mapped with the window's first position.
 
 ```
 Editor/EditorStore      owns the Engine: one serial queue for every command (UI and agent), snapshot published on the main actor,
-                        activity log, engine socket server, Quick-by-default when the agent edited last
+                        activity log, engine socket server, Simple-by-default when the agent edited last
 Editor/PreviewController  AVPlayer on PreviewPlayer.makeItem (RegistaEngines): the export's AVMutableComposition + TimelineCompositor,
                         audio clips with their fades as volume ramps; frames pulled by AVPlayerItemVideoOutput, drawn by FrameView
 Editor/AppUIHost        UIHost: ui.screenshot (offscreen NSHostingView of the same root view), preview.frame
 Editor/Loudness         BS.1770-4 on the timeline mix: momentary / short-term every 100 ms, gated integrated, 4× true peak
 Editor/MediaCache       thumbnails (AVAssetImageGenerator, 0.5 s steps) and 48 kHz audio / 10 ms peaks per file
-UI/                     Shell (top bar, status bar, shortcuts), ProWorkspace, QuickWorkspace, ExportWorkspace, TimelineView,
+UI/                     Shell (top bar, status bar, shortcuts), ProWorkspace, SimpleWorkspace (Editor/SimpleSteps: the six steps, their
+                        states and SimpleCalls), ExportWorkspace, TimelineView,
                         AgentSidebar, LibraryPanel, EditorTheme (palette: neutral darks, Arkad gold only for live/chosen things),
                         Splitter (draggable dividers, ProLayout), Tooltip (.tip)
 ```
@@ -880,7 +881,7 @@ tolerance}`: the element's pixels are where the render with it differs from the 
 from the mp4 is matched to the render with it over ±12 px shifts and must also beat the "not there" hypothesis — pass
 when the best shift is within the tolerance (4 px).
 
-**App** (`UI/CanvasEditor.swift`). `CanvasOverlay` sits exactly over the picture of `ProgramPicture` (Pro and Quick).
+**App** (`UI/CanvasEditor.swift`). `CanvasOverlay` sits exactly over the picture of `ProgramPicture` (Pro and Simple).
 Elements are recomputed per project version and frame (only the visible chunk is laid out); a click hit-tests them
 (6 pt margin, rotated boxes in their own frame), a drag snaps and shows guides, corner handles / `MagnifyGesture` /
 ⌥-scroll (a local scroll monitor) resize, the knob rotates (snaps to 45° within 3°). At selection, `ElementSprites`

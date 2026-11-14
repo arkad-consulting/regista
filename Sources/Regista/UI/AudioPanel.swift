@@ -297,7 +297,7 @@ struct MusicSection: View {
                     EdButton(title: loc("Aggiungi musica…"), symbol: "music.note", prominent: p?.duration ?? .zero > .zero,
                              disabled: p == nil || p?.duration ?? .zero <= .zero || job?.isRunning == true) { Panels.addMusic(store) }
                     if let p, p.duration <= .zero { Text(verbatim: loc("Metti prima il video sulla timeline.")).font(Ed.ui(10.5)).foregroundStyle(Ed.text3) }
-                    let unused = Self.projectMusic(p)
+                    let unused = AudioCalls.projectMusic(p)
                     if !unused.isEmpty {
                         Text(verbatim: loc("Dal progetto")).font(Ed.ui(10.5, .medium)).foregroundStyle(Ed.text3).padding(.top, 2)
                         ForEach(unused, id: \.id) { a in
@@ -336,13 +336,6 @@ struct MusicSection: View {
 
         private func parse(_ s: String) -> Double? {
             Double(s.replacingOccurrences(of: ",", with: ".").replacingOccurrences(of: "−", with: "-").filter { "0123456789.-".contains($0) })
-        }
-
-        /// Audio-only media of the project not on any track (a downloaded or generated track): usable as music.
-        static func projectMusic(_ p: Project?) -> [MediaAsset] {
-            guard let p else { return [] }
-            let used = Set(p.tracks.flatMap(\.clips).map(\.assetID))
-            return p.assets.filter { $0.video == nil && $0.image == nil && $0.audio != nil && $0.origin == nil && !used.contains($0.id) }
         }
     }
 }

@@ -31,6 +31,13 @@ enum AudioCalls {
     /// The voice the music ducks under: the first audio track without a role that has clips.
     static func voiceTrack(_ p: Project?) -> Track? { p?.tracks.first { $0.kind == .audio && ($0.role == nil || $0.role == "voice") && !$0.clips.isEmpty } }
 
+    /// Audio-only media of the project not on any track (a downloaded or generated track): usable as music.
+    static func projectMusic(_ p: Project?) -> [MediaAsset] {
+        guard let p else { return [] }
+        let used = Set(p.tracks.flatMap(\.clips).map(\.assetID))
+        return p.assets.filter { $0.video == nil && $0.image == nil && $0.audio != nil && $0.origin == nil && !used.contains($0.id) }
+    }
+
     /// What the ducking check found, in words.
     static func duckingResult(_ r: JSONValue, lookup: (String) -> String = loc) -> MusicCheck {
         let under = r["underDB"]?.doubleValue ?? 0, need = r["minUnder"]?.doubleValue ?? 15

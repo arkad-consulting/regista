@@ -109,14 +109,17 @@ extension EditorStore {
 
     /// "Fai tutto": the steps in order as one job with sub-steps, skipping those already done; stops at the first
     /// error (in words) or on Cancel. `script`: the teleprompter's text, used as the copione when the project has none.
-    func runAll(settings: StepSettings, script: String?) {
+    /// `steps`: the steps to run (default: all of them); `extras`: commands run after them on the project they left (the
+    /// Semplice level's light grade), shown as one more sub-step titled `extrasTitle`.
+    func runAll(settings: StepSettings, script: String?, steps only: [TextStep]? = nil,
+                extras: @escaping @MainActor (Project?) -> [StepCall] = { _ in [] }, extrasTitle: String? = nil) {
         guard runningStepJob == nil, project != nil else { return }
         let text = project?.script == nil ? script?.trimmingCharacters(in: .whitespacesAndNewlines) : nil
-        let steps = Self.allSteps(hasScriptText: !(text ?? "").isEmpty)
+        let steps = only ?? Self.allSteps(hasScriptText: !(text ?? "").isEmpty)
         startJob(kind: TextStep.allJobKind, title: loc("Fai tutto")) { [weak self] h, job in
             guard let self else { return }
-            h.steps(steps.map { $0.title() })
-            try await self.driver(h, job).runAll(steps, settings: settings, script: text)
+            h.steps(steps.map { $0.title() } + (extrasTitle.map { [$0] } ?? []))
+            try await self.driver(h, job).runAll(steps, settings: settings, script: text, extras: extras)
             h.update(detail: loc("Fatto: montaggio, voce e sottotitoli pronti. Rivedili prima di esportare."))
         }
     }
@@ -187,7 +190,9 @@ struct StepDriver {
 
     /// "Fai tutto": each step in order, recomputed on the project left by the previous one; done steps are skipped, a
     /// blocked one stops with its reason, Cancel (a CancellationError from `perform`) stops before the next command.
-    func runAll(_ steps: [TextStep], settings: StepSettings, script: String?) async throws {
+    /// `extras`: commands run afterwards on the project the steps left (none: nothing more runs).
+    func runAll(_ steps: [TextStep], settings: StepSettings, script: String?,
+                extras: (Project?) -> [StepCall] = { _ in [] }) async throws {
         for (i, step) in steps.enumerated() {
             self.step(i)
             try Task.checkCancellation()
@@ -207,6 +212,11 @@ struct StepDriver {
             try await run(calls, settings: settings, from: lo, to: hi)
         }
         step(steps.count)
+        let more = extras(project())
+        guard !more.isEmpty else { return }
+        try Task.checkCancellation()
+        try await run(more, settings: settings, from: 1, to: 1)
+        step(steps.count + 1)
     }
 }
 

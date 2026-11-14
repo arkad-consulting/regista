@@ -3,7 +3,7 @@ import AppKit
 import RegistaCore
 
 /// What the window shows (S1 #75, window shell A): the activity chosen in the activity bar (Inizio, Registra, the
-/// library activities Media … Genera, Esporta), the level the editor returns to (Semplice = the Quick workspace, or
+/// library activities Media … Genera, Esporta), the level the editor returns to (Semplice = the guided steps, or
 /// Pro), the right panel's tab and the sub-tabs (sections) of three side panels. Pure UI state (no command); the activity, the level and the right panel's
 /// tab survive a relaunch.
 struct Navigation: Equatable {
@@ -56,7 +56,7 @@ struct Navigation: Equatable {
     enum SoundTab: String, CaseIterable { case mix, sfx }
 
     private(set) var activity: Activity
-    /// The last editor level used (.pro or .quick).
+    /// The last editor level used (.pro or .simple).
     private(set) var level: EditorStore.Workspace
     /// The library activity the editor comes back to from Inizio, Registra or Esporta.
     private(set) var library: Activity = .media
@@ -72,7 +72,7 @@ struct Navigation: Equatable {
         if activity.isLibrary { library = activity }
     }
 
-    static func isMonta(_ ws: EditorStore.Workspace) -> Bool { ws == .pro || ws == .quick }
+    static func isMonta(_ ws: EditorStore.Workspace) -> Bool { ws == .pro || ws == .simple }
 
     /// What the main area shows: Inizio, Registra, Esporta, or the editor at its level.
     var workspace: EditorStore.Workspace {
@@ -100,7 +100,7 @@ struct Navigation: Equatable {
         case .home: select(.home)
         case .record: select(.record)
         case .export: select(.export)
-        case .pro, .quick:
+        case .pro, .simple:
             level = ws
             if !activity.isLibrary { activity = library }
         }
@@ -119,7 +119,7 @@ struct Navigation: Equatable {
     /// The window at launch: the activity used last (Inizio when there is nothing to come back to, no recent project, or
     /// nothing remembered), the editor level and the right panel's tab.
     static func restored(activity: String?, level: String?, rightTab: String?, hasRecents: Bool) -> Navigation {
-        let lvl = level.flatMap(EditorStore.Workspace.init(rawValue:)).flatMap { isMonta($0) ? $0 : nil } ?? .pro
+        let lvl = level.flatMap { $0 == "quick" ? .simple : EditorStore.Workspace(rawValue: $0) }.flatMap { isMonta($0) ? $0 : nil } ?? .pro   // "quick": before E5
         let tab = rightTab.flatMap(RightTab.init(rawValue:)) ?? .prompter
         guard hasRecents, let saved = activity.flatMap(Activity.init(stored:)) else {
             return Navigation(activity: .home, level: lvl, rightTab: tab)

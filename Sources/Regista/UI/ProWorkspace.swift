@@ -129,7 +129,7 @@ struct ProgramMonitor: View {
 /// The picture in the project's format (letterboxed in the monitor, #52), with the safe-zone overlay on a 9:16 frame.
 struct ProgramPicture: View {
     @EnvironmentObject private var store: EditorStore
-    /// The Quick workspace shows the clean picture.
+    /// The Semplice level shows the clean picture.
     var zones = true
 
     var body: some View {
@@ -225,7 +225,7 @@ struct TransportBar: View {
     }
 }
 
-/// The one transport every player uses (Program, Source, Quick): gold timecode, the same five buttons, grey duration,
+/// The one transport every player uses (Program, Source, Semplice): gold timecode, the same five buttons, grey duration,
 /// so the monitors always read the same.
 struct MonitorTransport: View {
     let time: Double

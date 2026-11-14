@@ -470,7 +470,7 @@ struct StatusBar: View {
             case .text: return loc("Testo: clic su una parola dei sottotitoli per metterla (o toglierla) tra le parole chiave.")
             case .hand: return loc("Mano: trascina per scorrere la timeline.")
             }
-        case .quick: return loc("Spazio avvia/pausa · J K L per scorrere · i pulsanti in basso aprono i pannelli · ⌥⌘2 livello Pro")
+        case .simple: return loc("Spazio avvia/pausa · un passo alla volta, a sinistra · ⌥⌘2 livello Pro")
         case .export: return loc("L'export usa lo stesso compositore dell'anteprima: quello che vedi è quello che esce.")
         case .record: return loc("⇧⌘R registra/stop · ⇧⌘P pausa · ⌥Spazio avvia/pausa il gobbo")
         }

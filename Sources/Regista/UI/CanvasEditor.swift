@@ -3,7 +3,7 @@ import RegistaCore
 import RegistaEngines
 import SwiftUI
 
-// Direct manipulation on the Program monitor and the Quick preview (issue #21): click a caption, title, sticker or
+// Direct manipulation on the Program monitor and the Semplice monitor (issue #21): click a caption, title, sticker or
 // logo, drag it, resize it (corner handle, trackpad pinch, ⌥-scroll), rotate it (titles, stickers, logos). Snap guides
 // and Instagram's interface zones show while dragging. Every gesture ends in ONE command (captions.place / clip.place):
 // one undo step, visible in the Agent log, the same thing the agent can do.

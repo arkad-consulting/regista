@@ -36,7 +36,11 @@
 #   states drawn as on that tier, for the render only: engines.json is never touched);
 #   then music, sound effects and level (E3 #55) on synthetic projects made here in a temporary folder: audio-empty (the mix,
 #   no music yet), audio-music (music added by audio.addMusic, ducked, its clip in the Ispettore, a sample "ducking OK"),
-#   audio-sfx (the sound-effect browser, the Whoosh group open, one sound playing) and audio-loud (a sample level too loud).
+#   audio-sfx (the sound-effect browser, the Whoosh group open, one sound playing) and audio-loud (a sample level too loud);
+#   then the Semplice level (E5 #4): simple-empty (no project: every step waits for a video), and on the inspector's
+#   synthetic project (opened in the private copy's tab, like the graphics renders) simple-midway (sample states: cut and
+#   captions done, the next step open), simple-<cut|captions|look|sound|voice|graphics> (that step's panel open on the
+#   same sample states) and simple-doall ("Fai tutto" running on its third step).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT="${1:?usage: scripts/ui-shots.sh <outdir> [--lang it|en] [--size WxH] [--real] [workspace …]}"
@@ -51,7 +55,7 @@ while [ $# -gt 0 ]; do
     *) LIST+=("$1"); shift ;;
   esac
 done
-[ ${#LIST[@]} -gt 0 ] || LIST=(home record media texts audio voice graphics generate export edit-pro edit-semplice edit-tabs settings
+[ ${#LIST[@]} -gt 0 ] || LIST=(home record media texts audio voice graphics generate export edit-pro edit-semplice simple-empty edit-tabs settings
                                panel-prompter panel-claude panel-inspector
                                record-screen-only record-screen-face record-face record-voice record-open-screen
                                record-open-camera record-displays
@@ -67,7 +71,8 @@ done
                                texts-doall texts-failed jobs jobs-closed
                                settings-general settings-engines settings-brand settings-claude settings-shortcuts
                                settings-engines-base settings-engines-medium settings-engines-pro
-                               audio-empty audio-music audio-sfx audio-loud)
+                               audio-empty audio-music audio-sfx audio-loud
+                               simple-midway simple-cut simple-captions simple-look simple-sound simple-voice simple-graphics simple-doall)
 SOCK="${REGISTA_ENGINE_SOCKET:-$HOME/Library/Application Support/Regista/engine.sock}"
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
@@ -194,7 +199,7 @@ if printf '%s\n' "${LIST[@]}" | grep -q '^inspector-screen'; then
 JSON
   "$ENGINE" run "$SCREEN_DEMO/demo.json" --work "$SCREEN_DEMO" >/dev/null || { echo "could not build the screen inspector demo projects" >&2; exit 1; }
 fi
-if printf '%s\n' "${LIST[@]}" | grep -Eq '^(inspector|graphics)-'; then
+if printf '%s\n' "${LIST[@]}" | grep -Eq '^(inspector|graphics|simple)-'; then
   DEMO_DIR="$(mktemp -d -t regista-inspector)"
   swift build --product regista-engine >/dev/null
   ENGINE="$(swift build --show-bin-path)/regista-engine"
@@ -289,6 +294,20 @@ for name in names:
         layout = 'bubble' if layout == 'clip' else layout
         params.update(workspace='edit-pro', size=[w, max(h, 2200)],
                       inspector={'select': select, 'project': f'{screen_demo}/schermo-{layout}.regista'})
+    elif name == 'simple-empty':
+        params.update(workspace='edit-semplice', simple={})
+    elif name.startswith('simple-'):
+        # The Semplice level from sample states over the synthetic project, opened in the private copy's tab first.
+        if private and not opened:
+            f.write((json.dumps({'op': 'execute', 'command': 'project.open', 'params': {'path': demo}}) + '\n').encode()); f.flush()
+            if not json.loads(f.readline()).get('ok'):
+                print('simple: could not open the demo project in the private copy', file=sys.stderr)
+            opened = True
+        state = name[len('simple-'):]
+        simple = {'state': 'doall' if state == 'doall' else 'midway'}
+        if state not in ('midway', 'doall'):
+            simple['step'] = state
+        params.update(workspace='edit-semplice', simple=simple)
     elif name.startswith('graphics-'):
         # The Graphics panel draws its previews for the tab on screen: the private copy opens the synthetic project in
         # its own tab first (the owner's app is never asked to open anything: there it shows the project open now).
