@@ -514,46 +514,6 @@ struct InspectorSlider: View {
     }
 }
 
-/// A value in mono that becomes a field on click; Invio commits, Esc gives up.
-struct InspectorValueField: View {
-    let text: String
-    var width: CGFloat = 78
-    var alignment: TextAlignment = .trailing
-    let onCommit: (String) -> Void
-    @State private var draft = ""
-    @State private var editing = false
-    @State private var hover = false
-    @FocusState private var focused: Bool
-
-    var body: some View {
-        Group {
-            if editing {
-                TextField("", text: $draft)
-                    .textFieldStyle(.plain)
-                    .font(Ed.mono(Ed.TypeSize.body))
-                    .multilineTextAlignment(alignment)
-                    .foregroundStyle(Ed.text)
-                    .focused($focused)
-                    .onSubmit { editing = false; onCommit(draft) }
-                    .onExitCommand { editing = false }
-                    .onChange(of: focused) { if !focused { editing = false } }
-                    .onAppear { focused = true }
-            } else {
-                Text(verbatim: text).font(Ed.mono(Ed.TypeSize.body)).foregroundStyle(hover ? Ed.text : Ed.text2)
-                    .frame(maxWidth: .infinity, alignment: alignment == .trailing ? .trailing : .leading)
-                    .contentShape(Rectangle())
-                    .onTapGesture { draft = text; editing = true }
-            }
-        }
-        .padding(.horizontal, 5)
-        .frame(width: width, height: 20)
-        .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(editing ? Ed.well : (hover ? Ed.control : .clear)))
-        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(editing ? Ed.gold.opacity(0.7) : .clear))
-        .onHover { hover = $0 }
-        .tip("Clicca per scrivere il valore")
-    }
-}
-
 /// A timecode with its label above: clicks to type "HH:MM:SS:FF", "SS:FF" or seconds.
 struct InspectorTimeField: View {
     let label: String

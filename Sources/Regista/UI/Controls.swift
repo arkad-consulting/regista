@@ -2,24 +2,48 @@ import AppKit
 import RegistaCore
 import SwiftUI
 
-// Regista controls (issue #17): a small design system that replaces the stock macOS widgets in the editor,
-// after the ease of Apple's and Instagram's edit tools — a thin gradient track with a value bubble, sliding
-// segmented bars, an intensity bar (poco ↔ tanto), a capsule toggle, colour swatches backed by the system colour
-// panel, and timeline clip colours by type. All of them take keyboard focus (visible ring) and arrow keys.
+// The control set of the main window (D0 #46, #2): one implementation of each control, built on the tokens of
+// Tokens.swift. Views compose these; they do not draw their own copy of a button, a field or a row. The check
+// (Tests/RegistaAppTests/DesignSystemTests.swift) fails when a view outside Settings uses a native control, a literal
+// colour or a literal type size. Every control takes keyboard focus where it can (visible ring) and arrow keys.
 //
+// Values
 //   RSlider        value + range, gradient track, bubble while dragging/hovering/focused, onCommit at release
 //   RSegmented     2–6 options in a bar, the selection slides
 //   IntensityBar   0…1 in steps, rising bars between two words ("poco" / "tanto")
-//   RToggle        capsule switch with label (RSwitch: the switch alone)
+//   RToggle        capsule switch with label (RSwitch: the switch alone, SwitchKnob: its drawing)
 //   RSwitchRow     a row with icon, name, current choice and its own switch; the row itself opens its choices
-//   RChips         a few options as chips in a grid; the selection may be none (a custom combination)
+//   RChips         a few options as chips: a grid, a wrapping row (flow) or tall tiles (stacked); selection may be none
 //   RChoiceList    a list of choices with a check (devices, screens, windows)
-//   RTextField     a one-line field
-//   RLevelMeter    a segmented level (microphone)
+// Text
+//   RTextField     the one single-line field (search fields: a leading glyph and a clear button)
+//   RTextEditor    the one multi-line editor (grows with its text, or scrolls inside a fixed height)
+//   InspectorValueField  a value that becomes a field on click (numbers, timecodes)
+// Rows, cards, states
+//   SideRow        a one-line row of a side list: glyph, title, a dim detail on the right
+//   PickRow        a row to pick from: a leading thumbnail / glyph / radio, title, one dim line or the reason it is
+//                  greyed (amber), a mark on the right, an optional link under it (Installa…, Usa di nuovo)
+//   RowGlyph, RowThumb, RadioMark   the leading parts of a row
+//   RTag           a small word beside a title ("Prossimo", "a pagamento")
+//   StateGlyph     a step's state as a glyph (number to do, check done, spinner running, lock, warning…)
+//   ReasonNote     why something cannot run now, in words, with the way on (a button or a link)
+//   StateCard      a panel's state: a glyph, a title, what it means, the actions
+//   .rCard()       an inline card (raised: forms, jobs, approvals; well: summaries and notes)
+// Structure
+//   SectionLabel   a section's small title (shell A: SF 11 semibold, spaced capitals); RSection = label + content
+//   PanelHeader, TabStrip, EmptyHint
+// Buttons
+//   EdButton       text button: secondary (default), primary (`prominent`: the one main action of a panel),
+//                  quiet (no frame until hovered), destructive; `large` for a screen's main action
+//   AccentLinkButton   a quiet link in the accent ("Importa…", "Installa…")
+//   IconButton     a square icon button; `chrome` is the title row's / toolbar's size (the panel toggles)
+// Colour
 //   ColorSwatch    a colour by role; click = system colour panel
 //   Accent         the editor accent: Arkad gold, or the active brand kit's (optional, contrast-checked)
-//   SectionLabel   a section's small title (shell A: SF 11 semibold, spaced capitals); InspectorSection = label + content
-//   PanelHeader, TabStrip, IconButton, EdButton, AccentLinkButton, EmptyHint: panels, tabs and the one button family
+//
+// Selected states: a chosen value (a chip, a row, a segment) is the soft accent with an accent edge; where you are (the
+// open step, the activity, the tab) is a raised grey with the accent marker. The solid accent is kept for the one primary
+// action of a panel.
 //
 // Every text a control takes is a lookup key (Words.swift): the control calls `loc` itself, so a key built anywhere is
 // drawn in the user's language. Data (file names, the user's words) passes through unchanged, as no key matches it.
@@ -192,7 +216,7 @@ struct RSegmented<T: Hashable>: View {
     let items: [(T, String)]
     @Binding var selection: T
     var symbols: [T: String] = [:]
-    var height: CGFloat = 26
+    var height: CGFloat = Ed.Height.control
     var fill = true
     var tips: [T: String] = [:]
     var shortcuts: [T: String] = [:]
@@ -202,6 +226,29 @@ struct RSegmented<T: Hashable>: View {
     @FocusState private var focused: Bool
 
     var body: some View {
+        // Each segment keeps its whole word (the free width is shared, a long word gets more of it); only when the words
+        // cannot fit at all do they shrink.
+        ViewThatFits(in: .horizontal) {
+            segments(whole: true)
+            segments(whole: false)
+        }
+        .padding(Ed.Space.xxs)
+        .frame(height: height)
+        .background(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).fill(Ed.control))
+        .focusable()
+        .focusEffectDisabled()
+        .focused($focused)
+        .rFocusRing(focused, radius: Ed.Radius.l)
+        .onKeyPress(keys: [.leftArrow, .rightArrow]) { press in
+            guard let i = items.firstIndex(where: { $0.0 == selection }) else { return .ignored }
+            let j = min(max(i + (press.key == .leftArrow ? -1 : 1), 0), items.count - 1)
+            guard !disabled.contains(items[j].0) else { return .handled }
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) { selection = items[j].0 }
+            return .handled
+        }
+    }
+
+    private func segments(whole: Bool) -> some View {
         HStack(spacing: 0) {
             ForEach(items, id: \.0) { item in
                 let on = item.0 == selection
@@ -210,10 +257,12 @@ struct RSegmented<T: Hashable>: View {
                 } label: {
                     HStack(spacing: 5) {
                         if let s = symbols[item.0] { Image(systemName: s).font(Ed.icon(Ed.TypeSize.caption, .semibold)) }
-                        if !item.1.isEmpty { Text(verbatim: loc(item.1)).font(Ed.ui(Ed.TypeSize.body, .medium)).lineLimit(1).minimumScaleFactor(0.7) }
+                        if !item.1.isEmpty {
+                            if whole { label(item.1).fixedSize() } else { label(item.1).minimumScaleFactor(0.7) }
+                        }
                     }
                     .foregroundStyle(on ? Ed.text : Ed.text3)
-                    .padding(.horizontal, fill ? 2 : 12)
+                    .padding(.horizontal, fill ? (whole ? 4 : 2) : 12)
                     .frame(maxWidth: fill ? .infinity : nil, minHeight: height - 4, maxHeight: height - 4)
                     .background {
                         if on {
@@ -233,20 +282,10 @@ struct RSegmented<T: Hashable>: View {
                 .accessibilityAddTraits(on ? .isSelected : [])
             }
         }
-        .padding(Ed.Space.xxs)
-        .frame(height: height)
-        .background(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).fill(Ed.control))
-        .focusable()
-        .focusEffectDisabled()
-        .focused($focused)
-        .rFocusRing(focused, radius: 7)
-        .onKeyPress(keys: [.leftArrow, .rightArrow]) { press in
-            guard let i = items.firstIndex(where: { $0.0 == selection }) else { return .ignored }
-            let j = min(max(i + (press.key == .leftArrow ? -1 : 1), 0), items.count - 1)
-            guard !disabled.contains(items[j].0) else { return .handled }
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) { selection = items[j].0 }
-            return .handled
-        }
+    }
+
+    private func label(_ title: String) -> some View {
+        Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.body, .medium)).lineLimit(1)
     }
 }
 
@@ -463,50 +502,81 @@ extension RSwitchRow where Accessory == EmptyView, Trailing == EmptyView {
 
 // MARK: - Chips
 
-/// A few options as chips laid out in `columns` equal columns. The selection may be nil (no chip lit: e.g. a custom
-/// combination of switches that matches no preset).
+/// A few options as chips. `columns` lays them out in that many equal columns (all in one row when nil); `flow` wraps
+/// them at their own width (filters, sections); `stacked` draws the symbol above the title in a tall tile (the kinds of a
+/// panel). The selection may be nil (no chip lit: a custom combination of switches, a search across every section).
 struct RChips<T: Hashable>: View {
     struct Item {
         let id: T
         let title: String
         var symbol: String? = nil
+        var tip: String? = nil
     }
 
     let items: [Item]
     let selection: T?
     var columns: Int? = nil
-    var height: CGFloat = 30
+    var flow = false
+    var stacked = false
+    var height: CGFloat = Ed.Height.control
     let onSelect: (T) -> Void
 
     var body: some View {
-        let n = max(columns ?? items.count, 1)
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: n), spacing: 6) {
-            ForEach(items, id: \.id) { item in Chip(item: item, on: item.id == selection, height: height) { onSelect(item.id) } }
+        if flow {
+            FlowLayout(spacing: Ed.Space.xs, lineSpacing: Ed.Space.xs) {
+                ForEach(items, id: \.id) { item in chip(item).fixedSize() }
+            }
+        } else {
+            let n = max(columns ?? items.count, 1)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: n), spacing: 6) {
+                ForEach(items, id: \.id) { chip($0) }
+            }
         }
+    }
+
+    private func chip(_ item: Item) -> some View {
+        Chip(item: item, on: item.id == selection, height: stacked ? 50 : height, stacked: stacked, flow: flow) { onSelect(item.id) }
+            .tip(item.tip ?? "")
     }
 
     private struct Chip: View {
         let item: Item
         let on: Bool
         let height: CGFloat
+        let stacked: Bool
+        let flow: Bool
         let action: () -> Void
         @State private var hover = false
 
         var body: some View {
             Button(action: { withAnimation(.easeOut(duration: 0.15)) { action() } }) {
-                HStack(spacing: 6) {
-                    if let s = item.symbol { Image(systemName: s).font(Ed.icon(Ed.TypeSize.caption, .medium)).foregroundStyle(on ? Ed.gold : Ed.text3) }
-                    Text(verbatim: loc(item.title)).font(Ed.ui(Ed.TypeSize.small, .medium)).lineLimit(1).minimumScaleFactor(0.8)
+                Group {
+                    if stacked {
+                        VStack(spacing: Ed.Space.xs) {
+                            if let s = item.symbol { Image(systemName: s).font(Ed.icon(Ed.TypeSize.title)).foregroundStyle(on ? Ed.gold : Ed.text2) }
+                            title
+                        }
+                    } else {
+                        HStack(spacing: 6) {
+                            if let s = item.symbol { Image(systemName: s).font(Ed.icon(Ed.TypeSize.caption, .medium)).foregroundStyle(on ? Ed.gold : Ed.text3) }
+                            title
+                        }
+                    }
                 }
-                .foregroundStyle(on ? Ed.text : (hover ? Ed.text : Ed.text2))
-                .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
-                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(on ? Ed.goldSoft : (hover ? Ed.hover : Ed.well)))
-                .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(on ? Ed.gold.opacity(0.6) : Ed.line2))
+                .foregroundStyle(on || hover ? Ed.text : Ed.text2)
+                .padding(.horizontal, flow ? 10 : 2)
+                .frame(maxWidth: flow ? nil : .infinity, minHeight: height, maxHeight: height)
+                .background(RoundedRectangle(cornerRadius: stacked ? Ed.Radius.l : Ed.Radius.m).fill(on ? Ed.goldSoft : (hover ? Ed.hover : Ed.well)))
+                .overlay(RoundedRectangle(cornerRadius: stacked ? Ed.Radius.l : Ed.Radius.m).strokeBorder(on ? Ed.gold.opacity(0.6) : Ed.line2))
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .onHover { hover = $0 }
             .accessibilityAddTraits(on ? .isSelected : [])
+        }
+
+        private var title: some View {
+            Text(verbatim: loc(item.title)).font(Ed.ui(stacked ? Ed.TypeSize.small : Ed.TypeSize.body, .medium)).lineLimit(1).minimumScaleFactor(0.8)
         }
     }
 }
@@ -532,63 +602,154 @@ struct RChoiceList<T: Hashable>: View {
             if items.isEmpty, !empty.isEmpty {
                 Text(verbatim: loc(empty)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).padding(.vertical, 6).padding(.horizontal, Ed.Space.s)
             }
-            ForEach(items, id: \.id) { item in Row(item: item, on: item.id == selection) { onSelect(item.id) } }
-        }
-    }
-
-    private struct Row: View {
-        let item: Item
-        let on: Bool
-        let action: () -> Void
-        @State private var hover = false
-
-        var body: some View {
-            Button(action: action) {
-                HStack(spacing: Ed.Space.s) {
-                    if let s = item.symbol {
-                        Image(systemName: s).font(Ed.icon(Ed.TypeSize.caption)).foregroundStyle(on ? Ed.gold : Ed.text3).frame(width: 16)
-                    }
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(verbatim: loc(item.title)).font(Ed.ui(Ed.TypeSize.small + 0.5)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
-                        if let sub = item.subtitle {
-                            Text(verbatim: loc(sub)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).lineLimit(1).truncationMode(.middle)
-                        }
-                    }
-                    Spacer(minLength: Ed.Space.xs)
-                    Image(systemName: "checkmark").font(Ed.icon(Ed.TypeSize.micro, .bold)).foregroundStyle(on ? Ed.gold : .clear)
-                }
-                .padding(.horizontal, Ed.Space.s)
-                .frame(minHeight: 28)
-                .background(RoundedRectangle(cornerRadius: Ed.Radius.s + 1).fill(hover ? Ed.hover : .clear))
-                .contentShape(Rectangle())
+            ForEach(items, id: \.id) { item in
+                let on = item.id == selection
+                PickRow(title: item.title, detail: item.subtitle, selected: on, compact: true) {
+                    if let s = item.symbol { RowGlyph(symbol: s, on: on) }
+                } action: { onSelect(item.id) }
             }
-            .buttonStyle(.plain)
-            .onHover { hover = $0 }
-            .accessibilityAddTraits(on ? .isSelected : [])
         }
     }
 }
 
-// MARK: - Text field
+// MARK: - Text field and editor
 
-/// A one-line text field on a recessed well.
+/// The one single-line field, on a recessed well, its border in the accent while it has the focus. A search field gives
+/// it a leading `symbol` (magnifyingglass) and `clearable` (an × that empties it).
 struct RTextField: View {
     var placeholder: String = ""
     @Binding var text: String
+    var symbol: String? = nil
+    var clearable = false
     var mono = false
 
     @FocusState private var focused: Bool
 
     var body: some View {
-        TextField(loc(placeholder), text: $text)
-            .textFieldStyle(.plain)
-            .font(mono ? Ed.mono(Ed.TypeSize.small) : Ed.ui(Ed.TypeSize.body))
-            .foregroundStyle(Ed.text)
+        HStack(spacing: 6) {
+            if let symbol { Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(Ed.text3) }
+            ZStack(alignment: .leading) {
+                if text.isEmpty, !placeholder.isEmpty {
+                    Text(verbatim: loc(placeholder)).font(font).foregroundStyle(Ed.text3).lineLimit(1).allowsHitTesting(false)
+                }
+                TextField("", text: $text)
+                    .textFieldStyle(.plain)
+                    .font(font)
+                    .foregroundStyle(Ed.text)
+                    .focused($focused)
+                    .accessibilityLabel(loc(placeholder))
+            }
+            if clearable, !text.isEmpty {
+                IconButton(symbol: "xmark.circle.fill", help: "Cancella la ricerca", size: 18) { text = "" }
+            }
+        }
+        .padding(.horizontal, Ed.Space.s)
+        .frame(height: Ed.Height.control)
+        .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
+        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(focused ? Ed.gold.opacity(0.7) : Ed.line2))
+    }
+
+    private var font: Font { mono ? Ed.mono(Ed.TypeSize.body) : Ed.ui(Ed.TypeSize.body) }
+}
+
+/// The one multi-line editor, on the same well as the field. `.grows(lines)` grows with the text between those line
+/// counts (Invio runs `onSubmit` when given, ⌥Invio adds a line); `.scrolls(min, max)` keeps a height and scrolls a long
+/// text inside (a script, a voice-over), optionally reporting the selection. `editing` keeps the accent border on (a
+/// text edited in place); `focusOnAppear` puts the cursor in it when it appears.
+struct RTextEditor: View {
+    enum Kind { case grows(ClosedRange<Int>), scrolls(min: CGFloat, max: CGFloat) }
+
+    var placeholder: String = ""
+    @Binding var text: String
+    var kind: Kind = .grows(3...6)
+    var size: CGFloat = Ed.TypeSize.body
+    var selection: Binding<TextSelection?>? = nil
+    var editing = false
+    var focusOnAppear = false
+    var onSubmit: (() -> Void)? = nil
+    var onExit: (() -> Void)? = nil
+
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        content
             .focused($focused)
-            .padding(.horizontal, Ed.Space.s)
-            .frame(height: 26)
             .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
-            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(focused ? Ed.gold.opacity(0.7) : Ed.line2))
+            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(focused || editing ? Ed.gold.opacity(0.7) : Ed.line2))
+            .onExitCommand { onExit?(); focused = false }
+            .onAppear { if focusOnAppear { focused = true } }
+    }
+
+    @ViewBuilder private var content: some View {
+        switch kind {
+        case .grows(let lines):
+            ZStack(alignment: .topLeading) {
+                if text.isEmpty, !placeholder.isEmpty { placeholderText }
+                TextField("", text: $text, axis: .vertical)
+                    .textFieldStyle(.plain).font(Ed.ui(size)).foregroundStyle(Ed.text)
+                    .lineLimit(lines)
+                    .onSubmit { onSubmit?() }
+                    .accessibilityLabel(loc(placeholder))
+            }
+            .padding(Ed.Space.s)
+        case .scrolls(let minH, let maxH):
+            ZStack(alignment: .topLeading) {
+                Group {
+                    if let selection { TextEditor(text: $text, selection: selection) } else { TextEditor(text: $text) }
+                }
+                .font(Ed.ui(size)).foregroundStyle(Ed.text)
+                .scrollContentBackground(.hidden)
+                .padding(.horizontal, 3).padding(.vertical, Ed.Space.s)
+                .accessibilityLabel(loc(placeholder))
+                if text.isEmpty, !placeholder.isEmpty { placeholderText.padding(Ed.Space.s) }
+            }
+            .frame(minHeight: minH, maxHeight: maxH)
+        }
+    }
+
+    private var placeholderText: some View {
+        Text(verbatim: loc(placeholder)).font(Ed.ui(size)).foregroundStyle(Ed.text3)
+            .fixedSize(horizontal: false, vertical: true).allowsHitTesting(false)
+    }
+}
+
+/// A value in mono that becomes a field on click; Invio commits, Esc gives up (the Ispettore's numbers and timecodes).
+struct InspectorValueField: View {
+    let text: String
+    var width: CGFloat = 78
+    var alignment: TextAlignment = .trailing
+    let onCommit: (String) -> Void
+    @State private var draft = ""
+    @State private var editing = false
+    @State private var hover = false
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        Group {
+            if editing {
+                TextField("", text: $draft)
+                    .textFieldStyle(.plain)
+                    .font(Ed.mono(Ed.TypeSize.body))
+                    .multilineTextAlignment(alignment)
+                    .foregroundStyle(Ed.text)
+                    .focused($focused)
+                    .onSubmit { editing = false; onCommit(draft) }
+                    .onExitCommand { editing = false }
+                    .onChange(of: focused) { if !focused { editing = false } }
+                    .onAppear { focused = true }
+            } else {
+                Text(verbatim: text).font(Ed.mono(Ed.TypeSize.body)).foregroundStyle(hover ? Ed.text : Ed.text2)
+                    .frame(maxWidth: .infinity, alignment: alignment == .trailing ? .trailing : .leading)
+                    .contentShape(Rectangle())
+                    .onTapGesture { draft = text; editing = true }
+            }
+        }
+        .padding(.horizontal, 5)
+        .frame(width: width, height: 20)
+        .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(editing ? Ed.well : (hover ? Ed.control : .clear)))
+        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(editing ? Ed.gold.opacity(0.7) : .clear))
+        .onHover { hover = $0 }
+        .tip("Clicca per scrivere il valore")
     }
 }
 
@@ -685,7 +846,7 @@ final class ColorPanelBridge: NSObject {
     }
 }
 
-// MARK: - Small pieces
+// MARK: - Sections, tags, cards
 
 /// A section's small title: spaced capitals in the tertiary grey (shell A's "MEDIA", "INQUADRATURA").
 struct SectionLabel: View {
@@ -697,19 +858,318 @@ struct SectionLabel: View {
     }
 }
 
-/// A section in the inspectors and panels: its label, then the content.
-struct InspectorSection<Content: View>: View {
+/// A section of a panel: its label (none when the title is empty), then the content — controls 10 pt apart, or `rows`
+/// (a list: rows 2 pt apart, 6 pt under the label).
+struct RSection<Content: View>: View {
     let title: String
+    var rows = false
     @ViewBuilder var content: Content
+
+    init(_ title: String, rows: Bool = false, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.rows = rows
+        self.content = content()
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SectionLabel(title)
+        VStack(alignment: .leading, spacing: rows ? Ed.Space.xxs : 10) {
+            if !title.isEmpty { SectionLabel(title).padding(.bottom, rows ? Ed.Space.xs : 0) }
             content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// A small word beside a title ("Prossimo", "a pagamento", "facoltativo").
+struct RTag: View {
+    let text: String
+    init(_ text: String) { self.text = text }
+    var body: some View {
+        Text(verbatim: loc(text)).font(Ed.ui(Ed.TypeSize.micro, .semibold)).foregroundStyle(Ed.text2).lineLimit(1).fixedSize()
+            .padding(.horizontal, 5).frame(height: 15)
+            .background(Capsule().fill(Ed.control))
+    }
+}
+
+/// An inline card's surface: `raised` for forms, jobs and approvals, `well` (recessed) for summaries and notes.
+enum CardTone { case raised, well }
+
+extension View {
+    /// An inline card: the tone's fill, a hairline edge (`border` replaces its colour: a running job, a paid approval),
+    /// the card radius and `padding` inside.
+    func rCard(_ tone: CardTone = .raised, border: Color? = nil, padding: CGFloat = Ed.Space.m) -> some View {
+        self.padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).fill(tone == .raised ? Ed.header : Ed.well))
+            .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).strokeBorder(border ?? (tone == .raised ? Ed.line2 : Ed.line)))
+    }
+}
+
+/// A step's state as a glyph: a number to do, a check done, a dash not needed, a warning unavailable, a turning arrow out
+/// of date, a spinner running, a dim number blocked (Semplice and Testi e sottotitoli › Passi).
+struct StateGlyph: View {
+    /// The states of SimpleState and StepState share these names (their raw values): `StateGlyph(status.rawValue, …)`.
+    enum Kind: String { case todo, done, running, blocked, stale, notNeeded, unavailable }
+    let state: Kind
+    let number: Int
+    var size: CGFloat = 22
+
+    init(_ status: String, number: Int, size: CGFloat = 22) {
+        self.state = Kind(rawValue: status) ?? .todo
+        self.number = number
+        self.size = size
+    }
+
+    var body: some View {
+        ZStack {
+            switch state {
+            case .done:
+                Circle().fill(Ed.ok.opacity(0.18))
+                mark("checkmark", Ed.ok)
+            case .notNeeded:
+                Circle().strokeBorder(Ed.line2, lineWidth: 1)
+                mark("minus", Ed.text3)
+            case .unavailable:
+                Circle().strokeBorder(Ed.warn.opacity(0.7), lineWidth: 1.2)
+                mark("exclamationmark", Ed.warn)
+            case .stale:
+                Circle().strokeBorder(Ed.warn, lineWidth: 1.2)
+                mark("arrow.clockwise", Ed.warn)
+            case .running:
+                Circle().strokeBorder(Ed.line2, lineWidth: 1.2)
+                Spinner()
+                Circle().fill(Ed.gold).frame(width: 5, height: 5)
+            case .blocked:
+                Circle().strokeBorder(Ed.line2, lineWidth: 1)
+                Text(verbatim: "\(number)").font(Ed.mono(Ed.TypeSize.caption, .medium)).foregroundStyle(Ed.text4)
+            case .todo:
+                Circle().strokeBorder(Ed.text3, lineWidth: 1.2)
+                Text(verbatim: "\(number)").font(Ed.mono(Ed.TypeSize.caption, .semibold)).foregroundStyle(Ed.text2)
+            }
+        }
+        .frame(width: size, height: size)
+    }
+
+    private func mark(_ symbol: String, _ tint: Color) -> some View {
+        Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.micro, .bold)).foregroundStyle(tint)
+    }
+
+    /// A short arc in the accent that turns.
+    private struct Spinner: View {
+        @State private var turn = false
+        var body: some View {
+            Circle().trim(from: 0, to: 0.3).stroke(Ed.gold, style: StrokeStyle(lineWidth: 1.6, lineCap: .round)).padding(0.8)
+                .rotationEffect(.degrees(turn ? 270 : -90))
+                .onAppear { withAnimation(.linear(duration: 1.1).repeatForever(autoreverses: false)) { turn = true } }
         }
     }
 }
 
-// MARK: - Panels, tabs and buttons
+/// Why something cannot run now, in words (a lock, or a warning in amber when an engine or a setting is missing), and the
+/// way on under it: a button to the step before, Importa…, Installa….
+struct ReasonNote<Actions: View>: View {
+    let text: String
+    var warning = false
+    @ViewBuilder var actions: Actions
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 7) {
+                Image(systemName: warning ? "exclamationmark.triangle" : "lock").font(Ed.icon(Ed.TypeSize.caption))
+                    .foregroundStyle(warning ? Ed.warn : Ed.text3)
+                Text(verbatim: loc(text)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
+            }
+            actions
+        }
+        .rCard(.well)
+    }
+}
+
+/// A state of a panel: an icon, a title, what it means and what to do, then the actions.
+struct StateCard<Actions: View>: View {
+    let symbol: String
+    let title: String
+    let text: String
+    @ViewBuilder var actions: Actions
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Ed.Space.m) {
+            Image(systemName: symbol)
+                .font(Ed.icon(Ed.TypeSize.title, .light))
+                .foregroundStyle(Ed.gold)
+                .frame(width: 38, height: 38)
+                .background(Circle().fill(Ed.goldSoft))
+                .overlay(Circle().strokeBorder(Ed.gold.opacity(0.25)))
+            Text(verbatim: loc(title)).font(Ed.display(Ed.TypeSize.heading, .medium)).foregroundStyle(Ed.text).fixedSize(horizontal: false, vertical: true)
+            Text(verbatim: loc(text)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).lineSpacing(2).fixedSize(horizontal: false, vertical: true)
+            actions
+        }
+        .rCard(.raised, padding: Ed.Space.l)
+    }
+}
+
+extension StateCard where Actions == EmptyView {
+    init(symbol: String, title: String, text: String) {
+        self.init(symbol: symbol, title: title, text: text) { EmptyView() }
+    }
+}
+
+// MARK: - Rows
+
+/// One row of a side list: symbol, title, a dim detail on the right (a shortcut, a duration); `on` marks the open one.
+struct SideRow: View {
+    let symbol: String
+    let title: String
+    var detail: String? = nil
+    var on = false
+    let action: () -> Void
+    @State private var hover = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: Ed.Space.s) {
+                RowGlyph(symbol: symbol, on: on)
+                Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.control)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
+                Spacer(minLength: Ed.Space.xs)
+                if let detail { Text(verbatim: detail).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text4).fixedSize() }
+            }
+            .padding(.horizontal, Ed.Space.s)
+            .frame(height: Ed.Height.row)
+            .background(RoundedRectangle(cornerRadius: Ed.Radius.m, style: .continuous).fill(on ? Ed.control : (hover ? Ed.control.opacity(0.6) : .clear)))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hover = $0 }
+    }
+}
+
+/// A row to pick from (a catalog item, a provider, a still, a device): the leading part (RowThumb, RowGlyph or
+/// RadioMark), the title (with an optional tag), one dim line — or, greyed and disabled, the reason in amber — and a mark
+/// on the right. `link` adds an action under the text (Installa…, Usa di nuovo), outside the row's own click.
+struct PickRow<Leading: View>: View {
+    /// What the right edge shows: a check when selected; a + (applies) or a chevron (opens a form) on hover; nothing.
+    enum Mark { case check, add, opens, none }
+
+    let title: String
+    var detail: String? = nil
+    var reason: String? = nil
+    var tag: String? = nil
+    var selected = false
+    var mark: Mark = .check
+    /// One line for the title, the detail on up to two: lists of devices and windows.
+    var compact = false
+    var link: RowLink? = nil
+    @ViewBuilder var leading: Leading
+    let action: () -> Void
+    @State private var hover = false
+
+    var body: some View {
+        let enabled = reason == nil
+        VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+            Button(action: action) {
+                HStack(alignment: .center, spacing: 10) {
+                    leading.opacity(enabled ? 1 : 0.5)
+                    VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+                        HStack(spacing: 6) {
+                            Text(verbatim: loc(title)).font(Ed.ui(compact ? Ed.TypeSize.body : Ed.TypeSize.control, .medium))
+                                .foregroundStyle(enabled ? Ed.text : Ed.text3).lineLimit(compact ? 1 : 2).truncationMode(.middle)
+                            if let tag { RTag(tag) }
+                        }
+                        if let line = reason ?? detail {
+                            Text(verbatim: loc(line)).font(Ed.ui(compact ? Ed.TypeSize.caption : Ed.TypeSize.small))
+                                .foregroundStyle(enabled ? Ed.text3 : Ed.warn)
+                                .lineLimit(compact ? 1 : 3).truncationMode(.middle).fixedSize(horizontal: false, vertical: !compact)
+                        }
+                    }
+                    Spacer(minLength: Ed.Space.xs)
+                    markView(enabled: enabled)
+                }
+                .padding(.horizontal, Ed.Space.s).padding(.vertical, compact ? 4 : 6)
+                .frame(minHeight: Ed.Height.row)
+                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(selected ? Ed.goldSoft : (hover && enabled ? Ed.hover.opacity(0.6) : .clear)))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!enabled)
+            .onHover { hover = $0 }
+            .accessibilityAddTraits(selected ? .isSelected : [])
+            if let link {
+                HStack(spacing: 10) {
+                    leading.hidden().frame(height: 1)
+                    AccentLinkButton(title: link.title, tip: link.tip, action: link.action)
+                }
+                .padding(.horizontal, Ed.Space.s).padding(.bottom, Ed.Space.xs)
+            }
+        }
+    }
+
+    @ViewBuilder private func markView(enabled: Bool) -> some View {
+        switch mark {
+        case .none: EmptyView()
+        case .check:
+            Image(systemName: "checkmark").font(Ed.icon(Ed.TypeSize.caption, .semibold)).foregroundStyle(Ed.gold).opacity(selected ? 1 : 0)
+        case .add, .opens:
+            Image(systemName: selected ? "checkmark" : (mark == .opens ? "chevron.down" : "plus"))
+                .font(Ed.icon(Ed.TypeSize.caption, .semibold))
+                .foregroundStyle(selected ? Ed.gold : Ed.text3)
+                .opacity(selected || (hover && enabled) ? 1 : 0)
+        }
+    }
+}
+
+extension PickRow where Leading == EmptyView {
+    init(title: String, detail: String? = nil, reason: String? = nil, tag: String? = nil, selected: Bool = false, mark: Mark = .check,
+         compact: Bool = false, link: RowLink? = nil, action: @escaping () -> Void) {
+        self.init(title: title, detail: detail, reason: reason, tag: tag, selected: selected, mark: mark, compact: compact, link: link,
+                  leading: { EmptyView() }, action: action)
+    }
+}
+
+/// An action under a row's text, outside the row's own click (Installa…, Usa di nuovo, Trova il volto).
+struct RowLink {
+    let title: String
+    var tip: String = ""
+    let action: () -> Void
+}
+
+/// A row's leading symbol, in the accent when the row is the chosen one.
+struct RowGlyph: View {
+    let symbol: String
+    var on = false
+    var body: some View {
+        Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.body)).foregroundStyle(on ? Ed.gold : Ed.text3).frame(width: 18)
+    }
+}
+
+/// A row's thumbnail: the content on a recessed well, clipped, with an accent edge when the row is the chosen one.
+struct RowThumb<Content: View>: View {
+    var width: CGFloat = 36
+    var height: CGFloat = 36
+    var selected = false
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ZStack { Ed.well; content }
+            .frame(width: width, height: height)
+            .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.s))
+            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(selected ? Ed.gold : Ed.line2, lineWidth: selected ? 1.5 : 1))
+    }
+}
+
+/// A radio mark: one of several, the chosen one filled in the accent.
+struct RadioMark: View {
+    let on: Bool
+    var body: some View {
+        ZStack {
+            Circle().strokeBorder(on ? Ed.gold : Ed.text4, lineWidth: 1.2).frame(width: 14, height: 14)
+            if on { Circle().fill(Ed.gold).frame(width: 7, height: 7) }
+        }
+        .frame(width: 16)
+    }
+}
+
+// MARK: - Panels and tabs
 
 /// A panel title strip with optional trailing content.
 struct PanelHeader<Trailing: View>: View {
@@ -727,7 +1187,7 @@ struct PanelHeader<Trailing: View>: View {
             trailing
         }
         .padding(.horizontal, 10)
-        .frame(height: 28)
+        .frame(height: Ed.Height.row)
         .background(Ed.header)
         .overlay(alignment: .bottom) { Ed.line.frame(height: 1) }
     }
@@ -751,7 +1211,7 @@ struct TabStrip<T: Hashable>: View {
             tabs(spacing: 9).padding(.horizontal, 10)
             ScrollView(.horizontal, showsIndicators: false) { tabs(spacing: 9).padding(.horizontal, 10) }
         }
-        .frame(height: 28)
+        .frame(height: Ed.Height.row)
         .background(Ed.header)
         .overlay(alignment: .bottom) { Ed.line.frame(height: 1) }
     }
@@ -777,72 +1237,6 @@ struct TabStrip<T: Hashable>: View {
     }
 }
 
-/// Small square icon button, with a fast tooltip (`tip`) naming the function and its shortcut.
-struct IconButton: View {
-    let symbol: String
-    var help: String = ""
-    var shortcut: String? = nil
-    var active = false
-    var size: CGFloat = 22
-    var tint: Color? = nil
-    let action: () -> Void
-    @State private var hover = false
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(Ed.icon(size * 0.5, .medium))
-                .foregroundStyle(tint ?? (active ? Ed.gold : (hover ? Ed.text : Ed.text2)))
-                .frame(width: size, height: size)
-                .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(active ? Ed.goldSoft : (hover ? Ed.hover : .clear)))
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hover = $0 }
-        .tip(help, shortcut: shortcut)
-    }
-}
-
-/// Text button in the editor style: plain, `prominent` (the accent: the screen's main action) or `destructive` (red:
-/// record, delete). `large` is the size of a screen's main action; `fill` stretches it to the available width.
-struct EdButton: View {
-    let title: String
-    var symbol: String? = nil
-    var prominent = false
-    var destructive = false
-    var large = false
-    var fill = false
-    var disabled = false
-    let action: () -> Void
-    @State private var hover = false
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: large ? 8 : 6) {
-                if let symbol { Image(systemName: symbol).font(Ed.icon(large ? 12 : 10, .semibold)) }
-                Text(verbatim: loc(title)).font(Ed.ui(large ? Ed.TypeSize.label : Ed.TypeSize.small, large ? .semibold : .medium)).lineLimit(1).minimumScaleFactor(0.75)
-            }
-            .foregroundStyle(destructive ? .white : (prominent ? Accent.on : Ed.text))
-            .padding(.horizontal, large ? Ed.Space.l : 10)
-            .frame(maxWidth: fill ? .infinity : nil)
-            .frame(height: large ? 34 : 24)
-            .background(RoundedRectangle(cornerRadius: large ? Ed.Radius.l : 5).fill(fillColor))
-            .overlay(RoundedRectangle(cornerRadius: large ? Ed.Radius.l : 5).strokeBorder(prominent || destructive ? .clear : Ed.line2))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(disabled)
-        .opacity(disabled ? 0.4 : 1)
-        .onHover { hover = $0 }
-    }
-
-    private var fillColor: Color {
-        if destructive { return Ed.danger.opacity(hover ? 1 : 0.9) }
-        if prominent { return Ed.gold.opacity(hover ? 1 : 0.92) }
-        return hover ? Ed.hover : Ed.raised
-    }
-}
-
 /// Centered hint for empty panels.
 struct EmptyHint: View {
     let symbol: String
@@ -856,7 +1250,83 @@ struct EmptyHint: View {
     }
 }
 
-/// A text button in the accent ("Importa…").
+// MARK: - Buttons
+
+/// The text buttons' look, for EdButton and for the few labels that are not a plain Button (a SettingsLink, a menu):
+/// secondary (raised, a hairline edge), primary (the accent: a panel's one main action), quiet (no frame until hovered),
+/// destructive (red: record, delete). Pressed darkens a step; disabled fades to 40 %.
+struct EdButtonStyle: ButtonStyle {
+    enum Kind { case primary, secondary, quiet, destructive }
+    var kind: Kind = .secondary
+    var large = false
+    var fill = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        Look(configuration: configuration, kind: kind, large: large, fill: fill)
+    }
+
+    private struct Look: View {
+        let configuration: Configuration
+        let kind: Kind
+        let large: Bool
+        let fill: Bool
+        @Environment(\.isEnabled) private var enabled
+        @State private var hover = false
+
+        var body: some View {
+            let radius = large ? Ed.Radius.l : Ed.Radius.m
+            configuration.label
+                .font(Ed.ui(large ? Ed.TypeSize.control : Ed.TypeSize.body, large ? .semibold : .medium))
+                .foregroundStyle(kind == .destructive ? .white : (kind == .primary ? Accent.on : (kind == .quiet && !hover ? Ed.text2 : Ed.text)))
+                .padding(.horizontal, large ? Ed.Space.l : 10)
+                .frame(maxWidth: fill ? .infinity : nil)
+                .frame(height: large ? Ed.Height.large : Ed.Height.control)
+                .background(RoundedRectangle(cornerRadius: radius, style: .continuous).fill(fillColor))
+                .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(kind == .secondary ? Ed.line2 : .clear))
+                .contentShape(Rectangle())
+                .opacity(enabled ? 1 : 0.4)
+                .onHover { hover = $0 && enabled }
+        }
+
+        private var fillColor: Color {
+            let pressed = configuration.isPressed
+            switch kind {
+            case .destructive: return Ed.danger.opacity(pressed ? 0.75 : (hover ? 1 : 0.9))
+            case .primary: return Ed.gold.opacity(pressed ? 0.78 : (hover ? 1 : 0.92))
+            case .secondary: return pressed ? Ed.controlOn : (hover ? Ed.hover : Ed.raised)
+            case .quiet: return pressed ? Ed.controlOn : (hover ? Ed.control : .clear)
+            }
+        }
+    }
+}
+
+/// A text button (EdButtonStyle): secondary by default, `prominent` for the one primary action of a panel, `quiet` for a
+/// frameless one (Annulla beside a primary, a toolbar text), `destructive` in red. `large` is the size of a screen's main
+/// action; `fill` stretches it to the available width.
+struct EdButton: View {
+    let title: String
+    var symbol: String? = nil
+    var prominent = false
+    var destructive = false
+    var quiet = false
+    var large = false
+    var fill = false
+    var disabled = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: large ? Ed.Space.s : 6) {
+                if let symbol { Image(systemName: symbol).font(Ed.icon(large ? Ed.TypeSize.body : Ed.TypeSize.caption, .semibold)) }
+                Text(verbatim: loc(title)).lineLimit(1).minimumScaleFactor(0.75)
+            }
+        }
+        .buttonStyle(EdButtonStyle(kind: destructive ? .destructive : (prominent ? .primary : (quiet ? .quiet : .secondary)), large: large, fill: fill))
+        .disabled(disabled)
+    }
+}
+
+/// A quiet link in the accent ("Importa…", "Installa…", "Altri filtri in Pro").
 struct AccentLinkButton: View {
     let title: String
     var tip: String = ""
@@ -867,9 +1337,45 @@ struct AccentLinkButton: View {
     var body: some View {
         Button(action: action) {
             Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.body, .medium)).foregroundStyle(Ed.gold.opacity(hover ? 1 : 0.85))
+                .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }
         .tip(tip, shortcut: shortcut)
+    }
+}
+
+/// A square icon button with a fast tooltip (`tip`) naming the function and its shortcut. `active` lights it in the
+/// accent (a mode that is on); `chrome` is the title row's and the toolbar's size (the panel toggles, undo / redo), where
+/// `dimmed` says the panel it toggles is hidden.
+struct IconButton: View {
+    let symbol: String
+    var help: String = ""
+    var shortcut: String? = nil
+    var active = false
+    var size: CGFloat = Ed.Height.icon
+    var tint: Color? = nil
+    var chrome = false
+    var dimmed = false
+    let action: () -> Void
+    @Environment(\.isEnabled) private var enabled
+    @State private var hover = false
+
+    var body: some View {
+        let lit = hover && enabled
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(Ed.icon(chrome ? Ed.TypeSize.title : size * 0.5, chrome ? .regular : .medium))
+                .foregroundStyle(tint ?? (active ? Ed.gold : (lit ? Ed.text : (dimmed ? Ed.text3 : Ed.text2))))
+                .frame(width: chrome ? 28 : size, height: chrome ? 24 : size)
+                .background(RoundedRectangle(cornerRadius: chrome ? Ed.Radius.m : Ed.Radius.s, style: .continuous)
+                    .fill(active ? Ed.goldSoft : (lit ? (chrome ? Ed.control : Ed.hover) : .clear)))
+                .contentShape(Rectangle())
+                .opacity(enabled ? 1 : 0.4)
+        }
+        .buttonStyle(.plain)
+        .onHover { hover = $0 }
+        .tip(help, shortcut: shortcut)
+        .accessibilityLabel(Text(verbatim: loc(help)))
     }
 }

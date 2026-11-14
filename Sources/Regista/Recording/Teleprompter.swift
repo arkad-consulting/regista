@@ -803,7 +803,7 @@ struct PrompterEditorView: View {
                     .background(RoundedRectangle(cornerRadius: Ed.Radius.l).fill(Ed.well))
                     .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l).strokeBorder(Ed.line2))
 
-                InspectorSection(title: loc("Scorrimento")) {
+                RSection(loc("Scorrimento")) {
                     RSegmented(items: TeleprompterController.Mode.allCases.map { ($0, $0.label) }, selection: $p.mode,
                                symbols: Dictionary(uniqueKeysWithValues: TeleprompterController.Mode.allCases.map { ($0, $0.icon) }))
                     if p.mode == .speed {
@@ -814,7 +814,7 @@ struct PrompterEditorView: View {
                 }
 
                 if p.mode == .voice {
-                    InspectorSection(title: loc("Segue la voce")) {
+                    RSection(loc("Segue la voce")) {
                         RChips(items: PrompterLanguage.all.map { .init(id: $0, title: PrompterLanguage.name($0)) }, selection: p.language, height: 26) {
                             p.language = $0
                         }

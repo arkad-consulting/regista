@@ -151,7 +151,7 @@ struct VoiceSetupView: View {
                    columns: 4, height: 44) { pickedLanguage = $0 }
             .frame(maxWidth: 520)
             if !model.snapshot.languages.isEmpty {
-                InspectorSection(title: loc("Già registrate")) {
+                RSection(loc("Già registrate")) {
                     VStack(spacing: 0) {
                         ForEach(model.snapshot.languages) { l in
                             HStack {
@@ -307,7 +307,7 @@ struct VoiceSetupView: View {
                     .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l).strokeBorder(Ed.ok.opacity(0.3)))
                 }
                 if !c.good, !c.missing.isEmpty {
-                    InspectorSection(title: loc("Righe da rileggere")) {
+                    RSection(loc("Righe da rileggere")) {
                         VStack(alignment: .leading, spacing: 6) {
                             ForEach(Array(c.missing.prefix(5).enumerated()), id: \.offset) { _, line in
                                 Text(verbatim: "— \(line)").font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
@@ -342,7 +342,7 @@ struct VoiceSetupView: View {
             title(String(format: loc("La tua voce in %@"), VoiceLanguages.name(l.code)),
                   l.trained ? loc("Allenata: la voce più fedele. Puoi registrare altri toni e allenarla di nuovo.")
                             : loc("Pronta dal riferimento: si usa già nel pannello Voce. Altri toni e l'allenamento la rendono più fedele."))
-            InspectorSection(title: loc("Toni")) {
+            RSection(loc("Toni")) {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Ed.Space.s), count: 4), spacing: Ed.Space.s) {
                     ForEach(VoiceTones.all, id: \.self) { t in toneTile(t, l) }
                 }

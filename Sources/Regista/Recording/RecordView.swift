@@ -121,7 +121,7 @@ struct RecordView: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: Ed.Space.xl) {
-                    InspectorSection(title: loc("Cosa registri")) {
+                    RSection(loc("Cosa registri")) {
                         RChips(items: RecordingSources.Preset.allCases.map { .init(id: $0, title: loc($0.title), symbol: $0.symbol) },
                                selection: s.preset, columns: 2) { p in
                             guard !recorder.isRecording else { return }
@@ -129,9 +129,9 @@ struct RecordView: View {
                         }
                         .disabled(recorder.isRecording)
                     }
-                    InspectorSection(title: loc("Sorgenti")) { sourceRows }
+                    RSection(loc("Sorgenti")) { sourceRows }
                     if s.showsFaceLayout {
-                        InspectorSection(title: loc("Volto nel video")) { FaceLayoutControls(layout: layoutBinding) }
+                        RSection(loc("Volto nel video")) { FaceLayoutControls(layout: layoutBinding) }
                     }
                 }
                 .padding(Ed.Space.l)

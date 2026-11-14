@@ -87,33 +87,6 @@ struct HomeSide: View {
     }
 }
 
-/// One row of a side list: symbol, title, a dim detail on the right.
-struct SideRow: View {
-    let symbol: String
-    let title: String
-    var detail: String? = nil
-    var on = false
-    let action: () -> Void
-    @State private var hover = false
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: Ed.Space.s) {
-                Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.body)).foregroundStyle(on ? Ed.gold : Ed.text3).frame(width: 18)
-                Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.control)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
-                Spacer(minLength: Ed.Space.xs)
-                if let detail { Text(verbatim: detail).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text4).fixedSize() }
-            }
-            .padding(.horizontal, Ed.Space.s)
-            .frame(height: 28)
-            .background(RoundedRectangle(cornerRadius: Ed.Radius.m, style: .continuous).fill(on ? Ed.control : (hover ? Ed.control.opacity(0.6) : .clear)))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hover = $0 }
-    }
-}
-
 /// "0:49", "1:02:05".
 func clockTime(_ seconds: Double) -> String {
     let s = Int(max(0, seconds).rounded())

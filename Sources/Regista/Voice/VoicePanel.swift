@@ -124,7 +124,7 @@ struct VoicePanel: View {
 
     private var composer: some View {
         VStack(alignment: .leading, spacing: Ed.Space.l) {
-            InspectorSection(title: loc("Testo")) {
+            RSection(loc("Testo")) {
                 ZStack(alignment: .topLeading) {
                     TextEditor(text: $model.text, selection: $selection)
                         .font(Ed.ui(Ed.TypeSize.body))
@@ -144,14 +144,14 @@ struct VoicePanel: View {
                 Text(verbatim: estimateLine).font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
             }
             if let lang = model.activeLanguage {
-                InspectorSection(title: loc("Lingua")) {
+                RSection(loc("Lingua")) {
                     RChips(items: model.snapshot.readyLanguages.map { .init(id: $0.code, title: VoiceLanguages.name($0.code)) },
                            selection: lang.code, columns: 2) { code in
                         model.language = code
                         Task { await model.loadLexicon(code) }
                     }
                 }
-                InspectorSection(title: loc("Tono")) {
+                RSection(loc("Tono")) {
                     RChips(items: lang.tones.map { .init(id: $0, title: loc(VoiceTones.title($0))) }, selection: model.activeTone,
                            columns: min(3, max(lang.tones.count, 1))) { model.tone = $0 }
                     HStack(alignment: .firstTextBaseline, spacing: Ed.Space.xs) {
@@ -170,7 +170,7 @@ struct VoicePanel: View {
     /// The placement choice sits with the buttons it applies to, in the pinned bar: never hidden by the scroll (issue #74).
     private var actions: some View {
         VStack(alignment: .leading, spacing: Ed.Space.s) {
-            InspectorSection(title: loc("In timeline")) {
+            RSection(loc("In timeline")) {
                 RSegmented(items: [(VoiceCalls.Placement.afterVoice, loc("Dopo l'ultima voce")), (.playhead, loc("Al cursore"))],
                            selection: $model.placement)
             }
@@ -251,7 +251,7 @@ struct VoiceLexiconPane: View {
                                   VoiceLanguages.name(lang)))
                 .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
             if !pending.isEmpty {
-                InspectorSection(title: loc("Da confermare")) {
+                RSection(loc("Da confermare")) {
                     VStack(spacing: 0) {
                         ForEach(pending) { e in
                             row(e) {
@@ -265,7 +265,7 @@ struct VoiceLexiconPane: View {
                         .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
                 }
             }
-            InspectorSection(title: loc("Parole")) {
+            RSection(loc("Parole")) {
                 if confirmed.isEmpty {
                     Text(verbatim: loc("Nessuna parola ancora. Aggiungi i nomi che la voce sbaglia, ad esempio un marchio.")).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
                 } else {
@@ -280,7 +280,7 @@ struct VoiceLexiconPane: View {
                     .modifier(ListBox())
                 }
             }
-            InspectorSection(title: editing == nil ? loc("Aggiungi") : loc("Modifica")) {
+            RSection(editing == nil ? loc("Aggiungi") : loc("Modifica")) {
                 HStack(spacing: Ed.Space.s) {
                     RTextField(placeholder: loc("Parola (com'è scritta)"), text: $word)
                     Image(systemName: "arrow.right").font(Ed.icon(Ed.TypeSize.micro, .semibold)).foregroundStyle(Ed.text3)
@@ -331,38 +331,6 @@ struct LinkButton: ViewModifier {
             .padding(.horizontal, 10).frame(height: 24)
             .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.raised))
             .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.line2))
-    }
-}
-
-/// A state of a panel: an icon, a title, what it means and what to do, then the actions.
-struct StateCard<Actions: View>: View {
-    let symbol: String
-    let title: String
-    let text: String
-    @ViewBuilder var actions: Actions
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Ed.Space.m) {
-            Image(systemName: symbol)
-                .font(Ed.icon(Ed.TypeSize.title, .light))
-                .foregroundStyle(Ed.gold)
-                .frame(width: 38, height: 38)
-                .background(Circle().fill(Ed.goldSoft))
-                .overlay(Circle().strokeBorder(Ed.gold.opacity(0.25)))
-            Text(verbatim: loc(title)).font(Ed.display(Ed.TypeSize.heading, .medium)).foregroundStyle(Ed.text).fixedSize(horizontal: false, vertical: true)
-            Text(verbatim: loc(text)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).lineSpacing(2).fixedSize(horizontal: false, vertical: true)
-            actions
-        }
-        .padding(Ed.Space.l)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: Ed.Radius.xl).fill(Ed.header))
-        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.xl).strokeBorder(Ed.line2))
-    }
-}
-
-extension StateCard where Actions == EmptyView {
-    init(symbol: String, title: String, text: String) {
-        self.init(symbol: symbol, title: title, text: text) { EmptyView() }
     }
 }
 
