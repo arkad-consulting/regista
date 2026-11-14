@@ -146,5 +146,8 @@ extension Recipes {
         - Use every recording the user hands over where it belongs: a recording of a step (browsing a site,
           the pricing page, a sign-up) goes, moving, under the line that tells that step.
         - Never deliver a bare edit: the effects pass of step 8b comes before the export the user sees.
+        - The closing logo comes after the last spoken word, on a clean frame: no caption, no title, nothing else.
+        - An image the user pastes in the chat is not a file you can import: ask them to save it in a media
+          folder; never swap in another picture of your own choosing.
         """)
 }

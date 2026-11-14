@@ -227,7 +227,9 @@ extension Recipes {
            progress_add for tutorials and lists. glitch: a few frames on a hard cut, never a sentence. chromaKey
            only for real green-screen overlays.
            Logo (logo_animate): a sting at the very end (outro) or within the first second — long logo intros and a
-           spinning logo on every cut are out of fashion. Beat sync (edit_beatSync, needs a music bed): punches on
+           spinning logo on every cut are out of fashion. The outro starts after the last spoken word and its
+           caption hold (pass start: the last word's end + 0.5 s, extend the picture or let it end on black): the
+           closing frame carries the logo alone, never a caption, a header title or a card over the last line. Beat sync (edit_beatSync, needs a music bed): punches on
            the downbeats of one section, not on every beat of the reel.
            One-click styles (style_apply energico / pulito / tutorial) bundle these moves as one undo step: use one
            as a starting point when the user asks for "a style", then tune.
