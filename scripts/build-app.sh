@@ -49,6 +49,11 @@ PB=/usr/libexec/PlistBuddy
 cp -R Resources/Fonts Resources/Brand Resources/Blender Resources/SFX "$APP/Contents/Resources/"
 # UI languages: English (also for every system language without its own) and Italian, the language of the source.
 cp -R Resources/Localization/*.lproj "$APP/Contents/Resources/"
+# The guides for the Help menu (K1 #7), one folder per UI language: they open offline, in the app's language.
+for lang in it en fr pt; do
+  mkdir -p "$APP/Contents/Resources/Help/$lang"
+  cp docs/$lang/*.md "$APP/Contents/Resources/Help/$lang/"
+done
 [ -f Resources/AppIcon.icns ] && cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 # The installer, for Impostazioni › Motori (scripts/install.sh --only <id>) and › Claude (claude_desktop.py): the scripts
 # it runs and the engine sources it copies (the files git tracks in engines/, never a .venv or a model).

@@ -77,6 +77,17 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                     view.frame = CGRect(origin: .zero, size: size)
                     shown = ["workspace": "brand-picker", "kits": .array(BrandKitLibrary.shared.kits.map { .string($0.id) }),
                              "active": store.project?.brand.map { .string($0.id) } ?? .null]
+                } else if let w = workspace, let guide = HelpGuide.allCases.first(where: { $0.screenshotName == w }), let makeView {
+                    // The help window (K1 #7) on one guide, in the app's language, from the copy shipped in the app.
+                    let size = CGSize(width: width ?? Int(HelpView.size.width), height: height ?? Int(HelpView.size.height))
+                    let center = HelpCenter()
+                    center.guide = guide
+                    view = NSHostingView(rootView: makeView(AnyView(HelpView(center: center).frame(width: size.width, height: size.height))))
+                    view.frame = CGRect(origin: .zero, size: size)
+                    let text = HelpLibrary.text(guide)
+                    shown = ["workspace": .string(w), "guide": .string(guide.rawValue), "language": .string(HelpLibrary.language),
+                             "found": .bool(text != nil), "title": text.flatMap { Markdown.title(Markdown.blocks($0)) }.map { .string($0) } ?? .null,
+                             "source": .string(HelpLibrary.folder(HelpLibrary.language)?.path ?? "")]
                 } else if let w = workspace, w == "voice" || w == "voice-setup" || w == "settings-voice", let makeView {
                     // The voice screens (V1 #61, V2 #62), from sample data when `voice` names a state.
                     let state = voice?["state"]?.stringValue

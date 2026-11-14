@@ -43,7 +43,9 @@
 #   same sample states) and simple-doall ("Fai tutto" running on its third step);
 #   then the Genera panel (G1 #5) from sample data on the same synthetic project: generate-<still|clip|music|upscale> (each
 #   kind ready to run), generate-unavailable (a Mac with no generator set up), generate-approval (a paid clip's cost on
-#   the approval card), generate-running, generate-failed and generate-recent.
+#   the approval card), generate-running, generate-failed and generate-recent;
+#   then the help window (K1 #7) at its own size, in the app's language: help (the user guide), help-voice, help-install and
+#   help-troubleshooting.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT="${1:?usage: scripts/ui-shots.sh <outdir> [--lang it|en] [--size WxH] [--real] [workspace …]}"
@@ -77,7 +79,8 @@ done
                                audio-empty audio-music audio-sfx audio-loud
                                simple-midway simple-cut simple-captions simple-look simple-sound simple-voice simple-graphics simple-doall
                                generate-still generate-clip generate-music generate-upscale generate-unavailable generate-approval
-                               generate-running generate-failed generate-recent)
+                               generate-running generate-failed generate-recent
+                               help help-voice help-install help-troubleshooting)
 SOCK="${REGISTA_ENGINE_SOCKET:-$HOME/Library/Application Support/Regista/engine.sock}"
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
@@ -296,6 +299,8 @@ for name in names:
         del params['size']
     elif name == 'settings' or name.startswith('settings-'):
         del params['size']   # the Settings window's own size
+    elif name == 'help' or name.startswith('help-'):
+        del params['size']   # the help window's own size
     elif name.startswith('inspector-screen'):
         layout = name[len('inspector-screen-'):] if name.startswith('inspector-screen-') else 'bubble'
         select = 'first-video' if layout == 'clip' else 'none'

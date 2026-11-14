@@ -5,7 +5,7 @@ import SwiftUI
 /// keys that are not menu items (transport, tools) are handled by `KeyMonitor` and the teleprompter, and listed here.
 struct AppShortcut: Identifiable, Equatable {
     enum Group: String, CaseIterable {
-        case file, edit, editing, record, view, editor, teleprompter
+        case file, edit, editing, record, view, help, editor, teleprompter
 
         var title: String {
             switch self {
@@ -14,6 +14,7 @@ struct AppShortcut: Identifiable, Equatable {
             case .editing: loc("Montaggio")
             case .record: loc("Registra")
             case .view: loc("Vista")
+            case .help: loc("Aiuto")
             case .editor: loc("Nella timeline")
             case .teleprompter: loc("Gobbo")
             }
@@ -90,6 +91,8 @@ enum AppShortcuts {
     static let sidePanel = s("sidePanel", "Mostra o nascondi il pannello laterale", .view, "s", [.command, .control])
     static let rightPanel = s("rightPanel", "Mostra o nascondi il pannello destro", .view, "i", [.command, .option])
     static let brandKit = s("brandKit", "Brand kit…", .view, "b", [.command, .shift])
+    // Aiuto
+    static let help = s("help", "Guida di Regista", .help, "?")
 
     /// ⌘1…⌘9: the activity bar, top to bottom (Vista menu).
     static func activity(_ i: Int, title: String) -> AppShortcut {
@@ -132,7 +135,7 @@ enum AppShortcuts {
     /// Every shortcut, menu order then the editor and the teleprompter.
     static var all: [AppShortcut] {
         [newProject, newTab, openProject, importMedia, closeTab, save, saveAs, settings, undo, redo, cut, autoEdit, record, pause]
-            + activities + [simple, pro, nextTab, previousTab, nextTabAlt, previousTabAlt, sidePanel, rightPanel, brandKit]
+            + activities + [simple, pro, nextTab, previousTab, nextTabAlt, previousTabAlt, sidePanel, rightPanel, brandKit, help]
             + editor + teleprompter
     }
 

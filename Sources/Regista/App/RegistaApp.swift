@@ -25,6 +25,12 @@ struct RegistaApp: App {
         Settings {
             ActiveTab(bench: app.bench) { app.inject(SettingsView(), store: $0) }
         }
+        // The guides, offline and in the app's language (K1 #7): Aiuto › Guida di Regista and the others.
+        Window(Text(loc("Aiuto")), id: HelpCenter.windowID) {
+            HelpView(center: HelpCenter.shared)
+                .frame(minWidth: 760, minHeight: 520)
+        }
+        .defaultSize(width: HelpView.size.width, height: HelpView.size.height)
     }
 }
 
@@ -54,6 +60,8 @@ struct EditorCommands: Commands {
     @ObservedObject var bench: Workbench
     @ObservedObject var recents: RecentProjects
     @ObservedObject var recorder: Recorder
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     private var store: EditorStore { bench.active }
 
@@ -159,6 +167,16 @@ struct EditorCommands: Commands {
                 if !store.nav.inEditor { store.showEditor() }
                 store.showBrandKits = true
             }.shortcut(AppShortcuts.brandKit)
+        }
+        // The standard Help menu (Aiuto / Help / Aide / Ajuda): the guides shipped in the app, the shortcuts, the issues page.
+        CommandGroup(replacing: .help) {
+            Button(loc(HelpGuide.userGuide.title)) { HelpCenter.open(.userGuide, with: openWindow) }.shortcut(AppShortcuts.help)
+            ForEach(HelpGuide.allCases.filter { $0 != .userGuide }) { g in
+                Button(loc(g.title)) { HelpCenter.open(g, with: openWindow) }
+            }
+            Divider()
+            Button("Scorciatoie da tastiera") { SettingsRoute.open(.shortcuts, with: openSettings) }
+            Button("Segnala un problema…") { HelpCenter.reportProblem() }
         }
     }
 }

@@ -331,6 +331,7 @@ extension AppShortcut.Group {
         case .editing: "Montaggio"
         case .record: "Registra"
         case .view: "Vista"
+        case .help: "Aiuto"
         case .editor: "Nella timeline"
         case .teleprompter: "Gobbo"
         }

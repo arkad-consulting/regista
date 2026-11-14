@@ -57,7 +57,8 @@ every language are in `Resources/Localization/glossary.md`.
 
 ```
 Sources/Regista/
-  App/          launch, menus, settings, Keychain
+  App/          launch, menus (the Help menu included), settings, Keychain
+  Help/         the help window: the guides of docs/<lang>/ shipped in the app (Contents/Resources/Help), a small Markdown reader
   Editor/       EditorStore (the app's engine + socket), preview, media cache, meter, ui.screenshot
   UI/           the views: Shell (top bar), Pro, Simple (guided steps), Export, timeline, Agent panel, theme
   Recording/    camera+microphone and screen recording (tutorials), teleprompter
@@ -315,8 +316,8 @@ source `scripts/lib.sh`, and both speak the macOS language — Italian, English,
   archive HEAD` (tracked files only: no .git, builds or footage; ~3 MB) + a `SNAPSHOT` file, and from `handoff/`:
   `INSTALLA.command` (double-click: copies the snapshot to `~/code/regista` — or uses a git clone already there, which
   install.sh pulls, or rsyncs over an older snapshot keeping `.build` — strips the download quarantine and runs
-  `scripts/install.sh`), `LISEZMOI.md` (FR) and `LEIAME.md` (PT) for a non-developer user, `START-PROMPT.md` (Claude
-  Desktop Project instructions). Built from HEAD: commit first. A snapshot install has no git, so it updates by
+  `scripts/install.sh`), `LISEZMOI.md` (FR) and `LEIAME.md` (PT) for a non-developer user (install and first tests;
+  the full guides are in docs/<lang>/ and in the app's Help menu), `START-PROMPT.md` (Claude Desktop Project instructions). Built from HEAD: commit first. A snapshot install has no git, so it updates by
   running a newer package's `INSTALLA.command`.
 - **Smoke check.** `scripts/mcp_smoke.py mcp <regista-mcp>` (stdlib, `/usr/bin/python3 -I`): `initialize`,
   `tools/list`, `engines_status` over stdio, headless (`REGISTA_ENGINE=local`); `mcp_smoke.py socket <path>` says
