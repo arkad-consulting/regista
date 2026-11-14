@@ -15,9 +15,10 @@ public protocol UIHost {
     /// captions, several clips, nothing), optionally of a project file opened for the render only.
     /// `texts`: the Testi e sottotitoli steps in a given state, from sample data; `jobs`: sample jobs in the status bar,
     /// the jobs list open or not. `audio`: the Audio activity's sub-tab, open group and sample level / ducking check.
-    /// `simple`: the Semplice level's steps in a given state (sample data) and the step open.
+    /// `simple`: the Semplice level's steps in a given state (sample data) and the step open. `generate`: the Genera panel
+    /// in a given state (sample data).
     func screenshot(workspace: String?, width: Int?, height: Int?, canvas: JSONValue?, record: JSONValue?, voice: JSONValue?, tabs: Int?,
-                    inspector: JSONValue?, texts: JSONValue?, jobs: JSONValue?, audio: JSONValue?, simple: JSONValue?,
+                    inspector: JSONValue?, texts: JSONValue?, jobs: JSONValue?, audio: JSONValue?, simple: JSONValue?, generate: JSONValue?,
                     to output: URL) throws -> (width: Int, height: Int, shown: JSONValue)
     /// Captures the real main window as it is on screen, native title bar included (ScreenCaptureKit, only when the
     /// Screen Recording permission is already in effect: never asks), to a PNG. `shown` reports the window's geometry.
@@ -55,6 +56,7 @@ enum UIScreenshot: Command {
         .optional("inspector", .object, "Show the Ispettore tab of the right panel (with the Pro editor unless workspace says otherwise) for a selection, drawn without clicking and without changing the real selection: {select: <clipId> | \"first-video\" | \"first-audio\" | \"first-music\" | \"first-overlay\" | \"captions\" | \"multi\" (the first two video clips) | \"none\", project?: path of a .regista folder opened for this render only (a scratch copy: the open tabs and their projects are not touched)}. shown.inspector reports what the panel shows (kind, clips, sections)."),
         .optional("texts", .object, "With workspace \"texts\": draw the Passi of Testi e sottotitoli (from an imported clip to captions) from sample data, for the render only: {state: \"fresh\" | \"transcribing\" | \"transcribed\" | \"cut\" | \"keywords\" | \"captions\" | \"stale\" | \"doall\" | \"failed\", tier?: \"base\" | \"medium\" | \"pro\"}. shown.steps reports each step's status."),
         .optional("simple", .object, "With workspace \"edit-semplice\": the Semplice level's six steps, for the render only: {step?: \"cut\" | \"captions\" | \"look\" | \"sound\" | \"voice\" | \"graphics\" (the step open; default the next one to do), state?: \"midway\" (cut and captions done, two lines with retakes) | \"done\" (every step in place) | \"doall\" (Fai tutto running on its third step) — sample states drawn over the project shown; without state, the project's real states}. shown.simple reports each step's status and the step open."),
+        .optional("generate", .object, "With workspace \"generate\": the Genera side panel from sample data, for the render only (nothing is run, priced or approved): {state: \"still\" | \"clip\" | \"music\" | \"upscale\" (that kind ready to run, with sample providers: ComfyUI local and Higgsfield paid) | \"unavailable\" (a Mac with no generator set up: each provider greyed with its reason and the install / setup link) | \"approval\" (a paid clip's cost on the approval card) | \"running\" (a clip being generated, with progress and Cancel) | \"failed\" (a run that went wrong, in words) | \"recent\" (the project's recent generations), kind?: still | clip | music | upscale}. shown.generate reports the kind, the providers with their availability and the state."),
         .optional("jobs", .object, "Draw sample jobs in the status bar's jobs item (a transcription, an export, a \"Fai tutto\" with sub-steps, a failed and a finished job, in two tabs): {open?: true (default) | false — the jobs list drawn open above the item}."),
         .optional("audio", .object, "With workspace \"audio\": draw the Audio activity for the render only: {tab?: \"mix\" | \"sfx\" (the sound-effect browser), group?: whoosh | ui | pop | impact | rise | chime | logo | glitch | typing | user | all (the open group), query?: a search, loudness?: [integrated LUFS, true peak dBTP] (sample level instead of the meter's), check?: {pass, underDB, minUnder} (a sample ducking check), playing?: a sound name drawn as playing}. Combine with inspector.project to draw a project opened for the render only."),
         .optional("tabs", .integer, "Draw this many project tabs on top of the main area (1–6): the active tab, then sample tabs (unsaved, recording, saved), to see the tab strip without opening other projects. Default: the tabs open in the app."),
@@ -64,7 +66,7 @@ enum UIScreenshot: Command {
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         let ui = try UIRequire.host(ctx, command: id)
         if p.bool("real") == true {
-            let other = ["workspace", "size", "canvas", "record", "voice", "tabs", "inspector", "texts", "jobs", "audio", "simple"].filter { p.json($0) != nil }
+            let other = ["workspace", "size", "canvas", "record", "voice", "tabs", "inspector", "texts", "jobs", "audio", "simple", "generate"].filter { p.json($0) != nil }
             guard other.isEmpty else { throw CommandError.invalid("\(id): real captures the window as it is: drop \(other.joined(separator: ", "))") }
             let output: URL
             if let path = p.string("path") { output = try Render.output(path, command: id) }
@@ -85,7 +87,7 @@ enum UIScreenshot: Command {
         let px = try ui.screenshot(workspace: p.string("workspace"), width: size.map { Int($0[0]) }, height: size.map { Int($0[1]) },
                                    canvas: p.json("canvas"), record: p.json("record"), voice: p.json("voice"), tabs: p.int("tabs"),
                                    inspector: p.json("inspector"), texts: p.json("texts"), jobs: p.json("jobs"), audio: p.json("audio"),
-                                   simple: p.json("simple"), to: output)
+                                   simple: p.json("simple"), generate: p.json("generate"), to: output)
         return ["path": .string(output.path), "width": .number(Double(px.width)), "height": .number(Double(px.height)),
                 "host": "app", "shown": px.shown, "images": [["path": .string(output.path), "mimeType": "image/png",
                                            "width": .number(Double(px.width)), "height": .number(Double(px.height))]]]

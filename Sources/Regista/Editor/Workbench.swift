@@ -41,6 +41,10 @@ final class Workbench: ObservableObject {
     @Published var socketProblem: String?
     /// A paid generation estimate waiting for the user's decision (the confirmation sheet).
     @Published var pendingApproval: GenerationApprovals.Entry?
+    /// Paid estimates the Generate panel asked for: approved on its own card, never in the window's sheet.
+    var panelEstimates: Set<String> = []
+    /// The panel is asking for a paid estimate now: the sheet waits, so it never flashes up for the panel's own request.
+    var panelPricing = 0
     /// The brand kit gallery sheet (issue #17) and the voice recording flow.
     @Published var showBrandKits = false
     @Published var showVoiceSetup = false

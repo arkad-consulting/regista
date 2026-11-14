@@ -31,7 +31,7 @@ final class AppUIHost: UIHost, @unchecked Sendable {
     /// Renders the editor into an offscreen window at the requested size: works while the screen is locked
     /// or the window is hidden, and never changes what the user is looking at.
     func screenshot(workspace: String?, width: Int?, height: Int?, canvas: JSONValue?, record: JSONValue?, voice: JSONValue?, tabs: Int?,
-                    inspector: JSONValue?, texts: JSONValue?, jobs: JSONValue?, audio: JSONValue?, simple: JSONValue?,
+                    inspector: JSONValue?, texts: JSONValue?, jobs: JSONValue?, audio: JSONValue?, simple: JSONValue?, generate: JSONValue?,
                     to output: URL) throws -> (width: Int, height: Int, shown: JSONValue) {
         precondition(!Thread.isMainThread)
         // `inspector.project`: a project opened in a scratch store for this render only (never a tab, never saved).
@@ -168,9 +168,14 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                         s["state"]?.stringValue.map { SimpleDemo.value($0, open: simpleOpen, live: store.simpleSnapshot) }
                             ?? SimpleDemoValue(snapshot: store.simpleSnapshot, open: simpleOpen)
                     }
+                    // `generate`: the Genera panel from sample data (G1 #5).
+                    let generateDemo = generate.map { g in
+                        GenerateState.demo(g["state"]?.stringValue ?? "still", kind: g["kind"]?.stringValue, store: store)
+                    }
+                    if generateDemo != nil { nav = Self.navigation(for: "generate", current: nav) }
                     view = NSHostingView(rootView: makeRoot(nav).environment(\.canvasDemo, demo).environment(\.recordDemo, recordDemo)
                         .environment(\.tabsDemo, tabsDemo).environment(\.stepsDemo, stepsDemo).environment(\.jobsDemo, jobsDemo)
-                        .environment(\.audioDemo, audioDemo).environment(\.simpleDemo, simpleDemo))
+                        .environment(\.audioDemo, audioDemo).environment(\.simpleDemo, simpleDemo).environment(\.generateDemo, generateDemo))
                     view.frame = CGRect(origin: .zero, size: size)
                     shown = Self.describe(store, nav: nav, width: size.width)
                     if case .object(var o) = shown {
@@ -190,6 +195,17 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                         let snap = simpleDemo.snapshot
                         o["simple"] = ["steps": .object(Dictionary(uniqueKeysWithValues: SimpleStep.allCases.map { ($0.rawValue, JSONValue.string(snap[$0].status.rawValue)) })),
                                        "open": .string((simpleDemo.open ?? snap.next ?? .cut).rawValue), "next": snap.next.map { .string($0.rawValue) } ?? .null]
+                        shown = .object(o)
+                    }
+                    if nav.activity == .generate, case .object(var o) = shown {
+                        let m = generateDemo ?? store.generation
+                        o["generate"] = ["kind": .string(m.kind.rawValue), "state": generate?["state"] ?? "live",
+                                         "approval": .bool(m.pending != nil), "recent": .number(Double(m.recent.count)),
+                                         "providers": .array(GenOffer.rows(m.providers, m.kind).map { p in
+                                             let a = p.availability(m.kind.engineKind)
+                                             return ["id": .string(p.id), "paid": .bool(p.paid), "available": .bool(a.available),
+                                                     "reason": a.reason.map { .string($0) } ?? .null]
+                                         })]
                         shown = .object(o)
                     }
                     if let recordDemo, let recorder, case .object(var o) = shown {

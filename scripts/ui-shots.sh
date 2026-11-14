@@ -40,7 +40,10 @@
 #   then the Semplice level (E5 #4): simple-empty (no project: every step waits for a video), and on the inspector's
 #   synthetic project (opened in the private copy's tab, like the graphics renders) simple-midway (sample states: cut and
 #   captions done, the next step open), simple-<cut|captions|look|sound|voice|graphics> (that step's panel open on the
-#   same sample states) and simple-doall ("Fai tutto" running on its third step).
+#   same sample states) and simple-doall ("Fai tutto" running on its third step);
+#   then the Genera panel (G1 #5) from sample data on the same synthetic project: generate-<still|clip|music|upscale> (each
+#   kind ready to run), generate-unavailable (a Mac with no generator set up), generate-approval (a paid clip's cost on
+#   the approval card), generate-running, generate-failed and generate-recent.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT="${1:?usage: scripts/ui-shots.sh <outdir> [--lang it|en] [--size WxH] [--real] [workspace …]}"
@@ -72,7 +75,9 @@ done
                                settings-general settings-engines settings-brand settings-claude settings-shortcuts
                                settings-engines-base settings-engines-medium settings-engines-pro
                                audio-empty audio-music audio-sfx audio-loud
-                               simple-midway simple-cut simple-captions simple-look simple-sound simple-voice simple-graphics simple-doall)
+                               simple-midway simple-cut simple-captions simple-look simple-sound simple-voice simple-graphics simple-doall
+                               generate-still generate-clip generate-music generate-upscale generate-unavailable generate-approval
+                               generate-running generate-failed generate-recent)
 SOCK="${REGISTA_ENGINE_SOCKET:-$HOME/Library/Application Support/Regista/engine.sock}"
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
@@ -199,11 +204,13 @@ if printf '%s\n' "${LIST[@]}" | grep -q '^inspector-screen'; then
 JSON
   "$ENGINE" run "$SCREEN_DEMO/demo.json" --work "$SCREEN_DEMO" >/dev/null || { echo "could not build the screen inspector demo projects" >&2; exit 1; }
 fi
-if printf '%s\n' "${LIST[@]}" | grep -Eq '^(inspector|graphics|simple)-'; then
+if printf '%s\n' "${LIST[@]}" | grep -Eq '^(inspector|graphics|simple|generate)-'; then
   DEMO_DIR="$(mktemp -d -t regista-inspector)"
   swift build --product regista-engine >/dev/null
   ENGINE="$(swift build --show-bin-path)/regista-engine"
   ffmpeg -v error -f lavfi -i "sine=frequency=220:duration=8" -ar 48000 -y "$DEMO_DIR/tone.wav"
+  # A small vertical clip like a ComfyUI one (464×832, 32 fps): what the Genera panel's upscale offers.
+  ffmpeg -v error -f lavfi -i "gradients=s=464x832:d=3:r=32:c0=0x203a5c:c1=0xd9a35b:speed=0.02" -pix_fmt yuv420p -y "$DEMO_DIR/clip-464x832.mp4"
   cat > "$DEMO_DIR/demo.json" <<JSON
 {"name": "inspector-demo", "steps": [
  {"command": "project.new", "params": {"name": "ispettore-demo", "directory": "$DEMO_DIR"}},
@@ -221,6 +228,7 @@ if printf '%s\n' "${LIST[@]}" | grep -Eq '^(inspector|graphics|simple)-'; then
  {"command": "track.add", "params": {"kind": "overlay"}, "capture": {"v2": "result.track.id"}},
  {"command": "overlay.add", "params": {"path": "$PWD/Tests/Fixtures/overlay-card.png", "start": 1, "duration": 5, "fit": "contain", "trackId": "\${v2}"}},
  {"command": "title.add", "params": {"text": "Il sito sicuro non esiste", "start": 4, "duration": 3}},
+ {"command": "media.import", "params": {"path": "$DEMO_DIR/clip-464x832.mp4"}},
  {"command": "brandkit.apply", "params": {"kit": "arkad"}},
  {"command": "project.save"}
 ]}
@@ -308,6 +316,14 @@ for name in names:
         if state not in ('midway', 'doall'):
             simple['step'] = state
         params.update(workspace='edit-semplice', simple=simple)
+    elif name.startswith('generate-'):
+        # The Genera panel from sample data over the synthetic project (its files are the start frames and clips).
+        if private and not opened:
+            f.write((json.dumps({'op': 'execute', 'command': 'project.open', 'params': {'path': demo}}) + '\n').encode()); f.flush()
+            if not json.loads(f.readline()).get('ok'):
+                print('generate: could not open the demo project in the private copy', file=sys.stderr)
+            opened = True
+        params.update(workspace='generate', generate={'state': name[len('generate-'):]})
     elif name.startswith('graphics-'):
         # The Graphics panel draws its previews for the tab on screen: the private copy opens the synthetic project in
         # its own tab first (the owner's app is never asked to open anything: there it shows the project open now).

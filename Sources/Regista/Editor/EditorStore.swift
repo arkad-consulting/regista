@@ -83,6 +83,8 @@ final class EditorStore: ObservableObject {
     let jobs = JobCenter()
     /// The voice features (Voce panel, recording flow, Settings › Profilo e voce).
     private(set) lazy var voice = VoiceModel(store: self)
+    /// The Generate panel (G1 #5).
+    private(set) lazy var generation = GenerateState(store: self)
     /// The voice recording flow (a sheet on the main window).
     var showVoiceSetup: Bool {
         get { bench.showVoiceSetup }
@@ -349,10 +351,12 @@ final class EditorStore: ObservableObject {
 
     // MARK: Paid generation approvals
 
-    /// Shows the newest paid estimate still waiting (generate.estimate / a refused generate.run left it).
+    /// Shows the newest paid estimate still waiting (an agent's generate.estimate / a refused generate.run left it).
     func refreshApprovals() {
+        guard bench.panelPricing == 0 else { return }
         let pending = (try? GenerationApprovals(directory: generationState).pending()) ?? []
-        pendingApproval = pending.last
+        // The Generate panel's own estimates are approved in the panel (its approval card), not in this sheet.
+        pendingApproval = pending.last { !bench.panelEstimates.contains($0.estimate.estimateID) }
     }
 
     /// The user's decision on the sheet: generate.approve runs here, in the app (agents cannot call it).

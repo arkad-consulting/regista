@@ -47,7 +47,7 @@ struct SidePanel: View {
         case .audio: AudioPanel(tab: nav.soundTab)
         case .voice: VoiceTab()
         case .graphics: GraphicsPanel(section: nav.graphicsSection)
-        case .generate: GeneratePlaceholder()
+        case .generate: GeneratePanel()
         case .export: ExportSettingsPanel()
         }
     }
@@ -142,23 +142,6 @@ struct TextsPanel: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-    }
-}
-
-/// Genera until node G1: what it will do, honestly, and what works today.
-struct GeneratePlaceholder: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Image(systemName: "wand.and.rays").font(Ed.icon(24, .light)).foregroundStyle(Ed.text3)
-            Text(verbatim: loc("In arrivo")).font(Ed.ui(15, .semibold)).foregroundStyle(Ed.text)
-            Text(verbatim: loc("Immagini, clip da un fotogramma, musica e aumento di risoluzione: in locale con ComfyUI o nel cloud, con il costo mostrato e approvato ogni volta."))
-                .font(Ed.ui(12)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
-            Text(verbatim: loc("Per ora le generazioni le avvia Claude: i risultati arrivano in Media e una generazione a pagamento chiede sempre la tua approvazione in questa finestra."))
-                .font(Ed.ui(12)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
-            Spacer()
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
