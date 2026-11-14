@@ -314,6 +314,48 @@ enum SFXAdd: Command {
     }
 }
 
+enum SFXOnCuts: Command {
+    static let id = "sfx.onCuts"
+    static let summary = "Sound effects in one switch: a soft whoosh (from the shipped bank) on the cuts of the main video track, its loudest moment on the cut, at least 3 s apart and at most 6, quiet (volume 0.2); remove: true takes every sound effect off instead. One undo step either way; running it again on a reel that already has effects changes nothing. Returns the effects placed or removed."
+    static let kind = CommandKind.edit
+    static let params: [ParamSpec] = [
+        .optional("remove", .boolean, "Remove every sound effect (the clips of the SFX tracks)."),
+        .optional("name", .string, "Library name of the sound (default whoosh_fast/crisp)."),
+        .optional("volume", .number, "Linear gain (default 0.2)."),
+    ]
+
+    static func clips(_ project: Project) -> [String] { project.tracks.filter { $0.role == "sfx" }.flatMap(\.clips).map(\.id) }
+
+    static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
+        let project = try ctx.requireProject()
+        var log: [JSONValue] = []
+        let existing = clips(project)
+        if p.bool("remove") == true {
+            if !existing.isEmpty { try ctx.perform(TimelineDelete.self, ["clipIds": .array(existing.map { .string($0) }), "linked": false], log: &log) }
+            return ["removed": .number(Double(existing.count)), "commands": .array(log)]
+        }
+        guard existing.isEmpty else { return ["placed": 0, "existing": .number(Double(existing.count)), "commands": []] }
+        guard let main = project.tracks.first(where: { $0.kind == .video && !$0.clips.isEmpty }) else {
+            throw CommandError.conflict("\(id): no video on the timeline")
+        }
+        let name = p.string("name") ?? "whoosh_fast/crisp"
+        guard let sound = SoundLibrary.all(ctx.services.config).first(where: { $0.name == name }) else {
+            throw CommandError.notFound("\(id): no effect \"\(name)\" in the library (sfx.library)")
+        }
+        let peak = sound.peak ?? 0.1
+        var last = -10.0, at: [Double] = []
+        for cut in main.clips.dropFirst().map(\.start.seconds) where cut - last >= 3 && at.count < 6 {
+            at.append(max(cut - peak, 0))
+            last = cut
+        }
+        guard !at.isEmpty else { throw CommandError.conflict("\(id): no cuts at least 3 s apart (cut the pauses first)") }
+        for t in at {
+            try ctx.perform(SFXAdd.self, ["name": .string(name), "at": .number((t * 1000).rounded() / 1000), "volume": .number(p.number("volume") ?? 0.2)], log: &log)
+        }
+        return ["placed": .number(Double(at.count)), "at": .array(at.map { .number($0) }), "commands": .array(log)]
+    }
+}
+
 enum AudioCheckDucking: Command {
     static let id = "audio.checkDucking"
     static let summary = "Measure the music under the voice: renders the voice and the music stems through the export mix (gains, fades, ducking envelope) and compares their loudness while someone speaks (inside the speech regions) and in the longer pauses. Pass: music at least minUnder dB (default 15) under the voice during speech. Returns both levels and the difference."

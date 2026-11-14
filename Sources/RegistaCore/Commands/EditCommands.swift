@@ -219,6 +219,7 @@ enum EditAutoCut: Command {
         .optional("fades", .time, "Audio micro-fade at both edges of every sound clip, seconds (default 0.015; 0 = none)."),
         .optional("maxPause", .number, "Pauses longer than this inside a take are cut out, seconds: recomputes the takes' cut points (as takes.list maxPause), keeping the picks made with takes.select."),
         .optional("keepPause", .number, "Breath kept on each side of a removed pause, seconds: recomputes the cut points (as takes.list keepPause), keeping the picks."),
+        .optional("picks", .array(.object), "Takes to use, applied first as takes.select would: [{line, take}] (1-based, as in takes.list), so a new pick and the cut it needs are one undo step."),
         .optional("dryRun", .boolean, "Only return the commands, change nothing."),
     ]
 
@@ -234,6 +235,17 @@ enum EditAutoCut: Command {
             guard let script = project.script else { throw CommandError.conflict("\(id): no script — run script.set first") }
             set = try TakesList.compute(asset: asset, script: script, options: options, source: set.source == "live" ? "live" : "transcript")
             set.keepPicks(of: project.takes!)
+            work.project?.takes = set
+        }
+        for pick in p.json("picks")?.arrayValue ?? [] {
+            guard let line = pick["line"]?.doubleValue.map({ Int($0) }), set.lines.indices.contains(line - 1) else {
+                throw CommandError.invalid("\(id): picks: line must be 1…\(set.lines.count)")
+            }
+            let count = set.lines[line - 1].takes.count
+            guard let take = pick["take"]?.doubleValue.map({ Int($0) }), count > 0, (1...count).contains(take) else {
+                throw CommandError.invalid("\(id): picks: line \(line) has \(count) take\(count == 1 ? "" : "s")")
+            }
+            set.lines[line - 1].chosen = take - 1
             work.project?.takes = set
         }
         let segments = set.segments()

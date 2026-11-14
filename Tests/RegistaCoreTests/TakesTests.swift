@@ -161,3 +161,18 @@ func takesEngine() throws -> Engine {
     #expect(wrong.value(at: "summary.sameTake") == 2)
     #expect(wrong.value(at: "lines.1.manualTake") == "2/2" && wrong.value(at: "lines.1.autoTake") == "1/2")
 }
+
+/// edit.autoCut picks (E5 #4): another take and the cut that uses it in one command, one undo step; bad picks fail.
+@Test func autoCutAppliesPicksAsOneStep() throws {
+    let e = try takesEngine()
+    try e.execute("takes.list")
+    try e.execute("edit.autoCut")
+    #expect(e.project?.takes?.lines[1].chosen == 1)
+    let before = e.clips(0).map(\.sourceIn)
+    try e.checkUndoRedo("edit.autoCut", ["replace": true, "picks": [["line": 2, "take": 1]]])
+    #expect(e.project?.takes?.lines[1].chosen == 0)
+    #expect(e.clips(0).map(\.sourceIn) != before)                       // the cut uses the other take
+    #expect(throws: CommandError.self) { try e.execute("edit.autoCut", params: ["replace": true, "picks": [["line": 2, "take": 3]]]) }
+    #expect(throws: CommandError.self) { try e.execute("edit.autoCut", params: ["replace": true, "picks": [["line": 9, "take": 1]]]) }
+    #expect(e.project?.takes?.lines[1].chosen == 0)                      // a failed command changes nothing
+}

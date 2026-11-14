@@ -114,7 +114,7 @@ public enum Commands {
         BrandkitList.self, BrandkitApply.self, GraphicsCheckLayout.self,
         BrandkitCreate.self, BrandkitUpdate.self, BrandkitSetLogo.self, BrandkitSetFont.self, BrandkitExport.self, BrandkitImport.self,
         BrandkitDelete.self, BrandkitCheck.self, BrandkitPreview.self, LogoAdd.self,
-        AudioAddMusic.self, AudioDuck.self, SFXLibrary.self, SFXAdd.self, AudioCheckDucking.self, SFXCheckOnsets.self,
+        AudioAddMusic.self, AudioDuck.self, SFXLibrary.self, SFXAdd.self, SFXOnCuts.self, AudioCheckDucking.self, SFXCheckOnsets.self,
         TimelineMapTimes.self, MediaCheckOverlay.self, GraphicsBlenderTitle.self, GraphicsBlender3D.self, GraphicsHyperframes.self,
         GenerateProviders.self, GenerateCheck.self, GenerateEstimate.self, GenerateApprove.self, GenerateRun.self, GenerateUpscale.self,
         GenerateStatus.self, GenerateList.self, MatteTrackCommand.self, GraphicsCheckBehindSubject.self,

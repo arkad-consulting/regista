@@ -395,7 +395,7 @@ enum TranscriptEvaluate: Command {
 
 enum AudioClean: Command {
     static let id = "audio.clean"
-    static let summary = "Make the voice broadcast-ready after edit.autoCut: DeepFilterNet denoise + voice chain (per-take level match, per-segment level match — a second voice off the microphone more than 6 dB under the speaker is raised toward it, at most 12 dB —, EQ, gate, compressor, one linear normalization to −15 LUFS, true peak ≤ −1.5 dBTP). The cleaned file becomes a new asset and replaces the source on the track's clips with the same ranges, so sync is unchanged. Re-run after a new edit.autoCut. Returns the loudness, the A/V lag and the commands it ran."
+    static let summary = "Make the voice broadcast-ready after edit.autoCut: DeepFilterNet denoise + voice chain (per-take level match, per-segment level match — a second voice off the microphone more than 6 dB under the speaker is raised toward it, at most 12 dB —, EQ, gate, compressor, one linear normalization to −15 LUFS, true peak ≤ −1.5 dBTP). The cleaned file becomes a new asset and replaces the source on the track's clips with the same ranges, so sync is unchanged. Re-run after a new edit.autoCut; restore: true puts the original sound back. Returns the loudness, the A/V lag and the commands it ran."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("trackId", .string, "Audio track to clean (default: the first audio track)."),
@@ -405,6 +405,7 @@ enum AudioClean: Command {
         .optional("gate", .boolean, "Gentle gate in the chain (default true)."),
         .optional("levelMatch", .number, "Speech segments further than this from the main speaker are gained toward it, dB (default 6; 0 = off): a second voice off the microphone."),
         .optional("levelMatchMax", .number, "Largest level-match gain, dB (default 12)."),
+        .optional("restore", .boolean, "Put the original sound back on the track's clips (same ranges, edge fades kept): the cleaning switched off, one undo step. Needs no engine."),
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
@@ -421,6 +422,13 @@ enum AudioClean: Command {
         let sourceIDs = Set(track.clips.map { project.asset($0.assetID)?.origin?.assetID ?? $0.assetID })
         guard sourceIDs.count == 1, let sourceID = sourceIDs.first else {
             throw CommandError.conflict("\(id): track \(track.name) mixes several sources (\(sourceIDs.sorted().joined(separator: ", ")))")
+        }
+        if p.bool("restore") == true {
+            let source = project.assets[try Analysis.assetIndex(sourceID, in: project, command: id)]
+            guard track.clips.contains(where: { $0.assetID != sourceID }) else { throw CommandError.conflict("\(id): the voice on \(track.name) is not cleaned") }
+            var log: [JSONValue] = []
+            try swapClips(of: track, to: source.id, length: source.duration, ctx: &ctx, log: &log)
+            return ["trackId": .string(track.id), "restored": true, "asset": ProjectState.summary(of: source), "commands": .array(log)]
         }
         if let reason = ctx.services.cleaner.unavailableReason() { throw CommandError(.io, "\(id): \(reason)") }
         let si = try Analysis.assetIndex(sourceID, in: project, command: id)
@@ -450,20 +458,7 @@ enum AudioClean: Command {
         project.assets.append(cleaned)
         ctx.project = project
         var log: [JSONValue] = []
-        // Only these clips go (not their linked pictures); each new clip rejoins its old clip's link.
-        let partners = track.clips.map { c in Timeline.partners(of: c, in: project).first.map { project.tracks[$0.track].clips[$0.clip].id } }
-        try ctx.perform(TimelineDelete.self, ["clipIds": .array(track.clips.map { .string($0.id) }), "linked": false], log: &log)
-        for (c, partner) in zip(track.clips, partners) {
-            // A clip that runs to the container's end can outlast the sound by a few frames: it stops where the voice file does.
-            var params: JSONValue = ["assetId": .string(cleaned.id), "trackId": .string(track.id), "start": .number(c.start.seconds),
-                                     "sourceIn": .number(c.sourceIn.seconds), "sourceOut": .number(min(c.sourceOut, info.duration).seconds)]
-            if let partner, case .object(var o) = params { o["linkTo"] = .string(partner); params = .object(o) }
-            let placed = try ctx.perform(TimelinePlace.self, params, log: &log)
-            if c.fadeIn != nil || c.fadeOut != nil, let newID = placed.value(at: "clip.id") {   // keep the edge fades
-                try ctx.perform(ClipSet.self, ["clipId": newID, "fadeIn": .number(c.fadeIn?.seconds ?? 0),
-                                               "fadeOut": .number(c.fadeOut?.seconds ?? 0)], log: &log)
-            }
-        }
+        try swapClips(of: track, to: cleaned.id, length: info.duration, ctx: &ctx, log: &log)
 
         // Sync: the cleaned file against the original, over (up to) six of the used ranges.
         let original = try WAVAudio.read(URL(fileURLWithPath: audio.working))
@@ -494,6 +489,25 @@ enum AudioClean: Command {
                          "lagFrames": Analysis.seconds(sync.lagSeconds * frameRate, places: 100),
                          "correlation": Analysis.seconds(sync.correlation)],
                 "loudness": loudness.json]
+    }
+
+    /// The track's clips swapped for the same ranges of `assetID` with ordinary commands: only these clips go (not their
+    /// linked pictures), each new clip rejoins its old clip's link and keeps its edge fades.
+    private static func swapClips(of track: Track, to assetID: String, length: MediaTime, ctx: inout CommandContext, log: inout [JSONValue]) throws {
+        let project = try ctx.requireProject()
+        let partners = track.clips.map { c in Timeline.partners(of: c, in: project).first.map { project.tracks[$0.track].clips[$0.clip].id } }
+        try ctx.perform(TimelineDelete.self, ["clipIds": .array(track.clips.map { .string($0.id) }), "linked": false], log: &log)
+        for (c, partner) in zip(track.clips, partners) {
+            // A clip that runs to the container's end can outlast the sound by a few frames: it stops where the file does.
+            var params: JSONValue = ["assetId": .string(assetID), "trackId": .string(track.id), "start": .number(c.start.seconds),
+                                     "sourceIn": .number(c.sourceIn.seconds), "sourceOut": .number(min(c.sourceOut, length).seconds)]
+            if let partner, case .object(var o) = params { o["linkTo"] = .string(partner); params = .object(o) }
+            let placed = try ctx.perform(TimelinePlace.self, params, log: &log)
+            if c.fadeIn != nil || c.fadeOut != nil, let newID = placed.value(at: "clip.id") {   // keep the edge fades
+                try ctx.perform(ClipSet.self, ["clipId": newID, "fadeIn": .number(c.fadeIn?.seconds ?? 0),
+                                               "fadeOut": .number(c.fadeOut?.seconds ?? 0)], log: &log)
+            }
+        }
     }
 }
 

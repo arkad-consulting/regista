@@ -82,3 +82,28 @@ private let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().d
     #expect(LoudnessTarget.verdict(integrated: -12) == .tooLoud && LoudnessTarget.verdict(integrated: -.infinity) == .unmeasured)
     #expect(LoudnessTarget.peakOver(-1.0) && !LoudnessTarget.peakOver(-1.5) && !LoudnessTarget.peakOver(-.infinity))
 }
+
+/// sfx.onCuts (E5 #4): a soft whoosh on the cuts at least 3 s apart, its loudest moment on the cut, one undo step; again
+/// changes nothing; remove takes every effect off in one step.
+@Test func soundEffectsOnTheCutsInOneSwitch() throws {
+    var services = EngineServices.standard()
+    services.config.sfxLibrary = tempDir().path
+    let e = Engine(prober: FakeProber(), services: services)
+    try e.execute("project.new", params: ["name": "sfx"])
+    try e.execute("media.import", params: ["path": .string(fakeMedia())])
+    try e.execute("track.add", params: ["kind": "video"])
+    for (start, a) in [(0.0, 0.0), (4.0, 10.0), (5.0, 20.0), (9.0, 30.0)] {   // cuts at 4, 5 (too close) and 9 s
+        try e.execute("timeline.place", params: ["assetId": "a1", "trackId": "t1", "start": .number(start), "sourceIn": .number(a), "sourceOut": .number(a + 1)])
+    }
+    #expect(throws: CommandError.self) { try e.execute("sfx.onCuts", params: ["name": "whoosh_fast/nope"]) }
+    let r = try e.checkUndoRedo("sfx.onCuts", [:])
+    let peak = try #require(SoundLibrary.bank().first { $0.name == "whoosh_fast/crisp" }?.peak)
+    #expect(r["placed"] == 2)
+    let clips = e.project!.tracks.filter { $0.role == "sfx" }.flatMap(\.clips)
+    #expect(clips.map { ($0.start.seconds * 1000).rounded() / 1000 } == [4 - peak, 9 - peak].map { ($0 * 1000).rounded() / 1000 })
+    #expect(clips.allSatisfy { abs($0.gain! - 20 * log10(0.2)) < 1e-9 })
+    let again = try e.execute("sfx.onCuts")
+    #expect(again["placed"] == 0 && e.project!.tracks.filter { $0.role == "sfx" }.flatMap(\.clips).count == 2)
+    try e.checkUndoRedo("sfx.onCuts", ["remove": true])
+    #expect(e.project!.tracks.filter { $0.role == "sfx" }.flatMap(\.clips).isEmpty)
+}

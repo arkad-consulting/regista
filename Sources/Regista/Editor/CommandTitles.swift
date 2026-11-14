@@ -130,6 +130,7 @@ enum CommandTitles {
         "sfx.add": "Aggiungi un effetto sonoro",
         "sfx.checkOnsets": "Controlla gli effetti sonori",
         "sfx.library": "Elenca gli effetti sonori",
+        "sfx.onCuts": "Effetti sonori sui tagli",
         "status.add": "Aggiungi uno stato",
         "sticker.add": "Aggiungi uno sticker",
         "style.apply": "Applica uno stile",

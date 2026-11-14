@@ -243,6 +243,13 @@ import Testing
     try e.execute("audio.clean", params: ["attenuation": 12])
     #expect(fakes.cleaner.requests.last?.input.lastPathComponent == "a1-work48k.wav")
     #expect(e.clips(1).map(\.assetID) == ["a3", "a3"])
+    // restore: the original sound back on the same ranges, links and fades kept, one undo step; nothing to restore after.
+    let cleaned = e.clips(1)
+    let back = try e.checkUndoRedo("audio.clean", ["restore": true])
+    #expect(back["restored"] == true && e.clips(1).map(\.assetID) == ["a1", "a1"])
+    #expect(e.clips(1).map(\.sourceIn) == cleaned.map(\.sourceIn) && e.clips(1).map(\.start) == cleaned.map(\.start))
+    #expect(e.clips(1).map(\.link) == e.clips(0).map(\.link) && e.clips(1).allSatisfy { $0.fadeIn == t(0.015) })
+    #expect(throws: CommandError.self) { try e.execute("audio.clean", params: ["restore": true]) }
 }
 
 @Test func facesTrackWritesASidecar() throws {
