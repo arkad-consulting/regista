@@ -71,33 +71,9 @@ private struct KindChips: View {
     @ObservedObject var model: GenerateState
 
     var body: some View {
-        HStack(spacing: 6) {
-            ForEach(GenKind.allCases) { k in KindTile(kind: k, on: k == model.kind) { model.kind = k } }
+        RChips(items: GenKind.allCases.map { .init(id: $0, title: $0.title, symbol: $0.symbol) }, selection: model.kind, stacked: true) {
+            model.kind = $0
         }
-    }
-}
-
-private struct KindTile: View {
-    let kind: GenKind
-    let on: Bool
-    let action: () -> Void
-    @State private var hover = false
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: Ed.Space.xs) {
-                Image(systemName: kind.symbol).font(Ed.icon(Ed.TypeSize.title, on ? .semibold : .regular)).foregroundStyle(on ? Ed.gold : Ed.text2)
-                Text(verbatim: loc(kind.title)).font(Ed.ui(Ed.TypeSize.small, on ? .semibold : .medium))
-                    .foregroundStyle(on ? Ed.text : Ed.text2).lineLimit(1).minimumScaleFactor(0.75)
-            }
-            .frame(maxWidth: .infinity).frame(height: 50)
-            .background(RoundedRectangle(cornerRadius: Ed.Radius.l).fill(on ? Ed.goldSoft : (hover ? Ed.hover : Ed.raised)))
-            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l).strokeBorder(on ? Ed.gold.opacity(0.7) : Ed.line))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hover = $0 }
-        .accessibilityAddTraits(on ? .isSelected : [])
     }
 }
 
@@ -107,19 +83,11 @@ private struct KindTile: View {
 private struct PromptBox: View {
     @ObservedObject var model: GenerateState
     let kind: GenKind
-    @FocusState private var focused: Bool
 
     var body: some View {
         let text = Binding(get: { model.prompts[kind] ?? "" }, set: { model.prompts[kind] = $0; model.changed() })
-        VStack(alignment: .leading, spacing: Ed.Space.s) {
-            SectionLabel(kind == .clip ? "Il movimento" : "Descrivi")
-            TextField(loc(kind.placeholder), text: text, axis: .vertical)
-                .textFieldStyle(.plain).font(Ed.ui(Ed.TypeSize.control)).foregroundStyle(Ed.text)
-                .lineLimit(3...6)
-                .focused($focused)
-                .padding(9)
-                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
-                .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(focused ? Ed.gold.opacity(0.7) : Ed.line2))
+        RSection(kind == .clip ? "Il movimento" : "Descrivi") {
+            RTextEditor(placeholder: kind.placeholder, text: text, size: Ed.TypeSize.control)
             VStack(alignment: .leading, spacing: 1) {
                 ForEach(kind.ideas, id: \.self) { idea in
                     IdeaRow(text: loc(idea), on: text.wrappedValue == loc(idea)) { text.wrappedValue = loc(idea) }
@@ -144,7 +112,7 @@ private struct IdeaRow: View {
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 6).padding(.vertical, Ed.Space.xs)
-            .background(RoundedRectangle(cornerRadius: Ed.Radius.s + 1).fill(hover ? Ed.hover.opacity(0.6) : .clear))
+            .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(hover ? Ed.hover.opacity(0.6) : .clear))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -165,42 +133,18 @@ private struct GenPickRow: View {
     let on: Bool
     var reason: String?
     let action: () -> Void
-    @State private var hover = false
 
     var body: some View {
-        let enabled = reason == nil
         let _ = media.revision
-        Button(action: action) {
-            HStack(spacing: 10) {
-                ZStack {
-                    Ed.well
-                    if let a = asset, a.video != nil, let img = media.picture(a, at: min(1, a.duration.seconds / 2)) {
-                        Image(decorative: img, scale: 1).resizable().aspectRatio(contentMode: .fill)
-                    } else {
-                        Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.control, .light)).foregroundStyle(Ed.text3)
-                    }
+        PickRow(title: title, detail: line, reason: reason, selected: on) {
+            RowThumb(selected: on) {
+                if let a = asset, a.video != nil, let img = media.picture(a, at: min(1, a.duration.seconds / 2)) {
+                    Image(decorative: img, scale: 1).resizable().aspectRatio(contentMode: .fill)
+                } else {
+                    Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.control, .light)).foregroundStyle(Ed.text3)
                 }
-                .frame(width: 36, height: 36)
-                .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.s))
-                .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(on ? Ed.gold : Color.white.opacity(0.07), lineWidth: on ? 1.5 : 1))
-                .opacity(enabled ? 1 : 0.5)
-                VStack(alignment: .leading, spacing: Ed.Space.xxs) {
-                    Text(verbatim: title).font(Ed.ui(Ed.TypeSize.label, .medium)).foregroundStyle(enabled ? Ed.text : Ed.text3)
-                        .lineLimit(1).truncationMode(.middle)
-                    Text(verbatim: reason ?? line).font(Ed.ui(Ed.TypeSize.caption + 0.5)).foregroundStyle(enabled ? Ed.text3 : Ed.warn)
-                        .lineLimit(2).fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: Ed.Space.xs)
-                Image(systemName: "checkmark").font(Ed.icon(Ed.TypeSize.caption, .semibold)).foregroundStyle(Ed.gold).opacity(on ? 1 : 0)
             }
-            .padding(.horizontal, 6).padding(.vertical, 5)
-            .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(on ? Ed.goldSoft : (hover && enabled ? Ed.hover.opacity(0.6) : .clear)))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(!enabled)
-        .onHover { hover = $0 }
-        .accessibilityAddTraits(on ? .isSelected : [])
+        } action: { action() }
     }
 }
 
@@ -213,8 +157,7 @@ private struct GenStartFrame: View {
     var body: some View {
         let stills = store.project?.assets.filter { $0.image?.kind == .still } ?? []
         let hasPicture = (store.project?.duration ?? .zero) > .zero || model.isDemo
-        VStack(alignment: .leading, spacing: Ed.Space.xxs) {
-            SectionLabel("Parte da").padding(.bottom, Ed.Space.xs)
+        RSection("Parte da", rows: true) {
             GenPickRow(symbol: "play.rectangle", title: loc("Il fotogramma del monitor"),
                     line: String(format: loc("Alla testina, %@"), shortTime(playhead.time)), on: model.startAsset == nil && hasPicture,
                     reason: hasPicture ? nil : loc("Il monitor è vuoto: metti prima un video in timeline.")) {
@@ -230,7 +173,7 @@ private struct GenStartFrame: View {
             }
             if stills.isEmpty {
                 Text(verbatim: loc("Oppure genera prima un'immagine: comparirà qui."))
-                    .font(Ed.ui(Ed.TypeSize.caption + 0.5)).foregroundStyle(Ed.text3).padding(.horizontal, 6).padding(.top, Ed.Space.xs)
+                    .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).padding(.horizontal, Ed.Space.s).padding(.top, Ed.Space.xs)
             }
         }
     }
@@ -243,8 +186,7 @@ private struct UpscaleSource: View {
 
     var body: some View {
         let assets = (store.project?.assets ?? []).filter { $0.video != nil }
-        VStack(alignment: .leading, spacing: Ed.Space.xxs) {
-            SectionLabel("Clip da ingrandire").padding(.bottom, Ed.Space.xs)
+        RSection("Clip da ingrandire", rows: true) {
             if assets.isEmpty {
                 Text(verbatim: loc("Media non ha ancora clip: genera prima una clip."))
                     .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
@@ -259,7 +201,7 @@ private struct UpscaleSource: View {
                 }
             }
             Text(verbatim: loc("Diventa 1080×1920 a 30 fotogrammi al secondo, senza inventare dettagli."))
-                .font(Ed.ui(Ed.TypeSize.caption + 0.5)).foregroundStyle(Ed.text3).padding(.top, 6)
+                .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).padding(.top, 6)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -278,16 +220,14 @@ private struct GenOptions: View {
         if formats.count > 1 || !lengths.isEmpty {
             HStack(alignment: .top, spacing: Ed.Space.m) {
                 if formats.count > 1, let f = model.format(kind) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        SectionLabel("Formato")
+                    RSection("Formato") {
                         RSegmented(items: formats.map { ($0.name, $0.name) },
                                    selection: Binding(get: { f.name }, set: { model.formats[kind] = $0; model.changed() }),
                                    tips: Dictionary(uniqueKeysWithValues: formats.map { ($0.name, Self.formatTip($0.name, project: store.project)) }))
                     }
                 }
                 if !lengths.isEmpty, let d = model.duration(kind) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        SectionLabel("Durata")
+                    RSection("Durata") {
                         RSegmented(items: lengths.map { ($0, String(format: loc("%d s"), Int($0))) },
                                    selection: Binding(get: { d }, set: { model.durations[kind] = $0; model.changed() }))
                     }
@@ -315,8 +255,7 @@ private struct ProviderList: View {
     var body: some View {
         let rows = GenOffer.rows(model.providers, kind)
         let picked = model.provider(kind)?.id
-        VStack(alignment: .leading, spacing: Ed.Space.xxs) {
-            SectionLabel("Generatore").padding(.bottom, Ed.Space.xs)
+        RSection("Generatore", rows: true) {
             if rows.isEmpty {
                 Text(verbatim: model.loaded || model.isDemo ? loc("Nessun generatore fa questo su questo Mac.") : loc("Controllo i generatori…"))
                     .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
@@ -338,47 +277,17 @@ private struct ProviderRow: View {
     let on: Bool
     let estimate: GenEstimate?
     let action: () -> Void
-    @State private var hover = false
 
     var body: some View {
         let a = provider.availability(kind.engineKind)
-        VStack(alignment: .leading, spacing: Ed.Space.xs) {
-            Button(action: action) {
-                HStack(alignment: .center, spacing: 10) {
-                    ZStack {
-                        Circle().strokeBorder(on ? Ed.gold : Ed.text4, lineWidth: 1.2).frame(width: 14, height: 14)
-                        if on { Circle().fill(Ed.gold).frame(width: 7, height: 7) }
+        PickRow(title: provider.name, detail: line, reason: a.reason, tag: provider.paid ? "a pagamento" : nil, selected: on, mark: .none,
+                link: !a.available ? a.engine.map { engine in
+                    RowLink(title: a.setup ? "Prepara…" : "Installa…", tip: "Apre Impostazioni › Motori su questo motore") {
+                        SettingsRoute.open(.engines, engine: engine, with: openSettings)
                     }
-                    .opacity(a.available ? 1 : 0.4)
-                    VStack(alignment: .leading, spacing: Ed.Space.xxs) {
-                        HStack(spacing: 6) {
-                            Text(verbatim: provider.name).font(Ed.ui(Ed.TypeSize.control, .medium)).foregroundStyle(a.available ? Ed.text : Ed.text3)
-                            if provider.paid {
-                                Text(verbatim: loc("a pagamento")).font(Ed.ui(Ed.TypeSize.micro, .semibold)).foregroundStyle(Ed.text2)
-                                    .padding(.horizontal, 5).frame(height: 15)
-                                    .background(Capsule().strokeBorder(Ed.line2))
-                            }
-                        }
-                        Text(verbatim: a.reason ?? line).font(Ed.ui(Ed.TypeSize.caption + 0.5)).foregroundStyle(a.available ? Ed.text3 : Ed.warn)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer(minLength: Ed.Space.xs)
-                }
-                .padding(.horizontal, Ed.Space.s).padding(.vertical, 7)
-                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(on ? Ed.goldSoft : (hover && a.available ? Ed.hover.opacity(0.6) : .clear)))
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(!a.available)
-            .onHover { hover = $0 }
-            .accessibilityAddTraits(on ? .isSelected : [])
-            if !a.available, let engine = a.engine {
-                AccentLinkButton(title: a.setup ? loc("Prepara…") : loc("Installa…"), tip: "Apre Impostazioni › Motori su questo motore") {
-                    SettingsRoute.open(.engines, engine: engine, with: openSettings)
-                }
-                .padding(.leading, Ed.Space.xxl).padding(.bottom, Ed.Space.xs)
-            }
-        }
+                } : nil) {
+            RadioMark(on: on)
+        } action: { action() }
     }
 
     private var line: String {
@@ -468,16 +377,20 @@ private struct ApprovalCard: View {
             }
             Text(verbatim: loc("L'approvazione vale solo per questa generazione: la prossima chiede di nuovo."))
                 .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: Ed.Space.s) {
-                EdButton(title: loc("Rifiuta")) { model.decline() }
-                EdButton(title: String(format: loc("Approva e spendi %@"), GenWords.credits(e.credits)), prominent: true, fill: true,
-                         disabled: e.budgetRemaining == 0) { model.approve() }
+            // Side by side when the words fit, else the approval on its own line: never a shrunken amount.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Ed.Space.s) { decline; approve(e) }
+                VStack(spacing: Ed.Space.xs) { approve(e); decline }
             }
         }
-        .padding(Ed.Space.m)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).fill(Ed.well))
-        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).strokeBorder(Ed.text3.opacity(0.45)))
+        .rCard(.raised, border: Ed.text3.opacity(0.45))
+    }
+
+    private var decline: some View { EdButton(title: loc("Rifiuta"), quiet: true) { model.decline() } }
+
+    private func approve(_ e: GenEstimate) -> some View {
+        EdButton(title: String(format: loc("Approva e spendi %@"), GenWords.credits(e.credits)), prominent: true, fill: true,
+                 disabled: e.budgetRemaining == 0) { model.approve() }
     }
 
     private func details(_ r: GenRequest, _ e: GenEstimate) -> String {
@@ -505,7 +418,7 @@ private struct Elsewhere: View {
                             Text(verbatim: String(format: loc("Voce fuori campo con %@: si fa nel pannello Voce."), row.provider.name))
                                 .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
                             if let why = a.reason {
-                                Text(verbatim: why).font(Ed.ui(Ed.TypeSize.caption + 0.5)).foregroundStyle(Ed.warn).fixedSize(horizontal: false, vertical: true)
+                                Text(verbatim: why).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.warn).fixedSize(horizontal: false, vertical: true)
                             }
                             AccentLinkButton(title: loc("Apri Voce")) { store.select(.voice) }
                         }
@@ -525,12 +438,12 @@ private struct GenRecentList: View {
     @ObservedObject var model: GenerateState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Ed.Space.xxs) {
-            SectionLabel("Generati di recente").padding(.bottom, Ed.Space.xs).id("recent")
+        RSection("Generati di recente", rows: true) {
             ForEach(model.recent.prefix(12)) { g in GenRecentRow(model: model, item: g) }
             Text(verbatim: loc("Sono in Media: trascinali sulla timeline."))
-                .font(Ed.ui(Ed.TypeSize.caption + 0.5)).foregroundStyle(Ed.text3).padding(.top, Ed.Space.xs)
+                .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).padding(.top, Ed.Space.xs)
         }
+        .id("recent")
     }
 }
 
@@ -539,38 +452,21 @@ private struct GenRecentRow: View {
     @EnvironmentObject private var media: MediaCache
     @ObservedObject var model: GenerateState
     let item: GenRecent
-    @State private var hover = false
 
     var body: some View {
         let asset = store.project?.asset(item.assetID)
         let _ = media.revision
-        HStack(alignment: .top, spacing: 10) {
-            ZStack {
-                Ed.well
+        PickRow(title: item.prompt.isEmpty ? (asset?.name ?? item.assetID) : item.prompt, detail: meta, mark: .none,
+                link: item.kind?.hasPrompt == true
+                    ? RowLink(title: "Usa di nuovo", tip: "Rimette queste parole e questo generatore nel modulo") { model.useAgain(item) } : nil) {
+            RowThumb(width: 40, height: 40) {
                 if let a = asset, a.video != nil, let img = media.picture(a, at: min(1, a.duration.seconds / 2)) {
                     Image(decorative: img, scale: 1).resizable().aspectRatio(contentMode: .fill)
                 } else {
                     Image(systemName: item.kind?.symbol ?? "sparkles").font(Ed.icon(Ed.TypeSize.control, .light)).foregroundStyle(Ed.text3)
                 }
             }
-            .frame(width: 40, height: 40)
-            .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.s))
-            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(Color.white.opacity(0.07)))
-            VStack(alignment: .leading, spacing: 3) {
-                Text(verbatim: item.prompt.isEmpty ? (asset?.name ?? item.assetID) : item.prompt)
-                    .font(Ed.ui(Ed.TypeSize.small + 0.5)).foregroundStyle(Ed.text).lineLimit(2).fixedSize(horizontal: false, vertical: true)
-                Text(verbatim: meta).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
-                if item.kind?.hasPrompt == true {
-                    AccentLinkButton(title: loc("Usa di nuovo"), tip: "Rimette queste parole e questo generatore nel modulo") { model.useAgain(item) }
-                }
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(6)
-        .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(hover ? Ed.hover.opacity(0.6) : .clear))
-        .contentShape(Rectangle())
-        .onHover { hover = $0 }
-        .onTapGesture { if asset?.video != nil { store.sourceAssetID = item.assetID } }
+        } action: { if asset?.video != nil { store.sourceAssetID = item.assetID } }
         .draggable(MediaDrop.assetPrefix + item.assetID) {
             Label(asset?.name ?? item.assetID, systemImage: item.kind?.symbol ?? "sparkles")
                 .font(Ed.ui(Ed.TypeSize.body)).padding(6).background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.control))
