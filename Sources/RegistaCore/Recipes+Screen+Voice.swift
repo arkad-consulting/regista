@@ -147,6 +147,12 @@ extension Recipes {
           the pricing page, a sign-up) goes, moving, under the line that tells that step.
         - Never deliver a bare edit: the effects pass of step 8b comes before the export the user sees.
         - The closing logo comes after the last spoken word, on a clean frame: no caption, no title, nothing else.
+        - Frame 0 tells the whole story while still: the subject, the result (the number, big) and the angle, over a
+          clear picture — titles there use animIn "none" (a title that pops in is not on frame 0). Never a dark or
+          blurry first frame with nothing to read.
+        - A landscape screen recording in a vertical frame is shown whole, edge to edge (fit contain, scale 1): never
+          zoomed until the sides are cut. Fill the empty bands with the same picture behind it, on the video track
+          below: crop to fill, effect_add blur (radius ~45), clip_set brightness −0.3…−0.45.
         - An image the user pastes in the chat is not a file you can import: ask them to save it in a media
           folder; never swap in another picture of your own choosing.
         """)
