@@ -517,13 +517,18 @@ struct StatusBar: View {
 @MainActor
 enum KeyMonitor {
     private static var token: Any?
+    /// The workbench whose window takes the keys (the last one installed: one in the app, one per test).
+    private static weak var bench: Workbench?
 
     /// The keys go to the tab on screen.
     static func install(_ bench: Workbench) {
+        self.bench = bench
         guard token == nil else { return }
-        token = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak bench] event in
-            guard let store = bench?.active, handle(event, store) else { return event }
-            return nil
+        token = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            MainActor.assumeIsolated {
+                guard let store = KeyMonitor.bench?.active, handle(event, store) else { return event }
+                return nil
+            }
         }
     }
 
