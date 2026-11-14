@@ -39,8 +39,7 @@ struct VoicePanel: View {
                     switch model.state {
                     case .engineMissing(let why):
                         StateCard(symbol: "waveform.slash", title: loc("Voce clonata non disponibile"), text: why) {
-                            Button(loc("Installa…")) { SettingsRoute.open(.engines, engine: "voxcpm", with: openSettings) }
-                                .buttonStyle(.plain).modifier(LinkButton())
+                            EdButton(title: "Installa…", symbol: "arrow.down.circle") { SettingsRoute.open(.engines, engine: "voxcpm", with: openSettings) }
                         }
                         VStack(alignment: .leading, spacing: Ed.Space.l) { composer; actions }
                             .disabled(true).opacity(0.38).allowsHitTesting(false)
@@ -48,7 +47,7 @@ struct VoicePanel: View {
                     case .locked(let who):
                         StateCard(symbol: "lock", title: loc("Profilo di un altro Mac"),
                                   text: String(format: loc("Il profilo di %@ è stato creato su un altro Mac: la sua voce si usa solo dopo averlo adottato in Impostazioni › Profilo e voce."), who)) {
-                            SettingsLink { Text(verbatim: loc("Apri Impostazioni")) }.buttonStyle(.plain).modifier(LinkButton())
+                            EdButton(title: "Apri Impostazioni") { SettingsRoute.open(.voice, with: openSettings) }
                         }
                     case .noVoice(let who): noVoice(who)
                     case .ready:
@@ -102,7 +101,7 @@ struct VoicePanel: View {
         StateCard(symbol: "person.crop.circle.badge.plus", title: loc("Prima, il tuo profilo"),
                   text: loc("La voce appartiene a una persona: il tuo profilo tiene le tue registrazioni e il modello della tua voce, solo su questo Mac. Scrivi il tuo nome: lo dirai nella frase di consenso.")) {
             VStack(alignment: .leading, spacing: Ed.Space.s) {
-                RTextField(placeholder: loc("Il tuo nome"), text: $name)
+                RTextField(placeholder: "Il tuo nome", text: $name)
                 EdButton(title: loc("Crea il profilo"), symbol: "person.badge.plus", prominent: true, fill: true,
                          disabled: name.trimmingCharacters(in: .whitespaces).isEmpty) { model.createProfile(name) }
             }
@@ -125,22 +124,8 @@ struct VoicePanel: View {
     private var composer: some View {
         VStack(alignment: .leading, spacing: Ed.Space.l) {
             RSection(loc("Testo")) {
-                ZStack(alignment: .topLeading) {
-                    TextEditor(text: $model.text, selection: $selection)
-                        .font(Ed.ui(Ed.TypeSize.body))
-                        .foregroundStyle(Ed.text)
-                        .scrollContentBackground(.hidden)
-                        .padding(.horizontal, 5).padding(.vertical, 7)
-                    if model.text.isEmpty {
-                        Text(verbatim: loc("Scrivi qui il testo della voce. Una riga vuota separa i paragrafi: ognuno diventa una clip."))
-                            .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3)
-                            .padding(.horizontal, 10).padding(.vertical, 7)
-                            .allowsHitTesting(false)
-                    }
-                }
-                .frame(minHeight: 120, maxHeight: 240)
-                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
-                .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.line2))
+                RTextEditor(placeholder: "Scrivi qui il testo della voce. Una riga vuota separa i paragrafi: ognuno diventa una clip.",
+                            text: $model.text, kind: .scrolls(min: 120, max: 240), selection: $selection)
                 Text(verbatim: estimateLine).font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
             }
             if let lang = model.activeLanguage {
@@ -220,10 +205,7 @@ struct VoicePanel: View {
             EdButton(title: p.captioned ? loc("Sottotitoli creati") : loc("Sottotitoli da questo testo"), symbol: "captions.bubble",
                      disabled: p.captioned) { model.captionsFromText() }
         }
-        .padding(Ed.Space.m)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: Ed.Radius.l).fill(Ed.header))
-        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l).strokeBorder(Ed.line2))
+        .rCard()
     }
 
     private var honesty: some View {
@@ -256,11 +238,11 @@ struct VoiceLexiconPane: View {
                         ForEach(pending) { e in
                             row(e) {
                                 EdButton(title: loc("Conferma")) { model.lexiconAdd(word: e.word, say: e.say, confirmed: true) }
-                                EdButton(title: loc("Scarta")) { model.lexiconRemove(e.word) }
+                                EdButton(title: loc("Scarta"), quiet: true) { model.lexiconRemove(e.word) }
                             }
                         }
                     }
-                    .modifier(ListBox())
+                    .rCard(padding: 0)
                     Text(verbatim: loc("Proposte dal controllo automatico della pronuncia: confermale solo dopo averle ascoltate."))
                         .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
                 }
@@ -277,15 +259,13 @@ struct VoiceLexiconPane: View {
                             }
                         }
                     }
-                    .modifier(ListBox())
+                    .rCard(padding: 0)
                 }
             }
             RSection(editing == nil ? loc("Aggiungi") : loc("Modifica")) {
-                HStack(spacing: Ed.Space.s) {
-                    RTextField(placeholder: loc("Parola (com'è scritta)"), text: $word)
-                    Image(systemName: "arrow.right").font(Ed.icon(Ed.TypeSize.micro, .semibold)).foregroundStyle(Ed.text3)
-                    RTextField(placeholder: loc("Si legge"), text: $say)
-                }
+                // One field per line: the placeholders stay whole in every language.
+                RTextField(placeholder: "Parola (com'è scritta)", text: $word)
+                RTextField(placeholder: "Si legge", text: $say, symbol: "arrow.turn.down.right")
                 HStack(spacing: Ed.Space.s) {
                     EdButton(title: editing == nil ? loc("Aggiungi") : loc("Salva"), symbol: "plus", prominent: true,
                              disabled: word.trimmingCharacters(in: .whitespaces).isEmpty || say.trimmingCharacters(in: .whitespaces).isEmpty) {
@@ -293,7 +273,7 @@ struct VoiceLexiconPane: View {
                         model.lexiconAdd(word: word, say: say)
                         word = ""; say = ""; editing = nil
                     }
-                    if editing != nil { EdButton(title: loc("Annulla")) { word = ""; say = ""; editing = nil } }
+                    if editing != nil { EdButton(title: loc("Annulla"), quiet: true) { word = ""; say = ""; editing = nil } }
                 }
             }
         }
@@ -303,34 +283,13 @@ struct VoiceLexiconPane: View {
         HStack(spacing: Ed.Space.s) {
             Text(verbatim: e.word).font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text).lineLimit(1)
             Image(systemName: "arrow.right").font(Ed.icon(Ed.TypeSize.tiny, .semibold)).foregroundStyle(Ed.text3)
-            Text(verbatim: e.say).font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(e.pending ? Ed.warn : Ed.gold).lineLimit(1)
+            Text(verbatim: e.say).font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(e.pending ? Ed.warn : Ed.text2).lineLimit(1)
             Spacer(minLength: Ed.Space.xs)
             trailing()
         }
         .padding(.horizontal, Ed.Space.s)
         .frame(minHeight: 32)
         .overlay(alignment: .bottom) { Ed.line.frame(height: 1) }
-    }
-}
-
-/// A rounded box around rows.
-struct ListBox: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .background(RoundedRectangle(cornerRadius: Ed.Radius.l).fill(Ed.header))
-            .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.l))
-            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l).strokeBorder(Ed.line2))
-    }
-}
-
-/// A link styled as the editor's plain button.
-struct LinkButton: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text)
-            .padding(.horizontal, 10).frame(height: 24)
-            .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.raised))
-            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.line2))
     }
 }
 

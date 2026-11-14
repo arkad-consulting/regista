@@ -57,23 +57,14 @@ struct VoiceSetupView: View {
                 .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).padding(.bottom, Ed.Space.l)
             ForEach(Array(railSteps.enumerated()), id: \.offset) { i, item in
                 HStack(spacing: Ed.Space.s) {
-                    ZStack {
-                        Circle().fill(item.current ? Ed.gold : (item.done ? Ed.goldSoft : Ed.well))
-                        Circle().strokeBorder(item.current ? .clear : (item.done ? Ed.gold.opacity(0.4) : Ed.line2))
-                        if item.done && !item.current {
-                            Image(systemName: "checkmark").font(Ed.icon(Ed.TypeSize.tiny, .bold)).foregroundStyle(Ed.gold)
-                        } else {
-                            Text(verbatim: "\(i + 1)").font(Ed.mono(Ed.TypeSize.micro, .semibold)).foregroundStyle(item.current ? Accent.on : Ed.text3)
-                        }
-                    }
-                    .frame(width: 20, height: 20)
-                    Text(verbatim: loc(item.title)).font(Ed.ui(Ed.TypeSize.small, item.current ? .semibold : .regular))
+                    StateGlyph(item.done && !item.current ? "done" : (item.current ? "todo" : "blocked"), number: i + 1, size: 20)
+                    Text(verbatim: loc(item.title)).font(Ed.ui(Ed.TypeSize.body, item.current ? .semibold : .regular))
                         .foregroundStyle(item.current ? Ed.text : (item.done ? Ed.text2 : Ed.text3))
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, Ed.Space.s)
                 .frame(height: 32)
-                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(item.current ? Ed.raised : .clear))
+                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(item.current ? Ed.control : .clear))
             }
             Spacer()
             if model.setup.language != nil, step != .language, step != .profile, !(recorder.isRecording || model.setup.recording) {
@@ -136,7 +127,7 @@ struct VoiceSetupView: View {
             title(loc("Di chi è questa voce?"),
                   loc("Il profilo è la persona che Regista può far parlare su questo Mac: tiene le sue registrazioni e il modello della sua voce. Scrivi il tuo nome: lo dirai nella frase di consenso."))
             VStack(alignment: .leading, spacing: Ed.Space.m) {
-                RTextField(placeholder: loc("Il tuo nome"), text: $name).frame(maxWidth: 320)
+                RTextField(placeholder: "Il tuo nome", text: $name).frame(maxWidth: 320)
                 EdButton(title: loc("Crea il profilo"), symbol: "person.badge.plus", prominent: true, large: true,
                          disabled: name.trimmingCharacters(in: .whitespaces).isEmpty) { model.createProfile(name) }
             }
@@ -163,7 +154,7 @@ struct VoiceSetupView: View {
                             .overlay(alignment: .bottom) { Ed.line.frame(height: 1) }
                         }
                     }
-                    .modifier(ListBox())
+                    .rCard(padding: 0)
                     .frame(maxWidth: 520)
                 }
             }
@@ -359,12 +350,12 @@ struct VoiceSetupView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(verbatim: loc(VoiceTones.title(tone))).font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text)
                 Text(verbatim: minutes.map { VoiceFormat.minutes($0) } ?? loc("da registrare"))
-                    .font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(minutes == nil ? Ed.text3 : Ed.gold)
+                    .font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(minutes == nil ? Ed.text3 : Ed.ok)
             }
             .padding(Ed.Space.s + 2)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(minutes == nil ? Ed.well : Ed.goldSoft))
-            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(minutes == nil ? Ed.line2 : Ed.gold.opacity(0.35)))
+            .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(minutes == nil ? Ed.well : Ed.raised))
+            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.line2))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
