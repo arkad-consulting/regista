@@ -120,6 +120,8 @@
 "Per dire un testo con la tua voce serve prima registrarla, una volta sola." = "To say a text in your own voice, record your voice first, just once.";
 "Più presente, sempre sotto la voce" = "More present, always under the voice";
 "Prepara la tua voce" = "Set up your voice";
+"Prima Regista deve seguire la mano nel video, nei secondi della grafica." = "First Regista needs to track the hand in the video, during the graphic.";
+"Prima Regista deve trovare il volto nel video sotto la grafica." = "First Regista needs to find the face in the video under the graphic.";
 "Prima taglia il video: i suoni vanno sui tagli." = "Cut the video first: the sounds go on the cuts.";
 "Prossimo" = "Next";
 "Prossimo passo" = "Next step";
@@ -133,6 +135,8 @@
 "Scegli i suoni uno per uno in Pro" = "Pick sounds one by one in Pro";
 "Scegli una musica…" = "Choose music…";
 "Scrivi cosa deve dire la tua voce" = "Write what your voice should say";
+"Seleziona sulla timeline lo sticker, il logo o l'immagine che deve seguire il viso." = "Select on the timeline the sticker, logo or image that should follow the face.";
+"Seleziona sulla timeline lo sticker, il logo o l'immagine da tenere in mano." = "Select on the timeline the sticker, logo or image to hold in the hand.";
 "Serrato" = "Tight";
 "Si abbassa quando parli" = "Goes down when you speak";
 "Si aggiungono alla testina: sposta prima la testina sulla frase giusta." = "They are added at the playhead: move the playhead to the right sentence first.";

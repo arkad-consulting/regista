@@ -144,3 +144,42 @@ private func frame(_ e: Engine, at t: Double) throws -> CGImage {
         #expect(shots.contains(name), "scripts/ui-shots.sh renders \(name)")
     }
 }
+
+/// #22: follow-face and follow-hand-object are greyed with the reason instead of failing in the engine — first a placed
+/// overlay must be selected (the follower), then the video under it needs its face / hand track, which the row's link
+/// makes with a valid command; once tracked, the item can run.
+@Test func followItemsAreGreyedWithWhatTheyNeedFirst() throws {
+    let e = try footageEngine()
+    let face = try #require(EffectsCatalog.named("follow-face")), hand = try #require(EffectsCatalog.named("follow-hand-object"))
+    var project = try #require(e.project)
+    for item in [face, hand] {
+        #expect(GraphicsCatalog.followNeed(item, project: project, selection: []) == .follower)
+        #expect(GraphicsCatalog.unavailable(item, project: project, blender: true, selection: []) != nil)
+    }
+    // The main video clip itself fills the frame: it cannot follow.
+    let main = try #require(project.tracks.first { $0.kind == .video }?.clips.first?.id)
+    #expect(GraphicsCatalog.followNeed(face, project: project, selection: [main]) == .follower)
+    // A sticker placed the panel's way is a follower.
+    let sticker = try #require(EffectsCatalog.items.first { $0.command == "sticker.add" })
+    let before = Set(project.tracks.flatMap(\.clips).map(\.id))
+    let (command, params) = try #require(GraphicsActions.command(sticker.id, project: project, at: 1))
+    try e.execute(command, params: params)
+    project = try #require(e.project)
+    let follower = try #require(project.tracks.flatMap(\.clips).map(\.id).first { !before.contains($0) })
+    let commands = Dictionary(uniqueKeysWithValues: RegistaCore.Commands.all.map { ($0.id, $0) })
+    for (item, expected) in [(face, "faces.track"), (hand, "hands.track")] {
+        guard case .track(let c, let p)? = GraphicsCatalog.followNeed(item, project: project, selection: [follower]) else {
+            Issue.record("\(item.id): no track step"); continue
+        }
+        #expect(c == expected)
+        let descriptor = try #require(commands[c]).descriptor
+        #expect(throws: Never.self) { _ = try CommandParams(validating: p, for: descriptor) }
+        #expect(GraphicsCatalog.unavailable(item, project: project, blender: true, selection: [follower]) != nil)
+    }
+    // Once the face is tracked, follow-face can run.
+    guard case .track(let c, let p)? = GraphicsCatalog.followNeed(face, project: project, selection: [follower]) else { return }
+    try e.execute(c, params: p)
+    project = try #require(e.project)
+    #expect(GraphicsCatalog.followNeed(face, project: project, selection: [follower]) == nil)
+    #expect(GraphicsCatalog.unavailable(face, project: project, blender: true, selection: [follower]) == nil)
+}

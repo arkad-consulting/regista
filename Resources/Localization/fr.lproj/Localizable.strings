@@ -120,6 +120,8 @@
 "Per dire un testo con la tua voce serve prima registrarla, una volta sola." = "Pour dire un texte avec votre voix, enregistrez-la d'abord, une seule fois.";
 "Più presente, sempre sotto la voce" = "Plus présente, toujours sous la voix";
 "Prepara la tua voce" = "Préparer votre voix";
+"Prima Regista deve seguire la mano nel video, nei secondi della grafica." = "Regista doit d'abord suivre la main dans la vidéo, pendant le graphisme.";
+"Prima Regista deve trovare il volto nel video sotto la grafica." = "Regista doit d'abord trouver le visage dans la vidéo sous le graphisme.";
 "Prima taglia il video: i suoni vanno sui tagli." = "Coupez d'abord la vidéo : les sons vont sur les coupes.";
 "Prossimo" = "Suivant";
 "Prossimo passo" = "Étape suivante";
@@ -133,6 +135,8 @@
 "Scegli i suoni uno per uno in Pro" = "Choisir les sons un par un dans Pro";
 "Scegli una musica…" = "Choisir une musique…";
 "Scrivi cosa deve dire la tua voce" = "Écrivez ce que votre voix doit dire";
+"Seleziona sulla timeline lo sticker, il logo o l'immagine che deve seguire il viso." = "Sélectionnez dans la timeline le sticker, le logo ou l'image qui doit suivre le visage.";
+"Seleziona sulla timeline lo sticker, il logo o l'immagine da tenere in mano." = "Sélectionnez dans la timeline le sticker, le logo ou l'image à tenir dans la main.";
 "Serrato" = "Serré";
 "Si abbassa quando parli" = "Baisse quand vous parlez";
 "Si aggiungono alla testina: sposta prima la testina sulla frase giusta." = "Ils s'ajoutent à la tête de lecture : placez d'abord la tête de lecture sur la bonne phrase.";

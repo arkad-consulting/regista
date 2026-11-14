@@ -65,14 +65,48 @@ enum GraphicsCatalog {
 
     /// Why `item` cannot be applied now, in words (a lookup key); nil when it can. Nothing is hidden: the row stays,
     /// disabled, with this reason.
-    static func unavailable(_ item: EffectsCatalog.Item, project: Project?, blender: Bool) -> String? {
+    static func unavailable(_ item: EffectsCatalog.Item, project: Project?, blender: Bool, selection: Set<String> = []) -> String? {
         guard let p = project, p.duration > .zero else { return "Importa un video: gli effetti si provano sul fotogramma vero." }
         if item.engine == "blender", !blender { return "Serve Blender: si installa da Impostazioni › Motori." }
         if item.category == .captions, !p.tracks.contains(where: { $0.captions != nil }) {
             return "Prima genera i sottotitoli (Testi e sottotitoli)."
         }
         if item.command == "logo.animate", p.brand?.logoPath() == nil { return "Scegli una marca con un logo (Marca, nella barra del montaggio)." }
+        if item.command == "clip.follow", let need = followNeed(item, project: p, selection: selection) {
+            let face = item.id == "follow-face"
+            switch need {
+            case .follower:
+                return face ? "Seleziona sulla timeline lo sticker, il logo o l'immagine che deve seguire il viso."
+                            : "Seleziona sulla timeline lo sticker, il logo o l'immagine da tenere in mano."
+            case .track:
+                return face ? "Prima Regista deve trovare il volto nel video sotto la grafica."
+                            : "Prima Regista deve seguire la mano nel video, nei secondi della grafica."
+            }
+        }
         return nil
+    }
+
+    /// What a follow item (follow-face, follow-hand-object) still needs (#22): the follower — a placed overlay (sticker,
+    /// logo, image, title) selected on the timeline, as clip.follow requires — then the face or hand track of the video
+    /// under it, with the command that makes that track (the row's way on). nil: it can run.
+    enum FollowNeed: Equatable {
+        case follower
+        case track(command: String, params: JSONValue)
+    }
+
+    static func followNeed(_ item: EffectsCatalog.Item, project p: Project, selection: Set<String>) -> FollowNeed? {
+        guard item.command == "clip.follow" else { return nil }
+        guard let id = selection.first, let (t, c) = p.locate(clip: id) else { return .follower }
+        let clip = p.tracks[t].clips[c]
+        guard clip.placement.map({ $0.fit != .fill }) ?? clip.isGenerated, clip.shape == nil,
+              let main = EffectsCatalog.mainClip(at: clip.start, in: p), let asset = p.asset(main.assetID) else { return .follower }
+        if item.id == "follow-face" {
+            return asset.analysis?.faces == nil ? .track(command: "faces.track", params: ["assetId": .string(asset.id)]) : nil
+        }
+        guard asset.analysis?.hands == nil else { return nil }
+        let from = (main.sourceIn + (clip.start - main.start)).seconds
+        return .track(command: "hands.track", params: ["assetId": .string(asset.id), "from": .number(max(0, from)),
+                                                       "to": .number(min(from + clip.duration.seconds, asset.duration.seconds))])
     }
 
     static func title(_ s: Section) -> String {
@@ -171,24 +205,15 @@ struct GraphicsPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 9) {
-                searchField
-                FlowLayout(spacing: Ed.Space.xs, lineSpacing: 5) {
-                    ForEach(Navigation.GraphicsSection.allCases, id: \.self) { s in
-                        let on = state.query.isEmpty && s == section
-                        Button { store.nav.graphicsSection = s; state.query = "" } label: {
-                            Text(verbatim: loc(GraphicsCatalog.title(s))).font(Ed.ui(Ed.TypeSize.body, on ? .semibold : .regular))
-                                .foregroundStyle(on ? Accent.on : Ed.text2)
-                                .padding(.horizontal, 10).frame(height: 24)
-                                .background(Capsule().fill(on ? Ed.gold : Ed.raised))
-                        }
-                        .buttonStyle(.plain)
-                        .tip(GraphicsCatalog.tip(s))
-                        .accessibilityAddTraits(on ? .isSelected : [])
-                    }
+            VStack(alignment: .leading, spacing: 10) {
+                RTextField(placeholder: "Cerca un effetto", text: $state.query, symbol: "magnifyingglass", clearable: true)
+                RChips(items: Navigation.GraphicsSection.allCases.map { .init(id: $0, title: GraphicsCatalog.title($0), tip: GraphicsCatalog.tip($0)) },
+                       selection: state.query.isEmpty ? section : nil, flow: true) { s in
+                    store.nav.graphicsSection = s
+                    state.query = ""
                 }
             }
-            .padding(.horizontal, Ed.Space.m).padding(.top, 10).padding(.bottom, 10)
+            .padding(Ed.Space.m)
             Ed.rule2.frame(height: 1)
             if store.project?.duration ?? .zero > .zero {
                 ScrollView {
@@ -211,24 +236,6 @@ struct GraphicsPanel: View {
         .onAppear { store.previews.refresh(at: playhead.time) }
         .onChange(of: playhead.time) { store.previews.refresh(at: playhead.time) }
         .onChange(of: store.project) { store.previews.refresh(at: playhead.time) }
-    }
-
-    private var searchField: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass").font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
-            ZStack(alignment: .leading) {
-                if state.query.isEmpty {
-                    Text(verbatim: loc("Cerca un effetto")).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).allowsHitTesting(false)
-                }
-                TextField("", text: $state.query).textFieldStyle(.plain).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text)
-            }
-            if !state.query.isEmpty {
-                IconButton(symbol: "xmark.circle.fill", help: "Cancella la ricerca", size: 18) { state.query = "" }
-            }
-        }
-        .padding(.horizontal, 9).frame(height: 26)
-        .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
-        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.line))
     }
 
     @ViewBuilder private var content: some View {
@@ -278,8 +285,7 @@ private struct SearchResults: View {
         ForEach(Navigation.GraphicsSection.allCases, id: \.self) { s in
             let items = found.filter { GraphicsCatalog.section(of: $0.category) == s }
             if !items.isEmpty {
-                VStack(alignment: .leading, spacing: Ed.Space.xxs) {
-                    SectionLabel(GraphicsCatalog.title(s)).padding(.bottom, Ed.Space.xs)
+                RSection(GraphicsCatalog.title(s), rows: true) {
                     ForEach(items, id: \.id) { CatalogRowItem(item: $0) }
                 }
             }
@@ -298,8 +304,7 @@ struct CatalogList: View {
         if showsApplied { AppliedHere() }
         let groups = GraphicsCatalog.groups(in: section)
         ForEach(groups, id: \.category) { g in
-            VStack(alignment: .leading, spacing: Ed.Space.xxs) {
-                if groups.count > 1 { SectionLabel(g.category.label).padding(.bottom, Ed.Space.xs) }
+            RSection(groups.count > 1 ? g.category.label : "", rows: true) {
                 ForEach(g.items, id: \.id) { CatalogRowItem(item: $0) }
             }
         }
@@ -361,16 +366,14 @@ private struct AdjustSection: View {
         VStack(alignment: .leading, spacing: 14) {
             ScopePicker()
             AppliedSummary(target: target)
-            VStack(alignment: .leading, spacing: Ed.Space.xxs) {
-                SectionLabel("Regolazioni rapide").padding(.bottom, Ed.Space.xs)
+            RSection("Regolazioni rapide", rows: true) {
                 ForEach(GraphicsCatalog.items(in: .adjust), id: \.id) { item in
                     CatalogRowItem(item: item) {
                         GraphicsActions.apply(item.id, store: store, at: playhead.time, clipID: target?.id)
                     }
                 }
             }
-            VStack(alignment: .leading, spacing: Ed.Space.m) {
-                SectionLabel("Regolazioni")
+            RSection("Regolazioni") {
                 ForEach(Adjustments.properties, id: \.name) { p in
                     RSlider(value: Binding(get: { drafts[p.name] ?? values[p.name] }, set: { drafts[p.name] = $0 }), range: p.range,
                             label: p.label, format: { v in
@@ -456,10 +459,7 @@ private struct StylesSection: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(Ed.Space.m)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(RoundedRectangle(cornerRadius: Ed.Radius.l).fill(Ed.raised.opacity(0.55)))
-        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l).strokeBorder(Ed.line))
+        .rCard()
     }
 }
 
@@ -518,11 +518,12 @@ struct CatalogRowItem: View {
     }
 
     var body: some View {
-        let reason = GraphicsCatalog.unavailable(item, project: store.project, blender: blender)
+        let reason = GraphicsCatalog.unavailable(item, project: store.project, blender: blender, selection: store.selection)
         let action = GraphicsCatalog.action(item)
         let open = action == .motionForm ? state.motionItem == item.id : action == .titleForm ? state.textItem == item.id : false
         VStack(alignment: .leading, spacing: 6) {
-            PreviewedRow(previews: store.previews, item: item, selected: selected || open, reason: reason, opens: action != .apply) {
+            PreviewedRow(previews: store.previews, item: item, selected: selected || open, reason: reason, opens: action != .apply,
+                         link: wayOn) {
                 tap(action)
             }
             .onAppear { if item.command != "look.apply", item.engine == nil, reason == nil { store.previews.requestTile(item, time: playhead.time) } }
@@ -530,6 +531,13 @@ struct CatalogRowItem: View {
             if open, action == .motionForm, let spec = MotionRegistry.spec(item.id) { MotionForm(spec: spec) }
             if open, action == .titleForm { TitleForm(item: item) }
         }
+    }
+
+    /// The command that makes the track a follow item needs, as the row's link (#22).
+    private var wayOn: RowLink? {
+        guard let p = store.project, case .track(let command, let params)? = GraphicsCatalog.followNeed(item, project: p, selection: store.selection)
+        else { return nil }
+        return .init(title: command == "faces.track" ? "Trova il volto" : "Segui le mani") { store.run(command, params) }
     }
 
     private func tap(_ action: GraphicsCatalog.Action) {
@@ -549,12 +557,13 @@ private struct PreviewedRow: View {
     let selected: Bool
     let reason: String?
     let opens: Bool
+    var link: RowLink? = nil
     let action: () -> Void
 
     var body: some View {
         CatalogRow(item: item, frames: previews.tiles[item.id],
                    lookThumb: item.command == "look.apply" ? previews.lookThumbs[LookItems.lookID(item)] : nil,
-                   selected: selected, reason: reason, opens: opens, action: action)
+                   selected: selected, reason: reason, opens: opens, link: link, action: action)
     }
 }
 
@@ -571,58 +580,33 @@ struct CatalogRow: View {
     var reason: String?
     /// The click opens a form (a chevron instead of the +).
     var opens = false
+    var link: RowLink? = nil
     let action: () -> Void
     @State private var hover = false
 
     var body: some View {
-        let enabled = reason == nil
-        Button(action: action) {
-            HStack(alignment: .center, spacing: 10) {
-                thumb
-                VStack(alignment: .leading, spacing: Ed.Space.xxs) {
-                    Text(verbatim: loc(item.label)).font(Ed.ui(Ed.TypeSize.control, .medium)).foregroundStyle(enabled ? Ed.text : Ed.text3).lineLimit(1)
-                    Text(verbatim: loc(reason ?? CatalogLines.line(item))).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(reason == nil ? Ed.text3 : Ed.warn)
-                        .lineLimit(2).fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: Ed.Space.xs)
-                Image(systemName: selected ? "checkmark" : opens ? "chevron.down" : "plus")
-                    .font(Ed.icon(Ed.TypeSize.caption, .semibold))
-                    .foregroundStyle(selected ? Ed.gold : Ed.text3)
-                    .opacity(selected || (hover && enabled) ? 1 : 0)
-            }
-            .padding(.horizontal, 6).padding(.vertical, 5)
-            .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(selected ? Ed.goldSoft : (hover && enabled ? Ed.hover.opacity(0.6) : .clear)))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(!enabled)
+        PickRow(title: item.label, detail: CatalogLines.line(item), reason: reason, selected: selected, mark: opens ? .opens : .add, link: link) {
+            AnyView(RowThumb(width: 36, height: 64, selected: selected) { thumb })
+        } action: { action() }
         .onHover { hover = $0 }
-        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
-    private var thumb: some View {
-        ZStack {
-            Ed.well
-            if let lookThumb {
-                Image(decorative: lookThumb, scale: 1).resizable().aspectRatio(9 / 16, contentMode: .fill)
-            } else if let frames, !frames.isEmpty {
-                if hover {
-                    // The tile's animation plays while the pointer is on it; at rest the row shows its poster frame.
-                    TimelineView(.periodic(from: .now, by: 1.0 / 7)) { ctx in
-                        let k = Int(ctx.date.timeIntervalSinceReferenceDate * 7) % frames.count
-                        Image(decorative: frames[k], scale: 1).resizable().aspectRatio(9 / 16, contentMode: .fill)
-                    }
-                } else {
-                    Image(decorative: frames[0], scale: 1).resizable().aspectRatio(9 / 16, contentMode: .fill)
+    @ViewBuilder private var thumb: some View {
+        if let lookThumb {
+            Image(decorative: lookThumb, scale: 1).resizable().aspectRatio(9 / 16, contentMode: .fill)
+        } else if let frames, !frames.isEmpty {
+            if hover {
+                // The tile's animation plays while the pointer is on it; at rest the row shows its poster frame.
+                TimelineView(.periodic(from: .now, by: 1.0 / 7)) { ctx in
+                    let k = Int(ctx.date.timeIntervalSinceReferenceDate * 7) % frames.count
+                    Image(decorative: frames[k], scale: 1).resizable().aspectRatio(9 / 16, contentMode: .fill)
                 }
             } else {
-                Image(systemName: item.symbol).font(Ed.icon(Ed.TypeSize.title, .light)).foregroundStyle(Ed.text3)
+                Image(decorative: frames[0], scale: 1).resizable().aspectRatio(9 / 16, contentMode: .fill)
             }
+        } else {
+            Image(systemName: item.symbol).font(Ed.icon(Ed.TypeSize.title, .light)).foregroundStyle(Ed.text3)
         }
-        .frame(width: 36, height: 64)
-        .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.s))
-        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(selected ? Ed.gold : Color.white.opacity(0.07), lineWidth: selected ? 1.5 : 1))
-        .opacity(reason == nil ? 1 : 0.5)
     }
 }
 
@@ -646,9 +630,9 @@ struct AppliedSummary: View {
                                 Text(verbatim: label).font(Ed.ui(Ed.TypeSize.body, .medium)).foregroundStyle(Ed.text)
                                 Image(systemName: "xmark").font(Ed.icon(Ed.TypeSize.tiny, .bold)).foregroundStyle(Ed.text3)
                             }
-                            .padding(.horizontal, 9).frame(height: 24)
-                            .background(Capsule().fill(Ed.raised))
-                            .overlay(Capsule().strokeBorder(Ed.line2))
+                            .padding(.horizontal, 9).frame(height: Ed.Height.icon + 2)
+                            .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.raised))
+                            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.line2))
                         }
                         .buttonStyle(.plain)
                         .tip("Togli")
@@ -656,10 +640,7 @@ struct AppliedSummary: View {
                 }
             }
         }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: Ed.Radius.l).fill(Ed.well))
-        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l).strokeBorder(Ed.line))
+        .rCard(.well)
     }
 
     static func chips(_ g: Grade?) -> [(String, String)] {
@@ -690,34 +671,27 @@ struct TitleForm: View {
     let item: EffectsCatalog.Item
     @State private var text = ""
     @State private var seconds = 2.5
-    @FocusState private var focused: Bool
 
     /// The words a new title starts with (a lookup key).
     static func placeholder(_ item: EffectsCatalog.Item) -> String { item.id == "text-kicker" ? "Novità" : "Il tuo titolo" }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            TextField(loc("Scrivi il testo"), text: $text, axis: .vertical)
-                .textFieldStyle(.plain).font(Ed.ui(Ed.TypeSize.control)).lineLimit(1...3)
-                .padding(Ed.Space.s)
-                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
-                .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.gold.opacity(0.7)))
-                .focused($focused)
-                .onSubmit { add() }
+            RTextEditor(placeholder: "Scrivi il testo", text: $text, kind: .grows(1...3), size: Ed.TypeSize.control, editing: true,
+                        focusOnAppear: true, onSubmit: add)
+                .id(item.id)
             RSlider(value: $seconds, range: 1...8, step: 0.5, label: "Durata", format: { String(format: "%.1f s", $0) })
             HStack {
                 Text(verbatim: loc("Alla testina, %@", shortTime(playhead.time))).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
                 Spacer()
-                EdButton(title: "Annulla") { state.textItem = nil }
+                EdButton(title: "Annulla", quiet: true) { state.textItem = nil }
                 EdButton(title: "Aggiungi", symbol: "plus", prominent: true,
                          disabled: text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) { add() }
             }
         }
-        .padding(Ed.Space.m)
-        .background(RoundedRectangle(cornerRadius: Ed.Radius.l).fill(Ed.raised.opacity(0.55)))
-        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l).strokeBorder(Ed.line))
-        .onAppear { text = loc(Self.placeholder(item)); focused = true }
-        .onChange(of: item.id) { text = loc(Self.placeholder(item)); focused = true }
+        .rCard()
+        .onAppear { text = loc(Self.placeholder(item)) }
+        .onChange(of: item.id) { text = loc(Self.placeholder(item)) }
     }
 
     private func add() {
