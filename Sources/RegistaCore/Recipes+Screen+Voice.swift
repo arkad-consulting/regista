@@ -147,9 +147,10 @@ extension Recipes {
           the pricing page, a sign-up) goes, moving, under the line that tells that step.
         - Never deliver a bare edit: the effects pass of step 8b comes before the export the user sees.
         - The closing logo comes after the last spoken word, on a clean frame: no caption, no title, nothing else.
-        - Frame 0 tells the whole story while still: the subject, the result (the number, big) and the angle, over a
-          clear picture — titles there use animIn "none" (a title that pops in is not on frame 0). Never a dark or
-          blurry first frame with nothing to read.
+        - Frame 0 is the user's own opening shot with at most two still titles: the subject and the angle (titles
+          there use animIn "none": a title that pops in is not on frame 0). Never the result or the punchline on
+          frame 0 — it spoils the video — and never reorder or replace the opening shot the user chose. When the
+          user asks for one fix, make that fix and nothing more.
         - A landscape screen recording in a vertical frame is shown whole, edge to edge (fit contain, scale 1): never
           zoomed until the sides are cut. Fill the empty bands with the same picture behind it, on the video track
           below: crop to fill, effect_add blur (radius ~45), clip_set brightness −0.3…−0.45.
