@@ -468,19 +468,19 @@ Returns: the clip.
 
 **Place the clip** · MCP tool: `clip_place` · undo: yes — one undo step · takes `project`
 
-Move, resize or rotate a title, sticker, logo or overlay by hand (what a drag on the preview does): x/y = where its centre goes, in pixels of the frame (1080×1920) — or dx/dy from where it is now — scale (1 = its original size), rotation in degrees. Its entrance/exit animation moves with it. Kept inside the frame. reset puts it back where it was before it was first moved. Returns its box and warnings (caption band, Instagram zones).
+Move, resize or rotate anything drawn on the frame by hand (what a drag on the preview does): a title, sticker, logo or overlay; the full-frame picture (a camera take, a full-frame insert: the first move turns "fills the frame" into a box exactly as large as the frame, then moves it; smaller than the frame, the background shows around it); a box of a recording layout (screen, camera bubble: a box placed by hand, until layout.apply is run again on it); a callout, progress bar, status row or level meters (their own rectangle moves and grows). x/y = where its centre goes, in pixels of the frame (1080×1920) — or dx/dy from where it is now — scale (titles, stickers, logos, overlays: 1 = native size; the others: 1 = the size it had before it was first moved by hand), rotation in degrees (not a callout). Its animation moves with it: entrance/exit, punch-ins and auto zoom (the crop is kept: the same part of the picture shows), follow. Kept inside the frame (a full-frame picture: its centre). reset puts it back exactly as it was before it was first moved. A motion template or a halo cannot be placed by hand. Returns its box and warnings (caption band, Instagram zones).
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `clipId` | string | yes | – | The title, sticker, logo or overlay clip. |
+| `clipId` | string | yes | – | The clip: a title, sticker, logo, overlay, full-frame picture, layout box, callout, progress bar, status row or meters (frame.elements lists them). |
 | `x` | number | no | – | Horizontal centre. |
 | `y` | number | no | – | Vertical centre. |
 | `dx` | number | no | – | Move right by this much (negative = left). |
 | `dy` | number | no | – | Move down by this much (negative = up). |
 | `units` | one of `px`, `fraction` | no | – | x/y/dx/dy in pixels of the project frame (px, default; 1080×1920 for a reel) or fractions of its width/height (fraction). |
-| `scale` | number | no | – | Size factor, 0.05…20 (1 = native size). |
-| `rotation` | number | no | – | Degrees clockwise. |
-| `reset` | boolean | no | – | Back to where it was before it was first moved by hand. |
+| `scale` | number | no | – | Size factor, 0.05…20 (titles, stickers, logos, overlays: 1 = native size; pictures, layout boxes, callouts: 1 = their size before the first move by hand). |
+| `rotation` | number | no | – | Degrees clockwise (not callouts, progress bars, status rows or meters). |
+| `reset` | boolean | no | – | Back to exactly how it was before it was first moved by hand. |
 
 Returns: its box and warnings (caption band, Instagram zones).
 
@@ -865,7 +865,7 @@ Returns: the sheet as an image you can see, its path and the times.
 
 **Frame elements** · MCP tool: `frame_elements` · undo: no — reads only · takes `project`
 
-What can be grabbed on the frame at a time, from the render plan (where the compositor draws it): the caption chunk showing and every title, sticker, logo and overlay, each with its box, centre, size, rotation and scale in pixels of the frame, and whether it was placed by hand. Use it before captions.place / clip.place to know where things are. Returns the list, bottom to top.
+Everything drawn on the frame at a time, from the render plan (where the compositor draws it), with a kind each: caption (the chunk showing), title, sticker, logo, overlay, picture (a clip that fills the frame: a camera take, a full-frame insert), layoutBox (a box of a recording layout: screen, camera bubble), callout, progress, status, meters, halo and motion (a motion template). Each with its box, centre, size, rotation and scale in pixels of the frame, whether it was placed by hand (manual) and whether it can be moved (movable: false for a halo, which follows an object, and a motion template, drawn from its own fields — a click on the preview only selects their clip). Use it before captions.place / clip.place to know where things are. Returns the list, bottom to top.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1185,7 +1185,7 @@ Returns: the badges with their timeline times.
 
 **Change the layout** · MCP tool: `layout_apply` · undo: yes — one undo step · takes `project`
 
-Put the face where a layout preset says on a time range of a screen recording (default: the whole recording): cuts the screen, camera and mic clips at the range edges and writes placement, crop around the face (faces.track on the camera makes it exact), mask and border on them — ordinary clip properties, editable with clip.set/clip.keyframe. Switching mid-video: call it again on a later range; a move between two layouts of the same shape glides (transition seconds), a new shape pops in. cutout needs matte.track {assetId: <camera>} over the range. screen and bubble take a styled frame (frame: true or background/gradient/padding/radius/shadow): the whole screen padded on a gradient, colour or image background with rounded corners and a soft shadow — the project's backdrop, default from the brand kit. Returns the camera clips written and the boxes.
+Put the face where a layout preset says on a time range of a screen recording (default: the whole recording): cuts the screen, camera and mic clips at the range edges and writes placement, crop around the face (faces.track on the camera makes it exact), mask and border on them — ordinary clip properties, editable with clip.set/clip.keyframe. Replaces the boxes moved by hand (clip.place) in the range. Switching mid-video: call it again on a later range; a move between two layouts of the same shape glides (transition seconds), a new shape pops in. cutout needs matte.track {assetId: <camera>} over the range. screen and bubble take a styled frame (frame: true or background/gradient/padding/radius/shadow): the whole screen padded on a gradient, colour or image background with rounded corners and a soft shadow — the project's backdrop, default from the brand kit. Returns the camera clips written and the boxes.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|

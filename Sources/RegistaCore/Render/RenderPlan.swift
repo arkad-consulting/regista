@@ -88,6 +88,9 @@ public struct VideoLayer: Hashable, Sendable {
     public var cameraBlur: CameraBlur?
     /// How far the picture is darkened towards black (a full-frame clip's picture fade, #79): 0 = none, 1 = black.
     public var dim = 0.0
+    /// A picture moved by hand from filling the frame (clip.place, #30): it keeps the full-frame picture's ways (fades
+    /// to black, its person matte under the layers drawn behind the subject).
+    public var fullFrame = false
 
     /// Size of the drawn picture before the transform, output pixels, for a `width`×`height` output
     /// (`content`: the title's box size at that output, for titles).
@@ -190,7 +193,7 @@ public struct RenderJob: Sendable {
         var subject: Int?
         for (i, l) in layers.enumerated() {
             if l.behindSubject { out[i] = subject }
-            if l.placement == nil || l.placement?.fit == .fill { subject = l.matte != nil ? i : nil }
+            if l.placement == nil || l.placement?.fit == .fill || l.fullFrame { subject = l.matte != nil ? i : nil }
         }
         return out
     }
@@ -245,9 +248,10 @@ public struct RenderJob: Sendable {
                                rotation: tr.rotation, opacity: tr.opacity, color: clip.color, source: .video,
                                placement: clip.placement, blend: clip.blend ?? .normal, effects: effects)
         // Picture fade (#79): a full-frame clip of a video track goes to black, anything else to transparent.
+        layer.fullFrame = clip.isFullFramePicture && clip.placement?.fit == .box
         let visible = clip.pictureVisibility(at: local)
         if visible < 1 {
-            if track.kind == .video, clip.placement == nil || clip.placement?.fit == .fill { layer.dim = 1 - visible }
+            if track.kind == .video, clip.placement == nil || clip.placement?.fit == .fill || layer.fullFrame { layer.dim = 1 - visible }
             else { layer.opacity *= visible }
         }
         layer.behindSubject = clip.isBehindSubject(at: local)

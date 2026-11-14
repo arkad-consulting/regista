@@ -296,16 +296,19 @@ public struct BehindSwitch: Codable, Hashable, Sendable {
     public init(time: MediaTime, behind: Bool) { self.time = time; self.behind = behind }
 }
 
-/// A clip's placement, rest transform and keyframes as they were before clip.place first moved it.
+/// A clip's placement, rest transform and keyframes (a callout's rectangle) as they were before clip.place first moved it.
 public struct PlaceOrigin: Codable, Hashable, Sendable {
     public var placement: Placement?
     public var transform: Transform?
     public var keyframes: [Keyframe]?
+    /// A callout, progress bar, status row or meters: its own rectangle (`ShapeLayer.rect`).
+    public var rect: [Double]?
 
-    public init(placement: Placement?, transform: Transform?, keyframes: [Keyframe]?) {
+    public init(placement: Placement?, transform: Transform?, keyframes: [Keyframe]?, rect: [Double]? = nil) {
         self.placement = placement
         self.transform = transform
         self.keyframes = keyframes
+        self.rect = rect
     }
 }
 

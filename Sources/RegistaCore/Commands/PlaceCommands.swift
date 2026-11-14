@@ -177,31 +177,58 @@ enum CaptionsPlace: Command {
 
 enum ClipPlace: Command {
     static let id = "clip.place"
-    static let summary = "Move, resize or rotate a title, sticker, logo or overlay by hand (what a drag on the preview does): x/y = where its centre goes, in pixels of the frame (1080×1920) — or dx/dy from where it is now — scale (1 = its original size), rotation in degrees. Its entrance/exit animation moves with it. Kept inside the frame. reset puts it back where it was before it was first moved. Returns its box and warnings (caption band, Instagram zones)."
+    static let summary = "Move, resize or rotate anything drawn on the frame by hand (what a drag on the preview does): a title, sticker, logo or overlay; the full-frame picture (a camera take, a full-frame insert: the first move turns \"fills the frame\" into a box exactly as large as the frame, then moves it; smaller than the frame, the background shows around it); a box of a recording layout (screen, camera bubble: a box placed by hand, until layout.apply is run again on it); a callout, progress bar, status row or level meters (their own rectangle moves and grows). x/y = where its centre goes, in pixels of the frame (1080×1920) — or dx/dy from where it is now — scale (titles, stickers, logos, overlays: 1 = native size; the others: 1 = the size it had before it was first moved by hand), rotation in degrees (not a callout). Its animation moves with it: entrance/exit, punch-ins and auto zoom (the crop is kept: the same part of the picture shows), follow. Kept inside the frame (a full-frame picture: its centre). reset puts it back exactly as it was before it was first moved. A motion template or a halo cannot be placed by hand. Returns its box and warnings (caption band, Instagram zones)."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
-        .required("clipId", .string, "The title, sticker, logo or overlay clip."),
+        .required("clipId", .string, "The clip: a title, sticker, logo, overlay, full-frame picture, layout box, callout, progress bar, status row or meters (frame.elements lists them)."),
         .optional("x", .number, "Horizontal centre."),
         .optional("y", .number, "Vertical centre."),
         .optional("dx", .number, "Move right by this much (negative = left)."),
         .optional("dy", .number, "Move down by this much (negative = up)."),
         Placing.unitsParam,
-        .optional("scale", .number, "Size factor, 0.05…20 (1 = native size)."),
-        .optional("rotation", .number, "Degrees clockwise."),
-        .optional("reset", .boolean, "Back to where it was before it was first moved by hand."),
+        .optional("scale", .number, "Size factor, 0.05…20 (titles, stickers, logos, overlays: 1 = native size; pictures, layout boxes, callouts: 1 = their size before the first move by hand)."),
+        .optional("rotation", .number, "Degrees clockwise (not callouts, progress bars, status rows or meters)."),
+        .optional("reset", .boolean, "Back to exactly how it was before it was first moved by hand."),
     ]
+
+    /// What the clip is, in the words of the results and errors.
+    static func what(_ clip: Clip, _ track: Track, _ project: Project) -> String {
+        if let s = clip.shape {
+            switch s.kind {
+            case .progressBar: return "progress bar"
+            case .statusBar: return "status row"
+            case .audioMeters: return "level meters"
+            case .halo: return "halo"
+            default: return "callout"
+            }
+        }
+        if clip.title != nil { return "title" }
+        if clip.sticker != nil { return "sticker" }
+        if clip.isFullFramePicture { return "picture" }
+        if clip.placement?.fit == .box, project.asset(clip.assetID)?.image == nil { return "layout box" }
+        return track.role == "logo" ? "logo" : "overlay"
+    }
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         var project = try ctx.requireProject()
         let cid = try p.requiredString("clipId")
         let (t, c) = try Timeline.locate(clip: cid, in: project)
         guard !project.tracks[t].locked else { throw CommandError.conflict("\(id): track \(project.tracks[t].name) is locked") }
-        var clip = project.tracks[t].clips[c]
-        guard let placement = clip.placement, placement.fit != .fill, clip.shape == nil else {
-            throw CommandError.conflict("\(id): \(cid) fills the frame (or is a callout): move it with clip.set x/y")
+        guard project.tracks[t].kind == .video || project.tracks[t].kind == .overlay else {
+            throw CommandError.conflict("\(id): \(cid) is not drawn on the frame (a clip of the \(project.tracks[t].kind.rawValue) track \(project.tracks[t].name))")
         }
+        var clip = project.tracks[t].clips[c]
+        if clip.motion != nil {
+            throw CommandError.conflict("\(id): \(cid) is a motion template: it is drawn from its own fields (motion.add), not placed by hand")
+        }
+        if clip.shape?.kind == .halo {
+            throw CommandError.conflict("\(id): \(cid) is a halo that follows the object above it (clip.follow): move that object instead")
+        }
+        let what = what(clip, project.tracks[t], project)
         let fields = ["x", "y", "dx", "dy", "scale", "rotation"].filter(p.has)
         guard !fields.isEmpty || p.bool("reset") == true else { throw CommandError.invalid("\(id): pass x, y, dx, dy, scale, rotation or reset") }
+        if p.has("rotation"), clip.shape != nil { throw CommandError.invalid("\(id): a \(what) does not turn: pass x, y, dx, dy or scale") }
+        if let s = p.number("scale"), !(0.05...20).contains(s) { throw CommandError.invalid("\(id): scale must be 0.05…20") }
         let W = Double(project.settings.width), H = Double(project.settings.height)
         let fraction = p.string("units") == "fraction"
         let fx = fraction ? 1 : 1 / W, fy = fraction ? 1 : 1 / H
@@ -210,58 +237,114 @@ enum ClipPlace: Command {
                 clip.placement = o.placement
                 clip.transform = o.transform
                 clip.keyframes = o.keyframes
+                if let r = o.rect { clip.shape?.rect = r }
                 clip.placeOrigin = nil
             }
         }
         if !fields.isEmpty {
-            if clip.placeOrigin == nil { clip.placeOrigin = PlaceOrigin(placement: clip.placement, transform: clip.transform, keyframes: clip.keyframes) }
-            var pl = clip.placement!
-            var rest = clip.transform ?? Transform()
-            // The centre at rest = placement + the rest offset; keyframes are relative to the placement, so they follow.
-            var cx = pl.x + rest.x, cy = pl.y + rest.y
-            if let x = p.number("x") { cx = x * fx }
-            if let y = p.number("y") { cy = y * fy }
-            if let dx = p.number("dx") { cx += dx * fx }
-            if let dy = p.number("dy") { cy += dy * fy }
-            pl.x = cx - rest.x
-            pl.y = cy - rest.y
-            if let s = p.number("scale") {
-                guard (0.05...20).contains(s) else { throw CommandError.invalid("\(id): scale must be 0.05…20") }
-                let ratio = s / max(rest.scale, 1e-6)
-                rest.scale = s
-                if let ks = clip.keyframes { clip.keyframes = ks.map { var k = $0; k.transform.scale *= ratio; return k } }
+            if clip.placeOrigin == nil {
+                clip.placeOrigin = PlaceOrigin(placement: clip.placement, transform: clip.transform, keyframes: clip.keyframes, rect: clip.shape?.rect)
             }
-            if let r = p.number("rotation") {
-                let delta = r - rest.rotation
-                rest.rotation = r
-                if let ks = clip.keyframes { clip.keyframes = ks.map { var k = $0; k.transform.rotation += delta; return k } }
+            if var shape = clip.shape {
+                // A callout is drawn in frame coordinates from its own rectangle (fractions of the frame): it moves and
+                // grows around its centre; its fade keyframes do not change.
+                var r = shape.rect
+                var cx = r[0] + r[2] / 2, cy = r[1] + r[3] / 2
+                if let x = p.number("x") { cx = x * fx }
+                if let y = p.number("y") { cy = y * fy }
+                if let dx = p.number("dx") { cx += dx * fx }
+                if let dy = p.number("dy") { cy += dy * fy }
+                if let s = p.number("scale") {
+                    let o = clip.placeOrigin?.rect ?? r
+                    let base = max(abs(o[2]), abs(o[3])), now = max(abs(r[2]), abs(r[3]))
+                    if base > 0, now > 0 { r[2] *= s * base / now; r[3] *= s * base / now }
+                }
+                r[0] = cx - r[2] / 2
+                r[1] = cy - r[3] / 2
+                shape.rect = r
+                clip.shape = shape
+            } else {
+                // A picture that fills the frame becomes a box exactly as large as the frame: the same picture (the crop
+                // fitted to the box's aspect, which is the frame's), now placeable.
+                if clip.placement == nil || clip.placement?.fit == .fill {
+                    var box = Placement(fit: .box)
+                    box.width = 1
+                    box.height = 1
+                    clip.placement = box
+                }
+                var pl = clip.placement!
+                var rest = clip.transform ?? Transform()
+                // The centre at rest = placement + the rest offset; keyframes are relative to the placement, so they follow.
+                var cx = pl.x + rest.x, cy = pl.y + rest.y
+                if let x = p.number("x") { cx = x * fx }
+                if let y = p.number("y") { cy = y * fy }
+                if let dx = p.number("dx") { cx += dx * fx }
+                if let dy = p.number("dy") { cy += dy * fy }
+                pl.x = cx - rest.x
+                pl.y = cy - rest.y
+                if let s = p.number("scale") {
+                    if let base = clip.boxBase {
+                        // A box grows itself (its crop, keyframes and decorations stay as they are).
+                        pl.width = base.width * s
+                        pl.height = base.height * s
+                    } else {
+                        let ratio = s / max(rest.scale, 1e-6)
+                        rest.scale = s
+                        if let ks = clip.keyframes { clip.keyframes = ks.map { var k = $0; k.transform.scale *= ratio; return k } }
+                    }
+                }
+                if let r = p.number("rotation") {
+                    let delta = r - rest.rotation
+                    rest.rotation = r
+                    if let ks = clip.keyframes { clip.keyframes = ks.map { var k = $0; k.transform.rotation += delta; return k } }
+                }
+                clip.placement = pl
+                clip.transform = rest == Transform() ? nil : rest
             }
-            clip.placement = pl
-            clip.transform = rest == Transform() ? nil : rest
         }
         project.tracks[t].clips[c] = clip
-        // Keep it inside the frame (when it fits).
+        // Keep it inside the frame (when it fits); a full-frame picture keeps its centre inside the frame.
         var clamped = false
-        if let box = Graphics.restBox(clip, track: project.tracks[t], project: project, renderer: ctx.services.renderer), !fields.isEmpty {
-            var sx = 0.0, sy = 0.0
-            if box[2] <= W { sx = min(max(box[0], 0), W - box[2]) - box[0] }
-            if box[3] <= H { sy = min(max(box[1], 0), H - box[3]) - box[1] }
-            if abs(sx) > 0.25 || abs(sy) > 0.25 {
-                clamped = true
-                project.tracks[t].clips[c].placement!.x += sx / W
-                project.tracks[t].clips[c].placement!.y += sy / H
-                clip = project.tracks[t].clips[c]
+        if !fields.isEmpty {
+            if var shape = clip.shape {
+                let r = shape.rect
+                let x0 = min(r[0], r[0] + r[2]), y0 = min(r[1], r[1] + r[3]), w = abs(r[2]), h = abs(r[3])
+                let sx = w <= 1 ? min(max(x0, 0), 1 - w) - x0 : 0, sy = h <= 1 ? min(max(y0, 0), 1 - h) - y0 : 0
+                if abs(sx * W) > 0.25 || abs(sy * H) > 0.25 {
+                    clamped = true
+                    shape.rect[0] += sx
+                    shape.rect[1] += sy
+                    project.tracks[t].clips[c].shape = shape
+                }
+            } else if let box = Graphics.restBox(clip, track: project.tracks[t], project: project, renderer: ctx.services.renderer) {
+                var sx = 0.0, sy = 0.0
+                if clip.isFullFramePicture {
+                    let mx = box[0] + box[2] / 2, my = box[1] + box[3] / 2
+                    sx = min(max(mx, 0), W) - mx
+                    sy = min(max(my, 0), H) - my
+                } else {
+                    if box[2] <= W { sx = min(max(box[0], 0), W - box[2]) - box[0] }
+                    if box[3] <= H { sy = min(max(box[1], 0), H - box[3]) - box[1] }
+                }
+                if abs(sx) > 0.25 || abs(sy) > 0.25 {
+                    clamped = true
+                    project.tracks[t].clips[c].placement!.x += sx / W
+                    project.tracks[t].clips[c].placement!.y += sy / H
+                }
             }
+            clip = project.tracks[t].clips[c]
         }
         ctx.project = project
-        let what = clip.title != nil ? "title" : clip.sticker != nil ? "sticker" : project.tracks[t].role == "logo" ? "logo" : "overlay"
-        var result: [String: JSONValue] = ["clip": ProjectState.summary(of: clip), "trackId": .string(project.tracks[t].id),
+        var result: [String: JSONValue] = ["clip": ProjectState.summary(of: clip), "trackId": .string(project.tracks[t].id), "kind": .string(what),
                                            "clamped": .bool(clamped), "manual": .bool(clip.placeOrigin != nil)]
-        if let box = Graphics.restBox(clip, track: project.tracks[t], project: project, renderer: ctx.services.renderer) {
+        let box = clip.shape.map { CanvasLayout.shapeBox($0, width: project.settings.width, height: project.settings.height) }
+            ?? Graphics.restBox(clip, track: project.tracks[t], project: project, renderer: ctx.services.renderer)
+        if let box {
             result["box"] = Graphics.boxJSON(box)
             result["center"] = .array([Placing.r1(box[0] + box[2] / 2), Placing.r1(box[1] + box[3] / 2)])
-            var w = Graphics.zoneWarnings(box, project: project, what: what)
-            if clamped { w.append(.string("\(what) kept inside the frame")) }
+            // A picture or a layout box covers the zones by design: no zone warnings for them.
+            var w = what == "picture" || what == "layout box" ? [] : Graphics.zoneWarnings(box, project: project, what: what)
+            if clamped { w.append(.string(what == "picture" ? "picture kept with its centre inside the frame" : "\(what) kept inside the frame")) }
             result["warnings"] = .array(w)
         }
         return .object(result)
@@ -270,7 +353,7 @@ enum ClipPlace: Command {
 
 enum FrameElements: Command {
     static let id = "frame.elements"
-    static let summary = "What can be grabbed on the frame at a time, from the render plan (where the compositor draws it): the caption chunk showing and every title, sticker, logo and overlay, each with its box, centre, size, rotation and scale in pixels of the frame, and whether it was placed by hand. Use it before captions.place / clip.place to know where things are. Returns the list, bottom to top."
+    static let summary = "Everything drawn on the frame at a time, from the render plan (where the compositor draws it), with a kind each: caption (the chunk showing), title, sticker, logo, overlay, picture (a clip that fills the frame: a camera take, a full-frame insert), layoutBox (a box of a recording layout: screen, camera bubble), callout, progress, status, meters, halo and motion (a motion template). Each with its box, centre, size, rotation and scale in pixels of the frame, whether it was placed by hand (manual) and whether it can be moved (movable: false for a halo, which follows an object, and a motion template, drawn from its own fields — a click on the preview only selects their clip). Use it before captions.place / clip.place to know where things are. Returns the list, bottom to top."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [
         .required("time", .time, "Timeline time (seconds)."),

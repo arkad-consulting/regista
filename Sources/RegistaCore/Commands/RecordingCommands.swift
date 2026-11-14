@@ -189,6 +189,7 @@ public enum Recording {
             guard clip.start >= from, clip.end <= to else { continue }
             clip.placement = g.screen.placement
             clip.mask = g.screen.mask
+            clip.placeOrigin = nil   // a box placed by hand gives way to the preset
             var tr = clip.transform ?? Transform()
             (tr.scale, tr.x, tr.y, tr.rotation, tr.opacity) = (1, 0, 0, 0, g.screen.visible ? 1 : 0)
             clip.transform = tr == Transform() ? nil : tr
@@ -210,6 +211,7 @@ public enum Recording {
             clip.transform = tr
             clip.placement = g.camera.placement
             clip.mask = g.camera.mask
+            clip.placeOrigin = nil
             clip.keyframes = nil
             if transition > 0, clip.start == from, let prev = previous { clip.keyframes = entrance(from: prev, to: clip, transition) }
             project.tracks[t].clips[c] = clip
@@ -440,7 +442,7 @@ enum LayoutPresets: Command {
 
 enum LayoutApply: Command {
     static let id = "layout.apply"
-    static let summary = "Put the face where a layout preset says on a time range of a screen recording (default: the whole recording): cuts the screen, camera and mic clips at the range edges and writes placement, crop around the face (faces.track on the camera makes it exact), mask and border on them — ordinary clip properties, editable with clip.set/clip.keyframe. Switching mid-video: call it again on a later range; a move between two layouts of the same shape glides (transition seconds), a new shape pops in. cutout needs matte.track {assetId: <camera>} over the range. screen and bubble take a styled frame (frame: true or background/gradient/padding/radius/shadow): the whole screen padded on a gradient, colour or image background with rounded corners and a soft shadow — the project's backdrop, default from the brand kit. Returns the camera clips written and the boxes."
+    static let summary = "Put the face where a layout preset says on a time range of a screen recording (default: the whole recording): cuts the screen, camera and mic clips at the range edges and writes placement, crop around the face (faces.track on the camera makes it exact), mask and border on them — ordinary clip properties, editable with clip.set/clip.keyframe. Replaces the boxes moved by hand (clip.place) in the range. Switching mid-video: call it again on a later range; a move between two layouts of the same shape glides (transition seconds), a new shape pops in. cutout needs matte.track {assetId: <camera>} over the range. screen and bubble take a styled frame (frame: true or background/gradient/padding/radius/shadow): the whole screen padded on a gradient, colour or image background with rounded corners and a soft shadow — the project's backdrop, default from the brand kit. Returns the camera clips written and the boxes."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .required("preset", .oneOf(LayoutSpec.Kind.allCases.map(\.rawValue)), "bubble, split, stack, face, cutout or screen (layout.presets)."),

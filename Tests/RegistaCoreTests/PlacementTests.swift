@@ -149,8 +149,6 @@ private func captions(_ e: Engine) -> Captions { e.project!.tracks.first { $0.ca
     // Reset: exactly as added (one undo step).
     try e.checkUndoRedo("clip.place", ["clipId": .string(sid), "reset": true])
     #expect(e.project!.tracks.flatMap(\.clips).first { $0.id == sid } == before)
-    // The camera fills the frame: not placeable by hand.
-    #expect(throws: CommandError.self) { try e.execute("clip.place", params: ["clipId": "c1", "x": 10]) }
 }
 
 @Test func canvasElementsAndHitTesting() throws {
@@ -158,15 +156,16 @@ private func captions(_ e: Engine) -> Captions { e.project!.tracks.first { $0.ca
     try e.execute("sticker.add", params: ["sticker": "fire", "start": 1, "position": [540, 400]])
     try e.execute("title.add", params: ["text": "CIAO", "start": 1, "duration": 2, "position": [540, 900]])
     let els = CanvasLayout.elements(e.project!, at: t(1.2), renderer: nil)
-    #expect(els.map(\.kind) == [.sticker, .title, .caption])
-    let sticker = els[0], caption = els[2]
+    // The camera under them fills the frame: listed first, as a picture (#30).
+    #expect(els.map(\.kind) == [.picture, .sticker, .title, .caption])
+    let sticker = els[1], caption = els[3]
     #expect(abs(sticker.center[0] - 540) < 1e-6 && abs(sticker.center[1] - 400) < 1e-6 && sticker.rotatable && !caption.rotatable)
     #expect(CanvasLayout.hit(els, at: (540, 400))?.kind == .sticker)
     #expect(CanvasLayout.hit(els, at: (caption.center[0], caption.center[1]))?.kind == .caption)
-    #expect(CanvasLayout.hit(els, at: (5, 5)) == nil)
+    #expect(CanvasLayout.hit(els, at: (5, 5))?.kind == .picture)
     // A rotated element is hit in its own frame: a corner of the unrotated box is outside once rotated 45°.
     try e.execute("clip.place", params: ["clipId": .string(sticker.clipID!), "rotation": 45])
-    let rotated = CanvasLayout.elements(e.project!, at: t(1.2), renderer: nil)[0]
+    let rotated = CanvasLayout.elements(e.project!, at: t(1.2), renderer: nil)[1]
     let corner = (rotated.center[0] + rotated.size[0] / 2 - 2, rotated.center[1] + rotated.size[1] / 2 - 2)
     #expect(!rotated.contains(corner) && rotated.contains((rotated.center[0], rotated.center[1])))
 }
