@@ -82,7 +82,7 @@ project: what you change in one, you see in the other.
   it does and, where it can, shows a preview on your own frame. A click applies it to the selected clip or at the
   playhead. An item that cannot run now stays visible, greyed, with the reason (a 3D title without Blender, for
   example).
-- **Generate**: an **Image** from a description, **Clips** from a frame, **Music**, or **Zoom in** on a generated clip.
+- **Generate**: an **Image** from a description, a **Video clip** from a frame, **Music**, or **Upscale** on a generated clip.
   The local generator (ComfyUI, free) needs a Pro-tier Mac (32 GB) and is set up separately (see
   [Installation and engines](install.md)). The cloud generator (Higgsfield) is paid: you see the cost first, then
   approve the spending (the button shows the amount) or **Decline**. An approval is good for that one generation only.

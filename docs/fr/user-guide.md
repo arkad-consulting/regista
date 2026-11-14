@@ -89,8 +89,8 @@ montrent le même projet : ce que vous changez dans l'un, vous le voyez dans l'a
   ce qu'il fait et, quand c'est possible, montre un aperçu sur votre propre image. Un clic l'applique au clip
   sélectionné ou à la tête de lecture. Un élément qui ne peut pas fonctionner pour l'instant reste visible, grisé, avec
   la raison (un titre 3D sans Blender, par exemple).
-- **Générer** : une **Image** à partir d'une description, des **Clips** à partir d'une image, une **Musique**, ou
-  **Zoom avant** sur un clip généré. Le générateur local (ComfyUI, gratuit) demande un Mac du niveau Pro (32 Go) et se
+- **Générer** : une **Image** à partir d'une description, un **Clip vidéo** à partir d'une image, une **Musique**, ou
+  **Agrandir** pour un clip généré. Le générateur local (ComfyUI, gratuit) demande un Mac du niveau Pro (32 Go) et se
   prépare à part (voir [Installation et moteurs](install.md)). Le générateur dans le cloud (Higgsfield) est payant :
   vous voyez d'abord le coût, puis vous approuvez la dépense (le bouton affiche le montant) ou vous cliquez sur
   **Refuser**. Une approbation ne vaut que pour cette génération. Ce que vous générez arrive dans **Médias**.

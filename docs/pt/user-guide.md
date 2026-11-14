@@ -83,7 +83,7 @@ projeto: o que você muda em um, vê no outro.
 - **Gráficos**: **Filtros**, **Ajustar**, **Efeitos**, **Estilos**, **Motion design** e **Logo**. Cada item diz o que
   faz e, quando dá, mostra uma prévia no seu próprio quadro. Um clique aplica no clipe selecionado ou no indicador. Um
   item que não pode funcionar agora continua visível, cinza, com o motivo (um título 3D sem o Blender, por exemplo).
-- **Gerar**: uma **Imagem** a partir de uma descrição, **Clipes** a partir de um quadro, uma **Música**, ou **Ampliar**
+- **Gerar**: uma **Imagem** a partir de uma descrição, um **Clipe** a partir de um quadro, uma **Música**, ou **Ampliar**
   um clipe gerado. O gerador local (ComfyUI, gratuito) pede um Mac do nível Pro (32 GB) e é preparado à parte (veja
   [Instalação e motores](install.md)). O gerador na nuvem (Higgsfield) é pago: primeiro você vê o custo, depois aprova o
   gasto (o botão mostra o valor) ou clica em **Recusar**. A aprovação vale só para aquela geração. O que você gera vai
