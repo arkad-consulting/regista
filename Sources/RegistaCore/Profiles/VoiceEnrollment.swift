@@ -32,9 +32,12 @@ public struct RecordingScript: Hashable, Sendable {
     public func consent(name: String) -> String { consent.replacingOccurrences(of: "{name}", with: name) }
 
     /// Reading time at ~2.4 words per second plus a pause per line.
-    public var minutes: Double {
-        let words = blocks.flatMap(\.lines).reduce(0) { $0 + $1.split(separator: " ").count }
-        return (Double(words) / 2.4 + Double(blocks.flatMap(\.lines).count) * 1.5) / 60
+    public var minutes: Double { Self.minutes(lines: blocks.flatMap(\.lines)) }
+
+    /// Reading time of some lines (one block: a tone), as `minutes`.
+    public static func minutes(lines: [String]) -> Double {
+        let words = lines.reduce(0) { $0 + $1.split(separator: " ").count }
+        return (Double(words) / 2.4 + Double(lines.count) * 1.5) / 60
     }
 
     public static func parse(_ text: String, language: String) throws -> RecordingScript {

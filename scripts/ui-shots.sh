@@ -21,9 +21,11 @@
 #   section of a synthetic screen + camera session, framed bubble, drawn cursor, key badges and zoom on, 2200 px tall so the
 #   whole section shows), inspector-screen-<split|stack|face|cutout|screen> (one project per face layout; stack in 9:16)
 #   and inspector-screen-clip (the screen clip selected: Schermo beside the clip's own sections and the picture fades);
-#   and the voice screens from sample data (V1 #61, V2 #62): voice-<state> (the Voce tab: engine-missing, no-profile,
-#   no-voice, ready, rendering, placed, lexicon), voice-setup-<step> (the recording flow: profile, language, consent,
-#   record, check-good, check-poor, train, train-low-ram, training) and settings-voice (Settings › Profilo e voce);
+#   and the voice screens from sample data (V1 #61, V2 #62, V3): voice-<state> (the Voce tab: engine-missing, no-profile,
+#   no-voice = the way into cloning, one-tone, ready = several tones, hint = with the training hint, rendering, placed,
+#   lexicon, imported = a voice trained outside the app), voice-setup-<page> (the "Gestisci voci" window: profile, intro
+#   of a new language, consent, record another tone, check-good, check-poor, overview, overview-low-ram, training, imported)
+#   and settings-voice (Settings › Profilo e voce);
 #   then the steps from a clip to captions from sample data (E2 #54): texts-<state> (Testi e sottotitoli › Passi: fresh,
 #   transcribing, transcribed, cut, keywords, captions, stale, doall, failed), jobs (the status bar's jobs list open over the
 #   Pro editor, sample jobs in two tabs) and jobs-closed (the compact jobs item only);
@@ -66,9 +68,11 @@ done
                                record-open-camera record-displays
                                graphics-filters graphics-adjust graphics-effects graphics-styles graphics-motion graphics-logo
                                brand-picker teleprompter teleprompter-mirror
-                               voice-engine-missing voice-no-profile voice-no-voice voice-ready voice-rendering voice-placed voice-lexicon
-                               voice-setup-profile voice-setup-language voice-setup-consent voice-setup-record voice-setup-check-good
-                               voice-setup-check-poor voice-setup-train voice-setup-train-low-ram voice-setup-training settings-voice
+                               voice-engine-missing voice-no-profile voice-no-voice voice-one-tone voice-ready voice-hint voice-rendering
+                               voice-placed voice-lexicon voice-imported
+                               voice-setup-profile voice-setup-intro voice-setup-consent voice-setup-record voice-setup-check-good
+                               voice-setup-check-poor voice-setup-overview voice-setup-overview-low-ram voice-setup-training
+                               voice-setup-imported settings-voice
                                inspector-video inspector-audio inspector-overlay inspector-multi inspector-none
                                inspector-screen inspector-screen-split inspector-screen-stack inspector-screen-face
                                inspector-screen-cutout inspector-screen-screen inspector-screen-clip

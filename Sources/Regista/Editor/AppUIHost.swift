@@ -89,7 +89,7 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                              "found": .bool(text != nil), "title": text.flatMap { Markdown.title(Markdown.blocks($0)) }.map { .string($0) } ?? .null,
                              "source": .string(HelpLibrary.folder(HelpLibrary.language)?.path ?? "")]
                 } else if let w = workspace, w == "voice" || w == "voice-setup" || w == "settings-voice", let makeView {
-                    // The voice screens (V1 #61, V2 #62), from sample data when `voice` names a state.
+                    // The voice screens (V1 #61, V2 #62, V3), from sample data when `voice` names a state.
                     let state = voice?["state"]?.stringValue
                     let demo = state.map { VoiceDemo.model($0, tier: voice?["tier"]?.stringValue) }
                     let size: CGSize
@@ -108,7 +108,7 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                     view.frame = CGRect(origin: .zero, size: size)
                     let m = demo ?? store.voice
                     var o: [String: JSONValue] = ["workspace": .string(w), "state": state.map { .string($0) } ?? "live",
-                                                  "panel": .string("\(m.state)"), "step": .string(m.setupStep.rawValue),
+                                                  "panel": .string("\(m.state)"), "page": .string(m.windowPage.rawValue),
                                                   "tier": .string(m.snapshot.tier), "profile": m.snapshot.profile.map { .string($0) } ?? .null,
                                                   "languages": .array(m.snapshot.languages.map { .string($0.code) })]
                     if let l = m.snapshot.language(m.setup.language ?? m.activeLanguage?.code) {

@@ -37,6 +37,17 @@ struct VoiceLanguageState: Equatable, Identifiable {
     /// Clips missing before a training can start (0: enough).
     var missingSeconds: Double { max(0, trainMinimumSeconds - seconds) }
     var minutes: Double { seconds / 60 }
+
+    /// A voice exists in this language: usable, with a neutral reference, or trained (a model made outside the app
+    /// counts, even with no recorded minutes).
+    var hasVoice: Bool { ready || zeroShotReady || trained }
+
+    /// The tones this voice has: the ones it can say and the ones recorded (at least one once a voice exists).
+    var voiceTones: [String] {
+        let have = Set(tones).union(recorded.filter { $0.value > 0 }.keys)
+        let list = VoiceTones.all.filter { have.contains($0) }
+        return list.isEmpty && hasVoice ? [VoiceTone.neutral] : list
+    }
 }
 
 /// Everything the Voce panel, the recording flow and Settings › Profilo e voce draw.
@@ -119,6 +130,11 @@ enum VoiceLanguages {
         default: code.uppercased()
         }
     }
+
+    /// The language a first voice starts from: the app's language when a voice can be recorded in it, else Italian.
+    static var preferred: String {
+        Bundle.main.preferredLocalizations.lazy.map { String($0.prefix(2)) }.first { all.contains($0) } ?? "it"
+    }
 }
 
 /// The tones of the recording script (RecordingScript.tones), with their Italian names (looked up).
@@ -150,6 +166,14 @@ enum VoicePanelState: Equatable {
     /// A profile without a usable voice: into the recording flow.
     case noVoice(String)
     case ready
+
+    /// No profile, or a profile without a usable voice: the panel is the way into cloning.
+    var leadsToCloning: Bool {
+        switch self {
+        case .noProfile, .noVoice: true
+        default: false
+        }
+    }
 
     static func from(_ s: VoiceSnapshot, lookup: (String) -> String = { $0 }) -> VoicePanelState {
         if !s.engineAvailable { return .engineMissing(engineReason(s, lookup: lookup)) }
@@ -199,33 +223,115 @@ enum VoiceTraining {
     }
 }
 
-/// The recording flow's steps (V1). It always reopens on the right one, computed from voice.enroll.status.
-enum VoiceSetupStep: String, CaseIterable {
-    case profile, language, consent, record, check, overview, training
+/// What the main area of the "Gestisci voci" window shows for the language selected in its rail (V3). Computed from
+/// voice.enroll.status and the window's own state, so it always opens where the entry point said.
+enum VoiceWindowPage: String, CaseIterable {
+    case profile, intro, consent, record, check, overview
 
-    /// - profile: no profile yet · language: none chosen · training: one runs for the language · check: a take was
-    ///   just checked (until the person moves on) · consent: the language has no consent and the person has not read
-    ///   the consent page in this session · record: the neutral block is missing, or another tone was asked for ·
-    ///   overview: the voice is usable (more tones, training).
-    static func compute(snapshot s: VoiceSnapshot, language: String?, consentRead: Bool, pendingTone: String?, hasCheck: Bool) -> VoiceSetupStep {
+    /// - profile: no profile yet (or one from another Mac) · check: a take was just checked (until the person moves on)
+    ///   · overview: the language has a voice (its tones, its training) · record: a tone asked for from the overview, or
+    ///   a language whose neutral block is missing once its consent was given or read · consent: the intro was passed ·
+    ///   intro: a language without a voice, what will happen.
+    static func compute(snapshot s: VoiceSnapshot, language: String?, started: Bool, consentRead: Bool, pendingTone: String?,
+                        hasCheck: Bool) -> VoiceWindowPage {
         guard s.profile != nil, !s.profileLocked else { return .profile }
-        guard let language else { return .language }
         let l = s.language(language)
-        if l?.training.isRunning == true { return .training }
         if hasCheck { return .check }
-        if l?.consent != true { return consentRead ? .record : .consent }
-        if pendingTone != nil { return .record }
-        if l?.zeroShotReady != true { return .record }
-        return .overview
+        if l?.hasVoice == true { return pendingTone == nil ? .overview : .record }
+        if l?.consent == true || consentRead { return .record }
+        return started ? .consent : .intro
     }
 
-    /// The language to reopen the flow on: one in training, else the first one recorded.
+    /// The language to open the window on when no entry point names one: one in training, else the first with a voice,
+    /// else the first one recorded.
     static func resumeLanguage(_ s: VoiceSnapshot) -> String? {
-        s.languages.first { $0.training.isRunning }?.code ?? s.languages.first { $0.consent || $0.seconds > 0 }?.code
+        s.languages.first { $0.training.isRunning }?.code ?? s.languages.first(where: \.hasVoice)?.code
+            ?? s.languages.first { $0.consent || $0.seconds > 0 }?.code
     }
 
-    /// The tone the record step shows: the one asked for, else neutral.
+    /// "+ Lingua": the first language (in the rail's order) without a voice; nil when all four have one.
+    static func firstWithoutVoice(_ s: VoiceSnapshot) -> String? {
+        VoiceLanguages.all.first { s.language($0)?.hasVoice != true }
+    }
+
+    /// The tone the record page shows: the one asked for, else neutral.
     static func tone(pending: String?) -> String { pending ?? VoiceTone.neutral }
+}
+
+/// A language's state in the window's rail: always one of these four.
+enum VoiceRailState: Equatable {
+    case toRecord
+    case ready(tones: Int)
+    case trained(tones: Int)
+    case training
+
+    static func of(_ l: VoiceLanguageState?) -> VoiceRailState {
+        guard let l else { return .toRecord }
+        if l.training.isRunning { return .training }
+        guard l.hasVoice else { return .toRecord }
+        return l.trained ? .trained(tones: l.voiceTones.count) : .ready(tones: l.voiceTones.count)
+    }
+
+    func label(_ lookup: (String) -> String) -> String {
+        switch self {
+        case .toRecord: lookup("da registrare")
+        case .training: lookup("allenamento in corso")
+        case .ready(let n): n == 1 ? lookup("pronta · 1 tono") : String(format: lookup("pronta · %d toni"), n)
+        case .trained(let n): n == 1 ? lookup("allenata · 1 tono") : String(format: lookup("allenata · %d toni"), n)
+        }
+    }
+}
+
+/// One tone tile of a language's overview: recorded (a check, and the minutes when the profile has them: never "0 min")
+/// or still to record.
+struct VoiceToneTile: Equatable {
+    var tone: String
+    var recorded: Bool
+    var minutes: Double?
+
+    static func tiles(_ l: VoiceLanguageState) -> [VoiceToneTile] {
+        let have = Set(l.voiceTones)
+        return VoiceTones.all.map { t in
+            let m = l.recorded[t].flatMap { $0 > 0 ? $0 : nil }
+            return VoiceToneTile(tone: t, recorded: have.contains(t) || m != nil, minutes: m)
+        }
+    }
+}
+
+/// How long each part of cloning takes, from the model: the loaded script's lines (the shipped scripts' lengths until
+/// one is loaded), the language's own training estimate (RegistaCore's estimate for a neutral block until there is one)
+/// and the tier the training needs (the engine manifest).
+struct VoiceCloneTimes: Equatable {
+    var neutralMinutes: Double
+    var toneMinutes: Double
+    var trainMinutes: Double
+    var trainTier: MachineTier
+    var trainRAM: Int
+
+    /// The shipped scripts: a neutral block of about 10 minutes, about 2 minutes for each other tone (voice.enroll.script).
+    static let scriptNeutralMinutes = 10.0, scriptToneMinutes = 2.0
+
+    static func from(lines: [String: [String]], language: VoiceLanguageState?) -> VoiceCloneTimes {
+        let neutral = lines[VoiceTone.neutral].map { RecordingScript.minutes(lines: $0) } ?? scriptNeutralMinutes
+        let others = lines.filter { $0.key != VoiceTone.neutral }.values.map { RecordingScript.minutes(lines: $0) }
+        let tone = others.isEmpty ? scriptToneMinutes : others.reduce(0, +) / Double(others.count)
+        let train = language.flatMap { $0.seconds > 0 && $0.trainEstimateMinutes > 0 ? $0.trainEstimateMinutes : nil }
+            ?? VoiceEnrollment.estimatedTrainingMinutes(seconds: neutral * 60)
+        let tier = EngineManifest.shared.minimumTier("voice-training")
+        return VoiceCloneTimes(neutralMinutes: neutral, toneMinutes: tone, trainMinutes: train, trainTier: tier,
+                               trainRAM: Int(EngineManifest.shared.info(tier).ramGB))
+    }
+}
+
+/// The panel's one hint about training: only for a usable, untrained voice on a Mac that can train, until dismissed for
+/// that language.
+enum VoiceTrainHint {
+    static func key(profile: String?, language: String) -> String { (profile ?? "") + "/" + language }
+
+    static func shows(_ s: VoiceSnapshot, language l: VoiceLanguageState?, dismissed: Set<String>) -> Bool {
+        guard let l, l.ready, !l.trained, !l.training.isRunning, s.trainerAvailable else { return false }
+        return !dismissed.contains(key(profile: s.profile, language: l.code))
+    }
 }
 
 /// What voice.enroll.add said about a take, for the check step.

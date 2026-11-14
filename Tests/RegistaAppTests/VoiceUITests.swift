@@ -1,11 +1,15 @@
+import AppKit
 import Foundation
 import RegistaCore
+import SwiftUI
 import Testing
+import Vision
 @testable import Regista
 
-// V1 (#61) and V2 (#62): the voice screens' logic — which panel state and which flow step for which voice.list /
-// voice.enroll.status, the job model, the composer's calls — and an end-to-end enrolment with a synthetic voice, in a
-// temporary folder, through exactly the calls the UI makes.
+// V1 (#61), V2 (#62) and V3: the voice screens' logic — which panel state and which window page for which voice.list /
+// voice.enroll.status, where each entry point opens the "Gestisci voci" window, the rail and the tone tiles, the training
+// hint, the job model, the composer's calls — renders of the window and the panel read through their accessibility
+// text, and an end-to-end enrolment with a synthetic voice, in a temporary folder, through exactly the calls the UI makes.
 
 private func list(profile: String? = "Ada", locked: Bool = false, available: Bool = true, tier: String = "pro",
                   languages: [JSONValue] = []) -> JSONValue {
@@ -48,87 +52,204 @@ private func enrolled(_ code: String, consent: Bool, zeroShot: Bool, seconds: Do
     #expect(s.readyLanguages.map(\.code) == ["fr"] && s.languages[0].trained && s.languages[0].tones == ["neutral", "serious"])
 }
 
-@Test func setupStepIsComputedFromTheEnrolmentStatus() {
-    func step(_ l: JSONValue?, profile: String? = "Ada", language: String? = "fr", consentRead: Bool = false, pending: String? = nil,
-              check: Bool = false) -> VoiceSetupStep {
+@Test func windowPageIsComputedFromTheEnrolmentStatus() {
+    func page(_ l: JSONValue?, profile: String? = "Ada", language: String? = "fr", started: Bool = false, consentRead: Bool = false,
+              pending: String? = nil, check: Bool = false) -> VoiceWindowPage {
         let s = VoiceSnapshot(list: list(profile: profile), status: profile == nil ? nil : status(l.map { [$0] } ?? []))
-        return VoiceSetupStep.compute(snapshot: s, language: language, consentRead: consentRead, pendingTone: pending, hasCheck: check)
+        return VoiceWindowPage.compute(snapshot: s, language: language, started: started, consentRead: consentRead, pendingTone: pending, hasCheck: check)
     }
-    #expect(step(nil, profile: nil) == .profile)
-    #expect(step(nil, language: nil) == .language)
-    #expect(step(nil) == .consent)                                         // nothing recorded in this language
-    #expect(step(nil, consentRead: true) == .record)
-    #expect(step(enrolled("fr", consent: true, zeroShot: false, seconds: 20)) == .record)   // the neutral reference is missing
-    #expect(step(enrolled("fr", consent: true, zeroShot: true, seconds: 600)) == .overview)
-    #expect(step(enrolled("fr", consent: true, zeroShot: true), pending: "serious") == .record)
-    #expect(step(enrolled("fr", consent: true, zeroShot: true), check: true) == .check)
-    #expect(step(enrolled("fr", consent: true, zeroShot: true, training: "running")) == .training)
-    // Reopening picks the language in training, else the first one recorded.
+    #expect(page(nil, profile: nil) == .profile)
+    #expect(page(nil) == .intro)                                           // nothing recorded in this language: what will happen
+    #expect(page(nil, started: true) == .consent)
+    #expect(page(nil, started: true, consentRead: true) == .record)
+    #expect(page(enrolled("fr", consent: true, zeroShot: false, seconds: 20)) == .record)   // the neutral reference is missing
+    #expect(page(enrolled("fr", consent: true, zeroShot: true, seconds: 600)) == .overview)
+    #expect(page(enrolled("fr", consent: true, zeroShot: true), pending: "serious") == .record)
+    #expect(page(enrolled("fr", consent: true, zeroShot: true), check: true) == .check)
+    #expect(page(enrolled("fr", consent: true, zeroShot: true, training: "running")) == .overview)   // the progress is on the overview
+    // Opening without an entry point picks the language in training, else the first with a voice, else the first recorded.
     let s = VoiceSnapshot(list: list(), status: status([enrolled("it", consent: true, zeroShot: true), enrolled("fr", consent: true, zeroShot: true, training: "running")]))
-    #expect(VoiceSetupStep.resumeLanguage(s) == "fr")
-    #expect(VoiceSetupStep.resumeLanguage(VoiceSnapshot(list: list(), status: status([]))) == nil)
+    #expect(VoiceWindowPage.resumeLanguage(s) == "fr")
+    #expect(VoiceWindowPage.resumeLanguage(VoiceSnapshot(list: list(), status: status([]))) == nil)
+    #expect(VoiceWindowPage.firstWithoutVoice(s) == "en")
 }
 
-@Test func trainingIsGatedByRamThenByMaterial() {
-    let l = enrolled("fr", consent: true, zeroShot: true, seconds: 600)
-    let medium = VoiceSnapshot(list: list(tier: "medium"), status: status([l], trainer: false, reason: "tier"))
-    let why = VoiceTraining.blockReason(medium, language: medium.languages[0])
-    #expect(why?.contains("32 GB") == true && why?.contains("Medio") == true)
-    let pro = VoiceSnapshot(list: list(tier: "pro"), status: status([l]))
-    #expect(VoiceTraining.blockReason(pro, language: pro.languages[0]) == nil)
-    let thin = VoiceSnapshot(list: list(tier: "pro"), status: status([enrolled("fr", consent: true, zeroShot: true, seconds: 30)]))
-    #expect(VoiceTraining.blockReason(thin, language: thin.languages[0])?.contains("60") == true)   // 90 − 30 s still missing
-    let installed = VoiceSnapshot(list: list(tier: "pro"), status: status([l], trainer: false, reason: "trainer"))
-    #expect(VoiceTraining.blockReason(installed, language: installed.languages[0])?.contains("non è installato") == true)
-}
-
-@Test func composerBuildsTheCommandsCalls() {
-    let say = VoiceCalls.say("Un.\n\nDeux.", language: "fr", tone: "serious", placement: .playhead, playhead: 12.5)
-    #expect(say.id == "voice.say")
-    #expect(say.params == ["text": "Un.\n\nDeux.", "language": "fr", "tone": "serious", "at": 12.5])
-    let after = VoiceCalls.say("Un.", language: "fr", tone: "neutral", placement: .afterVoice, playhead: 3)
-    #expect(after.params == ["text": "Un.", "language": "fr"])            // voice.say's default: after the last voice clip
-    #expect(VoiceCalls.preview("Un.\n\nDeux.", language: "it", tone: "neutral", paragraph: 1).params == ["text": "Un.\n\nDeux.", "language": "it", "paragraph": 1])
-
-    let text = "Premier paragraphe ici.\n\nDeuxième, plus loin."
-    let inSecond = text.range(of: "plus")!
-    #expect(VoiceCalls.listenText(text, selection: inSecond.lowerBound..<inSecond.lowerBound) == "Deuxième, plus loin.")
-    #expect(VoiceCalls.listenText(text, selection: inSecond) == "plus")
-    #expect(VoiceCalls.listenText(text, selection: nil) == "Premier paragraphe ici.")
-    #expect(VoiceCalls.listenText("", selection: nil) == nil)
+/// With a usable voice the panel is the text tool; its cloning entries (Gestisci voci…, + Lingua, + Tono, Allena…) each
+/// open the window where they say — never on the profile or a step 1.
+@MainActor
+@Test func panelOpensOnTheTextAndEachEntryOpensTheWindowWhereItSays() {
+    let m = VoiceModel(store: nil)
+    m.snapshot = VoiceDemo.snapshot("hint", tier: nil)           // it and fr usable, fr untrained, a Pro Mac
+    m.language = "fr"
+    #expect(m.state == .ready && m.pane == .text)
+    m.setup.pendingTone = "sad"; m.setup.started = true          // leftovers of an earlier visit do not decide where it opens
+    m.manageVoices()
+    #expect(m.setup.language == "fr" && m.windowPage == .overview && m.setup.pendingTone == nil)
+    m.addLanguage()
+    #expect(m.setup.language == "en" && m.windowPage == .intro)  // the first language without a voice, its intro
+    m.addTone()
+    #expect(m.setup.language == "fr" && m.windowPage == .overview)
+    m.setup.language = "it"
+    m.openTraining()
+    #expect(m.setup.language == "fr" && m.windowPage == .overview)
+    // The way into cloning: no profile → the window asks the name; a profile without a voice → an intro, never step 1.
+    m.snapshot = VoiceDemo.snapshot("no-profile", tier: nil)
+    #expect(m.state.leadsToCloning)
+    m.openWindow(language: nil)
+    #expect(m.windowPage == .profile)
+    m.snapshot = VoiceDemo.snapshot("no-voice", tier: nil)
+    m.setup.language = nil
+    m.openWindow(language: nil)
+    #expect(m.state.leadsToCloning && m.windowPage == .intro && VoiceLanguages.all.contains(m.windowLanguage))
 }
 
 @MainActor
-@Test func jobsReportProgressCancelForRealAndFailReadably() async throws {
-    let center = JobCenter()
-    // Progress, then done (when the test says so: fixed pauses failed on a busy Mac, #80).
-    let finish = JobGate()
-    let ok = center.start(kind: "voice", title: "ok") { h in
-        h.update(progress: 0.5, detail: "metà")
-        while !finish.open { try await Task.sleep(for: .milliseconds(10)) }
-    }
-    #expect(center.job(ok)?.isRunning == true)
-    await waitFor { center.job(ok)?.progress == 0.5 }
-    #expect(center.job(ok)?.progress == 0.5 && center.job(ok)?.detail == "metà")
-    finish.open = true
-    await waitFor { center.job(ok)?.state == .done }
-    #expect(center.job(ok)?.state == .done && center.job(ok)?.progress == 1)
+@Test func trainingHintOnlyForAnUntrainedVoiceThatCanTrainUntilDismissed() {
+    let suite = "regista-voice-hint-\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suite)!
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let m = VoiceModel(store: nil, defaults: defaults)
+    m.snapshot = VoiceDemo.snapshot("hint", tier: nil)
+    m.language = "fr"
+    #expect(m.showsTrainHint)
+    m.language = "it"
+    #expect(m.showsTrainHint)                                     // it is untrained too
+    m.snapshot = VoiceDemo.snapshot("ready", tier: nil); m.language = "fr"
+    #expect(!m.showsTrainHint)                                    // trained
+    m.snapshot = VoiceDemo.snapshot("hint", tier: "medium")
+    #expect(!m.showsTrainHint)                                    // this Mac cannot train
+    m.snapshot = VoiceDemo.snapshot("training", tier: nil)
+    #expect(!m.showsTrainHint)                                    // already training
+    m.snapshot = VoiceDemo.snapshot("hint", tier: nil)
+    m.dismissTrainHint()
+    #expect(!m.showsTrainHint)
+    m.language = "it"
+    #expect(m.showsTrainHint)                                     // dismissed for French only
+    let again = VoiceModel(store: nil, defaults: defaults)        // and it stays dismissed
+    again.snapshot = VoiceDemo.snapshot("hint", tier: nil); again.language = "fr"
+    #expect(!again.showsTrainHint)
+}
 
-    // Cancel: the hook runs (it stops the process), the job ends cancelled and a late result is ignored.
-    var stopped = false
-    let long = center.start(kind: "voice", title: "long", onCancel: { stopped = true }) { _ in
-        try await Task.sleep(for: .seconds(30))
-    }
-    #expect(center.latest("voice")?.id == long)                         // one finished job per kind is replaced
-    center.cancel(long)
-    #expect(stopped && center.job(long)?.state == .cancelled)
+@MainActor
+@Test func railShowsTheFourLanguagesAndTilesTheSevenTones() {
+    let s = VoiceDemo.snapshot("training", tier: nil)            // it: neutral · fr: three tones, training
+    #expect(VoiceLanguages.all.map { VoiceRailState.of(s.language($0)).label { $0 } }
+            == ["pronta · 1 tono", "allenamento in corso", "da registrare", "da registrare"])
+    let o = VoiceDemo.snapshot("overview", tier: nil)
+    #expect(VoiceRailState.of(o.language("fr")).label { $0 } == "pronta · 3 toni")
+    #expect(VoiceRailState.of(VoiceDemo.snapshot("ready", tier: nil).language("fr")).label { $0 } == "allenata · 3 toni")
+    let tiles = VoiceToneTile.tiles(o.language("fr")!)
+    #expect(tiles.map(\.tone) == RecordingScript.tones)
+    #expect(tiles.filter(\.recorded).map(\.tone) == ["neutral", "serious", "calm"] && tiles.first?.minutes == 9.4)
+    // A voice trained outside the app, no recorded minutes: "allenata · 1 tono", Neutro checked without minutes.
+    let imported = VoiceDemo.snapshot("imported", tier: nil)
+    #expect(VoiceRailState.of(imported.language("fr")).label { $0 } == "allenata · 1 tono")
+    let first = VoiceToneTile.tiles(imported.language("fr")!).first
+    #expect(first == VoiceToneTile(tone: "neutral", recorded: true, minutes: nil))
+    // The same from the commands' own replies (voice.list says lora + neutral, the status has no clips).
+    let fromCommands = VoiceSnapshot(list: list(languages: [["language": "fr", "ready": true, "mode": "lora", "tones": ["neutral"]]]),
+                                     status: status([["language": "fr", "consent": false, "zeroShotReady": false, "tones": [:], "seconds": 0,
+                                                      "lora": "lora/step_0001000", "training": ["state": "done"]]]))
+    #expect(VoiceRailState.of(fromCommands.language("fr")).label { $0 } == "allenata · 1 tono")
+    #expect(VoiceToneTile.tiles(fromCommands.language("fr")!).filter(\.recorded) == [VoiceToneTile(tone: "neutral", recorded: true, minutes: nil)])
+}
 
-    // An error: the command's message without its id.
-    let bad = center.start(kind: "voice-take", title: "bad") { _ in throw CommandError(.invalidParams, "voice.enroll.add: the first recording must start with the consent sentence") }
-    await waitFor { center.job(bad)?.isRunning == false }
-    #expect(center.job(bad)?.state == .failed("the first recording must start with the consent sentence"))
-    center.dismiss(bad)
-    #expect(center.job(bad) == nil)
+@MainActor
+@Test func cloneTimesComeFromTheModel() {
+    let nominal = VoiceCloneTimes.from(lines: [:], language: nil)
+    #expect(nominal.neutralMinutes == 10 && nominal.toneMinutes == 2)
+    #expect(nominal.trainMinutes == VoiceEnrollment.estimatedTrainingMinutes(seconds: 600))
+    #expect(nominal.trainTier == EngineManifest.shared.minimumTier("voice-training") && nominal.trainRAM >= 32)
+    let lines = ["neutral": Array(repeating: "Une ligne de six mots pour voir.", count: 50), "calm": ["Deux mots."]]
+    let t = VoiceCloneTimes.from(lines: lines, language: VoiceDemo.snapshot("overview", tier: nil).language("fr"))
+    #expect(t.neutralMinutes == RecordingScript.minutes(lines: lines["neutral"]!) && t.toneMinutes == RecordingScript.minutes(lines: ["Deux mots."]))
+    #expect(t.trainMinutes == 107)                                // the language's own estimate (voice.enroll.status)
+    #expect(VoiceFormat.rough(107) == "1 h 47 min" && VoiceFormat.rough(9.6) == "10 min")
+}
+
+// MARK: - Renders, read back with text recognition
+
+/// The view rendered at 2× in a borderless window, then read back with Apple Vision's text recognition: the lines a
+/// person would see.
+@MainActor
+private func readRender<V: View>(_ root: V, size: CGSize) async throws -> [String] {
+    _ = NSApplication.shared
+    let view = NSHostingView(rootView: root)
+    view.frame = CGRect(origin: .zero, size: size)
+    let w = NSWindow(contentRect: view.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+    w.appearance = NSAppearance(named: .darkAqua)
+    w.contentView = view
+    view.layoutSubtreeIfNeeded()
+    try await Task.sleep(for: .milliseconds(100))
+    view.layoutSubtreeIfNeeded()
+    let rep = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(size.width) * 2, pixelsHigh: Int(size.height) * 2,
+                                            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+    rep.size = size
+    view.cacheDisplay(in: view.bounds, to: rep)
+    w.contentView = nil
+    let image = try #require(rep.cgImage)
+    let request = VNRecognizeTextRequest()
+    request.recognitionLevel = .accurate
+    request.usesLanguageCorrection = false
+    request.recognitionLanguages = ["it-IT", "fr-FR"]
+    try VNImageRequestHandler(cgImage: image).perform([request])
+    return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+}
+
+/// The window on a voice trained outside the app reads all four languages and all seven tones, "allenata · 1 tono", and
+/// never "0 min"; the same window on a recorded voice does show its minutes (the reading sees them when they are there).
+@MainActor
+@Test func theWindowRendersTheImportedModelWithoutZeroMinutes() async throws {
+    let suite = "regista-voice-render-\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suite)!
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let recorder = Recorder(defaults: defaults)
+    func read(_ state: String) async throws -> [String] {
+        let m = VoiceDemo.model(state, tier: nil)
+        return try await readRender(VoiceSetupView(model: m, jobs: m.demoJobs!).environmentObject(recorder), size: VoiceSetupView.size)
+    }
+    let recorded = try await read("overview").joined(separator: "\n")
+    #expect(recorded.contains("9,4 min") || recorded.contains("9.4 min"), "\(recorded)")
+    let lines = try await read("imported")
+    let all = lines.joined(separator: "\n")
+    #expect(VoiceLanguages.all.allSatisfy { all.contains(VoiceLanguages.name($0)) }, "\(all)")
+    #expect(VoiceTones.all.allSatisfy { all.contains(loc(VoiceTones.title($0))) }, "\(all)")
+    #expect(all.replacingOccurrences(of: "•", with: "·").contains(loc("allenata · 1 tono")), "\(all)")   // the reading sees · as •
+    #expect(!lines.contains { $0.range(of: #"(^|[^0-9,.])0([,.]0)? ?min"#, options: .regularExpression) != nil }, "\(all)")
+}
+
+/// The panel, 300 points wide as in the window: with a usable voice it opens on the text and its only cloning entries are
+/// Gestisci voci…, + Lingua, + Tono and the hint; with no voice it is the way into cloning, the four steps with their times.
+@MainActor
+@Test func thePanelRendersTheTextToolOrTheWayIntoCloning() async throws {
+    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-voice-panel-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: dir) }
+    setenv("REGISTA_ENGINE_SOCKET", dir.appendingPathComponent("e.sock").path, 1)
+    let suite = "regista-voice-panel-\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suite)!
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let store = EditorStore(defaults: defaults, seedFolders: [])
+    func read(_ state: String) async throws -> String {
+        let m = VoiceDemo.model(state, tier: nil)
+        return try await readRender(VoicePanel(model: m, jobs: m.demoJobs!).environmentObject(store), size: CGSize(width: 300, height: 900))
+            .joined(separator: "\n").replacingOccurrences(of: "•", with: "·").replacingOccurrences(of: "...", with: "…")   // as the reading sees them
+    }
+    let daily = try await read("hint")
+    for label in ["Gestisci voci…", "Testo", "Pronuncia", "Lingua", "Tono", "Français", "Neutro", "Serio", "Calmo",
+                  "La voce non è ancora allenata", "Allena…", "Ascolta", "Metti in timeline"] {
+        #expect(daily.contains(label), "\(label) in \(daily)")
+    }
+    #expect(!daily.contains("Clona la tua voce") && !daily.contains("Registra…") && !daily.contains("Altri toni"), "\(daily)")
+    let trained = try await read("ready")
+    #expect(trained.contains("Gestisci voci…") && !trained.contains("non è ancora allenata"), "\(trained)")
+    let first = try await read("no-voice")
+    for label in ["Clona la tua voce", "COME FUNZIONA", "Scegli la lingua", "Leggi il tono neutro", "~10 min", "Aggiungi altri toni",
+                  "~2 min", loc("voice.step.train"), "~1 h 47 min", "Inizia a clonare la tua voce"] {
+        #expect(first.contains(label), "\(label) in \(first)")
+    }
+    #expect(!first.contains("Gestisci voci…"), "\(first)")
 }
 
 // MARK: - End to end with a synthetic voice
@@ -229,9 +350,10 @@ private func spoken(_ sentences: [String], start: Double = 1) -> [RegistaCore.Wo
     _ = try run(VoiceCalls.createProfile("Lucia"))
     var snap = try snapshot()
     #expect(VoicePanelState.from(snap) == .noVoice("Lucia"))
-    #expect(VoiceSetupStep.compute(snapshot: snap, language: nil, consentRead: false, pendingTone: nil, hasCheck: false) == .language)
-    #expect(VoiceSetupStep.compute(snapshot: snap, language: "fr", consentRead: false, pendingTone: nil, hasCheck: false) == .consent)
-    #expect(VoiceSetupStep.compute(snapshot: snap, language: "fr", consentRead: true, pendingTone: nil, hasCheck: false) == .record)
+    // Inizia a clonare la tua voce → the window on a language's intro (the rail picks French), Inizia, Ho capito, registra.
+    #expect(VoiceWindowPage.compute(snapshot: snap, language: "fr", started: false, consentRead: false, pendingTone: nil, hasCheck: false) == .intro)
+    #expect(VoiceWindowPage.compute(snapshot: snap, language: "fr", started: true, consentRead: false, pendingTone: nil, hasCheck: false) == .consent)
+    #expect(VoiceWindowPage.compute(snapshot: snap, language: "fr", started: true, consentRead: true, pendingTone: nil, hasCheck: false) == .record)
 
     // The record step's text, then a take of the neutral block that opens with the consent sentence.
     let s = try run(VoiceCalls.script("fr"))
@@ -247,7 +369,8 @@ private func spoken(_ sentences: [String], start: Double = 1) -> [RegistaCore.Wo
 
     snap = try snapshot()
     #expect(VoicePanelState.from(snap) == .ready)
-    #expect(VoiceSetupStep.compute(snapshot: snap, language: "fr", consentRead: false, pendingTone: nil, hasCheck: false) == .overview)
+    #expect(VoiceWindowPage.compute(snapshot: snap, language: "fr", started: false, consentRead: false, pendingTone: nil, hasCheck: false) == .overview)
+    #expect(VoiceRailState.of(snap.language("fr")) == .ready(tones: 1))
     #expect(snap.language("fr")?.consent == true && (snap.language("fr")?.seconds ?? 0) > 0)
     // Training: gated by the RAM tier on this (medium) Mac, with the reason; the command refuses too.
     #expect(VoiceTraining.blockReason(snap, language: snap.language("fr")!)?.contains("32 GB") == true)

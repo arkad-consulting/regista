@@ -11,9 +11,11 @@ extension EnvironmentValues {
     }
 }
 
-/// The library's Voce tab (V2 #62): text → voice-over in the active profile's own cloned voice. It shows the right
-/// thing for each state — engine missing (visible, disabled, with the reason), no profile (create it here), no voice
-/// yet (into the recording flow), ready (the composer and the pronunciation lexicon).
+/// The library's Voce tab (V2 #62, V3): text → voice-over in the active profile's own cloned voice. Cloning is done once,
+/// typing a text and generating the audio every time: with a usable voice the panel is the text tool and cloning is one
+/// header button, a "+ Lingua" and a "+ Tono" chip and one dismissible hint, all opening the "Gestisci voci" window;
+/// with no profile or no usable voice the panel is the way into cloning (the four steps with their times). Engine
+/// missing and a profile from another Mac show the reason.
 struct VoiceTab: View {
     @EnvironmentObject private var store: EditorStore
     @Environment(\.voiceDemo) private var demo
@@ -28,7 +30,6 @@ struct VoicePanel: View {
     @ObservedObject var jobs: JobCenter
     @EnvironmentObject private var store: EditorStore
     @Environment(\.openSettings) private var openSettings
-    @State private var name = ""
     @State private var selection: TextSelection?
 
     var body: some View {
@@ -43,18 +44,17 @@ struct VoicePanel: View {
                         }
                         VStack(alignment: .leading, spacing: Ed.Space.l) { composer; actions }
                             .disabled(true).opacity(0.38).allowsHitTesting(false)
-                    case .noProfile: noProfile
+                    case .noProfile, .noVoice: VoiceCloneIntro(model: model)
                     case .locked(let who):
                         StateCard(symbol: "lock", title: loc("Profilo di un altro Mac"),
                                   text: String(format: loc("Il profilo di %@ è stato creato su un altro Mac: la sua voce si usa solo dopo averlo adottato in Impostazioni › Profilo e voce."), who)) {
                             EdButton(title: "Apri Impostazioni") { SettingsRoute.open(.voice, with: openSettings) }
                         }
-                    case .noVoice(let who): noVoice(who)
                     case .ready:
                         RSegmented(items: [(VoiceModel.Pane.text, loc("Testo")), (.lexicon, loc("Pronuncia"))], selection: $model.pane)
                         if model.pane == .text { composer } else { VoiceLexiconPane(model: model) }
                     }
-                    honesty
+                    if model.state.leadsToCloning { privacy } else { honesty }
                 }
                 .padding(Ed.Space.l)
             }
@@ -85,38 +85,14 @@ struct VoicePanel: View {
             Text(verbatim: model.snapshot.profile.map { String(format: loc("Voce di %@"), $0) } ?? loc("Nessun profilo"))
                 .font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text2).lineLimit(1)
             Spacer()
-            if model.snapshot.profile != nil, !model.snapshot.profileLocked, model.snapshot.engineAvailable {
-                EdButton(title: loc("Registra…"), symbol: "mic") { model.openSetup() }
-                    .tip("Registra la tua voce, un altro tono o allenala")
+            if model.state == .ready {
+                EdButton(title: loc("Gestisci voci…")) { model.manageVoices() }
+                    .tip("Le tue voci: lingue, toni e allenamento")
             }
         }
         .padding(.horizontal, Ed.Space.m)
         .frame(height: 36)
         .overlay(alignment: .bottom) { Ed.line.frame(height: 1) }
-    }
-
-    // MARK: States
-
-    private var noProfile: some View {
-        StateCard(symbol: "person.crop.circle.badge.plus", title: loc("Prima, il tuo profilo"),
-                  text: loc("La voce appartiene a una persona: il tuo profilo tiene le tue registrazioni e il modello della tua voce, solo su questo Mac. Scrivi il tuo nome: lo dirai nella frase di consenso.")) {
-            VStack(alignment: .leading, spacing: Ed.Space.s) {
-                RTextField(placeholder: "Il tuo nome", text: $name)
-                EdButton(title: loc("Crea il profilo"), symbol: "person.badge.plus", prominent: true, fill: true,
-                         disabled: name.trimmingCharacters(in: .whitespaces).isEmpty) { model.createProfile(name) }
-            }
-        }
-    }
-
-    private func noVoice(_ who: String) -> some View {
-        StateCard(symbol: "mic.badge.plus", title: String(format: loc("%@, registra la tua voce"), who),
-                  text: loc("Leggi ad alta voce il blocco neutro del copione (circa 10 minuti, con la frase di consenso all'inizio): dopo, Regista parla con la tua voce. Gli altri toni e l'allenamento si aggiungono quando vuoi.")) {
-            VStack(alignment: .leading, spacing: Ed.Space.s) {
-                EdButton(title: loc("Registra la tua voce…"), symbol: "mic.fill", prominent: true, fill: true) { model.openSetup() }
-                Text(verbatim: loc("Puoi anche registrare col telefono e un microfono esterno, poi importare il file."))
-                    .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
-            }
-        }
     }
 
     // MARK: Composer
@@ -131,22 +107,35 @@ struct VoicePanel: View {
             if let lang = model.activeLanguage {
                 RSection(loc("Lingua")) {
                     RChips(items: model.snapshot.readyLanguages.map { .init(id: $0.code, title: VoiceLanguages.name($0.code)) },
-                           selection: lang.code, columns: 2) { code in
+                           selection: lang.code, flow: true,
+                           add: VoiceWindowPage.firstWithoutVoice(model.snapshot) == nil ? nil
+                               : .init(title: "Lingua", tip: "Clona la tua voce in un'altra lingua", action: model.addLanguage)) { code in
                         model.language = code
                         Task { await model.loadLexicon(code) }
                     }
                 }
                 RSection(loc("Tono")) {
-                    RChips(items: lang.tones.map { .init(id: $0, title: loc(VoiceTones.title($0))) }, selection: model.activeTone,
-                           columns: min(3, max(lang.tones.count, 1))) { model.tone = $0 }
-                    HStack(alignment: .firstTextBaseline, spacing: Ed.Space.xs) {
-                        Text(verbatim: lang.trained ? loc("Altri toni: registra il loro blocco (circa 2 minuti) e allena di nuovo la voce.")
-                                                    : loc("Altri toni: registra il loro blocco (circa 2 minuti ciascuno); allenando la voce diventano più fedeli."))
-                            .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
-                    }
+                    RChips(items: lang.tones.map { .init(id: $0, title: loc(VoiceTones.title($0))) }, selection: model.activeTone, flow: true,
+                           add: lang.voiceTones.count >= VoiceTones.all.count ? nil
+                               : .init(title: "Tono", tip: "Registra un altro tono di questa voce", action: model.addTone)) { model.tone = $0 }
                 }
+                if model.showsTrainHint { trainHint }
             }
         }
+    }
+
+    /// The one hint about training (dismissible, for this language): an untrained voice on a Mac that can train.
+    private var trainHint: some View {
+        HStack(alignment: .firstTextBaseline, spacing: Ed.Space.s) {
+            VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+                Text(verbatim: loc("La voce non è ancora allenata: dopo è più fedele."))
+                    .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
+                AccentLinkButton(title: "Allena…", tip: "Apri l'allenamento di questa voce", action: model.openTraining)
+            }
+            Spacer(minLength: 0)
+            IconButton(symbol: "xmark", help: "Nascondi questo consiglio", size: Ed.Height.icon, action: model.dismissTrainHint)
+        }
+        .rCard(.well, padding: Ed.Space.s)
     }
 
     private var busy: Bool { jobs.latest("voice")?.isRunning == true }
@@ -208,12 +197,99 @@ struct VoicePanel: View {
         .rCard()
     }
 
+    /// Under the way into cloning: where the voice stays.
+    private var privacy: some View {
+        HStack(alignment: .top, spacing: Ed.Space.s) {
+            Image(systemName: "lock").font(Ed.icon(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
+            Text(verbatim: loc("Registrazioni e modello restano su questo Mac, nel tuo profilo."))
+                .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     private var honesty: some View {
         HStack(alignment: .top, spacing: Ed.Space.s) {
             Image(systemName: "info.circle").font(Ed.icon(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
             Text(verbatim: loc("Voce sintetica, generata con l'IA a partire dalla tua. L'export aggiunge la nota «voce generata con IA» da riportare nella descrizione del post."))
                 .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
         }
+    }
+}
+
+/// The panel when there is no profile or no usable voice yet: the way into cloning — what it is, the four steps with
+/// their times, one button that opens the "Gestisci voci" window.
+struct VoiceCloneIntro: View {
+    @ObservedObject var model: VoiceModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Ed.Space.l) {
+            VStack(alignment: .leading, spacing: Ed.Space.s) {
+                Text(verbatim: loc("Clona la tua voce")).font(Ed.display(Ed.TypeSize.large, .medium)).foregroundStyle(Ed.text)
+                Text(verbatim: loc("Leggi ad alta voce un testo che ti mostra Regista. Regista impara la tua voce su questo Mac e poi dice per te qualsiasi testo."))
+                    .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).lineSpacing(2).fixedSize(horizontal: false, vertical: true)
+            }
+            RSection(loc("Come funziona")) {
+                VoiceCloneSteps(times: model.cloneTimes, tier: model.snapshot.tier)
+            }
+            VStack(alignment: .leading, spacing: Ed.Space.s) {
+                EdButton(title: loc("Inizia a clonare la tua voce"), symbol: "mic.fill", prominent: true, large: true, fill: true) {
+                    model.openWindow(language: nil)
+                }
+                Text(verbatim: loc("Puoi anche registrare col telefono e importare il file."))
+                    .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
+/// The four steps of cloning with their times, from the model (VoiceCloneTimes): the panel's way in, and the window's
+/// intro of a language, where `language` marks the first step done.
+struct VoiceCloneSteps: View {
+    let times: VoiceCloneTimes
+    /// This Mac's tier (voice.list).
+    let tier: String
+    var language: String? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Ed.Space.s) {
+            step(1, loc("Scegli la lingua"), nil,
+                 language.map { String(format: loc("Hai scelto %@. Un'altra lingua si sceglie a sinistra, ora o dopo."), VoiceLanguages.name($0)) }
+                    ?? loc("Ogni lingua ha la sua voce. Comincia da quella dei tuoi video, le altre si aggiungono dopo."),
+                 done: language != nil)
+            step(2, loc("Leggi il tono neutro"), "~" + VoiceFormat.rough(times.neutralMinutes), loc("Appena finito, la voce si può già usare."))
+            step(3, loc("Aggiungi altri toni"), String(format: loc("~%@ l'uno"), VoiceFormat.rough(times.toneMinutes)),
+                 String(format: loc("Facoltativo. %@: registri solo quelli che ti servono."), otherTones))
+            step(4, loc("voice.step.train"), "~" + VoiceFormat.rough(times.trainMinutes), trainText)
+        }
+    }
+
+    /// "Entusiasta, serio, calmo…": the tones after the neutral one, in the app's language.
+    private var otherTones: String {
+        let list = VoiceTones.all.filter { $0 != VoiceTone.neutral }.map { loc(VoiceTones.title($0)).lowercased(with: Locale.current) }
+            .joined(separator: ", ")
+        return list.prefix(1).uppercased(with: Locale.current) + list.dropFirst()
+    }
+
+    private var trainText: String {
+        let need = String(format: loc("Facoltativo. La rende più fedele. Il Mac lavora da solo, tu non devi fare niente. Serve un Mac con almeno %d GB (livello %@)."),
+                          times.trainRAM, VoiceTraining.tierName(times.trainTier.rawValue, lookup: loc))
+        guard let mac = MachineTier(rawValue: tier), mac < times.trainTier else { return need }
+        return need + " " + String(format: loc("Questo Mac è al livello %@."), VoiceTraining.tierName(tier, lookup: loc))
+    }
+
+    private func step(_ n: Int, _ title: String, _ time: String?, _ text: String, done: Bool = false) -> some View {
+        HStack(alignment: .top, spacing: Ed.Space.m) {
+            StateGlyph(done ? "done" : "todo", number: n)
+            VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+                HStack(alignment: .firstTextBaseline, spacing: Ed.Space.s) {
+                    Text(verbatim: title).font(Ed.ui(Ed.TypeSize.control, .semibold)).foregroundStyle(Ed.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    if let time { Text(verbatim: time).font(Ed.mono(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize() }
+                }
+                Text(verbatim: text).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).lineSpacing(1).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .rCard(.raised)
     }
 }
 
@@ -300,6 +376,11 @@ enum VoiceFormat {
         if s < 60 { return "\(s) s" }
         if s < 3600 { return s % 60 == 0 ? "\(s / 60) min" : "\(s / 60) min \(s % 60) s" }
         return String(format: "%d h %02d min", s / 3600, (s % 3600) / 60)
+    }
+
+    /// A rough length in whole minutes: "10 min", "1 h 47 min" (the times of cloning).
+    static func rough(_ minutes: Double) -> String {
+        minutes < 60 ? String(format: "%d min", max(1, Int(minutes.rounded()))) : duration(minutes.rounded() * 60)
     }
 
     static func minutes(_ m: Double) -> String {

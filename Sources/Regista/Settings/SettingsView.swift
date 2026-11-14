@@ -178,7 +178,7 @@ private struct KeyCaps: View {
 
 /// The person this Regista belongs to and their cloned voice (#41, V1 #61). Switching, adopting and deleting a profile
 /// happen only here (human-only commands): an agent can never pick someone else's voice. Every action is a command
-/// (profile.*), logged like the others; recording and training open the guided flow in the main window.
+/// (profile.*), logged like the others; recording and training open the "Gestisci voci" window in the main window.
 struct ProfileSettings: View {
     @EnvironmentObject private var store: EditorStore
     @Environment(\.voiceDemo) private var demo
@@ -224,7 +224,7 @@ private struct ProfileSettingsForm: View {
                     }
                     HStack {
                         Spacer()
-                        Button(model.snapshot.languages.isEmpty ? loc("Registra la tua voce…") : loc("Registra o allena la voce…")) { openFlow() }
+                        Button(loc("Gestisci voci…")) { openFlow() }
                             .keyboardShortcut(.defaultAction)
                     }
                     if !model.snapshot.engineAvailable {
@@ -302,10 +302,10 @@ private struct ProfileSettingsForm: View {
         }
     }
 
-    /// The guided flow lives in the main window (it records with the app's microphone).
+    /// The "Gestisci voci" window lives in the main window (it records with the app's microphone).
     private func openFlow() {
         guard !model.demo else { return }
-        model.openSetup()
+        model.openWindow(language: nil)
         if let w = store.ui.window { w.makeKeyAndOrderFront(nil) }
         NSApp.activate()
     }

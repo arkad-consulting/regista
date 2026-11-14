@@ -88,9 +88,12 @@ final class VoiceModel: ObservableObject {
         var captioned = false
     }
 
-    /// The recording flow's own state (the step itself is computed: VoiceSetupStep.compute).
+    /// The "Gestisci voci" window's own state (its page is computed: VoiceWindowPage.compute).
     struct Setup: Equatable {
+        /// The language selected in the rail.
         var language: String?
+        /// The intro of a language without a voice was passed (on to consent).
+        var started = false
         var consentRead = false
         var pendingTone: String?
         var check: VoiceTakeCheck?
@@ -98,8 +101,6 @@ final class VoiceModel: ObservableObject {
         var consent = ""
         var lines: [String: [String]] = [:]
         var recording = false
-        /// Forced step (ui.screenshot).
-        var forced: VoiceSetupStep?
     }
 
     weak var store: EditorStore?
@@ -121,8 +122,12 @@ final class VoiceModel: ObservableObject {
     @Published var lexicon: [LexiconEntry] = []
     @Published var lexiconLanguage: String?
 
-    // Recording flow
+    // The "Gestisci voci" window
     @Published var setup = Setup()
+    /// Languages whose training hint was dismissed (VoiceTrainHint.key), kept in `defaults` when there is one.
+    @Published private(set) var dismissedHints: Set<String> = []
+    private let defaults: UserDefaults?
+    private static let hintsKey = "voice.trainHintDismissed"
 
     /// Jobs of a demo render (the live model uses the store's).
     let demoJobs: JobCenter?
@@ -130,10 +135,12 @@ final class VoiceModel: ObservableObject {
     private var queue: [URL] = []
     private var savedSources: RecordingSources?
 
-    init(store: EditorStore?, demo: Bool = false, jobs: JobCenter? = nil) {
+    init(store: EditorStore?, demo: Bool = false, jobs: JobCenter? = nil, defaults: UserDefaults? = nil) {
         self.store = store
         self.demo = demo
         self.demoJobs = jobs
+        self.defaults = defaults
+        dismissedHints = Set(defaults?.stringArray(forKey: Self.hintsKey) ?? [])
     }
 
     var jobs: JobCenter? { demoJobs ?? store?.jobs }
@@ -149,9 +156,24 @@ final class VoiceModel: ObservableObject {
         return tones.contains(tone) ? tone : VoiceTone.neutral
     }
 
-    var setupStep: VoiceSetupStep {
-        setup.forced ?? VoiceSetupStep.compute(snapshot: snapshot, language: setup.language, consentRead: setup.consentRead,
-                                               pendingTone: setup.pendingTone, hasCheck: setup.check != nil)
+    /// The language the window shows: the one selected, else where the voice stands, else the app's language.
+    var windowLanguage: String { setup.language ?? VoiceWindowPage.resumeLanguage(snapshot) ?? VoiceLanguages.preferred }
+
+    var windowPage: VoiceWindowPage {
+        VoiceWindowPage.compute(snapshot: snapshot, language: windowLanguage, started: setup.started, consentRead: setup.consentRead,
+                                pendingTone: setup.pendingTone, hasCheck: setup.check != nil)
+    }
+
+    /// How long cloning takes, for the panel's steps, the intro and the tiles.
+    var cloneTimes: VoiceCloneTimes { VoiceCloneTimes.from(lines: setup.lines, language: snapshot.language(windowLanguage)) }
+
+    /// The panel's training hint for the composer's language.
+    var showsTrainHint: Bool { VoiceTrainHint.shows(snapshot, language: activeLanguage, dismissed: dismissedHints) }
+
+    func dismissTrainHint() {
+        guard let l = activeLanguage?.code else { return }
+        dismissedHints.insert(VoiceTrainHint.key(profile: snapshot.profile, language: l))
+        defaults?.set(dismissedHints.sorted(), forKey: Self.hintsKey)
     }
 
     // MARK: Loading
@@ -169,7 +191,7 @@ final class VoiceModel: ObservableObject {
         } catch {
             loadError = JobCenter.message(error)
         }
-        if setup.language == nil { setup.language = VoiceSetupStep.resumeLanguage(snapshot) }
+        if setup.language == nil { setup.language = VoiceWindowPage.resumeLanguage(snapshot) }
         if let l = activeLanguage?.code, lexiconLanguage != l { await loadLexicon(l) }
         watchTraining()
     }
@@ -193,6 +215,7 @@ final class VoiceModel: ObservableObject {
             let c = VoiceCalls.createProfile(name)
             do { try await store.perform(c.id, c.params) } catch { store.errorMessage = VoiceErrors.readable(error) }
             await refresh()
+            await loadScript()
         }
     }
 
@@ -326,25 +349,41 @@ final class VoiceModel: ObservableObject {
         }
     }
 
-    // MARK: Recording flow
+    // MARK: The "Gestisci voci" window
 
-    func openSetup(tone: String? = nil) {
-        if let tone { setup.pendingTone = tone }
-        setup.check = nil
+    /// Opens the window on `language` (its overview when it has a voice, else its intro); nil: where the voice stands.
+    func openWindow(language: String?) {
+        select(language ?? windowLanguage)
         store?.showVoiceSetup = true
         Task { await refresh(); await loadScript() }
     }
 
+    /// The panel's entries: Gestisci voci… (the composer's language), + Lingua (the first language without a voice),
+    /// + Tono and Allena… (the composer's language, its overview).
+    func manageVoices() { openWindow(language: activeLanguage?.code) }
+    func addLanguage() { openWindow(language: VoiceWindowPage.firstWithoutVoice(snapshot)) }
+    func addTone() { openWindow(language: activeLanguage?.code) }
+    func openTraining() { openWindow(language: activeLanguage?.code) }
+
+    /// A language picked in the rail.
     func chooseLanguage(_ code: String) {
+        select(code)
+        Task { await loadScript() }
+    }
+
+    private func select(_ code: String) {
+        if setup.language != code { setup.lines = [:]; setup.consent = "" }
         setup.language = code
+        setup.started = false
+        setup.consentRead = false
         setup.check = nil
         setup.pendingTone = nil
-        Task { await loadScript() }
     }
 
     /// voice.enroll.script for the chosen language (it also writes script.md in the profile, to read from a phone).
     func loadScript() async {
-        guard !demo, let store, let lang = setup.language, snapshot.profile != nil else { return }
+        let lang = windowLanguage
+        guard !demo, let store, snapshot.profile != nil else { return }
         let c = VoiceCalls.script(lang)
         guard let r = try? await store.perform(c.id, c.params) else { return }
         setup.consent = r["consent"]?.stringValue ?? ""
@@ -355,7 +394,7 @@ final class VoiceModel: ObservableObject {
         setup.lines = lines
     }
 
-    var recordTone: String { VoiceSetupStep.tone(pending: setup.pendingTone) }
+    var recordTone: String { VoiceWindowPage.tone(pending: setup.pendingTone) }
 
     /// Starts a microphone-only take with the app's recorder (the "Solo voce" sources, no teleprompter: the text is on
     /// this sheet); the choices the person had come back when the take ends.
@@ -399,7 +438,8 @@ final class VoiceModel: ObservableObject {
 
     /// voice.enroll.add as a job: transcription, consent check, one clip per line heard.
     func addTake(_ url: URL, tone: String) {
-        guard !demo, let store, let jobs, let lang = setup.language else { return }
+        let lang = windowLanguage
+        guard !demo, let store, let jobs else { return }
         setup.check = nil
         jobs.start(kind: "voice-take", title: String(format: loc("Controllo della registrazione · %@"), loc(VoiceTones.title(tone))),
                    cancellable: false) { [weak self] h in
@@ -426,7 +466,8 @@ final class VoiceModel: ObservableObject {
 
     /// voice.enroll.train: the training runs in the background; a job follows it from voice.enroll.status.
     func train() {
-        guard !demo, let store, let lang = setup.language else { return }
+        let lang = windowLanguage
+        guard !demo, let store else { return }
         Task {
             let c = VoiceCalls.train(lang)
             do { try await store.perform(c.id, c.params) } catch { store.errorMessage = VoiceErrors.readable(error) }

@@ -1,9 +1,10 @@
 import RegistaCore
 import SwiftUI
 
-/// The guided flow (V1 #61): profile → language → consent → record one block per tone (neutral first) → check the
-/// take → the voice and its optional training. Reachable from the Voce panel and from Settings › Profilo e voce; it
-/// always reopens on the step voice.enroll.status says, and every action is a command.
+/// The "Gestisci voci" window (V1 #61, V3): the four languages with their state on the left, the selected language on
+/// the right — its overview (the seven tones, the training) when it has a voice, else its intro, consent, the neutral
+/// tone and the check; recording another tone happens in place with a way back to the overview. Reachable from the
+/// Voce panel and from Settings › Profilo e voce; it opens where the entry point said, and every action is a command.
 struct VoiceSetupSheet: View {
     @EnvironmentObject private var store: EditorStore
     @Environment(\.voiceDemo) private var demo
@@ -20,16 +21,18 @@ struct VoiceSetupView: View {
     @EnvironmentObject private var recorder: Recorder
     @EnvironmentObject private var store: EditorStore
     @State private var name = ""
-    @State private var pickedLanguage: String?
 
     static let size = CGSize(width: 880, height: 620)
 
-    private var step: VoiceSetupStep { model.setupStep }
-    private var language: VoiceLanguageState? { model.snapshot.language(model.setup.language) }
+    private var page: VoiceWindowPage { model.windowPage }
+    private var code: String { model.windowLanguage }
+    private var language: VoiceLanguageState? { model.snapshot.language(code) }
+    private var live: Bool { recorder.isRecording || model.setup.recording }
+    private var takeRunning: Bool { jobs.latest("voice-take")?.isRunning == true }
 
     var body: some View {
         HStack(spacing: 0) {
-            rail.frame(width: 210)
+            rail.frame(width: 230)
             Ed.line.frame(width: 1)
             VStack(spacing: 0) {
                 ScrollView {
@@ -49,61 +52,42 @@ struct VoiceSetupView: View {
 
     // MARK: Rail
 
+    /// "Le tue voci": the profile, then the four languages, always all four, each with its state.
     private var rail: some View {
-        VStack(alignment: .leading, spacing: Ed.Space.xxs) {
-            Text(verbatim: loc("La tua voce")).font(Ed.display(Ed.TypeSize.heading, .medium)).foregroundStyle(Ed.text)
-                .padding(.bottom, Ed.Space.xxs)
-            Text(verbatim: model.snapshot.profile.map { p in model.setup.language.map { "\(p) · \(VoiceLanguages.name($0))" } ?? p } ?? loc("Nessun profilo"))
-                .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).padding(.bottom, Ed.Space.l)
-            ForEach(Array(railSteps.enumerated()), id: \.offset) { i, item in
-                HStack(spacing: Ed.Space.s) {
-                    StateGlyph(item.done && !item.current ? "done" : (item.current ? "todo" : "blocked"), number: i + 1, size: 20)
-                    Text(verbatim: loc(item.title)).font(Ed.ui(Ed.TypeSize.body, item.current ? .semibold : .regular))
-                        .foregroundStyle(item.current ? Ed.text : (item.done ? Ed.text2 : Ed.text3))
-                    Spacer(minLength: 0)
-                }
+        let noProfile = page == .profile
+        return VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+            Text(verbatim: loc("Le tue voci")).font(Ed.display(Ed.TypeSize.heading, .medium)).foregroundStyle(Ed.text)
                 .padding(.horizontal, Ed.Space.s)
-                .frame(height: 32)
-                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(item.current ? Ed.control : .clear))
+            Text(verbatim: model.snapshot.profile ?? loc("Nessun profilo"))
+                .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).lineLimit(1)
+                .padding(.horizontal, Ed.Space.s).padding(.bottom, Ed.Space.m)
+            ForEach(VoiceLanguages.all, id: \.self) { c in
+                PickRow(title: VoiceLanguages.name(c), detail: VoiceRailState.of(model.snapshot.language(c)).label(loc),
+                        selected: !noProfile && c == code, mark: .none) { model.chooseLanguage(c) }
             }
+            .disabled(noProfile || live || takeRunning)
+            .opacity(noProfile ? 0.4 : 1)
             Spacer()
-            if model.setup.language != nil, step != .language, step != .profile, !(recorder.isRecording || model.setup.recording) {
-                EdButton(title: loc("Cambia lingua"), symbol: "globe") { model.setup.language = nil; pickedLanguage = nil; model.setup.check = nil }
-                    .padding(.bottom, Ed.Space.m)
-            }
             Text(verbatim: loc("Registrazioni e modello restano su questo Mac, nel tuo profilo."))
                 .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, Ed.Space.s)
         }
-        .padding(Ed.Space.l)
+        .padding(.horizontal, Ed.Space.m).padding(.vertical, Ed.Space.l)
         .frame(maxHeight: .infinity, alignment: .top)
         .background(Ed.header)
-    }
-
-    private var railSteps: [(title: String, done: Bool, current: Bool)] {
-        let l = language
-        let s = step
-        return [
-            (loc("Profilo"), model.snapshot.profile != nil, s == .profile),
-            (loc("Lingua"), model.setup.language != nil, s == .language),
-            (loc("Consenso"), l?.consent == true, s == .consent),
-            (loc("Registra"), l?.zeroShotReady == true, s == .record),
-            (loc("Controllo"), l?.zeroShotReady == true, s == .check),
-            (loc("Voce e allenamento"), l?.trained == true, s == .overview || s == .training),
-        ]
     }
 
     // MARK: Content
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 0) {
-            switch step {
-            case .profile: profileStep
-            case .language: languageStep
-            case .consent: consentStep
-            case .record: recordStep
-            case .check: checkStep
-            case .overview: overviewStep
-            case .training: trainingStep
+            switch page {
+            case .profile: profilePage
+            case .intro: introPage
+            case .consent: consentPage
+            case .record: recordPage
+            case .check: checkPage
+            case .overview: overviewPage
             }
         }
     }
@@ -119,7 +103,7 @@ struct VoiceSetupView: View {
     }
 
     @ViewBuilder
-    private var profileStep: some View {
+    private var profilePage: some View {
         if model.snapshot.profileLocked {
             title(loc("Questo profilo è di un altro Mac"),
                   loc("È stato copiato da un altro Mac: la sua voce si usa solo dopo averlo adottato. Se è tuo, adottalo in Impostazioni › Profilo e voce."))
@@ -134,34 +118,16 @@ struct VoiceSetupView: View {
         }
     }
 
-    private var languageStep: some View {
-        VStack(alignment: .leading, spacing: Ed.Space.l) {
-            title(loc("In che lingua registri?"),
-                  loc("Ogni lingua ha il suo copione e la sua voce. Comincia da quella in cui farai più video; le altre si aggiungono dopo."))
-            RChips(items: VoiceLanguages.all.map { .init(id: $0, title: VoiceLanguages.name($0)) }, selection: pickedLanguage ?? model.setup.language,
-                   columns: 4, height: 44) { pickedLanguage = $0 }
-            .frame(maxWidth: 520)
-            if !model.snapshot.languages.isEmpty {
-                RSection(loc("Già registrate")) {
-                    VStack(spacing: 0) {
-                        ForEach(model.snapshot.languages) { l in
-                            HStack {
-                                Text(verbatim: VoiceLanguages.name(l.code)).font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text)
-                                Spacer()
-                                Text(verbatim: VoiceSummary.line(l)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
-                            }
-                            .padding(.horizontal, Ed.Space.m).frame(height: 32)
-                            .overlay(alignment: .bottom) { Ed.line.frame(height: 1) }
-                        }
-                    }
-                    .rCard(padding: 0)
-                    .frame(maxWidth: 520)
-                }
-            }
+    /// A language without a voice: what will happen for it (the panel's four facts), before consent.
+    private var introPage: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            title(String(format: loc("Clona la tua voce in %@"), VoiceLanguages.name(code)),
+                  loc("Leggi ad alta voce un testo che ti mostra Regista. Regista impara la tua voce su questo Mac e poi dice per te qualsiasi testo."))
+            VoiceCloneSteps(times: model.cloneTimes, tier: model.snapshot.tier, language: code).frame(maxWidth: 560)
         }
     }
 
-    private var consentStep: some View {
+    private var consentPage: some View {
         VStack(alignment: .leading, spacing: Ed.Space.l) {
             title(loc("Prima di iniziare"), loc("Cosa succede alla tua voce, detto semplice."))
             point("quote.opening", loc("La prima registrazione inizia con una frase di consenso, letta ad alta voce:"),
@@ -189,28 +155,25 @@ struct VoiceSetupView: View {
 
     // MARK: Record
 
-    private var recordStep: some View {
+    private var recordPage: some View {
         let tone = model.recordTone
         let lines = model.setup.lines[tone] ?? []
         let needsConsent = language?.consent != true
-        let minutes = Double(lines.joined(separator: " ").split(separator: " ").count) / 2.4 / 60 + Double(lines.count) * 1.5 / 60
         return VStack(alignment: .leading, spacing: Ed.Space.l) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: Ed.Space.xs) {
-                    Text(verbatim: String(format: loc("Blocco «%@»"), loc(VoiceTones.title(tone))))
-                        .font(Ed.display(Ed.TypeSize.large, .medium)).foregroundStyle(Ed.text)
-                    Text(verbatim: String(format: loc("%d righe · circa %d min · resta nel tono per tutto il blocco, un po' esagerato"),
-                                          lines.count, max(1, Int(minutes.rounded()))))
-                        .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
+            if language?.hasVoice == true {
+                AccentLinkButton(title: String(format: loc("‹ %@, tutti i toni"), VoiceLanguages.name(code)), tip: "Torna ai toni di questa lingua") {
+                    model.setup.pendingTone = nil
                 }
-                Spacer()
+                .disabled(live || takeRunning)
+            }
+            VStack(alignment: .leading, spacing: Ed.Space.xs) {
+                Text(verbatim: String(format: loc("Tono «%@»"), loc(VoiceTones.title(tone))))
+                    .font(Ed.display(Ed.TypeSize.large, .medium)).foregroundStyle(Ed.text)
+                Text(verbatim: String(format: loc("%d righe · circa %d min · resta nel tono per tutto il blocco, un po' esagerato"),
+                                      lines.count, max(1, Int(RecordingScript.minutes(lines: lines).rounded()))))
+                    .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
             }
             recordingBar
-            if language?.zeroShotReady == true {
-                RChips(items: VoiceTones.all.map { .init(id: $0, title: loc(VoiceTones.title($0))) }, selection: tone, columns: 7, height: 26) {
-                    model.setup.pendingTone = $0
-                }
-            }
             ScrollView {
                 VStack(alignment: .leading, spacing: Ed.Space.m) {
                     if needsConsent, !model.setup.consent.isEmpty {
@@ -232,7 +195,7 @@ struct VoiceSetupView: View {
                 }
                 .padding(Ed.Space.l)
             }
-            .frame(height: 270)
+            .frame(height: language?.hasVoice == true ? 250 : 270)
             .background(RoundedRectangle(cornerRadius: Ed.Radius.xl).fill(Ed.well))
             .overlay(RoundedRectangle(cornerRadius: Ed.Radius.xl).strokeBorder(Ed.line2))
             Text(verbatim: loc("5 secondi di silenzio all'inizio, una pausa tra le righe. Se sbagli, fermati un attimo e rileggi tutta la riga."))
@@ -269,7 +232,7 @@ struct VoiceSetupView: View {
     // MARK: Check
 
     @ViewBuilder
-    private var checkStep: some View {
+    private var checkPage: some View {
         if let c = model.setup.check {
             if let error = c.error {
                 title(loc("Registrazione non accettata"), error)
@@ -325,81 +288,104 @@ struct VoiceSetupView: View {
         .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l).strokeBorder(Ed.line2))
     }
 
-    // MARK: Overview and training
+    // MARK: Overview
 
+    /// A language with a voice: the seven tones as tiles, the training card.
     @ViewBuilder
-    private var overviewStep: some View {
+    private var overviewPage: some View {
         if let l = language {
-            title(String(format: loc("La tua voce in %@"), VoiceLanguages.name(l.code)),
-                  l.trained ? loc("Allenata: la voce più fedele. Puoi registrare altri toni e allenarla di nuovo.")
-                            : loc("Pronta dal riferimento: si usa già nel pannello Voce. Altri toni e l'allenamento la rendono più fedele."))
+            title(String(format: loc("La tua voce in %@"), VoiceLanguages.name(l.code)), overviewLine(l))
             RSection(loc("Toni")) {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Ed.Space.s), count: 4), spacing: Ed.Space.s) {
-                    ForEach(VoiceTones.all, id: \.self) { t in toneTile(t, l) }
+                    ForEach(VoiceToneTile.tiles(l), id: \.tone) { toneTile($0) }
                 }
-                .frame(maxWidth: 600)
+                Text(verbatim: loc("I toni sono facoltativi: registra solo quelli che ti servono."))
+                    .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: 600, alignment: .leading)
             .padding(.bottom, Ed.Space.l)
             trainCard(l)
         }
     }
 
-    private func toneTile(_ tone: String, _ l: VoiceLanguageState) -> some View {
-        let minutes = l.recorded[tone]
-        return Button { model.setup.pendingTone = tone } label: {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(verbatim: loc(VoiceTones.title(tone))).font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text)
-                Text(verbatim: minutes.map { VoiceFormat.minutes($0) } ?? loc("da registrare"))
-                    .font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(minutes == nil ? Ed.text3 : Ed.ok)
+    private func overviewLine(_ l: VoiceLanguageState) -> String {
+        if l.trained { return loc("Allenata: la voce più fedele. Puoi registrare altri toni e allenarla di nuovo.") }
+        guard l.seconds > 0 else { return loc("Pronta dal riferimento: si usa già nel pannello Voce. Altri toni e l'allenamento la rendono più fedele.") }
+        return String(format: loc("Pronta: si usa già nel pannello Voce. %@ registrati, non ancora allenata."), VoiceFormat.minutes(l.minutes))
+    }
+
+    /// A recorded tone: a check and its minutes when the profile has them (a model made elsewhere has none: no "0 min").
+    /// A tone to record: dashed, with its time; a click records it (a recorded one: one more take, added).
+    private func toneTile(_ t: VoiceToneTile) -> some View {
+        let minutes = t.tone == VoiceTone.neutral ? model.cloneTimes.neutralMinutes
+            : (model.setup.lines[t.tone].map { RecordingScript.minutes(lines: $0) } ?? model.cloneTimes.toneMinutes)
+        let shape = RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous)
+        return Button { model.setup.pendingTone = t.tone } label: {
+            VStack(alignment: .leading, spacing: Ed.Space.xs) {
+                Text(verbatim: loc(VoiceTones.title(t.tone))).font(Ed.ui(Ed.TypeSize.body, .semibold)).foregroundStyle(Ed.text).lineLimit(1)
+                Spacer(minLength: 0)
+                if t.recorded {
+                    HStack(spacing: Ed.Space.xs) {
+                        Image(systemName: "checkmark").font(Ed.icon(Ed.TypeSize.caption, .bold))
+                        if let m = t.minutes { Text(verbatim: VoiceFormat.minutes(m)).font(Ed.mono(Ed.TypeSize.small)) }
+                    }
+                    .foregroundStyle(Ed.ok)
+                } else {
+                    Text(verbatim: String(format: loc("Registra · ~%@"), VoiceFormat.rough(minutes)))
+                        .font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.gold).lineLimit(1).minimumScaleFactor(0.8)
+                }
             }
-            .padding(Ed.Space.s + 2)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(minutes == nil ? Ed.well : Ed.raised))
-            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.line2))
+            .padding(Ed.Space.s + Ed.Space.xxs)
+            .frame(maxWidth: .infinity, minHeight: 62, alignment: .topLeading)
+            .background(shape.fill(t.recorded ? Ed.raised : .clear))
+            .overlay {
+                if t.recorded { shape.strokeBorder(Ed.line2) } else { shape.strokeBorder(Ed.text4, style: .rDashed) }
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .tip(minutes == nil ? "Registra questo tono" : "Registra ancora questo tono (si aggiunge)")
+        .tip(t.recorded ? "Registra ancora questo tono (si aggiunge)" : "Registra questo tono")
     }
 
+    /// The training: estimate and power note, Allena la voce (disabled with the reason), progress while it runs.
     private func trainCard(_ l: VoiceLanguageState) -> some View {
         let block = VoiceTraining.blockReason(model.snapshot, language: l, lookup: loc)
         return VStack(alignment: .leading, spacing: Ed.Space.s) {
-            HStack {
+            HStack(alignment: .firstTextBaseline, spacing: Ed.Space.s) {
                 Text(verbatim: loc("Allenamento")).font(Ed.ui(Ed.TypeSize.title, .semibold)).foregroundStyle(Ed.text)
-                Text(verbatim: loc("facoltativo · qualità migliore")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
+                Text(verbatim: loc("facoltativo · voce più fedele")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
                 Spacer()
             }
-            Text(verbatim: String(format: loc("Registrati %@ (ne servono almeno %@). Durata stimata: circa %@. Tieni il Mac acceso e collegato alla corrente: l'allenamento continua anche se chiudi questa finestra."),
-                                  VoiceFormat.minutes(l.minutes), VoiceFormat.minutes(l.trainMinimumSeconds / 60), VoiceFormat.duration(l.trainEstimateMinutes * 60)))
-                .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).lineSpacing(2).fixedSize(horizontal: false, vertical: true)
-            if let block {
-                Label { Text(verbatim: block).fixedSize(horizontal: false, vertical: true) } icon: { Image(systemName: "exclamationmark.circle") }
-                    .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.warn)
+            if case .running(let step, let steps, let left) = l.training {
+                Text(verbatim: loc("Puoi chiudere questa finestra e continuare a lavorare: l'allenamento va avanti in background. Tieni il Mac acceso e collegato alla corrente."))
+                    .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).lineSpacing(2).fixedSize(horizontal: false, vertical: true)
+                if let job = jobs.latest("voice-training") { JobCard(job: job) }
+                else {
+                    JobProgressBar(progress: (step != nil && steps != nil && steps! > 0) ? Double(step!) / Double(steps!) : nil)
+                    if let step, let steps {
+                        Text(verbatim: left.map { String(format: loc("Passo %d di %d · circa %d min"), step, steps, Int($0)) } ?? String(format: loc("Passo %d di %d"), step, steps))
+                            .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text2)
+                    }
+                }
+            } else {
+                HStack(alignment: .center, spacing: Ed.Space.l) {
+                    Text(verbatim: String(format: loc("Circa %@. Tieni il Mac acceso e collegato alla corrente: l'allenamento continua anche se chiudi questa finestra."),
+                                          VoiceFormat.rough(model.cloneTimes.trainMinutes)))
+                        .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).lineSpacing(2).fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    EdButton(title: loc("Allena la voce"), symbol: "cpu", prominent: true, large: true, disabled: block != nil) { model.train() }
+                        .fixedSize()
+                }
+                if let block {
+                    Label { Text(verbatim: block).fixedSize(horizontal: false, vertical: true) } icon: { Image(systemName: "exclamationmark.circle") }
+                        .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.warn)
+                }
             }
         }
         .padding(Ed.Space.l)
         .frame(maxWidth: 600, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: Ed.Radius.xl).fill(Ed.header))
         .overlay(RoundedRectangle(cornerRadius: Ed.Radius.xl).strokeBorder(Ed.line2))
-    }
-
-    @ViewBuilder
-    private var trainingStep: some View {
-        let job = jobs.latest("voice-training")
-        title(loc("La voce si sta allenando"),
-              loc("Puoi chiudere questa finestra e continuare a lavorare: l'allenamento va avanti in background. Tieni il Mac acceso e collegato alla corrente."))
-        if let job { JobCard(job: job).frame(maxWidth: 600) }
-        else if case .running(let step, let steps, let left) = language?.training {
-            VStack(alignment: .leading, spacing: Ed.Space.s) {
-                JobProgressBar(progress: (step != nil && steps != nil && steps! > 0) ? Double(step!) / Double(steps!) : nil)
-                if let step, let steps {
-                    Text(verbatim: left.map { String(format: loc("Passo %d di %d · circa %d min"), step, steps, Int($0)) } ?? String(format: loc("Passo %d di %d"), step, steps))
-                        .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text2)
-                }
-            }
-            .frame(maxWidth: 600)
-        }
     }
 
     // MARK: Footer
@@ -418,21 +404,18 @@ struct VoiceSetupView: View {
 
     @ViewBuilder
     private var footerActions: some View {
-        switch step {
+        switch page {
         case .profile:
             EmptyView()
-        case .language:
-            EdButton(title: loc("Continua"), symbol: "arrow.right", prominent: true, large: true, disabled: (pickedLanguage ?? model.setup.language) == nil) {
-                if let l = pickedLanguage ?? model.setup.language { model.chooseLanguage(l) }
-            }
+        case .intro:
+            EdButton(title: loc("Inizia"), symbol: "arrow.right", prominent: true, large: true) { model.setup.started = true }
         case .consent:
             EdButton(title: loc("Ho capito, registra"), symbol: "arrow.right", prominent: true, large: true) { model.setup.consentRead = true }
         case .record:
-            let busy = jobs.latest("voice-take")?.isRunning == true
             HStack(spacing: Ed.Space.s) {
-                EdButton(title: loc("Importa un file audio…"), symbol: "square.and.arrow.down", large: true, disabled: busy || recorder.isRecording) { model.importTake() }
+                EdButton(title: loc("Importa un file audio…"), symbol: "square.and.arrow.down", large: true, disabled: takeRunning || recorder.isRecording) { model.importTake() }
                 EdButton(title: recorder.isRecording ? loc("Ferma") : loc("Registra"), symbol: recorder.isRecording ? "stop.fill" : "record.circle",
-                         destructive: true, large: true, disabled: busy) {
+                         destructive: true, large: true, disabled: takeRunning) {
                     if recorder.isRecording { model.stopRecording(recorder) } else { model.startRecording(recorder) }
                 }
                 .tip("Registra solo il microfono: il file resta fuori dal montaggio")
@@ -445,24 +428,18 @@ struct VoiceSetupView: View {
                     }
                     EdButton(title: loc("Continua"), symbol: "arrow.right", prominent: true, large: true) { model.continueAfterCheck(again: false) }
                 } else {
-                    EdButton(title: loc("Continua comunque"), large: true, disabled: c.error != nil && language?.zeroShotReady != true) { model.continueAfterCheck(again: false) }
+                    EdButton(title: loc("Continua comunque"), large: true, disabled: c.error != nil && language?.hasVoice != true) { model.continueAfterCheck(again: false) }
                     EdButton(title: loc("Registra di nuovo"), symbol: "record.circle", prominent: true, large: true) { model.continueAfterCheck(again: true) }
                 }
             }
         case .overview:
-            if let l = language {
-                EdButton(title: loc("Prova la voce"), symbol: "play.fill", large: true) { tryVoice() }
-                EdButton(title: loc("Allena la voce"), symbol: "cpu", prominent: true, large: true,
-                         disabled: VoiceTraining.blockReason(model.snapshot, language: l) != nil) { model.train() }
-            }
-        case .training:
-            EdButton(title: loc("Continua a lavorare"), prominent: true, large: true, action: onClose)
+            EdButton(title: loc("Prova la voce"), symbol: "play.fill", large: true) { tryVoice() }
         }
     }
 
     /// "Prova la voce": the Voce panel in Monta, on this language.
     private func tryVoice() {
-        model.language = model.setup.language
+        model.language = code
         model.pane = .text
         store.workspace = .pro
         store.select(.voice)

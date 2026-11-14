@@ -505,6 +505,7 @@ extension RSwitchRow where Accessory == EmptyView, Trailing == EmptyView {
 /// A few options as chips. `columns` lays them out in that many equal columns (all in one row when nil); `flow` wraps
 /// them at their own width (filters, sections); `stacked` draws the symbol above the title in a tall tile (the kinds of a
 /// panel). The selection may be nil (no chip lit: a custom combination of switches, a search across every section).
+/// `add` ends the chips with a dashed "+ …" chip that adds another option elsewhere (+ Lingua, + Tono).
 struct RChips<T: Hashable>: View {
     struct Item {
         let id: T
@@ -513,24 +514,60 @@ struct RChips<T: Hashable>: View {
         var tip: String? = nil
     }
 
+    /// The dashed chip after the options: its title (a lookup key), its tooltip and what it opens.
+    struct Add {
+        let title: String
+        var tip: String = ""
+        let action: () -> Void
+    }
+
     let items: [Item]
     let selection: T?
     var columns: Int? = nil
     var flow = false
     var stacked = false
     var height: CGFloat = Ed.Height.control
+    var add: Add? = nil
     let onSelect: (T) -> Void
 
     var body: some View {
         if flow {
             FlowLayout(spacing: Ed.Space.xs, lineSpacing: Ed.Space.xs) {
                 ForEach(items, id: \.id) { item in chip(item).fixedSize() }
+                if let add { AddChip(add: add, height: height, flow: true).fixedSize() }
             }
         } else {
             let n = max(columns ?? items.count, 1)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: n), spacing: 6) {
                 ForEach(items, id: \.id) { chip($0) }
+                if let add { AddChip(add: add, height: height, flow: false) }
             }
+        }
+    }
+
+    /// "+ title" on a dashed outline, no fill: it opens something, it is not an option.
+    private struct AddChip: View {
+        let add: Add
+        let height: CGFloat
+        let flow: Bool
+        @State private var hover = false
+
+        var body: some View {
+            Button(action: add.action) {
+                HStack(spacing: Ed.Space.xs) {
+                    Image(systemName: "plus").font(Ed.icon(Ed.TypeSize.caption, .semibold))
+                    Text(verbatim: loc(add.title)).font(Ed.ui(Ed.TypeSize.body, .medium)).lineLimit(1).minimumScaleFactor(0.8)
+                }
+                .foregroundStyle(hover ? Ed.text : Ed.text2)
+                .padding(.horizontal, flow ? 10 : 2)
+                .frame(maxWidth: flow ? nil : .infinity, minHeight: height, maxHeight: height)
+                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(hover ? Ed.hover : .clear))
+                .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.text4, style: .rDashed))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .onHover { hover = $0 }
+            .tip(add.tip)
         }
     }
 
@@ -579,6 +616,11 @@ struct RChips<T: Hashable>: View {
             Text(verbatim: loc(item.title)).font(Ed.ui(stacked ? Ed.TypeSize.small : Ed.TypeSize.body, .medium)).lineLimit(1).minimumScaleFactor(0.8)
         }
     }
+}
+
+extension StrokeStyle {
+    /// The dashed outline of something still to add (RChips' add chip, a tone not recorded yet).
+    static let rDashed = StrokeStyle(lineWidth: 1, dash: [4, 3])
 }
 
 // MARK: - Choice list

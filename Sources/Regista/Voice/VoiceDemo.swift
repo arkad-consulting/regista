@@ -1,12 +1,16 @@
 import Foundation
 import RegistaCore
 
-/// ui.screenshot's voice states (V1 #61, V2 #62): a demo VoiceModel built from a value — never the owner's profile,
-/// never a command. `state` names a Voce panel state, a step of the recording flow or the Settings section.
+/// ui.screenshot's voice states (V1 #61, V2 #62, V3): a demo VoiceModel built from a value — never the owner's profile,
+/// never a command. `state` names a Voce panel state, a page of the "Gestisci voci" window or the Settings section.
 @MainActor
 enum VoiceDemo {
-    static let panelStates = ["engine-missing", "no-profile", "no-voice", "ready", "rendering", "placed", "lexicon"]
-    static let setupStates = ["profile", "language", "consent", "record", "check-good", "check-poor", "train", "train-low-ram", "training"]
+    /// The panel: engine missing, the way into cloning (no profile, no voice), the text tool with one tone, with several
+    /// tones (trained: no hint), with the training hint, rendering, placed, the lexicon, a model made outside the app.
+    static let panelStates = ["engine-missing", "no-profile", "no-voice", "one-tone", "ready", "hint", "rendering", "placed", "lexicon", "imported"]
+    /// The window: the profile, the intro of a new language, consent, recording a tone, the checks, a language's overview
+    /// (on Pro, on Medium), a training running, a model made outside the app.
+    static let setupStates = ["profile", "intro", "consent", "record", "check-good", "check-poor", "overview", "overview-low-ram", "training", "imported"]
 
     static let sampleText = "Vous publiez une vidéo par semaine ? Avec WeSites, votre site se met à jour tout seul, sans toucher une ligne de code.\n\nAujourd'hui, je vous montre comment ça marche, en moins d'une minute."   // l10n-ignore
 
@@ -24,7 +28,7 @@ enum VoiceDemo {
         let m = VoiceModel(store: nil, demo: true, jobs: JobCenter(jobs: jobs))
         m.snapshot = snapshot(state, tier: tier)
         switch state {
-        case "ready", "rendering", "placed":
+        case "one-tone", "ready", "hint", "rendering", "placed", "imported":
             m.text = sampleText
             m.language = "fr"
             if state == "placed" { m.placed = .init(trackId: "t4", clipIds: ["c12", "c13"], seconds: 14.6, text: sampleText) }
@@ -37,14 +41,14 @@ enum VoiceDemo {
         default: break
         }
         if setupStates.contains(state) {
-            m.setup.language = state == "language" || state == "profile" ? nil : "fr"
-            m.setup.consent = "Je m'appelle Léa, et j'accepte que Regista apprenne ma voix pour en faire un clone qui parle pour moi."   // l10n-ignore
-            m.setup.lines = ["neutral": sampleLines]
-            m.setup.forced = switch state {
-            case "check-good", "check-poor": .check
-            case "train", "train-low-ram": .overview
-            default: VoiceSetupStep(rawValue: state)
-            }
+            let newLanguage = state == "intro" || state == "consent" || state == "check-good"
+            m.setup.language = newLanguage ? "pt" : "fr"
+            m.setup.started = state == "consent"
+            m.setup.consent = newLanguage
+                ? "Eu me chamo Léa e aceito que o Regista aprenda a minha voz para criar um clone que fale por mim."   // l10n-ignore
+                : "Je m'appelle Léa, et j'accepte que Regista apprenne ma voix pour en faire un clone qui parle pour moi."   // l10n-ignore
+            // The record page's block (a few sample lines); elsewhere the times are the shipped scripts' lengths.
+            if state == "record" { m.setup.pendingTone = "enthusiastic"; m.setup.lines = ["enthusiastic": enthusiasticLines] }
             if state == "check-good" {
                 m.setup.check = VoiceTakeCheck(tone: "neutral", result: ["accepted": 46, "total": 50, "missing": [], "consent": true,
                                                                          "languageMinutes": 9.4, "reference": "refs/neutral.wav"])
@@ -60,7 +64,8 @@ enum VoiceDemo {
     static func snapshot(_ state: String, tier: String?) -> VoiceSnapshot {
         var s = VoiceSnapshot()
         s.loaded = true
-        s.tier = tier ?? (state == "engine-missing" ? "base" : (state == "train-low-ram" ? "medium" : "pro"))
+        let medium = state == "overview-low-ram" || state == "one-tone"
+        s.tier = tier ?? (state == "engine-missing" ? "base" : (medium ? "medium" : "pro"))
         s.engineAvailable = state != "engine-missing" && s.tier != "base"
         s.engineReason = s.engineAvailable ? nil : "needs the medium tier"   // l10n-ignore
         s.trainerAvailable = s.tier == "pro"
@@ -68,12 +73,13 @@ enum VoiceDemo {
         switch state {
         case "no-profile", "profile", "engine-missing":
             return s
-        case "no-voice", "language", "consent":
+        case "no-voice":
             s.profile = "Léa"   // l10n-ignore
             return s
-        case "record":
+        case "imported":
+            // A voice trained outside the app: French, neutral, a model and no recorded minutes in the profile.
             s.profile = "Léa"   // l10n-ignore
-            s.languages = [VoiceLanguageState(code: "fr")]
+            s.languages = [VoiceLanguageState(code: "fr", ready: true, trained: true, tones: ["neutral"])]
             return s
         default:
             s.profile = "Léa"   // l10n-ignore
@@ -85,15 +91,23 @@ enum VoiceDemo {
         fr.recorded = ["neutral": 9.4, "serious": 2.1, "calm": 1.8]
         fr.seconds = 13.3 * 60
         fr.trainEstimateMinutes = 107
-        if state == "training" { fr.trained = false; fr.training = .running(step: 425, steps: 1000, minutesLeft: 71) }
-        if state == "train" || state == "train-low-ram" || state.hasPrefix("check") { fr.trained = false; fr.tones = ["neutral", "calm"] }
-        if state == "check-poor" { fr.recorded["serious"] = nil }
+        if state == "training" { fr.training = .running(step: 425, steps: 1000, minutesLeft: 71) }
+        if state == "one-tone" { fr.tones = ["neutral"]; fr.recorded = ["neutral": 9.4]; fr.seconds = 9.4 * 60 }
+        if state == "check-poor" { fr.recorded["serious"] = nil; fr.tones = ["neutral", "calm"] }
         var it = VoiceLanguageState(code: "it", ready: true, tones: ["neutral"])
         it.consent = true
         it.zeroShotReady = true
         it.recorded = ["neutral": 3.2]
         it.seconds = 192
-        s.languages = [it, fr]
+        s.languages = state == "one-tone" ? [fr] : [it, fr]
+        if state == "check-good" {
+            var pt = VoiceLanguageState(code: "pt", ready: true, tones: ["neutral"])
+            pt.consent = true
+            pt.zeroShotReady = true
+            pt.recorded = ["neutral": 9.4]
+            pt.seconds = 9.4 * 60
+            s.languages.append(pt)
+        }
         return s
     }
 
@@ -107,6 +121,15 @@ enum VoiceDemo {
         "La facture du mois arrive le premier, toujours au même montant.",
         "Vous pouvez changer les couleurs du site en deux clics, sans développeur.",
         "Les photos sont compressées automatiquement pour rester nettes et légères.",
+        // l10n-ignore-end
+    ]
+
+    static let enthusiasticLines = [
+        // l10n-ignore-begin (sample script lines: user content)
+        "C'est en ligne ! Le site est sorti ce matin, et tout fonctionne du premier coup.",
+        "Regardez ça : la page s'affiche en moins d'une seconde sur votre téléphone.",
+        "Et le meilleur, c'est que vous n'avez plus rien à faire : tout se met à jour tout seul.",
+        "Franchement, on ne pensait pas y arriver aussi vite.",
         // l10n-ignore-end
     ]
 

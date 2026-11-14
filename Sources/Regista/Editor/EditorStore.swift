@@ -82,7 +82,7 @@ final class EditorStore: ObservableObject {
     /// the status bar's jobs list (E2 #54).
     let jobs = JobCenter()
     /// The voice features (Voce panel, recording flow, Settings › Profilo e voce).
-    private(set) lazy var voice = VoiceModel(store: self)
+    private(set) lazy var voice = VoiceModel(store: self, defaults: bench.defaults)
     /// The Generate panel (G1 #5).
     private(set) lazy var generation = GenerateState(store: self)
     /// The voice recording flow (a sheet on the main window).
