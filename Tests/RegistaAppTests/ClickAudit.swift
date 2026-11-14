@@ -37,7 +37,9 @@ struct AuditState {
             "sourcePlaying": "\(FrameSourceTime.shared.playing)", "sourceTime": String(format: "%.2f", FrameSourceTime.shared.time),
             "settingsTab": UserDefaults.standard.string(forKey: SettingsRoute.tabKey) ?? "",
             "recorder": "\(app.recorder.sources)".hashValue.description,
-            "prompter": "\(TeleprompterController.shared.isVisible)/\(TeleprompterController.shared.isPlaying)",
+            "graphics": { let g = GraphicsState.shared; return "\(g.intensity)|\(g.query)|\(g.clipScope)|\(g.motionItem ?? "")|\(g.textItem ?? "")|\(g.appliedSelection ?? "")" }(),
+            "prompter": { let p = TeleprompterController.shared
+                return "visible \(p.isVisible) playing \(p.isPlaying) size \(p.fontSize) speed \(p.speed) mirror \(p.mirror) mode \(p.mode)" }(),
             "sidePanel": "\(UserDefaults.standard.object(forKey: ShellPrefs.sideShown) as? Bool ?? true)",
             "rightPanel": "\(UserDefaults.standard.object(forKey: ShellPrefs.rightShown) as? Bool ?? true)",
             "sheet": app.rig.window.attachedSheet.map { "\(type(of: $0))" } ?? "",
@@ -101,6 +103,10 @@ struct ClickAudit {
     var noOps: [String: String] = [:]
     /// Run after each click, before the screen is rebuilt (put back what the click changed outside the store).
     var restore: () -> Void = {}
+    /// Controls not clicked whose name contains a text (text → why).
+    var skipContaining: [String: String] = [:]
+    /// Roles not clicked (role → why).
+    var skipRoles: [String: String] = [:]
     /// Only the controls inside this rect of the window (nil: all).
     var area: CGRect? = nil
     /// Targets the accessibility tree does not expose (a tile with a tap gesture, a clip drawn on a canvas): a name and
@@ -125,6 +131,8 @@ struct ClickAudit {
     /// Clicks every control of the screen once, each on the screen as it was at the start.
     func run() async -> [Row] {
         let rig = app.rig!
+        rig.host.layoutSubtreeIfNeeded()
+        await app.idle(0.15)
         let p = TeleprompterController.shared
         prompter = (p.mode, p.speed, p.fontSize, p.mirror, p.language, p.redoWords, p.stopWords)
         sourcesBox.value = app.recorder.sources
@@ -133,27 +141,36 @@ struct ClickAudit {
         let targets = rig.controls().filter { area == nil || area!.contains($0.centre) }
         var seen: [String: Int] = [:]
         var rows: [Row] = []
+        // The screen is rebuilt only after a click that changed something (a click that changed nothing left it as it was).
+        var dirty = true
         for t in targets {
             let n = seen[t.key, default: 0]
             seen[t.key] = n + 1
-            await back(to: base, nav: baseNav)
+            if let why = match(t.name, skip) ?? skipRoles[t.role] ?? skipContaining.first(where: { t.name.contains($0.key) })?.value {
+                rows.append(Row(control: t.description, at: t.centre, effect: "not clicked", reason: why, skipped: true))
+                continue
+            }
+            if dirty { await back(to: base, nav: baseNav) }
+            dirty = true
             // A list that loads after the screen is rebuilt (the sound bank): wait for the control a moment.
             var found = rig.controls().filter({ $0.key == t.key })[safe: n]
             for _ in 0..<10 where found == nil {
-                try? await Task.sleep(for: .milliseconds(100))
-                rig.pump(0.02)
+                await app.idle(0.1)
                 found = rig.controls().filter({ $0.key == t.key })[safe: n]
             }
             guard let e = found else {
                 rows.append(Row(control: t.description, at: t.centre, effect: "not found again on a fresh screen", problem: "unstable"))
                 continue
             }
-            if let why = match(e.name, skip) {
+            if let why = match(e.name, skip) ?? skipRoles[e.role] ?? skipContaining.first(where: { e.name.contains($0.key) })?.value {
                 rows.append(Row(control: e.description, at: e.centre, effect: "not clicked", reason: why, skipped: true))
                 continue
             }
-            // A slider: a click three quarters along its track (its middle may already be its value).
-            let p = e.role == "AXUnknown" && e.frame.width > e.frame.height * 3 ? CGPoint(x: e.frame.minX + e.frame.width * 0.8, y: e.frame.midY) : e.centre
+            // A slider: a click 70 % along it (its middle may already be its value; past the bars of an intensity bar
+            // lies its "tanto" label).
+            // A labelled RSlider is one element with its label row above the 18 pt track: the click goes on the track.
+            let p = e.role == "AXUnknown" && e.frame.width > e.frame.height * 2
+                ? CGPoint(x: e.frame.minX + e.frame.width * 0.7, y: e.frame.height > 24 ? e.frame.maxY - 9 : e.frame.midY) : e.centre
             var problem: String?
             if let hit = rig.elementAt(p), hit !== e.ref, !(hit.isEqual(e.ref)), let over = rig.elements().first(where: { $0.ref === hit }),
                over.isControl {
@@ -162,11 +179,19 @@ struct ClickAudit {
             let before = AuditState(app)
             rig.click(p)
             await app.settle()
-            let after = AuditState(app)
-            var changes = after.changes(since: before)
-            let still = rig.controls().contains { $0.key == e.key } || changes.contains { $0.hasPrefix("navigation") || $0.hasPrefix("command") }
+            var changes = AuditState(app).changes(since: before)
+            if changes.isEmpty {
+                // A tap that also answers a double tap, a popover: they come after the double-click interval.
+                await app.idle(NSEvent.doubleClickInterval + 0.1)
+                await app.settle()
+                changes = AuditState(app).changes(since: before)
+            }
+            // Still there: the same control (by name) or a control of its role where it was (a switch named by its value).
+            let still = rig.controls().contains { $0.key == e.key || ($0.role == e.role && abs($0.centre.x - e.centre.x) < 2 && abs($0.centre.y - e.centre.y) < 2) }
+                || changes.contains { $0.hasPrefix("navigation") || $0.hasPrefix("command") }
             if !still, !changes.isEmpty { changes.append("the control left the screen") }
             var row = Row(control: e.description + (e.enabled ? "" : " [disabled]"), at: p, effect: changes.isEmpty ? "NOTHING" : changes.joined(separator: "; "))
+            dirty = !changes.isEmpty
             if !e.enabled {
                 if !changes.isEmpty, changes.contains(where: { $0.hasPrefix("command") || $0.hasPrefix("navigation") }) {
                     row.problem = "a disabled control reacted"
@@ -190,7 +215,7 @@ struct ClickAudit {
             let before = AuditState(app)
             rig.click(x.at)
             // A tap that also answers a double tap fires after the double-click interval.
-            try? await Task.sleep(for: .seconds(NSEvent.doubleClickInterval + 0.1))
+            await app.idle(NSEvent.doubleClickInterval + 0.1)
             await app.settle()
             let changes = AuditState(app).changes(since: before)
             var row = Row(control: x.name + " (by position)", at: x.at, effect: changes.isEmpty ? "NOTHING" : changes.joined(separator: "; "))
@@ -222,6 +247,14 @@ struct ClickAudit {
         for w in NSApp.windows where w !== rig.window && w.isVisible && !(w is RigWindow) { w.orderOut(nil) }
         restore()
         if let src = sourcesBox.value, app.recorder.sources != src { app.recorder.sources = src }
+        // The Graphics panel's state is one for the app: back to how the screen started.
+        let g = GraphicsState.shared
+        if g.intensity != 0.5 { g.intensity = 0.5 }
+        if !g.query.isEmpty { g.query = "" }
+        if g.clipScope { g.clipScope = false }
+        if g.motionItem != nil { g.motionItem = nil }
+        if g.textItem != nil { g.textItem = nil }
+        if g.appliedSelection != nil { g.appliedSelection = nil }
         if s.preview.isPlaying { s.preview.togglePlay() }
         if FrameSourceTime.shared.playing { FrameSourceTime.shared.toggle() }
         // Tabs a click opened go, the tab of the screen comes back on screen, a project a click closed is reopened.
@@ -233,7 +266,7 @@ struct ClickAudit {
         for _ in 0..<20 where s.undoNames.count > base.undo { _ = try? await s.perform("history.undo") }
         s.nav = nav
         s.tool = EditorStore.Tool(rawValue: base.ui["tool"] ?? "select") ?? .select
-        s.selection = []
+        s.selection = Set((base.ui["selection"] ?? "").split(separator: ",").map(String.init))
         s.captionPick = nil
         s.canvasSelection = nil
         s.wordSelection = nil
@@ -248,11 +281,14 @@ struct ClickAudit {
         FrameSourceTime.shared.seek(Double(base.ui["sourceTime"] ?? "0") ?? 0)
         UserDefaults.standard.set(base.ui["sidePanel"] == "true", forKey: ShellPrefs.sideShown)
         UserDefaults.standard.set(base.ui["rightPanel"] == "true", forKey: ShellPrefs.rightShown)
-        UserDefaults.standard.removeObject(forKey: SettingsRoute.tabKey)
+        if let tab = base.ui["settingsTab"], !tab.isEmpty { UserDefaults.standard.set(tab, forKey: SettingsRoute.tabKey) }
+        else { UserDefaults.standard.removeObject(forKey: SettingsRoute.tabKey) }
         rig.window.makeFirstResponder(nil)
         app.reset.bump()
         await app.settle()
-        rig.pump(0.1)
+        // AppKit-backed controls (native buttons, text fields) of the rebuilt tree are placed a moment later.
+        rig.host.layoutSubtreeIfNeeded()
+        await app.idle(0.15)
     }
 
     /// The table, as Markdown, in $REGISTA_CLICK_AUDIT (or a temporary folder).

@@ -66,12 +66,14 @@ struct EditorRoot: View {
                 HStack(spacing: 0) {
                     ActivityBar()
                     if sideShown || !live {
-                        SidePanel().frame(width: side).environment(\.sidePanelWidth, side)
+                        // Above the main area (#33): a level wider than the main area overflows it, and `clipped` clips
+                        // its drawing, not its hit testing: drawn first, the panels lost their clicks to the overflow.
+                        SidePanel().frame(width: side).environment(\.sidePanelWidth, side).zIndex(1)
                         Splitter(orientation: .vertical, stored: $sideWidth, current: side, range: range, thickness: 0)
                     }
                     MainArea().frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity).clipped()
                     if rightShown || !live {
-                        RightPanel().frame(width: Chrome.rightWidth)
+                        RightPanel().frame(width: Chrome.rightWidth).zIndex(1)
                     }
                 }
                 .frame(width: g.size.width, height: g.size.height)

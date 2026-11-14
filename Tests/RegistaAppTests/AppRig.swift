@@ -183,7 +183,7 @@ final class AppRig {
             for _ in 0..<200 where store.project == nil { try await Task.sleep(for: .milliseconds(50)) }
         default: break
         }
-        RigGuard.events = []
+        // RigGuard's record only grows (suites of other files run beside this one: a test compares counts).
         RigGuard.alertAnswer = .alertSecondButtonReturn
         UserDefaults.standard.removeObject(forKey: SettingsRoute.tabKey)
     }
@@ -221,15 +221,29 @@ final class AppRig {
         defaults.removePersistentDomain(forName: defaultsName)
     }
 
-    /// Waits for the commands started by a click to finish. The store logs and publishes from blocks on the main queue,
-    /// which only run while the test yields the main actor: a read on the engine's serial queue returns after every
-    /// command queued before it, then a short sleep lets their results land.
+    /// Waits `seconds` with the main run loop turning inside a nested loop of ours: the store's results (blocks on the
+    /// main queue) land, and a stop that some framework queues on the running loop meanwhile stops this nested one, never
+    /// the test runner's loop (which would end the test process).
+    func idle(_ seconds: Double) async {
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+            CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue) {
+                let end = Date().addingTimeInterval(seconds)
+                while Date() < end { CFRunLoopRunInMode(.defaultMode, 0.01, false) }
+                c.resume()
+            }
+            CFRunLoopWakeUp(CFRunLoopGetMain())
+        }
+    }
+
+    /// Waits for the commands started by a click to finish: a read on the engine's serial queue returns after every
+    /// command queued before it, then a short wait lets their results land.
     func settle() async {
         rig.pump(0.03)
-        try? await Task.sleep(for: .milliseconds(20))
+        rig.drain()
+        await idle(0.02)
         _ = try? await store.silent("project.state")
-        try? await Task.sleep(for: .milliseconds(40))
-        rig.pump(0.03)
+        await idle(0.05)
+        rig.drain()
     }
 
     /// The commands logged since `count` entries.

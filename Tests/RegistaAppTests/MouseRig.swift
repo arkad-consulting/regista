@@ -1,5 +1,6 @@
 import AppKit
 import ObjectiveC
+import Testing
 import SwiftUI
 @testable import Regista
 
@@ -8,6 +9,11 @@ import SwiftUI
 // MouseRig hosts a view in a window and sends it the events a mouse and a keyboard send, through the window, the way
 // AppKit does. It also reads the view's accessibility tree (role, label, frame of every element), so a test can click
 // a control by its name and the click audit (ClickAudit.swift) can find every control of a screen by itself.
+
+/// Every suite that hosts windows and sends them events (the mouse suites and the click audits) is a member of this
+/// one serialized suite: they share the key window, the event queue, the guard's record and the app's defaults, so they
+/// run one at a time (beside the rest of the tests).
+@Suite(.serialized) struct MouseSuites {}
 
 /// A window that can be key, so its content behaves as in the frontmost window of the app.
 final class RigWindow: NSWindow {
@@ -73,6 +79,13 @@ final class MouseRig {
         if !window.isKeyWindow { window.makeKey() }
     }
 
+    /// Runs the blocks queued on the main run loop in nested loops of ours. Reading the accessibility tree, posting an
+    /// event or asking for one can queue a block that stops the running loop: run while the test awaits, it would stop
+    /// the test runner's own loop and end the process.
+    func drain() {
+        for _ in 0..<3 { CFRunLoopRunInMode(.defaultMode, 0.005, false) }
+    }
+
     /// Lets the main run loop turn (SwiftUI updates, main-queue work).
     func pump(_ seconds: Double = 0.05) { RunLoop.main.run(until: Date().addingTimeInterval(seconds)) }
 
@@ -112,16 +125,17 @@ final class MouseRig {
         return frame.hitTest(frame.convert(inWindow, from: nil))
     }
 
-    /// Press and release at a point. Over an AppKit text view (a SwiftUI text field is one), which tracks the mouse in
-    /// a loop of its own until the button goes up, the release waits in the event queue where that loop takes it, as
-    /// from a real mouse; anywhere else it is sent after the press (SwiftUI's gestures see it there).
+    /// Press and release at a point. Over an AppKit control or text view (a SwiftUI text field), the release goes
+    /// through the event queue as from a real mouse; anywhere else both are sent to the window one after the other
+    /// (SwiftUI's gestures see them there). Settings' system form is only partly driven this way (see WindowsClickTests).
     func click(_ p: CGPoint, clicks: Int = 1, modifiers: NSEvent.ModifierFlags = []) {
         let target = viewAt(p)
         takeKey()
-        if target is NSText || target is NSTextField, let up = event(.leftMouseUp, p, clicks: clicks, modifiers: modifiers),
+        if target is NSText || target is NSControl, let up = event(.leftMouseUp, p, clicks: clicks, modifiers: modifiers),
            let down = event(.leftMouseDown, p, clicks: clicks, modifiers: modifiers) {
-            // Posting an event stops the run loop that is running (to wake it): it must be a nested one of ours, never
-            // the test runner's main loop, which would end the test process.
+            // The release waits in the event queue, where a control that tracks the mouse in a loop of its own until the
+            // button goes up takes it, as from a real mouse; if nothing took it, it is sent after the press. Posting
+            // stops the running run loop: a nested one of ours, never the test runner's loop (it would end the process).
             CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue) { [window] in
                 NSApp.postEvent(up, atStart: false)
                 window.sendEvent(down)
@@ -130,8 +144,7 @@ final class MouseRig {
             if let pending = NSApp.nextEvent(matching: .leftMouseUp, until: .distantPast, inMode: .default, dequeue: true) {
                 window.sendEvent(pending)
             }
-            // Asking for an event can leave a block that stops the run loop: it must run (and stop) a nested loop.
-            for _ in 0..<3 { CFRunLoopRunInMode(.defaultMode, 0.02, false) }
+            drain()
         } else {
             send(.leftMouseDown, p, clicks: clicks, modifiers: modifiers)
             send(.leftMouseUp, p, clicks: clicks, modifiers: modifiers)
@@ -156,10 +169,11 @@ final class MouseRig {
             NSApp.postEvent(up, atStart: false)
         }
         CFRunLoopRunInMode(.defaultMode, 0.3, false)
+        // Taken from the queue (it becomes NSApp.currentEvent), then given to the window.
         while let e = NSApp.nextEvent(matching: [.rightMouseDown, .rightMouseUp], until: .distantPast, inMode: .default, dequeue: true) {
-            NSApp.sendEvent(e)
+            window.sendEvent(e)
         }
-        for _ in 0..<3 { CFRunLoopRunInMode(.defaultMode, 0.02, false) }
+        drain()
         pump()
     }
 
@@ -275,7 +289,7 @@ final class MouseRig {
                 let shown = frame.intersection(clip)
                 let e = RigElement(ref: o, role: role, label: (o.accessibilityLabel?() ?? nil) ?? "", value: value,
                                    title: (o.accessibilityTitle?() ?? nil) ?? "", frame: frame, enabled: o.isAccessibilityEnabled?() ?? true,
-                                   selected: o.isAccessibilitySelected?() ?? false, visible: !shown.isNull && shown.width >= 2 && shown.height >= 2,
+                                   selected: o.isAccessibilitySelected?() ?? false, visible: !shown.isNull && shown.width >= 2 && shown.height >= 2 && clip.contains(CGPoint(x: frame.midX, y: frame.midY)),
                                    depth: depth, actions: actions, parentRole: parent)
                 out.append(e)
                 // A scroll area clips its content: what lies outside it is not on screen.
@@ -283,6 +297,7 @@ final class MouseRig {
             }
         }
         walk(host, clip: bounds, depth: 0, parent: "")
+        drain()
         return out
     }
 
@@ -311,7 +326,9 @@ final class MouseRig {
     /// The deepest accessibility element at a point of the view (what an assistive client finds there).
     func elementAt(_ p: CGPoint) -> AnyObject? {
         let screen = window.convertPoint(toScreen: CGPoint(x: p.x, y: size.height - p.y))
-        return host.accessibilityHitTest(screen) as AnyObject?
+        let hit = host.accessibilityHitTest(screen) as AnyObject?
+        drain()
+        return hit
     }
 }
 
@@ -325,7 +342,7 @@ struct RigElement: CustomStringConvertible {
     let frame: CGRect
     let enabled: Bool
     let selected: Bool
-    /// At least partly inside the window and its scroll areas.
+    /// Its centre (where a click goes) inside the window and its scroll areas.
     let visible: Bool
     let depth: Int
     /// The accessibility actions it answers (AXPress for anything with a tap action).
@@ -397,6 +414,18 @@ enum RigGuard {
         if let real = class_getClassMethod(NSMenu.self, #selector(NSMenu.popUpContextMenu(_:with:for:))),
            let fake = class_getClassMethod(NSMenu.self, #selector(NSMenu.rig_popUpContextMenu(_:with:for:))) {
             method_exchangeImplementations(real, fake)
+        }
+        // SwiftUI's context menus reach AppKit's private entry (NSView's menu for a right click): recorded, never tracked.
+        let privateEntry = NSSelectorFromString("_popUpContextMenu:withEvent:forView:withFont:")
+        if let m = class_getInstanceMethod(NSMenu.self, privateEntry) {
+            let block: @convention(block) (AnyObject, AnyObject, NSEvent, NSView, NSFont?) -> Void = { this, first, _, _, _ in
+                MainActor.assumeIsolated {
+                    guard let menu = (first as? NSMenu) ?? (this as? NSMenu) else { return }
+                    RigGuard.lastMenu = menu
+                    RigGuard.record(.menu, menu.items.map(\.title).filter { !$0.isEmpty }.joined(separator: " · "))
+                }
+            }
+            method_setImplementation(m, imp_implementationWithBlock(block))
         }
     }
 

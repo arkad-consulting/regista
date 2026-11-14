@@ -110,6 +110,7 @@ private final class CanvasRig {
     }
 }
 
+extension MouseSuites {
 @Suite(.serialized) @MainActor struct CanvasMouseTests {
     /// Press on an overlay nobody selected and drag: it is selected and moves.
     @Test func aDragOnAnOverlayMovesIt() async throws {
@@ -190,4 +191,5 @@ private final class CanvasRig {
         #expect(c.clip.placeOrigin == nil && c.clip.placement == home)
         #expect(c.store.canvasSelection == c.clipID)
     }
+}
 }

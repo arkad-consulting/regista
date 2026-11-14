@@ -78,6 +78,7 @@ private func host<T, V: View>(_ probe: Probe<T>, _ container: Container, @ViewBu
     MouseRig(Hosted(container: container, probe: probe, content: content), size: CGSize(width: 400, height: 320))
 }
 
+extension MouseSuites {
 @Suite(.serialized) @MainActor struct ControlMouseTests {
     // MARK: Buttons
 
@@ -418,4 +419,5 @@ private func host<T, V: View>(_ probe: Probe<T>, _ container: Container, @ViewBu
         rig.drag(from: e.centre, by: CGSize(width: 40, height: 0))
         #expect(p.value > 170 && p.value < 210, "the splitter stored \(p.value)")
     }
+}
 }
