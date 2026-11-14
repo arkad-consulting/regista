@@ -565,7 +565,7 @@
 "Dividi qui" = "Scinder ici";
 "Divisore" = "Séparateur";
 "Dopo" = "Après";
-"Dopo l'ultima voce" = "Après la dernière voix";
+"Dopo l'ultima voce" = "À la suite";
 "Dopo una scelta: rifai il taglio" = "Après un choix : refaites la coupe";
 "Doppio clic su un file in Media per vederlo qui" = "Double-cliquez sur un fichier dans Médias pour le voir ici";
 "Dorato" = "Doré";
@@ -979,14 +979,14 @@
 "Messaggio" = "Message";
 "Metallo" = "Métal";
 "Metti in evidenza (parola chiave)" = "Mettre en évidence (mot clé)";
-"Metti in timeline" = "Mettre dans la timeline";
+"Metti in timeline" = "Ajouter";
 "Metti in timeline al cursore" = "Placer à la tête de lecture";
 "Metti prima il video sulla timeline." = "Placez d'abord la vidéo dans la timeline.";
 "Metto le clip sulla pista Voce e calcolo i tempi delle parole…" = "Placement des clips sur la piste Voix et calcul du timing des mots…";
 "Microfono" = "Micro";
 "microfono" = "micro";
 "Microfono non disponibile" = "Micro indisponible";
-"Minuti registrati" = "Minutes enregistrées";
+"Minuti registrati" = "Durée";
 "Mirino HUD" = "Viseur HUD";
 "Misura" = "Taille";
 "Misura il volume" = "Mesurer le volume";
@@ -1383,7 +1383,7 @@
 "Rigenera i sottotitoli" = "Refaire les sous-titres";
 "Righe" = "Lignes";
 "Righe da rileggere" = "Lignes à relire";
-"Righe sentite" = "Lignes entendues";
+"Righe sentite" = "Lignes lues";
 "Rimonta con le riprese scelte (poi riapplica voce pulita e inquadrature)" = "Remonter avec les prises choisies (puis réappliquer la voix nettoyée et les cadrages)";
 "Rimuovere %@?" = "Supprimer %@ ?";
 "Rimuovi" = "Supprimer";
