@@ -554,7 +554,7 @@ enum ScreenOutline {
         var body: some View {
             ZStack {
                 RoundedRectangle(cornerRadius: Ed.Radius.xl).strokeBorder(Ed.gold, lineWidth: 6)
-                Text(verbatim: name).font(Ed.ui(Ed.TypeSize.large, .semibold)).foregroundStyle(Color.black.opacity(0.85))
+                Text(verbatim: name).font(Ed.ui(Ed.TypeSize.large, .semibold)).foregroundStyle(Accent.on)
                     .padding(.horizontal, 20).padding(.vertical, 10)
                     .background(Capsule().fill(Ed.gold))
             }

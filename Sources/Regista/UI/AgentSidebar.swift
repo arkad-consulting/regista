@@ -273,16 +273,10 @@ struct TranscriptView: View {
     private func editor(_ para: [Int], _ words: [TimelineWord]) -> some View {
         let original = para.map { words[$0].text }.joined(separator: " ")
         return VStack(alignment: .leading, spacing: 6) {
-            TextField("", text: $draft, axis: .vertical)
-                .textFieldStyle(.plain).font(Ed.ui(Ed.TypeSize.body)).lineLimit(1...6)
-                .padding(6)
-                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
-                .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.gold.opacity(0.7)))
-                .onSubmit { save(para, original) }
-                .onExitCommand { editing = nil }
+            RTextEditor(text: $draft, kind: .grows(1...6), editing: true, onSubmit: { save(para, original) }, onExit: { editing = nil })
             HStack(spacing: 6) {
                 Spacer()
-                EdButton(title: "Annulla") { editing = nil }
+                EdButton(title: "Annulla", quiet: true) { editing = nil }
                 EdButton(title: "Salva", symbol: "checkmark", prominent: true,
                          disabled: draft.trimmingCharacters(in: .whitespacesAndNewlines) == original) { save(para, original) }
             }
@@ -395,14 +389,14 @@ struct TakesView: View {
         } label: {
             HStack(spacing: 3) {
                 Text(verbatim: loc("R%@", String(k + 1))).font(Ed.mono(Ed.TypeSize.caption, .semibold))
-                if l.auto == k { Circle().fill(chosen ? Color.black.opacity(0.6) : Ed.gold).frame(width: 4, height: 4) }
+                if l.auto == k { Circle().fill(Ed.gold).frame(width: 4, height: 4) }
             }
-            .foregroundStyle(chosen ? Color.black.opacity(0.85) : (take.complete ? Ed.text : Ed.text3))
+            .foregroundStyle(chosen || take.complete ? Ed.text : Ed.text3)
             .padding(.horizontal, 6)
             .frame(height: 18)
-            .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(chosen ? Ed.gold : Ed.raised))
-            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(take.complete ? .clear : Ed.text3,
-                                                                    style: StrokeStyle(lineWidth: 1, dash: [2, 2])))
+            .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(chosen ? Ed.goldSoft : Ed.raised))
+            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(chosen ? Ed.gold.opacity(0.6) : (take.complete ? .clear : Ed.text3),
+                                                                    style: StrokeStyle(lineWidth: 1, dash: take.complete || chosen ? [] : [2, 2])))
         }
         .buttonStyle(.plain)
         .tip(loc("Ripresa %@: %@–%@", String(k + 1), shortTime(take.start.seconds), shortTime(take.end.seconds))

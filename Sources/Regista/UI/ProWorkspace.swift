@@ -370,10 +370,10 @@ struct MeterPanel: View {
 
     private func readout(_ k: String, _ v: Double, _ unit: String, highlight: Bool = false, warn: Bool = false) -> some View {
         HStack(spacing: Ed.Space.xs) {
-            Text(verbatim: k).font(Ed.mono(Ed.TypeSize.micro, .medium)).foregroundStyle(Ed.text3).frame(width: 16, alignment: .leading)
+            Text(verbatim: k).font(Ed.mono(Ed.TypeSize.micro, .medium)).foregroundStyle(Ed.text3).frame(width: 14, alignment: .leading)
             Spacer(minLength: 0)
             Text(verbatim: v.isFinite ? String(format: "%.1f", v) : (meter.measuring || meter.curve.momentary.isEmpty ? "…" : "–∞"))
-                .font(Ed.mono(Ed.TypeSize.caption, .medium))
+                .font(Ed.mono(Ed.TypeSize.caption, .medium)).lineLimit(1).fixedSize()
                 .foregroundStyle(warn ? Ed.danger : (highlight ? Ed.gold : Ed.text2))
             Text(verbatim: unit).font(Ed.mono(Ed.TypeSize.tiny)).foregroundStyle(Ed.text3).frame(width: 22, alignment: .leading)
         }

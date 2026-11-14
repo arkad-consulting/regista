@@ -398,9 +398,11 @@ struct EditorToolbar: View {
             Text(verbatim: format).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).lineLimit(1)
             Spacer(minLength: Ed.Space.s)
             HStack(spacing: Ed.Space.xxs) {
-                ToolbarIcon(symbol: "arrow.uturn.backward", tip: "Annulla l'ultima modifica", shortcut: "⌘Z", disabled: store.undoNames.isEmpty) { store.undo() }
-                ToolbarIcon(symbol: "arrow.uturn.forward", tip: "Ripeti l'ultima modifica", shortcut: "⇧⌘Z", disabled: store.redoNames.isEmpty) { store.redo() }
-                ToolbarIcon(symbol: "clock.arrow.circlepath", tip: "Cronologia: ogni modifica, tua o di Claude", disabled: false) { showHistory.toggle() }
+                IconButton(symbol: "arrow.uturn.backward", help: "Annulla l'ultima modifica", shortcut: "⌘Z", chrome: true) { store.undo() }
+                    .disabled(store.undoNames.isEmpty)
+                IconButton(symbol: "arrow.uturn.forward", help: "Ripeti l'ultima modifica", shortcut: "⇧⌘Z", chrome: true) { store.redo() }
+                    .disabled(store.redoNames.isEmpty)
+                IconButton(symbol: "clock.arrow.circlepath", help: "Cronologia: ogni modifica, tua o di Claude", chrome: true) { showHistory.toggle() }
                     .popover(isPresented: $showHistory, arrowEdge: .bottom) {
                         HistoryTab().frame(width: 300, height: 380).background(Ed.panel).environment(\.colorScheme, .dark)
                     }
@@ -425,30 +427,6 @@ struct EditorToolbar: View {
         default: "\(s.width)×\(s.height)"
         }
         return String(format: loc("Formato %@ · %d×%d · %d fps"), ratio, s.width, s.height, Int(s.frameRate.doubleValue.rounded()))
-    }
-}
-
-struct ToolbarIcon: View {
-    let symbol: String
-    let tip: String
-    var shortcut: String? = nil
-    let disabled: Bool
-    let action: () -> Void
-    @State private var hover = false
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.control))
-                .foregroundStyle(hover && !disabled ? Ed.text : Ed.text3)
-                .frame(width: 28, height: 24)
-                .background(RoundedRectangle(cornerRadius: Ed.Radius.m, style: .continuous).fill(hover && !disabled ? Ed.control : .clear))
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(disabled)
-        .opacity(disabled ? 0.4 : 1)
-        .onHover { hover = $0 }
-        .tip(tip, shortcut: shortcut)
     }
 }
 

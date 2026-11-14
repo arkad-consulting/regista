@@ -39,9 +39,7 @@ struct JobCard: View {
                 }
             }
         }
-        .padding(Ed.Space.m)
-        .background(RoundedRectangle(cornerRadius: Ed.Radius.l).fill(Ed.header))
-        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l).strokeBorder(job.isRunning ? Ed.gold.opacity(0.28) : Ed.line2))
+        .rCard(border: job.isRunning ? Ed.gold.opacity(0.28) : nil)
     }
 
     /// The steps of a job made of several, each with its state (done, running, stopped there, to come).

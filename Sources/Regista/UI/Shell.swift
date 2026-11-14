@@ -273,36 +273,12 @@ struct TitleBarItems: View {
         HStack(spacing: 6) {
             ClaudeStatus(bench: bench)
             Color.clear.frame(width: 4, height: 1)
-            PanelToggle(symbol: "sidebar.left", on: sideShown, tip: sideShown ? "Nascondi il pannello laterale" : "Mostra il pannello laterale",
-                        shortcut: "⌃⌘S") { ShellPrefs.toggle(ShellPrefs.sideShown) }
-            PanelToggle(symbol: "sidebar.right", on: rightShown, tip: rightShown ? "Nascondi il pannello destro" : "Mostra il pannello destro",
-                        shortcut: "⌥⌘I") { ShellPrefs.toggle(ShellPrefs.rightShown) }
+            IconButton(symbol: "sidebar.left", help: sideShown ? "Nascondi il pannello laterale" : "Mostra il pannello laterale",
+                       shortcut: "⌃⌘S", chrome: true, dimmed: !sideShown) { ShellPrefs.toggle(ShellPrefs.sideShown) }
+            IconButton(symbol: "sidebar.right", help: rightShown ? "Nascondi il pannello destro" : "Mostra il pannello destro",
+                       shortcut: "⌥⌘I", chrome: true, dimmed: !rightShown) { ShellPrefs.toggle(ShellPrefs.rightShown) }
         }
         .environment(\.colorScheme, .dark)
-    }
-}
-
-struct PanelToggle: View {
-    let symbol: String
-    let on: Bool
-    let tip: String
-    let shortcut: String
-    let action: () -> Void
-    @State private var hover = false
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(Ed.icon(Ed.TypeSize.title, .regular))
-                .foregroundStyle(on ? Ed.text2 : Ed.text3)
-                .frame(width: 28, height: 24)
-                .background(RoundedRectangle(cornerRadius: Ed.Radius.m, style: .continuous).fill(hover ? Ed.control : .clear))
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hover = $0 }
-        .tip(tip, shortcut: shortcut)
-        .accessibilityLabel(Text(verbatim: loc(tip)))
     }
 }
 

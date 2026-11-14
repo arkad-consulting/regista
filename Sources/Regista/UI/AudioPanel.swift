@@ -299,20 +299,13 @@ struct MusicSection: View {
                     if let p, p.duration <= .zero { Text(verbatim: loc("Metti prima il video sulla timeline.")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3) }
                     let unused = AudioCalls.projectMusic(p)
                     if !unused.isEmpty {
-                        Text(verbatim: loc("Dal progetto")).font(Ed.ui(Ed.TypeSize.caption, .medium)).foregroundStyle(Ed.text3).padding(.top, Ed.Space.xxs)
-                        ForEach(unused, id: \.id) { a in
-                            Button { store.addMusic(URL(fileURLWithPath: a.path)) } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "waveform").font(Ed.icon(Ed.TypeSize.caption)).foregroundStyle(Ed.musicWave)
-                                    Text(verbatim: a.name).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).lineLimit(1).truncationMode(.middle)
-                                    Spacer(minLength: Ed.Space.xs)
-                                    Text(verbatim: clockTime(a.duration.seconds)).font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
-                                }
-                                .contentShape(Rectangle())
+                        RSection("Dal progetto", rows: true) {
+                            ForEach(unused, id: \.id) { a in
+                                SideRow(symbol: "waveform", title: a.name, detail: clockTime(a.duration.seconds)) { store.addMusic(URL(fileURLWithPath: a.path)) }
+                                    .tip("Usa questo audio come musica")
                             }
-                            .buttonStyle(.plain)
-                            .tip("Usa questo audio come musica")
                         }
+                        .padding(.top, Ed.Space.xxs)
                     }
                 }
             }
@@ -361,32 +354,10 @@ struct SoundBrowser: View {
         let groups = SoundLibrary.groups + (all.contains { $0.source == "user" } ? ["user"] : [])
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 9) {
-                HStack(spacing: 6) {
-                    Image(systemName: "magnifyingglass").font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
-                    ZStack(alignment: .leading) {
-                        if query.isEmpty {
-                            Text(verbatim: loc("Cerca un suono (whoosh, clic, ding…)")).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).allowsHitTesting(false)
-                        }
-                        TextField("", text: $query).textFieldStyle(.plain).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text)
-                    }
-                    if !query.isEmpty {
-                        IconButton(symbol: "xmark.circle.fill", help: "Cancella la ricerca", size: 18) { query = "" }
-                    }
-                }
-                .padding(.horizontal, 9).frame(height: 26)
-                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
-                .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.line))
-                FlowLayout(spacing: Ed.Space.xs, lineSpacing: 5) {
-                    ForEach(groups, id: \.self) { g in
-                        let on = q.isEmpty && g == group
-                        Button { savedGroup = g; query = "" } label: {
-                            Text(verbatim: SoundNames.group(g)).font(Ed.ui(Ed.TypeSize.small, on ? .semibold : .regular))
-                                .foregroundStyle(on ? Color.black.opacity(0.85) : Ed.text2)
-                                .padding(.horizontal, 10).frame(height: 24)
-                                .background(Capsule().fill(on ? Ed.gold : Ed.raised))
-                        }
-                        .buttonStyle(.plain)
-                    }
+                RTextField(placeholder: "Cerca un suono (whoosh, clic, ding…)", text: $query, symbol: "magnifyingglass", clearable: true)
+                RChips(items: groups.map { .init(id: $0, title: SoundNames.group($0)) }, selection: q.isEmpty ? group : nil, flow: true) { g in
+                    savedGroup = g
+                    query = ""
                 }
                 Text(verbatim: String(format: loc("%d suoni · clic per ascoltare, + per metterlo al cursore"), shown.count))
                     .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)

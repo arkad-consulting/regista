@@ -794,14 +794,7 @@ struct PrompterEditorView: View {
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
 
-                TextEditor(text: $p.text)
-                    .font(Ed.ui(Ed.TypeSize.title))
-                    .foregroundStyle(Ed.text)
-                    .scrollContentBackground(.hidden)
-                    .padding(Ed.Space.m)
-                    .frame(minHeight: 120, maxHeight: .infinity)
-                    .background(RoundedRectangle(cornerRadius: Ed.Radius.l).fill(Ed.well))
-                    .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l).strokeBorder(Ed.line2))
+                RTextEditor(text: $p.text, kind: .scrolls(min: 120, max: .infinity), size: Ed.TypeSize.title)
 
                 RSection(loc("Scorrimento")) {
                     RSegmented(items: TeleprompterController.Mode.allCases.map { ($0, $0.label) }, selection: $p.mode,

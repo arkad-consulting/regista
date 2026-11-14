@@ -619,11 +619,8 @@ struct CanvasBar: View {
                 format: { String(format: "%.0f%%", $0 * 100) }, onCommit: { _ in onScale(false) })
             .frame(minWidth: 60)
             .tip("Dimensione (anche pizzico sul trackpad o ⌥ + rotella)")
-        Button(action: onReset) {
-            Image(systemName: "arrow.uturn.backward").font(Ed.icon(Ed.TypeSize.caption, .semibold)).foregroundStyle(Ed.text2)
-                .frame(width: 22, height: 22).contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .tip(element.kind == .caption ? "Ripristina la posizione automatica (anche doppio clic)" : "Ripristina la posizione originale (anche doppio clic)")
+        IconButton(symbol: "arrow.uturn.backward",
+                   help: element.kind == .caption ? "Ripristina la posizione automatica (anche doppio clic)" : "Ripristina la posizione originale (anche doppio clic)",
+                   action: onReset)
     }
 }

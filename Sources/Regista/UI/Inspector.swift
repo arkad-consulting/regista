@@ -551,19 +551,11 @@ struct InspectorTextEditor: View {
     let text: String
     let onCommit: (String) -> Void
     @State private var draft = ""
-    @FocusState private var focused: Bool
 
     var body: some View {
-        TextField("", text: $draft, axis: .vertical)
-            .textFieldStyle(.plain).font(Ed.ui(Ed.TypeSize.control)).foregroundStyle(Ed.text).lineLimit(1...6)
-            .focused($focused)
-            .padding(Ed.Space.s)
-            .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
-            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(focused ? Ed.gold.opacity(0.7) : Ed.rule))
+        RTextEditor(text: $draft, kind: .grows(1...6), size: Ed.TypeSize.control, onSubmit: save, onExit: { draft = text })
             .onAppear { draft = text }
             .onChange(of: text) { draft = text }
-            .onSubmit { save() }
-            .onExitCommand { draft = text; focused = false }
     }
 
     private func save() {

@@ -162,11 +162,8 @@ private struct StartCard: View {
         .onTapGesture(perform: run)
         .overlay(alignment: .bottomTrailing) {
             if let secondary {
-                Button(action: secondary.1) {
-                    Text(verbatim: secondary.0).font(Ed.ui(Ed.TypeSize.caption)).underline().foregroundStyle(Ed.text3)
-                }
-                .buttonStyle(.plain)
-                .padding(18)
+                AccentLinkButton(title: secondary.0, action: secondary.1)
+                    .padding(18)
             }
         }
         .onHover { h in withAnimation(.easeOut(duration: 0.14)) { hover = h } }

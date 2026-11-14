@@ -69,15 +69,16 @@ struct MediaTab: View {
         let selected = store.sourceAssetID == a.id
         let _ = media.revision
         return VStack(alignment: .leading, spacing: Ed.Space.xs) {
-            ZStack {
-                RoundedRectangle(cornerRadius: Ed.Radius.s).fill(Ed.well)
-                if a.video != nil, let img = media.picture(a, at: min(1, a.duration.seconds / 2)) {
-                    Image(decorative: img, scale: 1).resizable().aspectRatio(contentMode: .fill)
-                } else {
-                    Image(systemName: a.video == nil ? "waveform" : "film").font(Ed.icon(Ed.TypeSize.heading, .light)).foregroundStyle(Ed.text3)
+            // The picture fills the tile without widening it (a wide still used to push the tile out of the grid).
+            Ed.well
+                .frame(height: 76)
+                .overlay {
+                    if a.video != nil, let img = media.picture(a, at: min(1, a.duration.seconds / 2)) {
+                        Image(decorative: img, scale: 1).resizable().aspectRatio(contentMode: .fill)
+                    } else {
+                        Image(systemName: a.video == nil ? "waveform" : "film").font(Ed.icon(Ed.TypeSize.heading, .light)).foregroundStyle(Ed.text3)
+                    }
                 }
-            }
-            .frame(height: 76)
             .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.s))
             .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(selected ? Ed.gold : Ed.line, lineWidth: selected ? 1.5 : 1))
             .overlay(alignment: .bottomTrailing) {
@@ -124,19 +125,10 @@ struct TextsTab: View {
                         Text(verbatim: loc("%@ blocchi · stile %@ · %@ parole chiave", String(c.chunks.count), c.style.id, String(c.keywords.count)))
                             .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
                         // Caption style presets (issue #22): the approved look and the three round-2 styles.
-                        FlowLayout(spacing: Ed.Space.xs, lineSpacing: Ed.Space.xs) {
-                            ForEach(CaptionStyle.all, id: \.id) { st in
-                                let on = c.style.id == st.id || c.style.id.hasPrefix(st.id + "+")
-                                Button { store.run("captions.setStyle", ["style": .string(st.id)]) } label: {
-                                    styleName(st.id).font(Ed.ui(Ed.TypeSize.caption, on ? .semibold : .regular))
-                                        .foregroundStyle(on ? Ed.text : Ed.text2)
-                                        .padding(.horizontal, 7).padding(.vertical, 3)
-                                        .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(on ? Ed.gold.opacity(0.22) : Ed.raised))
-                                        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(on ? Ed.gold.opacity(0.7) : Ed.line))
-                                }
-                                .buttonStyle(.plain)
-                                .tip("Cambia lo stile dei sottotitoli (parole chiave e posizioni restano)")
-                            }
+                        RChips(items: CaptionStyle.all.map { .init(id: $0.id, title: captionStyleName($0.id),
+                                                                  tip: "Cambia lo stile dei sottotitoli (parole chiave e posizioni restano)") },
+                               selection: CaptionStyle.all.first { c.style.id == $0.id || c.style.id.hasPrefix($0.id + "+") }?.id, flow: true) {
+                            store.run("captions.setStyle", ["style": .string($0)])
                         }
                         FlowLayout(spacing: Ed.Space.xs, lineSpacing: Ed.Space.xs) {
                             ForEach(c.keywords, id: \.self) { k in
@@ -193,15 +185,6 @@ struct TextsTab: View {
     }
 
     /// The name of a caption style preset (looked up).
-    private func styleName(_ id: String) -> Text {
-        switch id {
-        case "elegant-serif": Text("Serif elegante")
-        case "bold-keyword": Text("Bold + parola chiave")
-        case "ghost-karaoke": Text("Karaoke fantasma")
-        default: Text("Talking head")
-        }
-    }
-
     private func chunkText(_ ch: RegistaCore.CaptionChunk) -> Text {
         ch.words.enumerated().reduce(Text(verbatim: "")) { acc, item in
             let w = Text(verbatim: (item.offset > 0 ? " " : "") + item.element.text)
