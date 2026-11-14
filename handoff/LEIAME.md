@@ -6,6 +6,10 @@ escolhe as melhores tomadas, tira as pausas, limpa a voz, coloca legendas e a ma
 vídeo. Você vê cada passo ao vivo no app e pode retocar à mão. Tudo roda no seu Mac (nenhuma assinatura extra além da
 sua conta Claude).
 
+Este arquivo serve para instalar o Regista e fazer os primeiros testes. O guia completo do app (a janela, o primeiro
+reel à mão, a sua voz, os problemas mais comuns) está dentro do próprio app: menu **Ajuda** › **Guia do Regista**, sem
+internet e no idioma do app. Ele também está online: https://github.com/arkad-consulting/regista/tree/main/docs/pt.
+
 ## 1. Antes de começar
 
 - Um Mac com chip Apple (M1 ou mais novo) e **macOS 15** ou mais novo (menu  → Sobre Este Mac).
@@ -116,7 +120,7 @@ Depois, corrija falando normalmente: "tire a segunda frase", "legendas maiores",
 
 ## 7. Primeiros testes
 
-1. A instalação vai até o fim e o `doctor.sh` diz "Tout est en ordre".
+1. A instalação vai até o fim e o `doctor.sh` diz "Está tudo em ordem".
 2. O Claude Desktop (ou Claude Code) enxerga as ferramentas regista.
 3. "Liste meus vídeos" funciona.
 4. Um reel falando para a câmera **em francês**: boas tomadas escolhidas? pausas bem cortadas? som limpo? legendas
@@ -131,9 +135,10 @@ O Regista pode fazer uma narração **com a sua voz clonada**, no Mac e de graç
 sem nenhuma voz**: nenhuma voz de outra pessoa vem com o Regista.
 
 1. Crie o seu perfil: **Ajustes → Perfil e voz** → o seu nome (ou peça ao Claude "crie o meu perfil, eu sou o Marco").
-2. No app, painel **Voz** → botão de gravação: a leitura guiada aparece no teleprompter. Ou peça ao Claude "grave a
-   minha voz em português" (ou em francês): ele dá o texto para ler (~30 min, uma frase de consentimento com o seu nome
-   e depois 7 blocos de tom). O ideal: o celular com um microfone externo, num lugar silencioso; um arquivo por bloco.
+2. No app, painel **Voz** → **Gravar sua voz…**: uma janela guia você (perfil, idioma, consentimento, o bloco neutro de
+   uns 10 minutos, a verificação, depois os outros tons). Os detalhes estão no guia "Gravar sua voz" (menu **Ajuda**).
+   Ou peça ao Claude "grave a minha voz em português" (ou em francês): ele dá o texto para ler. O ideal: o celular com
+   um microfone externo, num lugar silencioso; um arquivo por bloco.
 3. Passe os arquivos ao Claude, um por um. Depois do bloco neutro, a sua voz já funciona.
 4. Para o melhor resultado (Mac com 32 GB ou mais): "treine a minha voz em português" — cerca de 2 h.
 
@@ -141,8 +146,9 @@ A sua voz fica no seu Mac, no seu perfil. Você pode apagá-la quando quiser em 
 
 ## 8. Limites conhecidos
 
-- **Interface**: o app segue o idioma do Mac, em português, francês, italiano ou inglês. Ainda não está pronto em todo
-  lugar: o nível **Simples** e os painéis Gráficos e Gerar ainda são provisórios. O que não encontrar à mão, peça ao Claude.
+- **Interface**: o app segue o idioma do Mac (ou o escolhido em Ajustes → Geral), em português, francês, italiano ou
+  inglês. O que não encontrar à mão, peça ao Claude. Ainda não existe: tirar palavras de preenchimento ("é…") no meio de
+  uma frase; o Regista tira só as pausas longas.
 - **Motores**: Ajustes → Motores mostra o que está instalado no seu Mac de acordo com a memória dele e instala o resto.
 - **Gerações pagas** (imagens/vídeos Higgsfield): não instaladas por padrão; mesmo configuradas, cada geração
   precisa ser **aprovada por você no app Regista** e o total tem um **limite fixo**. A geração local gratuita
@@ -162,7 +168,8 @@ app Regista.
 
 ## 10. Avisar sobre um problema
 
-Abra uma issue em https://github.com/arkad-consulting/regista/issues.
+Abra uma issue em https://github.com/arkad-consulting/regista/issues (no app: menu **Ajuda** →
+**Relatar um problema…**).
 
 Para cada problema: **o que você pediu** (copie o prompt), **o que esperava**, **o que aconteceu**, **capturas de
 tela** (⌘⇧4 ou ⌘⇧5), o nome e a duração do vídeo. Junte o relatório de verificação:

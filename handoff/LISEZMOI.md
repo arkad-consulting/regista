@@ -6,6 +6,10 @@ Regista : il choisit les meilleures prises, enlève les pauses, nettoie la voix,
 regarde le résultat et exporte la vidéo. Tu vois chaque étape en direct dans l'app et tu peux retoucher à la main.
 Tout tourne sur ton Mac (pas d'abonnement en plus, sauf ton compte Claude).
 
+Ce fichier sert à installer Regista et à faire les premiers essais. Le guide complet de l'app (la fenêtre, le premier
+reel à la main, ta voix, les problèmes courants) est dans l'app elle-même : menu **Aide** › **Guide de Regista**, hors
+ligne et dans la langue de l'app. Il est aussi en ligne : https://github.com/arkad-consulting/regista/tree/main/docs/fr.
+
 ## 1. Avant de commencer
 
 - Un Mac avec puce Apple (M1 ou plus récent) et **macOS 15** ou plus récent (menu  → À propos de ce Mac).
@@ -133,10 +137,11 @@ Regista peut faire une voix off **avec ta voix clonée**, en local et gratuiteme
 et sans aucune voix** : aucune voix d'une autre personne n'est fournie avec Regista.
 
 1. Crée ton profil : **Réglages → Profil et voix** → ton prénom (ou demande à Claude « crée mon profil, je suis Léa »).
-2. Dans l'app, panneau **Voix** → bouton d'enregistrement : la lecture guidée s'affiche sur le prompteur. Ou
-   demande à Claude « enregistre ma voix en français » (ou en portugais) : il te donne le texte à lire (~30 min,
-   une phrase d'accord avec ton prénom, puis 7 blocs de ton). Le mieux : ton téléphone avec un micro externe, dans
-   une pièce calme ; un fichier par bloc.
+2. Dans l'app, panneau **Voix** → **Enregistrer votre voix…** : une fenêtre te guide (profil, langue, consentement,
+   le bloc neutre d'environ 10 minutes, la vérification, puis les autres tons). Le détail est dans le guide
+   « Enregistrer votre voix » (menu **Aide**). Ou demande à Claude « enregistre ma voix en français » (ou en
+   portugais) : il te donne le texte à lire. Le mieux : ton téléphone avec un micro externe, dans une pièce calme ;
+   un fichier par bloc.
 3. Donne les fichiers à Claude, un par un. Après le bloc neutre, ta voix marche déjà.
 4. Pour le meilleur résultat (Mac avec 32 Go ou plus) : « entraîne ma voix en français » — environ 2 h.
 
@@ -144,9 +149,9 @@ Ta voix reste sur ton Mac, dans ton profil. Tu peux la supprimer à tout moment 
 
 ## 8. Limites connues
 
-- **Interface** : l'app suit la langue du Mac, en français, italien ou anglais (le portugais arrive : en attendant
-  l'app s'affiche en anglais). Elle n'est pas finie partout : le niveau **Simple** et les panneaux Graphismes et
-  Générer sont encore provisoires. Ce que tu ne trouves pas à la main, demande-le à Claude.
+- **Interface** : l'app suit la langue du Mac (ou celle choisie dans Réglages → Général), en français, italien,
+  anglais ou portugais. Ce que tu ne trouves pas à la main, demande-le à Claude. Pas encore fait : retirer les mots de
+  remplissage (« euh ») à l'intérieur d'une phrase ; Regista retire seulement les longues pauses.
 - **Moteurs** : Réglages → Moteurs montre ce qui est installé sur ton Mac selon sa mémoire, et installe le reste.
 - **Générations payantes** (images/vidéos Higgsfield) : pas installées par défaut ; même configurées, chaque
   génération doit être **approuvée par toi dans l'app Regista** et le total est **plafonné**. La génération locale
@@ -168,7 +173,8 @@ et l'app Regista.
 
 ## 10. Signaler un problème
 
-Ouvre une issue sur https://github.com/arkad-consulting/regista/issues.
+Ouvre une issue sur https://github.com/arkad-consulting/regista/issues (dans l'app : menu **Aide** →
+**Signaler un problème…**).
 
 Pour chaque problème : **ce que tu as demandé** (copie le prompt), **ce que tu attendais**, **ce qui s'est passé**,
 des **captures d'écran** (⌘⇧4 ou ⌘⇧5), le nom et la durée de la vidéo. Joins le rapport de vérification :

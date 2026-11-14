@@ -63,10 +63,10 @@ public enum Recipes {
            LIST AS TEXT for the user (line → take, its words, in/out) before building. If a pick is wrong (a
            stumble, a cut-off ending, a weaker reading) use takes_select {line, take}.
         6. edit_autoCut: one linked picture+sound clip per kept range (fillers and long pauses removed; ~0.2–0.3 s
-           between lines). After changing picks later: takes_select, then edit_autoCut {replace: true}, then redo
-           steps 7–10.
+           between lines). After changing picks later: edit_autoCut {replace: true, picks: [{line, take}]} (the new picks
+           and the cut are one undo step; or takes_select, then edit_autoCut {replace: true}), then redo steps 7–10.
         7. audio_clean (defaults: DeepFilterNet + voice chain, −15 LUFS, true peak ≤ −1.5 dBTP). Expect ≈ −15 LUFS
-           and lag ≈ 0 in its result.
+           and lag ≈ 0 in its result. audio_clean {restore: true} puts the original sound back if the user prefers it.
         8. faces_track {assetId}, then edit_punchIns {by: "line"}: a base framing alternating with a punch-in to hide
            the jump cuts, the framing changing when the script line changes. With no crops given the crops come from
            the face track, per shot: every detected face kept in frame (two speakers, a child in the speaker's arms), room
@@ -186,10 +186,12 @@ extension Recipes {
            generate_run {kind: "image", prompt} → generate_run {kind: "video", refs: [the still], duration: 3,
            prompt: the motion} → generate_upscale (1080×1920, 30 fps) → overlay_add {path, fullFrame: true}. Pass
            keepRunning: true while chaining and leave it off on the last job (ComfyUI is stopped after use). A clip
-           takes ~5–10 min, an upscale ~4–7 min: wait: false + generate_status if you have other work. Higgsfield
-           (paid) only for the final hero shot and only with the human's approval: generate_estimate, ask them to
-           approve it in the Regista app, read the token from generate_list, generate_run {provider: "higgsfield",
-           approval}. The budget is 2 Higgsfield calls in total — never ask for drafts there.
+           takes ~5–10 min, an upscale ~4–7 min: wait: false + generate_status if you have other work. generate_providers
+           says which provider can run which kind on this Mac. Higgsfield (paid) only for the final hero shot and only
+           with the human's approval: generate_estimate (kind "upscale" prices an upscale), ask them to approve it in the
+           Regista app (the approval is good for exactly that request, once), read the token from generate_list,
+           generate_run {provider: "higgsfield", approval}. The budget is 2 Higgsfield calls in total — never ask for
+           drafts there.
         6. Catalog first: effects_catalog lists every effect, look, style and motion template with description (what it
            looks like), useWhen, avoid and fields with examples — the same items the user sees in the app's Graphics
            panel. For each beat picked in step 2, propose 1–3 fitting items to the user with a one-line reason
@@ -226,7 +228,8 @@ extension Recipes {
            One-click styles (style_apply energico / pulito / tutorial) bundle these moves as one undo step: use one
            as a starting point when the user asks for "a style", then tune.
         7. Sound effects: sfx_library {group?: whoosh | ui | pop | impact | …} (the shipped bank, made in code), then
-           sfx_add {name, at, volume}; a whoosh's loudest moment is `peak` s into it. Whoosh on title/insert entrances, pop on
+           sfx_add {name, at, volume}; a whoosh's loudest moment is `peak` s into it. sfx_onCuts puts a quiet whoosh on
+           the cuts in one step (remove: true takes every effect off). Whoosh on title/insert entrances, pop on
            chips/cards, soft click on UI beats, one bass impact on the key number or the final line. Volumes 0.2–0.3.
         8. Music only when asked (Instagram users add trending audio in the app): audio_addMusic {path} — levelled to
            −22 LUFS, ducked −12 dB under the words (≈19 dB under the voice), faded in and out.
