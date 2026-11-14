@@ -107,6 +107,11 @@ private final class CanvasRig {
 
     func settle(since version: Int) async throws {
         for _ in 0..<40 where store.projectVersion == version { try await Task.sleep(for: .milliseconds(50)); rig.pump(0.01) }
+        // The picture draws the new snapshot (handles where the element now is) before the next gesture starts there:
+        // on a busy machine the store was ahead of the view and a second drag missed the handle.
+        try await Task.sleep(for: .milliseconds(100))
+        rig.pump(0.15)
+        rig.drain()
     }
 }
 
