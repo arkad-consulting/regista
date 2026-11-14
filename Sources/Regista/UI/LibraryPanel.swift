@@ -16,7 +16,7 @@ struct MediaTab: View {
                 EmptyHint(symbol: "square.and.arrow.down", text: loc("Importa video, audio o immagini (⌘I) o trascinali qui"))
             } else {
                 ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 84, maximum: 120), spacing: 8)], spacing: 10) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 84, maximum: 120), spacing: Ed.Space.s)], spacing: 10) {
                         ForEach(assets, id: \.id) { a in tile(a) }
                     }
                     .padding(10)
@@ -50,12 +50,12 @@ struct MediaTab: View {
         if let t = a.analysis?.transcript { rows.append(("Trascrizione", loc("%@ parole · %@", String(t.words.count), t.engine))) }
         if let f = a.analysis?.faces { rows.append(("Volto", loc("%@/%@ fotogrammi", String(f.detected), String(f.frames)))) }
         return VStack(alignment: .leading, spacing: 5) {
-            Text(verbatim: a.name).font(Ed.ui(11, .semibold)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
+            Text(verbatim: a.name).font(Ed.ui(Ed.TypeSize.small, .semibold)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
             ForEach(rows, id: \.0) { k, v in
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(verbatim: loc(k)).font(Ed.ui(10)).foregroundStyle(Ed.text3).lineLimit(1).minimumScaleFactor(0.8)
+                HStack(alignment: .firstTextBaseline, spacing: Ed.Space.s) {
+                    Text(verbatim: loc(k)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).lineLimit(1).minimumScaleFactor(0.8)
                         .frame(width: 80, alignment: .leading)
-                    Text(verbatim: v).font(Ed.mono(10)).foregroundStyle(Ed.text2).lineLimit(1).truncationMode(.tail)
+                    Text(verbatim: v).font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.text2).lineLimit(1).truncationMode(.tail)
                 }
             }
         }
@@ -68,27 +68,27 @@ struct MediaTab: View {
     private func tile(_ a: MediaAsset) -> some View {
         let selected = store.sourceAssetID == a.id
         let _ = media.revision
-        return VStack(alignment: .leading, spacing: 4) {
+        return VStack(alignment: .leading, spacing: Ed.Space.xs) {
             ZStack {
-                RoundedRectangle(cornerRadius: 4).fill(Ed.well)
+                RoundedRectangle(cornerRadius: Ed.Radius.s).fill(Ed.well)
                 if a.video != nil, let img = media.picture(a, at: min(1, a.duration.seconds / 2)) {
                     Image(decorative: img, scale: 1).resizable().aspectRatio(contentMode: .fill)
                 } else {
-                    Image(systemName: a.video == nil ? "waveform" : "film").font(Ed.icon(18, .light)).foregroundStyle(Ed.text3)
+                    Image(systemName: a.video == nil ? "waveform" : "film").font(Ed.icon(Ed.TypeSize.heading, .light)).foregroundStyle(Ed.text3)
                 }
             }
             .frame(height: 76)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(selected ? Ed.gold : Ed.line, lineWidth: selected ? 1.5 : 1))
+            .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.s))
+            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(selected ? Ed.gold : Ed.line, lineWidth: selected ? 1.5 : 1))
             .overlay(alignment: .bottomTrailing) {
-                Text(verbatim: a.image?.kind == .still ? loc("Immagine") : shortTime(a.duration.seconds)).font(Ed.mono(9, .medium)).foregroundStyle(Ed.text)
-                    .padding(.horizontal, 4).padding(.vertical, 1)
-                    .background(RoundedRectangle(cornerRadius: 3).fill(Color.black.opacity(0.65)))
-                    .padding(4)
+                Text(verbatim: a.image?.kind == .still ? loc("Immagine") : shortTime(a.duration.seconds)).font(Ed.mono(Ed.TypeSize.micro, .medium)).foregroundStyle(Ed.text)
+                    .padding(.horizontal, Ed.Space.xs).padding(.vertical, 1)
+                    .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(Color.black.opacity(0.65)))
+                    .padding(Ed.Space.xs)
             }
-            HStack(spacing: 4) {
-                if a.origin != nil { Image(systemName: "sparkle").font(Ed.icon(8)).foregroundStyle(Ed.gold) }
-                Text(verbatim: a.name).font(Ed.ui(10)).foregroundStyle(Ed.text2).lineLimit(1).truncationMode(.middle)
+            HStack(spacing: Ed.Space.xs) {
+                if a.origin != nil { Image(systemName: "sparkle").font(Ed.icon(Ed.TypeSize.tiny)).foregroundStyle(Ed.gold) }
+                Text(verbatim: a.name).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text2).lineLimit(1).truncationMode(.middle)
             }
         }
         .contentShape(Rectangle())
@@ -97,7 +97,7 @@ struct MediaTab: View {
         // Drag it onto a track of the timeline (E1 #53).
         .draggable(MediaDrop.assetPrefix + a.id) {
             Label(a.name, systemImage: a.image != nil ? "photo" : a.video == nil ? "waveform" : "film")
-                .font(Ed.ui(12)).padding(6).background(RoundedRectangle(cornerRadius: 6).fill(Ed.control))
+                .font(Ed.ui(Ed.TypeSize.body)).padding(6).background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.control))
         }
         .contextMenu {
             Button("Mostra in Sorgente") { store.sourceAssetID = a.id }
@@ -122,47 +122,47 @@ struct TextsTab: View {
                 section("Sottotitoli") {
                     if let c = captions {
                         Text(verbatim: loc("%@ blocchi · stile %@ · %@ parole chiave", String(c.chunks.count), c.style.id, String(c.keywords.count)))
-                            .font(Ed.ui(10.5)).foregroundStyle(Ed.text3)
+                            .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
                         // Caption style presets (issue #22): the approved look and the three round-2 styles.
-                        FlowLayout(spacing: 4, lineSpacing: 4) {
+                        FlowLayout(spacing: Ed.Space.xs, lineSpacing: Ed.Space.xs) {
                             ForEach(CaptionStyle.all, id: \.id) { st in
                                 let on = c.style.id == st.id || c.style.id.hasPrefix(st.id + "+")
                                 Button { store.run("captions.setStyle", ["style": .string(st.id)]) } label: {
-                                    styleName(st.id).font(Ed.ui(10, on ? .semibold : .regular))
+                                    styleName(st.id).font(Ed.ui(Ed.TypeSize.caption, on ? .semibold : .regular))
                                         .foregroundStyle(on ? Ed.text : Ed.text2)
                                         .padding(.horizontal, 7).padding(.vertical, 3)
-                                        .background(RoundedRectangle(cornerRadius: 4).fill(on ? Ed.gold.opacity(0.22) : Ed.raised))
-                                        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(on ? Ed.gold.opacity(0.7) : Ed.line))
+                                        .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(on ? Ed.gold.opacity(0.22) : Ed.raised))
+                                        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(on ? Ed.gold.opacity(0.7) : Ed.line))
                                 }
                                 .buttonStyle(.plain)
                                 .tip("Cambia lo stile dei sottotitoli (parole chiave e posizioni restano)")
                             }
                         }
-                        FlowLayout(spacing: 4, lineSpacing: 4) {
+                        FlowLayout(spacing: Ed.Space.xs, lineSpacing: Ed.Space.xs) {
                             ForEach(c.keywords, id: \.self) { k in
                                 Button { store.run("captions.setKeywords", ["remove": [.string(k)]]) } label: {
                                     HStack(spacing: 3) {
-                                        Text(verbatim: k).font(Ed.ui(10, .semibold))
-                                        Image(systemName: "xmark").font(Ed.icon(7, .bold))
+                                        Text(verbatim: k).font(Ed.ui(Ed.TypeSize.caption, .semibold))
+                                        Image(systemName: "xmark").font(Ed.icon(Ed.TypeSize.tiny, .bold))
                                     }
                                     .foregroundStyle(.white)
-                                    .padding(.horizontal, 6).padding(.vertical, 2)
-                                    .background(RoundedRectangle(cornerRadius: 3).fill(Ed.keyword.opacity(0.85)))
+                                    .padding(.horizontal, 6).padding(.vertical, Ed.Space.xxs)
+                                    .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(Ed.keyword.opacity(0.85)))
                                 }
                                 .buttonStyle(.plain)
                                 .tip("Togli dalle parole chiave")
                             }
                         }
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: Ed.Space.xxs) {
                             ForEach(Array(c.chunks.enumerated()), id: \.offset) { _, ch in
                                 Button { store.preview.seek(ch.words.first?.start.seconds ?? 0) } label: {
-                                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                        Text(verbatim: shortTime(ch.words.first?.start.seconds ?? 0)).font(Ed.mono(9.5)).foregroundStyle(Ed.text3)
+                                    HStack(alignment: .firstTextBaseline, spacing: Ed.Space.s) {
+                                        Text(verbatim: shortTime(ch.words.first?.start.seconds ?? 0)).font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.text3)
                                             .frame(width: 40, alignment: .leading)
                                         chunkText(ch)
                                         Spacer(minLength: 0)
                                     }
-                                    .padding(.vertical, 2)
+                                    .padding(.vertical, Ed.Space.xxs)
                                     .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
@@ -176,18 +176,18 @@ struct TextsTab: View {
                 section("Copione") {
                     if let s = store.project?.script {
                         ForEach(Array(s.lines.enumerated()), id: \.offset) { i, line in
-                            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                Text(verbatim: "\(i + 1)").font(Ed.mono(10)).foregroundStyle(Ed.gold).frame(width: 16, alignment: .trailing)
-                                Text(verbatim: line).font(Ed.ui(11)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
+                            HStack(alignment: .firstTextBaseline, spacing: Ed.Space.s) {
+                                Text(verbatim: "\(i + 1)").font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.gold).frame(width: 16, alignment: .trailing)
+                                Text(verbatim: line).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
                             }
                         }
                     } else {
-                        Text(verbatim: loc("Nessun copione: incollalo o crealo dal parlato nei Passi (è facoltativo).")).font(Ed.ui(11)).foregroundStyle(Ed.text3)
+                        Text(verbatim: loc("Nessun copione: incollalo o crealo dal parlato nei Passi (è facoltativo).")).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
                         AccentLinkButton(title: loc("Apri il passo Copione")) { store.nav.textsTab = .steps }
                     }
                 }
             }
-            .padding(12)
+            .padding(Ed.Space.m)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -205,7 +205,7 @@ struct TextsTab: View {
     private func chunkText(_ ch: RegistaCore.CaptionChunk) -> Text {
         ch.words.enumerated().reduce(Text(verbatim: "")) { acc, item in
             let w = Text(verbatim: (item.offset > 0 ? " " : "") + item.element.text)
-                .font(Ed.ui(11, item.element.keyword ? .bold : .regular))
+                .font(Ed.ui(Ed.TypeSize.small, item.element.keyword ? .bold : .regular))
                 .foregroundColor(item.element.keyword ? Ed.keyword : Ed.text)
             return acc + w
         }
@@ -213,7 +213,7 @@ struct TextsTab: View {
 }
 
 func section<Content: View>(_ title: String, @ViewBuilder _ content: () -> Content) -> some View {
-    VStack(alignment: .leading, spacing: 8) {
+    VStack(alignment: .leading, spacing: Ed.Space.s) {
         SectionLabel(title)
         content()
     }
@@ -249,10 +249,10 @@ struct HistoryTab: View {
     }
 
     private func row(_ name: String, done: Bool, current: Bool) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Ed.Space.s) {
             Circle().fill(current ? Ed.gold : (done ? Ed.text3 : .clear)).frame(width: 6, height: 6)
                 .overlay(Circle().strokeBorder(Ed.text3, lineWidth: done ? 0 : 1))
-            Text(verbatim: CommandTitles.title(name)).font(Ed.ui(11)).foregroundStyle(done ? (current ? Ed.text : Ed.text2) : Ed.text3)
+            Text(verbatim: CommandTitles.title(name)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(done ? (current ? Ed.text : Ed.text2) : Ed.text3)
                 .strikethrough(!done, color: Ed.text3)
             Spacer()
         }

@@ -82,7 +82,7 @@ struct VoicePanel: View {
 
     private var header: some View {
         HStack(spacing: Ed.Space.s) {
-            Image(systemName: "person.wave.2").font(Ed.icon(11, .medium)).foregroundStyle(model.snapshot.profile == nil ? Ed.text3 : Ed.gold)
+            Image(systemName: "person.wave.2").font(Ed.icon(Ed.TypeSize.small, .medium)).foregroundStyle(model.snapshot.profile == nil ? Ed.text3 : Ed.gold)
             Text(verbatim: model.snapshot.profile.map { String(format: loc("Voce di %@"), $0) } ?? loc("Nessun profilo"))
                 .font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text2).lineLimit(1)
             Spacer()
@@ -211,7 +211,7 @@ struct VoicePanel: View {
     private func placedCard(_ p: VoiceModel.Placed) -> some View {
         VStack(alignment: .leading, spacing: Ed.Space.s) {
             HStack(spacing: Ed.Space.s) {
-                Image(systemName: "checkmark.circle.fill").font(Ed.icon(12)).foregroundStyle(Ed.ok)
+                Image(systemName: "checkmark.circle.fill").font(Ed.icon(Ed.TypeSize.body)).foregroundStyle(Ed.ok)
                 Text(verbatim: String(format: loc("%d clip sulla pista Voce · %@"), p.clipIds.count, VoiceFormat.duration(p.seconds)))
                     .font(Ed.ui(Ed.TypeSize.small, .semibold)).foregroundStyle(Ed.text)
             }
@@ -228,7 +228,7 @@ struct VoicePanel: View {
 
     private var honesty: some View {
         HStack(alignment: .top, spacing: Ed.Space.s) {
-            Image(systemName: "info.circle").font(Ed.icon(10.5)).foregroundStyle(Ed.text3)
+            Image(systemName: "info.circle").font(Ed.icon(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
             Text(verbatim: loc("Voce sintetica, generata con l'IA a partire dalla tua. L'export aggiunge la nota «voce generata con IA» da riportare nella descrizione del post."))
                 .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
         }
@@ -283,7 +283,7 @@ struct VoiceLexiconPane: View {
             InspectorSection(title: editing == nil ? loc("Aggiungi") : loc("Modifica")) {
                 HStack(spacing: Ed.Space.s) {
                     RTextField(placeholder: loc("Parola (com'è scritta)"), text: $word)
-                    Image(systemName: "arrow.right").font(Ed.icon(9, .semibold)).foregroundStyle(Ed.text3)
+                    Image(systemName: "arrow.right").font(Ed.icon(Ed.TypeSize.micro, .semibold)).foregroundStyle(Ed.text3)
                     RTextField(placeholder: loc("Si legge"), text: $say)
                 }
                 HStack(spacing: Ed.Space.s) {
@@ -302,9 +302,9 @@ struct VoiceLexiconPane: View {
     private func row<T: View>(_ e: VoiceModel.LexiconEntry, @ViewBuilder trailing: () -> T) -> some View {
         HStack(spacing: Ed.Space.s) {
             Text(verbatim: e.word).font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text).lineLimit(1)
-            Image(systemName: "arrow.right").font(Ed.icon(8, .semibold)).foregroundStyle(Ed.text3)
+            Image(systemName: "arrow.right").font(Ed.icon(Ed.TypeSize.tiny, .semibold)).foregroundStyle(Ed.text3)
             Text(verbatim: e.say).font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(e.pending ? Ed.warn : Ed.gold).lineLimit(1)
-            Spacer(minLength: 4)
+            Spacer(minLength: Ed.Space.xs)
             trailing()
         }
         .padding(.horizontal, Ed.Space.s)
@@ -329,8 +329,8 @@ struct LinkButton: ViewModifier {
         content
             .font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text)
             .padding(.horizontal, 10).frame(height: 24)
-            .background(RoundedRectangle(cornerRadius: 5).fill(Ed.raised))
-            .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(Ed.line2))
+            .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.raised))
+            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.line2))
     }
 }
 
@@ -344,7 +344,7 @@ struct StateCard<Actions: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Ed.Space.m) {
             Image(systemName: symbol)
-                .font(Ed.icon(15, .light))
+                .font(Ed.icon(Ed.TypeSize.title, .light))
                 .foregroundStyle(Ed.gold)
                 .frame(width: 38, height: 38)
                 .background(Circle().fill(Ed.goldSoft))

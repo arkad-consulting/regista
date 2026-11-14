@@ -51,7 +51,7 @@ struct AudioPanel: View {
         VStack(spacing: 0) {
             RSegmented(items: [(.mix, "Mix"), (.sfx, "Effetti sonori")], selection: Binding(get: { shown }, set: { store.nav.soundTab = $0 }),
                        tips: [.mix: "Livello, musica, voce e piste", .sfx: "Sfoglia, ascolta e metti gli effetti sulla pista Effetti"])
-                .padding(.horizontal, 12).padding(.vertical, 10)
+                .padding(.horizontal, Ed.Space.m).padding(.vertical, 10)
             switch shown {
             case .mix: AudioMixTab()
             case .sfx: SoundBrowser()
@@ -80,17 +80,17 @@ struct AudioMixTab: View {
                     StepOffer(step: .clean, compact: true)
                 }
                 section(loc("Piste")) {
-                    if tracks.isEmpty { Text(verbatim: loc("Nessuna pista audio.")).font(Ed.ui(11)).foregroundStyle(Ed.text3) }
+                    if tracks.isEmpty { Text(verbatim: loc("Nessuna pista audio.")).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3) }
                     ForEach(tracks, id: \.id) { t in
-                        HStack(spacing: 8) {
+                        HStack(spacing: Ed.Space.s) {
                             Circle().fill(ClipPalette.edge(t.role == "music" ? .music : t.role == "sfx" ? .sfx : .voice)).frame(width: 6, height: 6)
-                            Text(verbatim: trackName(t)).font(Ed.ui(11.5)).foregroundStyle(Ed.text).lineLimit(1)
-                            Text(verbatim: t.clips.count == 1 ? loc("1 clip") : String(format: loc("%d clip"), t.clips.count)).font(Ed.ui(10.5)).foregroundStyle(Ed.text3)
+                            Text(verbatim: trackName(t)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text).lineLimit(1)
+                            Text(verbatim: t.clips.count == 1 ? loc("1 clip") : String(format: loc("%d clip"), t.clips.count)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
                             if store.project?.asset(t.clips.first?.assetID ?? "")?.origin != nil {
-                                Text(verbatim: loc("voce pulita")).font(Ed.ui(10)).foregroundStyle(Ed.ok)
+                                Text(verbatim: loc("voce pulita")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.ok)
                             }
                             if t.ducking != nil {
-                                Image(systemName: "arrow.down.right").font(Ed.icon(9, .semibold)).foregroundStyle(Ed.musicWave)
+                                Image(systemName: "arrow.down.right").font(Ed.icon(Ed.TypeSize.micro, .semibold)).foregroundStyle(Ed.musicWave)
                                     .tip("Si abbassa sotto la voce")
                             }
                             Spacer()
@@ -101,7 +101,7 @@ struct AudioMixTab: View {
                     }
                 }
             }
-            .padding(12)
+            .padding(Ed.Space.m)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -129,23 +129,23 @@ struct LevelSection: View {
         let verdict = LoudnessTarget.verdict(integrated: integrated)
         let peakOver = LoudnessTarget.peakOver(truePeak)
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: Ed.Space.xs) {
                 Text(verbatim: integrated.isFinite ? Fmt.number(integrated) : (measuring ? "…" : "–"))
-                    .font(Ed.mono(24, .medium)).foregroundStyle(Ed.text).monospacedDigit()
-                Text(verbatim: "LUFS").font(Ed.mono(9.5)).foregroundStyle(Ed.text3)
+                    .font(Ed.mono(Ed.TypeSize.large, .medium)).foregroundStyle(Ed.text).monospacedDigit()
+                Text(verbatim: "LUFS").font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.text3)
                 Spacer(minLength: 6)
                 VerdictChip(verdict: verdict)
             }
             strip(verdict)
             HStack(spacing: 6) {
-                Text(verbatim: loc("Picco reale")).font(Ed.ui(11)).foregroundStyle(Ed.text3)
+                Text(verbatim: loc("Picco reale")).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
                 Text(verbatim: truePeak.isFinite ? "\(Fmt.number(truePeak)) dBTP" : "–")
-                    .font(Ed.mono(11, .medium)).foregroundStyle(peakOver ? Ed.warn : Ed.text2)
+                    .font(Ed.mono(Ed.TypeSize.small, .medium)).foregroundStyle(peakOver ? Ed.warn : Ed.text2)
                 Spacer()
             }
             Text(verbatim: String(format: loc("Obiettivo: %@ LUFS, picco fino a %@ dBTP."),
                                   Fmt.number(LoudnessTarget.integrated), Fmt.number(LoudnessTarget.truePeak)))
-                .font(Ed.ui(10.5)).foregroundStyle(Ed.text3)
+                .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
             if peakOver && verdict != .tooLoud {
                 hint(loc("Qualche picco supera il limite: all'esportazione il limitatore lo contiene."))
             }
@@ -167,7 +167,7 @@ struct LevelSection: View {
                         .offset(x: w * x(LoudnessTarget.integrated - LoudnessTarget.tolerance))
                     Rectangle().fill(Ed.gold.opacity(0.7)).frame(width: 1).offset(x: w * x(LoudnessTarget.integrated))
                     if integrated.isFinite {
-                        RoundedRectangle(cornerRadius: 1.5).fill(VerdictChip.color(verdict))
+                        RoundedRectangle(cornerRadius: Ed.Radius.xs).fill(VerdictChip.color(verdict))
                             .frame(width: 3, height: 14).offset(x: w * x(integrated) - 3 / 2)
                     }
                 }
@@ -176,9 +176,9 @@ struct LevelSection: View {
             }
             .frame(height: 14)
             HStack {
-                Text(verbatim: Fmt.number(lo)).font(Ed.mono(8.5)).foregroundStyle(Ed.text3)
+                Text(verbatim: Fmt.number(lo)).font(Ed.mono(Ed.TypeSize.tiny)).foregroundStyle(Ed.text3)
                 Spacer()
-                Text(verbatim: Fmt.number(Self.range.upperBound)).font(Ed.mono(8.5)).foregroundStyle(Ed.text3)
+                Text(verbatim: Fmt.number(Self.range.upperBound)).font(Ed.mono(Ed.TypeSize.tiny)).foregroundStyle(Ed.text3)
             }
         }
     }
@@ -202,7 +202,7 @@ struct LevelSection: View {
     }
 
     private func hint(_ text: String) -> some View {
-        Text(verbatim: text).font(Ed.ui(10.5)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
+        Text(verbatim: text).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -226,12 +226,12 @@ struct VerdictChip: View {
         case .unmeasured: (loc("Da misurare"), "ellipsis")
         }
         let c = Self.color(verdict)
-        HStack(spacing: 4) {
-            Image(systemName: symbol).font(Ed.icon(8.5, .bold))
-            Text(verbatim: title).font(Ed.ui(10.5, .semibold))
+        HStack(spacing: Ed.Space.xs) {
+            Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.tiny, .bold))
+            Text(verbatim: title).font(Ed.ui(Ed.TypeSize.caption, .semibold))
         }
         .foregroundStyle(c)
-        .padding(.horizontal, 8).frame(height: 20)
+        .padding(.horizontal, Ed.Space.s).frame(height: 20)
         .background(Capsule().fill(c.opacity(0.14)))
         .overlay(Capsule().strokeBorder(c.opacity(0.35)))
     }
@@ -258,13 +258,13 @@ struct MusicSection: View {
             VStack(alignment: .leading, spacing: 10) {
                 if let music = AudioCalls.musicTrack(p), let p {
                     let asset = p.asset(music.clips[0].assetID)
-                    HStack(spacing: 8) {
-                        Image(systemName: "music.note").font(Ed.icon(11, .medium)).foregroundStyle(Ed.musicWave)
+                    HStack(spacing: Ed.Space.s) {
+                        Image(systemName: "music.note").font(Ed.icon(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.musicWave)
                             .frame(width: 26, height: 26).background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.musicWave.opacity(0.14)))
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(verbatim: asset?.name ?? loc("Musica")).font(Ed.ui(11.5, .medium)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
+                            Text(verbatim: asset?.name ?? loc("Musica")).font(Ed.ui(Ed.TypeSize.body, .medium)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
                             Text(verbatim: String(format: loc("%@ sulla pista Musica"), clockTime(music.end.seconds - music.clips[0].start.seconds)))
-                                .font(Ed.ui(10.5)).foregroundStyle(Ed.text3)
+                                .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
                         }
                         Spacer(minLength: 0)
                     }
@@ -290,23 +290,23 @@ struct MusicSection: View {
                     checkLine(job, p)
                 } else {
                     Text(verbatim: loc("Nessuna musica. Va sulla pista Musica, dura quanto il video e si abbassa da sola quando parli."))
-                        .font(Ed.ui(11)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+                        .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
                     if let job, job.isRunning || job.state != .done {
                         JobCard(job: job, onCancel: { jobs.cancel(job.id) }, onDismiss: { jobs.dismiss(job.id) })
                     }
                     EdButton(title: loc("Aggiungi musica…"), symbol: "music.note", prominent: p?.duration ?? .zero > .zero,
                              disabled: p == nil || p?.duration ?? .zero <= .zero || job?.isRunning == true) { Panels.addMusic(store) }
-                    if let p, p.duration <= .zero { Text(verbatim: loc("Metti prima il video sulla timeline.")).font(Ed.ui(10.5)).foregroundStyle(Ed.text3) }
+                    if let p, p.duration <= .zero { Text(verbatim: loc("Metti prima il video sulla timeline.")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3) }
                     let unused = AudioCalls.projectMusic(p)
                     if !unused.isEmpty {
-                        Text(verbatim: loc("Dal progetto")).font(Ed.ui(10.5, .medium)).foregroundStyle(Ed.text3).padding(.top, 2)
+                        Text(verbatim: loc("Dal progetto")).font(Ed.ui(Ed.TypeSize.caption, .medium)).foregroundStyle(Ed.text3).padding(.top, Ed.Space.xxs)
                         ForEach(unused, id: \.id) { a in
                             Button { store.addMusic(URL(fileURLWithPath: a.path)) } label: {
                                 HStack(spacing: 6) {
-                                    Image(systemName: "waveform").font(Ed.icon(10)).foregroundStyle(Ed.musicWave)
-                                    Text(verbatim: a.name).font(Ed.ui(11)).foregroundStyle(Ed.text2).lineLimit(1).truncationMode(.middle)
-                                    Spacer(minLength: 4)
-                                    Text(verbatim: clockTime(a.duration.seconds)).font(Ed.mono(10)).foregroundStyle(Ed.text3)
+                                    Image(systemName: "waveform").font(Ed.icon(Ed.TypeSize.caption)).foregroundStyle(Ed.musicWave)
+                                    Text(verbatim: a.name).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).lineLimit(1).truncationMode(.middle)
+                                    Spacer(minLength: Ed.Space.xs)
+                                    Text(verbatim: clockTime(a.duration.seconds)).font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
                                 }
                                 .contentShape(Rectangle())
                             }
@@ -325,8 +325,8 @@ struct MusicSection: View {
             } else if let check = demo?.check ?? store.musicCheck.flatMap({ $0.signature == AudioCalls.signature(p) ? $0 : nil }) {
                 HStack(alignment: .top, spacing: 6) {
                     Image(systemName: check.pass ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                        .font(Ed.icon(11)).foregroundStyle(check.pass ? Ed.ok : Ed.warn)
-                    Text(verbatim: check.line).font(Ed.ui(10.5)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
+                        .font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(check.pass ? Ed.ok : Ed.warn)
+                    Text(verbatim: check.line).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
                 }
             } else if AudioCalls.voiceTrack(p) != nil {
                 EdButton(title: loc("Controlla sotto la voce"), symbol: "waveform.badge.magnifyingglass") { store.checkMusic() }
@@ -362,25 +362,25 @@ struct SoundBrowser: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 9) {
                 HStack(spacing: 6) {
-                    Image(systemName: "magnifyingglass").font(Ed.icon(11)).foregroundStyle(Ed.text3)
+                    Image(systemName: "magnifyingglass").font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
                     ZStack(alignment: .leading) {
                         if query.isEmpty {
-                            Text(verbatim: loc("Cerca un suono (whoosh, clic, ding…)")).font(Ed.ui(11.5)).foregroundStyle(Ed.text3).allowsHitTesting(false)
+                            Text(verbatim: loc("Cerca un suono (whoosh, clic, ding…)")).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).allowsHitTesting(false)
                         }
-                        TextField("", text: $query).textFieldStyle(.plain).font(Ed.ui(11.5)).foregroundStyle(Ed.text)
+                        TextField("", text: $query).textFieldStyle(.plain).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text)
                     }
                     if !query.isEmpty {
                         IconButton(symbol: "xmark.circle.fill", help: "Cancella la ricerca", size: 18) { query = "" }
                     }
                 }
                 .padding(.horizontal, 9).frame(height: 26)
-                .background(RoundedRectangle(cornerRadius: 6).fill(Ed.well))
-                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Ed.line))
-                FlowLayout(spacing: 4, lineSpacing: 5) {
+                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
+                .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.line))
+                FlowLayout(spacing: Ed.Space.xs, lineSpacing: 5) {
                     ForEach(groups, id: \.self) { g in
                         let on = q.isEmpty && g == group
                         Button { savedGroup = g; query = "" } label: {
-                            Text(verbatim: SoundNames.group(g)).font(Ed.ui(11, on ? .semibold : .regular))
+                            Text(verbatim: SoundNames.group(g)).font(Ed.ui(Ed.TypeSize.small, on ? .semibold : .regular))
                                 .foregroundStyle(on ? Color.black.opacity(0.85) : Ed.text2)
                                 .padding(.horizontal, 10).frame(height: 24)
                                 .background(Capsule().fill(on ? Ed.gold : Ed.raised))
@@ -389,9 +389,9 @@ struct SoundBrowser: View {
                     }
                 }
                 Text(verbatim: String(format: loc("%d suoni · clic per ascoltare, + per metterlo al cursore"), shown.count))
-                    .font(Ed.ui(10.5)).foregroundStyle(Ed.text3)
+                    .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
             }
-            .padding(.horizontal, 12).padding(.bottom, 8)
+            .padding(.horizontal, Ed.Space.m).padding(.bottom, Ed.Space.s)
             Ed.rule2.frame(height: 1)
             if all.isEmpty {
                 EmptyHint(symbol: "speaker.slash", text: loc("Nessun effetto sonoro: la libreria di Regista manca da questa installazione. Reinstalla l'app."))
@@ -405,11 +405,11 @@ struct SoundBrowser: View {
                                      onPreview: { player.toggle(s) }, onAdd: { store.addSoundEffect(s.name) })
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, Ed.Space.xs)
                 }
             }
             Text(verbatim: loc("Suoni creati in codice da earshot (licenza MIT)."))
-                .font(Ed.ui(9.5)).foregroundStyle(Ed.text3).padding(.horizontal, 12).padding(.vertical, 6)
+                .font(Ed.ui(Ed.TypeSize.micro)).foregroundStyle(Ed.text3).padding(.horizontal, Ed.Space.m).padding(.vertical, 6)
         }
         .onDisappear { player.stop() }
     }
@@ -424,29 +424,29 @@ struct SoundRow: View {
     @State private var hover = false
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Ed.Space.s) {
             Image(systemName: playing ? "stop.fill" : "play.fill")
-                .font(Ed.icon(8.5, .bold))
+                .font(Ed.icon(Ed.TypeSize.tiny, .bold))
                 .foregroundStyle(playing ? Accent.on : (hover ? Ed.text : Ed.text2))
                 .frame(width: 22, height: 22)
                 .background(Circle().fill(playing ? Ed.gold : (hover ? Ed.hover : Ed.raised)))
             VStack(alignment: .leading, spacing: 1) {
-                Text(verbatim: SoundNames.title(sound)).font(Ed.ui(11.5, .medium)).foregroundStyle(Ed.text).lineLimit(1)
+                Text(verbatim: SoundNames.title(sound)).font(Ed.ui(Ed.TypeSize.body, .medium)).foregroundStyle(Ed.text).lineLimit(1)
                 HStack(spacing: 5) {
-                    Text(verbatim: SoundNames.member(sound)).font(Ed.mono(9.5)).foregroundStyle(Ed.text3).lineLimit(1)
+                    Text(verbatim: SoundNames.member(sound)).font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.text3).lineLimit(1)
                     if let d = sound.duration {
                         Text(verbatim: "· " + String(format: loc("%@ s"), Fmt.number(d, decimals: d < 1 ? 2 : 1)))
-                            .font(Ed.mono(9.5)).foregroundStyle(Ed.text3)
+                            .font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.text3)
                     }
                 }
             }
-            Spacer(minLength: 4)
+            Spacer(minLength: Ed.Space.xs)
             IconButton(symbol: "plus", help: "Aggiungi al cursore (pista Effetti)", size: 22) { onAdd() }
                 .disabled(!canAdd)
                 .opacity(canAdd ? (hover || playing ? 1 : 0.55) : 0.25)
         }
         .padding(.horizontal, 10).padding(.vertical, 5)
-        .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(playing ? Ed.goldSoft : (hover ? Ed.hover.opacity(0.5) : .clear)).padding(.horizontal, 4))
+        .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(playing ? Ed.goldSoft : (hover ? Ed.hover.opacity(0.5) : .clear)).padding(.horizontal, Ed.Space.xs))
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { if canAdd { onAdd() } }
         .onTapGesture { onPreview() }

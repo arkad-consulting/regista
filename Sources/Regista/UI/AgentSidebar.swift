@@ -87,7 +87,7 @@ struct ActivityLog: View {
                                 }
                             }
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, Ed.Space.xs)
                     }
                     .onChange(of: store.activity.last?.id) {
                         if let last = rows.last?.id { withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(last, anchor: .bottom) } }
@@ -122,13 +122,13 @@ struct LooksRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             Button(action: toggle) {
-                HStack(spacing: 8) {
-                    Image(systemName: "eye").font(Ed.icon(9)).foregroundStyle(Ed.text3).frame(width: 10)
-                    Text(verbatim: ActivityFeed.summary(looks)).font(Ed.ui(11)).foregroundStyle(Ed.text3).lineLimit(1).truncationMode(.tail)
-                    Spacer(minLength: 4)
-                    Text(verbatim: Self.clock.string(from: looks[looks.count - 1].started)).font(Ed.mono(9.5)).foregroundStyle(Ed.text3)
+                HStack(spacing: Ed.Space.s) {
+                    Image(systemName: "eye").font(Ed.icon(Ed.TypeSize.micro)).foregroundStyle(Ed.text3).frame(width: 10)
+                    Text(verbatim: ActivityFeed.summary(looks)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).lineLimit(1).truncationMode(.tail)
+                    Spacer(minLength: Ed.Space.xs)
+                    Text(verbatim: Self.clock.string(from: looks[looks.count - 1].started)).font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.text3)
                     if looks.count > 1 {
-                        Image(systemName: open ? "chevron.down" : "chevron.right").font(Ed.icon(8, .semibold)).foregroundStyle(Ed.text3)
+                        Image(systemName: open ? "chevron.down" : "chevron.right").font(Ed.icon(Ed.TypeSize.tiny, .semibold)).foregroundStyle(Ed.text3)
                     }
                 }
                 .contentShape(Rectangle())
@@ -137,18 +137,18 @@ struct LooksRow: View {
             .disabled(looks.count < 2)
             if open {
                 ForEach(looks) { a in
-                    HStack(spacing: 8) {
+                    HStack(spacing: Ed.Space.s) {
                         Color.clear.frame(width: 10, height: 1)
-                        Text(verbatim: CommandTitles.title(a.command)).font(Ed.ui(10.5)).foregroundStyle(Ed.text3).lineLimit(1)
-                        Spacer(minLength: 4)
-                        Text(verbatim: Self.clock.string(from: a.started)).font(Ed.mono(9)).foregroundStyle(Ed.text3)
+                        Text(verbatim: CommandTitles.title(a.command)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).lineLimit(1)
+                        Spacer(minLength: Ed.Space.xs)
+                        Text(verbatim: Self.clock.string(from: a.started)).font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.text3)
                     }
                     .help(a.params)
                 }
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 4)
+        .padding(.vertical, Ed.Space.xs)
     }
 }
 
@@ -162,24 +162,24 @@ struct ActivityRow: View {
     }()
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: Ed.Space.s) {
             status.frame(width: 10, height: 14)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Ed.Space.xxs) {
                 HStack(spacing: 6) {
-                    Text(verbatim: a.note ?? CommandTitles.title(a.command)).font(Ed.ui(11.5, .medium)).foregroundStyle(a.isAgent ? Ed.text : Ed.text2)
+                    Text(verbatim: a.note ?? CommandTitles.title(a.command)).font(Ed.ui(Ed.TypeSize.body, .medium)).foregroundStyle(a.isAgent ? Ed.text : Ed.text2)
                         .lineLimit(a.note == nil ? 1 : 3)
                     // Ran in a tab the user was not looking at (S2 #76).
                     if let p = a.project {
-                        Text(verbatim: String(format: loc("in «%@»"), p)).font(Ed.ui(9.5)).foregroundStyle(Ed.text3).lineLimit(1).truncationMode(.middle)
+                        Text(verbatim: String(format: loc("in «%@»"), p)).font(Ed.ui(Ed.TypeSize.micro)).foregroundStyle(Ed.text3).lineLimit(1).truncationMode(.middle)
                     }
-                    if !a.isAgent { Text("tu").font(Ed.ui(9.5)).foregroundStyle(Ed.text3) }
-                    Spacer(minLength: 4)
+                    if !a.isAgent { Text("tu").font(Ed.ui(Ed.TypeSize.micro)).foregroundStyle(Ed.text3) }
+                    Spacer(minLength: Ed.Space.xs)
                     Text(verbatim: a.status == .running ? "…" : (a.seconds >= 0.1 ? String(format: "%.1f s", a.seconds) : ""))
-                        .font(Ed.mono(9.5)).foregroundStyle(Ed.text3)
-                    if !compact { Text(verbatim: Self.clock.string(from: a.started)).font(Ed.mono(9.5)).foregroundStyle(Ed.text3) }
+                        .font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.text3)
+                    if !compact { Text(verbatim: Self.clock.string(from: a.started)).font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.text3) }
                 }
                 if !a.result.isEmpty {
-                    Text(verbatim: a.result).font(Ed.ui(10)).foregroundStyle(a.status == .failed ? Ed.danger : Ed.text2)
+                    Text(verbatim: a.result).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(a.status == .failed ? Ed.danger : Ed.text2)
                         .lineLimit(a.status == .failed ? 3 : 1).truncationMode(.tail)
                 }
             }
@@ -194,8 +194,8 @@ struct ActivityRow: View {
     @ViewBuilder private var status: some View {
         switch a.status {
         case .running: ProgressView().controlSize(.mini).scaleEffect(0.7)
-        case .ok: Image(systemName: "checkmark").font(Ed.icon(8.5, .bold)).foregroundStyle(Ed.ok).padding(.top, 2)
-        case .failed: Image(systemName: "xmark").font(Ed.icon(8.5, .bold)).foregroundStyle(Ed.danger).padding(.top, 2)
+        case .ok: Image(systemName: "checkmark").font(Ed.icon(Ed.TypeSize.tiny, .bold)).foregroundStyle(Ed.ok).padding(.top, Ed.Space.xxs)
+        case .failed: Image(systemName: "xmark").font(Ed.icon(Ed.TypeSize.tiny, .bold)).foregroundStyle(Ed.danger).padding(.top, Ed.Space.xxs)
         }
     }
 }
@@ -224,7 +224,7 @@ struct TranscriptView: View {
                             ForEach(paragraphs(words), id: \.first) { para in
                                 VStack(alignment: .leading, spacing: 3) {
                                     HStack(spacing: 6) {
-                                        Text(verbatim: shortTime(words[para.first!].start.seconds)).font(Ed.mono(9)).foregroundStyle(Ed.text3)
+                                        Text(verbatim: shortTime(words[para.first!].start.seconds)).font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.text3)
                                         Spacer()
                                         if editing != para.first {
                                             IconButton(symbol: "pencil", help: "Correggi il testo (sottotitoli inclusi)", size: 18) {
@@ -236,22 +236,22 @@ struct TranscriptView: View {
                                     if editing == para.first {
                                         editor(para, words)
                                     } else {
-                                        FlowLayout(spacing: 0, lineSpacing: 2) {
+                                        FlowLayout(spacing: 0, lineSpacing: Ed.Space.xxs) {
                                             ForEach(para, id: \.self) { i in word(i, words[i]).id(i) }
                                         }
                                     }
                                 }
                             }
                         }
-                        .padding(12)
+                        .padding(Ed.Space.m)
                     }
                     .onChange(of: current) {
                         if store.preview.isPlaying, current >= 0 { proxy.scrollTo(current, anchor: .center) }
                     }
                 }
                 if let sel = store.wordSelection {
-                    HStack(spacing: 8) {
-                        Text(verbatim: sel.count == 1 ? loc("1 parola") : loc("%@ parole", String(sel.count))).font(Ed.ui(10.5)).foregroundStyle(Ed.text2)
+                    HStack(spacing: Ed.Space.s) {
+                        Text(verbatim: sel.count == 1 ? loc("1 parola") : loc("%@ parole", String(sel.count))).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text2)
                         Spacer()
                         EdButton(title: "Annulla") { store.wordSelection = nil; anchor = nil }
                         EdButton(title: "Elimina dal montaggio", symbol: "scissors", prominent: true) { store.deleteWords(sel); anchor = nil }
@@ -274,10 +274,10 @@ struct TranscriptView: View {
         let original = para.map { words[$0].text }.joined(separator: " ")
         return VStack(alignment: .leading, spacing: 6) {
             TextField("", text: $draft, axis: .vertical)
-                .textFieldStyle(.plain).font(Ed.ui(12)).lineLimit(1...6)
+                .textFieldStyle(.plain).font(Ed.ui(Ed.TypeSize.body)).lineLimit(1...6)
                 .padding(6)
-                .background(RoundedRectangle(cornerRadius: 5).fill(Ed.well))
-                .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(Ed.gold.opacity(0.7)))
+                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
+                .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.gold.opacity(0.7)))
                 .onSubmit { save(para, original) }
                 .onExitCommand { editing = nil }
             HStack(spacing: 6) {
@@ -310,10 +310,10 @@ struct TranscriptView: View {
         let selected = store.wordSelection?.contains(i) ?? false
         let isCurrent = i == current
         return Text(verbatim: w.text + " ")
-            .font(Ed.ui(12, isCurrent ? .semibold : .regular))
+            .font(Ed.ui(Ed.TypeSize.body, isCurrent ? .semibold : .regular))
             .foregroundStyle(selected ? Color.black : (isCurrent ? Ed.gold : (i < current ? Ed.text : Ed.text2)))
             .padding(.horizontal, 1)
-            .background(RoundedRectangle(cornerRadius: 2).fill(selected ? Ed.gold.opacity(0.9) : .clear))
+            .background(RoundedRectangle(cornerRadius: Ed.Radius.xs).fill(selected ? Ed.gold.opacity(0.9) : .clear))
             .contentShape(Rectangle())
             .onTapGesture {
                 if NSEvent.modifierFlags.contains(.shift), let a = anchor ?? store.wordSelection?.lowerBound {
@@ -344,8 +344,8 @@ struct TakesView: View {
                         ForEach(Array(takes.lines.enumerated()), id: \.offset) { i, line in row(i + 1, line).id(i) }
                     }
                 }
-                HStack(spacing: 8) {
-                    Text("Dopo una scelta: rifai il taglio").font(Ed.ui(10)).foregroundStyle(Ed.text3).lineLimit(1)
+                HStack(spacing: Ed.Space.s) {
+                    Text("Dopo una scelta: rifai il taglio").font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).lineLimit(1)
                     Spacer()
                     EdButton(title: loc("Rifai il taglio"), symbol: "scissors", disabled: store.runningStepJob != nil) {
                         store.runStep(.cut, settings: StepSettings.saved(project: store.project))
@@ -364,15 +364,15 @@ struct TakesView: View {
 
     private func row(_ n: Int, _ line: TakeLine) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(verbatim: "\(n)").font(Ed.mono(10.5, .semibold)).foregroundStyle(Ed.gold).frame(width: 16, alignment: .trailing)
-                Text(verbatim: line.text).font(Ed.ui(11)).foregroundStyle(Ed.text).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .firstTextBaseline, spacing: Ed.Space.s) {
+                Text(verbatim: "\(n)").font(Ed.mono(Ed.TypeSize.caption, .semibold)).foregroundStyle(Ed.gold).frame(width: 16, alignment: .trailing)
+                Text(verbatim: line.text).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text).lineLimit(2).fixedSize(horizontal: false, vertical: true)
             }
-            HStack(spacing: 4) {
+            HStack(spacing: Ed.Space.xs) {
                 Color.clear.frame(width: 16, height: 1)
-                if line.takes.isEmpty { Text("mai letta").font(Ed.ui(10)).foregroundStyle(Ed.danger) }
+                if line.takes.isEmpty { Text("mai letta").font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.danger) }
                 ForEach(Array(line.takes.enumerated()), id: \.offset) { k, take in chip(n, k, take, line) }
-                Spacer(minLength: 4)
+                Spacer(minLength: Ed.Space.xs)
                 if let c = line.chosen {
                     IconButton(symbol: "checkmark.circle", help: loc("Approva la ripresa %@", String(c + 1)), size: 20) {
                         store.run("takes.select", ["line": .number(Double(n)), "take": .number(Double(c + 1))])
@@ -381,7 +381,7 @@ struct TakesView: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.vertical, Ed.Space.s)
         .overlay(alignment: .bottom) { Ed.line.frame(height: 1) }
     }
 
@@ -394,14 +394,14 @@ struct TakesView: View {
             store.run("takes.select", ["line": .number(Double(line)), "take": .number(Double(k + 1))])
         } label: {
             HStack(spacing: 3) {
-                Text(verbatim: loc("R%@", String(k + 1))).font(Ed.mono(10, .semibold))
+                Text(verbatim: loc("R%@", String(k + 1))).font(Ed.mono(Ed.TypeSize.caption, .semibold))
                 if l.auto == k { Circle().fill(chosen ? Color.black.opacity(0.6) : Ed.gold).frame(width: 4, height: 4) }
             }
             .foregroundStyle(chosen ? Color.black.opacity(0.85) : (take.complete ? Ed.text : Ed.text3))
             .padding(.horizontal, 6)
             .frame(height: 18)
-            .background(RoundedRectangle(cornerRadius: 3).fill(chosen ? Ed.gold : Ed.raised))
-            .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(take.complete ? .clear : Ed.text3,
+            .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(chosen ? Ed.gold : Ed.raised))
+            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(take.complete ? .clear : Ed.text3,
                                                                     style: StrokeStyle(lineWidth: 1, dash: [2, 2])))
         }
         .buttonStyle(.plain)

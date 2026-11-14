@@ -50,9 +50,9 @@ struct VoiceSetupView: View {
     // MARK: Rail
 
     private var rail: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(verbatim: loc("La tua voce")).font(Ed.display(Ed.TypeSize.title + 2, .medium)).foregroundStyle(Ed.text)
-                .padding(.bottom, 2)
+        VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+            Text(verbatim: loc("La tua voce")).font(Ed.display(Ed.TypeSize.heading, .medium)).foregroundStyle(Ed.text)
+                .padding(.bottom, Ed.Space.xxs)
             Text(verbatim: model.snapshot.profile.map { p in model.setup.language.map { "\(p) · \(VoiceLanguages.name($0))" } ?? p } ?? loc("Nessun profilo"))
                 .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).padding(.bottom, Ed.Space.l)
             ForEach(Array(railSteps.enumerated()), id: \.offset) { i, item in
@@ -61,9 +61,9 @@ struct VoiceSetupView: View {
                         Circle().fill(item.current ? Ed.gold : (item.done ? Ed.goldSoft : Ed.well))
                         Circle().strokeBorder(item.current ? .clear : (item.done ? Ed.gold.opacity(0.4) : Ed.line2))
                         if item.done && !item.current {
-                            Image(systemName: "checkmark").font(Ed.icon(8, .bold)).foregroundStyle(Ed.gold)
+                            Image(systemName: "checkmark").font(Ed.icon(Ed.TypeSize.tiny, .bold)).foregroundStyle(Ed.gold)
                         } else {
-                            Text(verbatim: "\(i + 1)").font(Ed.mono(9, .semibold)).foregroundStyle(item.current ? Accent.on : Ed.text3)
+                            Text(verbatim: "\(i + 1)").font(Ed.mono(Ed.TypeSize.micro, .semibold)).foregroundStyle(item.current ? Accent.on : Ed.text3)
                         }
                     }
                     .frame(width: 20, height: 20)
@@ -119,7 +119,7 @@ struct VoiceSetupView: View {
 
     private func title(_ t: String, _ subtitle: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: Ed.Space.s) {
-            Text(verbatim: t).font(Ed.display(Ed.TypeSize.display - 4, .medium)).foregroundStyle(Ed.text).fixedSize(horizontal: false, vertical: true)
+            Text(verbatim: t).font(Ed.display(Ed.TypeSize.large, .medium)).foregroundStyle(Ed.text).fixedSize(horizontal: false, vertical: true)
             if let subtitle {
                 Text(verbatim: subtitle).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).lineSpacing(3).fixedSize(horizontal: false, vertical: true)
             }
@@ -183,12 +183,12 @@ struct VoiceSetupView: View {
 
     private func point(_ symbol: String, _ text: String, quote: String? = nil) -> some View {
         HStack(alignment: .top, spacing: Ed.Space.m) {
-            Image(systemName: symbol).font(Ed.icon(12, .medium)).foregroundStyle(Ed.gold)
+            Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.body, .medium)).foregroundStyle(Ed.gold)
                 .frame(width: 28, height: 28).background(Circle().fill(Ed.goldSoft))
             VStack(alignment: .leading, spacing: Ed.Space.s) {
                 Text(verbatim: text).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text).lineSpacing(2).fixedSize(horizontal: false, vertical: true)
                 if let quote {
-                    Text(verbatim: "«\(quote)»").font(Ed.display(Ed.TypeSize.title + 1)).italic().foregroundStyle(Ed.text2)
+                    Text(verbatim: "«\(quote)»").font(Ed.display(Ed.TypeSize.title)).italic().foregroundStyle(Ed.text2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -205,9 +205,9 @@ struct VoiceSetupView: View {
         let minutes = Double(lines.joined(separator: " ").split(separator: " ").count) / 2.4 / 60 + Double(lines.count) * 1.5 / 60
         return VStack(alignment: .leading, spacing: Ed.Space.l) {
             HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: Ed.Space.xs) {
                     Text(verbatim: String(format: loc("Blocco «%@»"), loc(VoiceTones.title(tone))))
-                        .font(Ed.display(Ed.TypeSize.display - 6, .medium)).foregroundStyle(Ed.text)
+                        .font(Ed.display(Ed.TypeSize.large, .medium)).foregroundStyle(Ed.text)
                     Text(verbatim: String(format: loc("%d righe · circa %d min · resta nel tono per tutto il blocco, un po' esagerato"),
                                           lines.count, max(1, Int(minutes.rounded()))))
                         .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
@@ -225,7 +225,7 @@ struct VoiceSetupView: View {
                     if needsConsent, !model.setup.consent.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
                             SectionLabel("Inizia con", tint: Ed.gold)
-                            Text(verbatim: model.setup.consent).font(Ed.display(19)).foregroundStyle(Ed.text).fixedSize(horizontal: false, vertical: true)
+                            Text(verbatim: model.setup.consent).font(Ed.display(Ed.TypeSize.heading)).foregroundStyle(Ed.text).fixedSize(horizontal: false, vertical: true)
                         }
                         .padding(Ed.Space.m)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -235,7 +235,7 @@ struct VoiceSetupView: View {
                     ForEach(Array(lines.enumerated()), id: \.offset) { i, line in
                         HStack(alignment: .firstTextBaseline, spacing: Ed.Space.m) {
                             Text(verbatim: String(format: "%02d", i + 1)).font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).frame(width: 22, alignment: .trailing)
-                            Text(verbatim: line).font(Ed.display(19)).foregroundStyle(Ed.text.opacity(0.92)).lineSpacing(3).fixedSize(horizontal: false, vertical: true)
+                            Text(verbatim: line).font(Ed.display(Ed.TypeSize.heading)).foregroundStyle(Ed.text.opacity(0.92)).lineSpacing(3).fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }
@@ -297,7 +297,7 @@ struct VoiceSetupView: View {
                 .padding(.bottom, Ed.Space.l)
                 if c.good, c.tone == VoiceTone.neutral, c.reference {
                     HStack(alignment: .top, spacing: Ed.Space.m) {
-                        Image(systemName: "waveform").font(Ed.icon(13)).foregroundStyle(Ed.ok)
+                        Image(systemName: "waveform").font(Ed.icon(Ed.TypeSize.control)).foregroundStyle(Ed.ok)
                         Text(verbatim: loc("La voce è già utilizzabile: Regista la imita da un riferimento di questa registrazione. Gli altri toni e l'allenamento la rendono più ricca e fedele."))
                             .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text).fixedSize(horizontal: false, vertical: true)
                     }
@@ -323,9 +323,9 @@ struct VoiceSetupView: View {
     }
 
     private func fact(_ label: String, _ value: String, ok: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: Ed.Space.xs) {
             SectionLabel(label)
-            Text(verbatim: value).font(Ed.mono(17, .medium)).foregroundStyle(ok ? Ed.text : Ed.warn)
+            Text(verbatim: value).font(Ed.mono(Ed.TypeSize.heading, .medium)).foregroundStyle(ok ? Ed.text : Ed.warn)
                 .lineLimit(1).minimumScaleFactor(0.6)
         }
         .padding(Ed.Space.m)
@@ -343,7 +343,7 @@ struct VoiceSetupView: View {
                   l.trained ? loc("Allenata: la voce più fedele. Puoi registrare altri toni e allenarla di nuovo.")
                             : loc("Pronta dal riferimento: si usa già nel pannello Voce. Altri toni e l'allenamento la rendono più fedele."))
             InspectorSection(title: loc("Toni")) {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Ed.Space.s), count: 4), spacing: Ed.Space.s) {
                     ForEach(VoiceTones.all, id: \.self) { t in toneTile(t, l) }
                 }
                 .frame(maxWidth: 600)

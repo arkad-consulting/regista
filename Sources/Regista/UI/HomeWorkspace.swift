@@ -19,19 +19,19 @@ private struct Content: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Cosa vuoi fare?")
-                        .font(Ed.display(34, .medium))
+                        .font(Ed.display(Ed.TypeSize.hero, .medium))
                         .foregroundStyle(Ed.text)
                     Text("Scegli da dove partire: Registra, gli strumenti di montaggio ed Esporta restano sempre nella barra a sinistra.")
-                        .font(Ed.ui(13))
+                        .font(Ed.ui(Ed.TypeSize.control))
                         .foregroundStyle(Ed.text2)
-                        .padding(.top, 8)
+                        .padding(.top, Ed.Space.s)
                     starts.padding(.top, 28)
                     recentSection.padding(.top, 46)
                 }
                 .frame(maxWidth: 1120, alignment: .leading)
                 .padding(.horizontal, 40)
                 .padding(.top, 52)
-                .padding(.bottom, 32)
+                .padding(.bottom, Ed.Space.xxl)
                 .frame(maxWidth: .infinity)
             }
             machineLine
@@ -83,22 +83,22 @@ private struct Content: View {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 SectionLabel("PROGETTI RECENTI")
                 if !recents.infos.isEmpty {
-                    Text(verbatim: "\(recents.infos.count)").font(Ed.mono(10.5)).foregroundStyle(Ed.text3.opacity(0.7))
+                    Text(verbatim: "\(recents.infos.count)").font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.text3.opacity(0.7))
                 }
                 Spacer()
                 EdButton(title: loc("Apri un altro progetto…"), symbol: "folder") { Panels.openProject(store) }
             }
             if recents.infos.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "clock.arrow.circlepath").font(Ed.icon(20, .light)).foregroundStyle(Ed.text3)
+                VStack(spacing: Ed.Space.s) {
+                    Image(systemName: "clock.arrow.circlepath").font(Ed.icon(Ed.TypeSize.heading, .light)).foregroundStyle(Ed.text3)
                     Text("Nessun progetto recente. I progetti che apri o salvi compaiono qui.")
-                        .font(Ed.ui(12)).foregroundStyle(Ed.text3)
+                        .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3)
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 130)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Ed.line2, style: StrokeStyle(lineWidth: 1, dash: [4, 4])))
+                .background(RoundedRectangle(cornerRadius: Ed.Radius.xl, style: .continuous).strokeBorder(Ed.line2, style: StrokeStyle(lineWidth: 1, dash: [4, 4])))
             } else {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 320, maximum: 560), spacing: 12)], spacing: 12) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 320, maximum: 560), spacing: Ed.Space.m)], spacing: Ed.Space.m) {
                     ForEach(recents.infos) { info in
                         RecentRow(info: info, open: store.projectURL?.standardizedFileURL.path == info.path) {
                             store.openProject(URL(fileURLWithPath: info.path, isDirectory: true))
@@ -113,8 +113,8 @@ private struct Content: View {
 
     private var machineLine: some View {
         HStack(spacing: 10) {
-            Image(systemName: "memorychip").font(Ed.icon(11)).foregroundStyle(Ed.text3)
-            Text(verbatim: summaryText).font(Ed.ui(11)).foregroundStyle(Ed.text2).lineLimit(1)
+            Image(systemName: "memorychip").font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
+            Text(verbatim: summaryText).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).lineLimit(1)
             Spacer()
             EdButton(title: loc("Motori"), symbol: "cpu") { SettingsRoute.open(.engines, with: openSettings) }
         }
@@ -144,26 +144,26 @@ private struct StartCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             FormatGlyph(kind: glyph, lit: hover).frame(height: 48, alignment: .bottomLeading)
-            Text(verbatim: title).font(Ed.display(18, .medium)).foregroundStyle(Ed.text).padding(.top, 20)
-            Text(verbatim: text).font(Ed.ui(11.5)).foregroundStyle(Ed.text2).lineSpacing(2)
+            Text(verbatim: title).font(Ed.display(Ed.TypeSize.heading, .medium)).foregroundStyle(Ed.text).padding(.top, 20)
+            Text(verbatim: text).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true).padding(.top, 6)
             Spacer(minLength: 14)
             HStack(spacing: 6) {
-                Text(verbatim: action).font(Ed.ui(11, .medium))
-                Image(systemName: "arrow.right").font(Ed.icon(9.5, .semibold)).offset(x: hover ? 2 : 0)
+                Text(verbatim: action).font(Ed.ui(Ed.TypeSize.small, .medium))
+                Image(systemName: "arrow.right").font(Ed.icon(Ed.TypeSize.micro, .semibold)).offset(x: hover ? 2 : 0)
             }
             .foregroundStyle(hover ? Ed.gold : Ed.text3)
         }
         .padding(18)
         .frame(maxWidth: .infinity, minHeight: 224, maxHeight: 224, alignment: .topLeading)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(hover ? Ed.raised.opacity(0.7) : Ed.panel))
-        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(hover ? Ed.gold.opacity(0.45) : Ed.line2, lineWidth: 1))
-        .contentShape(RoundedRectangle(cornerRadius: 10))
+        .background(RoundedRectangle(cornerRadius: Ed.Radius.xl, style: .continuous).fill(hover ? Ed.raised.opacity(0.7) : Ed.panel))
+        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.xl, style: .continuous).strokeBorder(hover ? Ed.gold.opacity(0.45) : Ed.line2, lineWidth: 1))
+        .contentShape(RoundedRectangle(cornerRadius: Ed.Radius.xl))
         .onTapGesture(perform: run)
         .overlay(alignment: .bottomTrailing) {
             if let secondary {
                 Button(action: secondary.1) {
-                    Text(verbatim: secondary.0).font(Ed.ui(10.5)).underline().foregroundStyle(Ed.text3)
+                    Text(verbatim: secondary.0).font(Ed.ui(Ed.TypeSize.caption)).underline().foregroundStyle(Ed.text3)
                 }
                 .buttonStyle(.plain)
                 .padding(18)
@@ -187,15 +187,15 @@ private struct FormatGlyph: View {
         switch kind {
         case .reel:
             ZStack {
-                RoundedRectangle(cornerRadius: 4).stroke(ink, style: stroke)
+                RoundedRectangle(cornerRadius: Ed.Radius.s).stroke(ink, style: stroke)
                 Circle().stroke(ink, style: stroke).frame(width: 10, height: 10).offset(y: -8)
                 Capsule().fill(ink).frame(width: 14, height: 1.6).offset(y: 12)
             }
             .frame(width: 27, height: 48)
         case .tutorial:
             ZStack(alignment: .bottomTrailing) {
-                RoundedRectangle(cornerRadius: 4).stroke(ink, style: stroke)
-                VStack(alignment: .leading, spacing: 4) {
+                RoundedRectangle(cornerRadius: Ed.Radius.s).stroke(ink, style: stroke)
+                VStack(alignment: .leading, spacing: Ed.Space.xs) {
                     Capsule().fill(ink.opacity(0.7)).frame(width: 26, height: 1.4)
                     Capsule().fill(ink.opacity(0.7)).frame(width: 18, height: 1.4)
                 }
@@ -205,8 +205,8 @@ private struct FormatGlyph: View {
             .frame(width: 72, height: 40)
         case .faceless:
             ZStack {
-                RoundedRectangle(cornerRadius: 4).stroke(ink, style: stroke)
-                VStack(spacing: 4) {
+                RoundedRectangle(cornerRadius: Ed.Radius.s).stroke(ink, style: stroke)
+                VStack(spacing: Ed.Space.xs) {
                     Capsule().fill(ink).frame(width: 15, height: 1.6)
                     Capsule().fill(ink).frame(width: 10, height: 1.6)
                     Capsule().fill(ink.opacity(0.6)).frame(width: 13, height: 1.6)
@@ -216,7 +216,7 @@ private struct FormatGlyph: View {
         case .edit:
             ZStack(alignment: .leading) {
                 HStack(spacing: 3) {
-                    ForEach(0..<3, id: \.self) { _ in RoundedRectangle(cornerRadius: 2.5).stroke(ink, style: stroke).frame(width: 17, height: 30) }
+                    ForEach(0..<3, id: \.self) { _ in RoundedRectangle(cornerRadius: Ed.Radius.xs).stroke(ink, style: stroke).frame(width: 17, height: 30) }
                 }
                 Rectangle().fill(lit ? Ed.gold : Ed.text2).frame(width: 1.4, height: 44).offset(x: 29)
             }
@@ -236,25 +236,25 @@ private struct RecentRow: View {
         Button(action: action) {
             HStack(spacing: 14) {
                 thumbnail
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(verbatim: info.name).font(Ed.ui(13, .medium)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
+                VStack(alignment: .leading, spacing: Ed.Space.xs) {
+                    Text(verbatim: info.name).font(Ed.ui(Ed.TypeSize.control, .medium)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
                     HStack(spacing: 6) {
                         Text(info.modified, format: .dateTime.day().month(.abbreviated).year().hour().minute())
-                        if info.duration > 0 { Text(verbatim: "·"); Text(verbatim: shortTime(info.duration)).font(Ed.mono(10.5)) }
+                        if info.duration > 0 { Text(verbatim: "·"); Text(verbatim: shortTime(info.duration)).font(Ed.mono(Ed.TypeSize.caption)) }
                     }
-                    .font(Ed.ui(11)).foregroundStyle(Ed.text3).lineLimit(1)
+                    .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).lineLimit(1)
                 }
                 Spacer(minLength: 6)
                 if open {
-                    Text(verbatim: loc("aperto")).font(Ed.mono(9.5, .medium)).tracking(1).foregroundStyle(Ed.gold)
+                    Text(verbatim: loc("aperto")).font(Ed.mono(Ed.TypeSize.micro, .medium)).tracking(1).foregroundStyle(Ed.gold)
                 }
-                Image(systemName: "arrow.right").font(Ed.icon(10, .semibold))
+                Image(systemName: "arrow.right").font(Ed.icon(Ed.TypeSize.caption, .semibold))
                     .foregroundStyle(hover ? Ed.gold : .clear)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, Ed.Space.m)
             .frame(height: 80)
-            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(hover ? Ed.raised.opacity(0.7) : Ed.panel))
-            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(hover ? Ed.line2 : Ed.line, lineWidth: 1))
+            .background(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).fill(hover ? Ed.raised.opacity(0.7) : Ed.panel))
+            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).strokeBorder(hover ? Ed.line2 : Ed.line, lineWidth: 1))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -275,12 +275,12 @@ private struct RecentRow: View {
             if let t = info.thumbnail {
                 Image(decorative: t, scale: 1).resizable().interpolation(.medium).aspectRatio(contentMode: .fill)
             } else {
-                Image(systemName: "film").font(Ed.icon(13, .light)).foregroundStyle(Ed.text3)
+                Image(systemName: "film").font(Ed.icon(Ed.TypeSize.control, .light)).foregroundStyle(Ed.text3)
             }
         }
         .frame(width: size.width, height: size.height)
-        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous).strokeBorder(Ed.line2, lineWidth: 0.5))
+        .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.s, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s, style: .continuous).strokeBorder(Ed.line2, lineWidth: 0.5))
         .frame(width: box, height: box)
     }
 }

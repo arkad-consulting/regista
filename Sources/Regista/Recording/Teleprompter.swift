@@ -595,7 +595,7 @@ struct TeleprompterView: View {
                 HStack(alignment: .bottom) {
                     if controller.mode == .voice, controller.isPlaying, !controller.follower.lastHeard.isEmpty {
                         Text(verbatim: loc("sento: %@", controller.follower.lastHeard))
-                            .font(Ed.mono(10))
+                            .font(Ed.mono(Ed.TypeSize.caption))
                             .foregroundStyle(Ed.Prompter.creamColor.opacity(0.38))
                             .lineLimit(1)
                     }
@@ -603,7 +603,7 @@ struct TeleprompterView: View {
                     PrompterControls(controller: controller)
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, Ed.Space.m)
             .padding(.top, 30)
             .padding(.bottom, 10)
         }
@@ -625,7 +625,7 @@ struct PrompterStatusPill: View {
                 .opacity(controller.isPlaying && controller.mode == .voice ? (pulse ? 0.35 : 1) : 1)
                 .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulse)
             Text(verbatim: label)
-                .font(Ed.ui(11, .medium))
+                .font(Ed.ui(Ed.TypeSize.small, .medium))
                 .foregroundStyle(Ed.Prompter.creamColor.opacity(0.85))
                 .lineLimit(1)
         }
@@ -674,7 +674,7 @@ struct PaceBadge: View {
         HStack(spacing: 6) {
             Circle().fill(color).frame(width: 7, height: 7)
             Text(verbatim: loc("%@ parole/min", wpm.map { String(Int($0.rounded())) } ?? "—"))
-                .font(Ed.mono(11, .medium))
+                .font(Ed.mono(Ed.TypeSize.small, .medium))
                 .foregroundStyle(Ed.Prompter.creamColor.opacity(0.8))
         }
         .padding(.horizontal, 10)
@@ -697,7 +697,7 @@ struct PrompterControls: View {
     @ObservedObject var controller: TeleprompterController
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Ed.Space.m) {
             ForEach(TeleprompterController.Mode.allCases) { m in
                 Button { controller.mode = m } label: {
                     Image(systemName: m.icon)
@@ -721,7 +721,7 @@ struct PrompterControls: View {
                 divider
                 Button { controller.speed = max(10, controller.speed - 5) } label: { Image(systemName: "tortoise.fill") }
                     .tip("Più lento")
-                Text(verbatim: "\(Int(controller.speed))").font(Ed.mono(11)).frame(width: 26)
+                Text(verbatim: "\(Int(controller.speed))").font(Ed.mono(Ed.TypeSize.small)).frame(width: 26)
                 Button { controller.speed = min(200, controller.speed + 5) } label: { Image(systemName: "hare.fill") }
                     .tip("Più veloce")
             }
@@ -737,7 +737,7 @@ struct PrompterControls: View {
             .tip("Specchiato (vetro teleprompter)")
         }
         .buttonStyle(.plain)
-        .font(Ed.icon(12, .medium))
+        .font(Ed.icon(Ed.TypeSize.body, .medium))
         .foregroundStyle(Ed.Prompter.creamColor.opacity(0.62))
         .padding(.horizontal, 14)
         .padding(.vertical, 7)
@@ -795,7 +795,7 @@ struct PrompterEditorView: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 TextEditor(text: $p.text)
-                    .font(Ed.ui(14))
+                    .font(Ed.ui(Ed.TypeSize.title))
                     .foregroundStyle(Ed.text)
                     .scrollContentBackground(.hidden)
                     .padding(Ed.Space.m)

@@ -75,15 +75,25 @@ enum Ed {
         static let xxs: CGFloat = 2, xs: CGFloat = 4, s: CGFloat = 8, m: CGFloat = 12, l: CGFloat = 16, xl: CGFloat = 24, xxl: CGFloat = 32
     }
 
-    /// Corner radii: small controls (s), buttons and fields (m), rows and tiles (l), panels and previews (xl).
+    /// Corner radii: hairline marks (xs), small controls (s), buttons and fields (m), rows, tiles and cards (l), panels and
+    /// previews (xl).
     enum Radius {
-        static let s: CGFloat = 4, m: CGFloat = 6, l: CGFloat = 8, xl: CGFloat = 10
+        static let xs: CGFloat = 2, s: CGFloat = 4, m: CGFloat = 6, l: CGFloat = 8, xl: CGFloat = 10
     }
 
     /// Type scale, points. SF Pro for text, SF Mono for timecodes and numbers, the display face for large headings.
+    /// `tiny` is for glyphs only (chevrons, badge marks), `large` for a big number or an empty state's glyph.
+    /// The check (DesignSystemTests) refuses a literal size in `Ed.ui` / `Ed.mono` / `Ed.icon` / `Ed.display`.
     enum TypeSize {
-        static let micro: CGFloat = 9.5, caption: CGFloat = 10.5, small: CGFloat = 11, body: CGFloat = 12, label: CGFloat = 12.5,
-                   control: CGFloat = 13, title: CGFloat = 14, heading: CGFloat = 18, display: CGFloat = 28
+        static let tiny: CGFloat = 8, micro: CGFloat = 9.5, caption: CGFloat = 10.5, small: CGFloat = 11, body: CGFloat = 12,
+                   label: CGFloat = 12.5, control: CGFloat = 13, title: CGFloat = 14, heading: CGFloat = 18, large: CGFloat = 22,
+                   display: CGFloat = 28, hero: CGFloat = 34
+    }
+
+    /// Control heights, points: an icon button (icon), a button, field, segmented bar or chip (control), a list row (row),
+    /// a screen's main action (large). A field and a button side by side line up.
+    enum Height {
+        static let icon: CGFloat = 22, control: CGFloat = 26, row: CGFloat = 28, large: CGFloat = 34
     }
 
     // MARK: Fonts

@@ -87,7 +87,7 @@ struct ExportSettingsPanel: View {
                     }
                 }
             }
-            .padding(16)
+            .padding(Ed.Space.l)
         }
     }
 
@@ -126,11 +126,11 @@ struct ExportSettingsPanel: View {
 
     private func check(_ label: String, _ value: String, ok: Bool) -> some View {
         HStack {
-            Image(systemName: ok ? "checkmark.circle.fill" : "exclamationmark.circle").font(Ed.icon(11))
+            Image(systemName: ok ? "checkmark.circle.fill" : "exclamationmark.circle").font(Ed.icon(Ed.TypeSize.small))
                 .foregroundStyle(ok ? Ed.ok : Ed.gold)
-            Text(verbatim: loc(label)).font(Ed.ui(11.5)).foregroundStyle(Ed.text2)
+            Text(verbatim: loc(label)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2)
             Spacer()
-            Text(verbatim: loc(value)).font(Ed.mono(11)).foregroundStyle(Ed.text)
+            Text(verbatim: loc(value)).font(Ed.mono(Ed.TypeSize.small)).foregroundStyle(Ed.text)
         }
     }
 }

@@ -85,8 +85,8 @@ private struct KindTile: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: kind.symbol).font(Ed.icon(14, on ? .semibold : .regular)).foregroundStyle(on ? Ed.gold : Ed.text2)
+            VStack(spacing: Ed.Space.xs) {
+                Image(systemName: kind.symbol).font(Ed.icon(Ed.TypeSize.title, on ? .semibold : .regular)).foregroundStyle(on ? Ed.gold : Ed.text2)
                 Text(verbatim: loc(kind.title)).font(Ed.ui(Ed.TypeSize.small, on ? .semibold : .medium))
                     .foregroundStyle(on ? Ed.text : Ed.text2).lineLimit(1).minimumScaleFactor(0.75)
             }
@@ -138,12 +138,12 @@ private struct IdeaRow: View {
     var body: some View {
         Button(action: action) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Image(systemName: on ? "checkmark" : "lightbulb").font(Ed.icon(9.5)).foregroundStyle(on ? Ed.gold : Ed.text4).frame(width: 12)
+                Image(systemName: on ? "checkmark" : "lightbulb").font(Ed.icon(Ed.TypeSize.micro)).foregroundStyle(on ? Ed.gold : Ed.text4).frame(width: 12)
                 Text(verbatim: text).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(hover || on ? Ed.text : Ed.text2)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 6).padding(.vertical, 4)
+            .padding(.horizontal, 6).padding(.vertical, Ed.Space.xs)
             .background(RoundedRectangle(cornerRadius: Ed.Radius.s + 1).fill(hover ? Ed.hover.opacity(0.6) : .clear))
             .contentShape(Rectangle())
         }
@@ -177,21 +177,21 @@ private struct GenPickRow: View {
                     if let a = asset, a.video != nil, let img = media.picture(a, at: min(1, a.duration.seconds / 2)) {
                         Image(decorative: img, scale: 1).resizable().aspectRatio(contentMode: .fill)
                     } else {
-                        Image(systemName: symbol).font(Ed.icon(13, .light)).foregroundStyle(Ed.text3)
+                        Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.control, .light)).foregroundStyle(Ed.text3)
                     }
                 }
                 .frame(width: 36, height: 36)
                 .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.s))
                 .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(on ? Ed.gold : Color.white.opacity(0.07), lineWidth: on ? 1.5 : 1))
                 .opacity(enabled ? 1 : 0.5)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Ed.Space.xxs) {
                     Text(verbatim: title).font(Ed.ui(Ed.TypeSize.label, .medium)).foregroundStyle(enabled ? Ed.text : Ed.text3)
                         .lineLimit(1).truncationMode(.middle)
                     Text(verbatim: reason ?? line).font(Ed.ui(Ed.TypeSize.caption + 0.5)).foregroundStyle(enabled ? Ed.text3 : Ed.warn)
                         .lineLimit(2).fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer(minLength: 4)
-                Image(systemName: "checkmark").font(Ed.icon(10, .semibold)).foregroundStyle(Ed.gold).opacity(on ? 1 : 0)
+                Spacer(minLength: Ed.Space.xs)
+                Image(systemName: "checkmark").font(Ed.icon(Ed.TypeSize.caption, .semibold)).foregroundStyle(Ed.gold).opacity(on ? 1 : 0)
             }
             .padding(.horizontal, 6).padding(.vertical, 5)
             .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(on ? Ed.goldSoft : (hover && enabled ? Ed.hover.opacity(0.6) : .clear)))
@@ -213,8 +213,8 @@ private struct GenStartFrame: View {
     var body: some View {
         let stills = store.project?.assets.filter { $0.image?.kind == .still } ?? []
         let hasPicture = (store.project?.duration ?? .zero) > .zero || model.isDemo
-        VStack(alignment: .leading, spacing: 2) {
-            SectionLabel("Parte da").padding(.bottom, 4)
+        VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+            SectionLabel("Parte da").padding(.bottom, Ed.Space.xs)
             GenPickRow(symbol: "play.rectangle", title: loc("Il fotogramma del monitor"),
                     line: String(format: loc("Alla testina, %@"), shortTime(playhead.time)), on: model.startAsset == nil && hasPicture,
                     reason: hasPicture ? nil : loc("Il monitor è vuoto: metti prima un video in timeline.")) {
@@ -230,7 +230,7 @@ private struct GenStartFrame: View {
             }
             if stills.isEmpty {
                 Text(verbatim: loc("Oppure genera prima un'immagine: comparirà qui."))
-                    .font(Ed.ui(Ed.TypeSize.caption + 0.5)).foregroundStyle(Ed.text3).padding(.horizontal, 6).padding(.top, 4)
+                    .font(Ed.ui(Ed.TypeSize.caption + 0.5)).foregroundStyle(Ed.text3).padding(.horizontal, 6).padding(.top, Ed.Space.xs)
             }
         }
     }
@@ -243,8 +243,8 @@ private struct UpscaleSource: View {
 
     var body: some View {
         let assets = (store.project?.assets ?? []).filter { $0.video != nil }
-        VStack(alignment: .leading, spacing: 2) {
-            SectionLabel("Clip da ingrandire").padding(.bottom, 4)
+        VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+            SectionLabel("Clip da ingrandire").padding(.bottom, Ed.Space.xs)
             if assets.isEmpty {
                 Text(verbatim: loc("Media non ha ancora clip: genera prima una clip."))
                     .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
@@ -315,8 +315,8 @@ private struct ProviderList: View {
     var body: some View {
         let rows = GenOffer.rows(model.providers, kind)
         let picked = model.provider(kind)?.id
-        VStack(alignment: .leading, spacing: 2) {
-            SectionLabel("Generatore").padding(.bottom, 4)
+        VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+            SectionLabel("Generatore").padding(.bottom, Ed.Space.xs)
             if rows.isEmpty {
                 Text(verbatim: model.loaded || model.isDemo ? loc("Nessun generatore fa questo su questo Mac.") : loc("Controllo i generatori…"))
                     .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
@@ -342,7 +342,7 @@ private struct ProviderRow: View {
 
     var body: some View {
         let a = provider.availability(kind.engineKind)
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: Ed.Space.xs) {
             Button(action: action) {
                 HStack(alignment: .center, spacing: 10) {
                     ZStack {
@@ -350,7 +350,7 @@ private struct ProviderRow: View {
                         if on { Circle().fill(Ed.gold).frame(width: 7, height: 7) }
                     }
                     .opacity(a.available ? 1 : 0.4)
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: Ed.Space.xxs) {
                         HStack(spacing: 6) {
                             Text(verbatim: provider.name).font(Ed.ui(Ed.TypeSize.control, .medium)).foregroundStyle(a.available ? Ed.text : Ed.text3)
                             if provider.paid {
@@ -362,9 +362,9 @@ private struct ProviderRow: View {
                         Text(verbatim: a.reason ?? line).font(Ed.ui(Ed.TypeSize.caption + 0.5)).foregroundStyle(a.available ? Ed.text3 : Ed.warn)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    Spacer(minLength: 4)
+                    Spacer(minLength: Ed.Space.xs)
                 }
-                .padding(.horizontal, 8).padding(.vertical, 7)
+                .padding(.horizontal, Ed.Space.s).padding(.vertical, 7)
                 .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(on ? Ed.goldSoft : (hover && a.available ? Ed.hover.opacity(0.6) : .clear)))
                 .contentShape(Rectangle())
             }
@@ -376,7 +376,7 @@ private struct ProviderRow: View {
                 AccentLinkButton(title: a.setup ? loc("Prepara…") : loc("Installa…"), tip: "Apre Impostazioni › Motori su questo motore") {
                     SettingsRoute.open(.engines, engine: engine, with: openSettings)
                 }
-                .padding(.leading, 32).padding(.bottom, 4)
+                .padding(.leading, Ed.Space.xxl).padding(.bottom, Ed.Space.xs)
             }
         }
     }
@@ -452,10 +452,10 @@ private struct ApprovalCard: View {
         VStack(alignment: .leading, spacing: Ed.Space.s + 2) {
             HStack(alignment: .firstTextBaseline) {
                 SectionLabel("Generazione a pagamento", tint: Ed.text2)
-                Spacer(minLength: 4)
+                Spacer(minLength: Ed.Space.xs)
                 Text(verbatim: model.provider(r.kind)?.name ?? e.provider).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
             }
-            Text(verbatim: GenWords.credits(e.credits)).font(Ed.ui(22, .semibold)).foregroundStyle(Ed.text).monospacedDigit()
+            Text(verbatim: GenWords.credits(e.credits)).font(Ed.ui(Ed.TypeSize.large, .semibold)).foregroundStyle(Ed.text).monospacedDigit()
             Text(verbatim: details(r, e)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
             if !r.prompt.isEmpty {
                 Text(verbatim: "«" + r.prompt + "»").font(Ed.ui(Ed.TypeSize.small)).italic().foregroundStyle(Ed.text2)
@@ -500,8 +500,8 @@ private struct Elsewhere: View {
                 ForEach(rows, id: \.provider.id) { row in
                     let a = row.provider.availability(row.kind)
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Image(systemName: "waveform").font(Ed.icon(10)).foregroundStyle(Ed.text3)
-                        VStack(alignment: .leading, spacing: 2) {
+                        Image(systemName: "waveform").font(Ed.icon(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
+                        VStack(alignment: .leading, spacing: Ed.Space.xxs) {
                             Text(verbatim: String(format: loc("Voce fuori campo con %@: si fa nel pannello Voce."), row.provider.name))
                                 .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
                             if let why = a.reason {
@@ -512,7 +512,7 @@ private struct Elsewhere: View {
                     }
                 }
             }
-            .padding(.top, 2)
+            .padding(.top, Ed.Space.xxs)
         }
     }
 }
@@ -525,11 +525,11 @@ private struct GenRecentList: View {
     @ObservedObject var model: GenerateState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            SectionLabel("Generati di recente").padding(.bottom, 4).id("recent")
+        VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+            SectionLabel("Generati di recente").padding(.bottom, Ed.Space.xs).id("recent")
             ForEach(model.recent.prefix(12)) { g in GenRecentRow(model: model, item: g) }
             Text(verbatim: loc("Sono in Media: trascinali sulla timeline."))
-                .font(Ed.ui(Ed.TypeSize.caption + 0.5)).foregroundStyle(Ed.text3).padding(.top, 4)
+                .font(Ed.ui(Ed.TypeSize.caption + 0.5)).foregroundStyle(Ed.text3).padding(.top, Ed.Space.xs)
         }
     }
 }
@@ -550,7 +550,7 @@ private struct GenRecentRow: View {
                 if let a = asset, a.video != nil, let img = media.picture(a, at: min(1, a.duration.seconds / 2)) {
                     Image(decorative: img, scale: 1).resizable().aspectRatio(contentMode: .fill)
                 } else {
-                    Image(systemName: item.kind?.symbol ?? "sparkles").font(Ed.icon(13, .light)).foregroundStyle(Ed.text3)
+                    Image(systemName: item.kind?.symbol ?? "sparkles").font(Ed.icon(Ed.TypeSize.control, .light)).foregroundStyle(Ed.text3)
                 }
             }
             .frame(width: 40, height: 40)
@@ -573,7 +573,7 @@ private struct GenRecentRow: View {
         .onTapGesture { if asset?.video != nil { store.sourceAssetID = item.assetID } }
         .draggable(MediaDrop.assetPrefix + item.assetID) {
             Label(asset?.name ?? item.assetID, systemImage: item.kind?.symbol ?? "sparkles")
-                .font(Ed.ui(12)).padding(6).background(RoundedRectangle(cornerRadius: 6).fill(Ed.control))
+                .font(Ed.ui(Ed.TypeSize.body)).padding(6).background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.control))
         }
     }
 

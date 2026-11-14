@@ -356,7 +356,7 @@ private struct ScreenChoices: View {
                 }
             } else {
                 Text(verbatim: loc("Le finestre compaiono quando macOS consente a Regista di registrare lo schermo."))
-                    .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).padding(.horizontal, 8).fixedSize(horizontal: false, vertical: true)
+                    .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).padding(.horizontal, Ed.Space.s).fixedSize(horizontal: false, vertical: true)
             }
             HStack(spacing: Ed.Space.s) {
                 EdButton(title: loc("Scegli un'area…"), symbol: "rectangle.dashed") { pickArea() }
@@ -367,21 +367,21 @@ private struct ScreenChoices: View {
                 Spacer()
                 EdButton(title: loc("Aggiorna"), symbol: "arrow.clockwise") { Task { await recorder.refreshScreen() } }
             }
-            .padding(.horizontal, 4)
-            Ed.line.frame(height: 1).padding(.vertical, 2)
+            .padding(.horizontal, Ed.Space.xs)
+            Ed.line.frame(height: 1).padding(.vertical, Ed.Space.xxs)
             RToggle(title: loc("Nascondi il cursore di sistema"), isOn: Binding(get: { sources.hideCursor }, set: { recorder.sources.hideCursor = $0 }),
                     subtitle: loc("In montaggio Regista lo ridisegna più grande e fluido, con un'onda a ogni clic"))
-                .padding(.horizontal, 8)
+                .padding(.horizontal, Ed.Space.s)
             if !recorder.logsKeys {
                 HStack(alignment: .top, spacing: Ed.Space.s) {
                     Text(verbatim: loc("I clic vengono registrati; i tasti premuti solo con il permesso Accessibilità."))
                         .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 4)
+                    Spacer(minLength: Ed.Space.xs)
                     EdButton(title: loc("Consenti…")) {
                         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") { NSWorkspace.shared.open(url) }
                     }
                 }
-                .padding(.horizontal, 8)
+                .padding(.horizontal, Ed.Space.s)
             }
         }
         .padding(.top, Ed.Space.xs)
@@ -400,7 +400,7 @@ private struct ScreenChoices: View {
     }
 
     private func caption(_ t: String) -> some View {
-        SectionLabel(t).padding(.horizontal, 8).padding(.top, 4)
+        SectionLabel(t).padding(.horizontal, Ed.Space.s).padding(.top, Ed.Space.xs)
     }
 
     private func pickArea() {
@@ -482,11 +482,11 @@ private struct DisplayTile: View {
         Button(action: action) {
             VStack(spacing: 1) {
                 Text(verbatim: display.name).font(Ed.ui(Ed.TypeSize.micro, .medium)).lineLimit(2).multilineTextAlignment(.center).minimumScaleFactor(0.8)
-                Text(verbatim: "\(Int(display.frame.width))×\(Int(display.frame.height))").font(Ed.mono(8.5))
+                Text(verbatim: "\(Int(display.frame.width))×\(Int(display.frame.height))").font(Ed.mono(Ed.TypeSize.tiny))
                     .foregroundStyle(on ? Ed.gold : Ed.text3).lineLimit(1).minimumScaleFactor(0.8)
             }
             .foregroundStyle(on || hover ? Ed.text : Ed.text2)
-            .padding(.horizontal, 4).padding(.top, display.main ? 6 : 3).padding(.bottom, 3)
+            .padding(.horizontal, Ed.Space.xs).padding(.top, display.main ? 6 : 3).padding(.bottom, 3)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(on ? Ed.goldSoft : (hover ? Ed.hover : Ed.well))
             // The main display has the menu bar, as in macOS Displays settings.
@@ -553,12 +553,12 @@ enum ScreenOutline {
         let name: String
         var body: some View {
             ZStack {
-                RoundedRectangle(cornerRadius: 14).strokeBorder(Ed.gold, lineWidth: 6)
-                Text(verbatim: name).font(Ed.ui(22, .semibold)).foregroundStyle(Color.black.opacity(0.85))
+                RoundedRectangle(cornerRadius: Ed.Radius.xl).strokeBorder(Ed.gold, lineWidth: 6)
+                Text(verbatim: name).font(Ed.ui(Ed.TypeSize.large, .semibold)).foregroundStyle(Color.black.opacity(0.85))
                     .padding(.horizontal, 20).padding(.vertical, 10)
                     .background(Capsule().fill(Ed.gold))
             }
-            .padding(4)
+            .padding(Ed.Space.xs)
         }
     }
 }
@@ -662,7 +662,7 @@ private struct LayoutTile: View {
                 }
                 .aspectRatio(aspect, contentMode: .fit)
                 .frame(maxHeight: aspect < 1 ? 70 : nil)
-                .clipShape(RoundedRectangle(cornerRadius: 3))
+                .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.s))
                 Text(verbatim: title).font(Ed.ui(Ed.TypeSize.caption, on ? .semibold : .medium)).foregroundStyle(on ? Ed.text : Ed.text2).lineLimit(1)
             }
             .padding(6)
@@ -793,7 +793,7 @@ struct RecordPreview: View {
             .overlay {
                 if l.mask?.cutout == true {
                     // The person is cut out in the edit (Vision matte): the preview shows the box.
-                    RoundedRectangle(cornerRadius: 4).strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])).foregroundStyle(.white.opacity(0.7))
+                    RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])).foregroundStyle(.white.opacity(0.7))
                 } else if l.mask?.borderWidth != nil {
                     shape.stroke(.white.opacity(0.85), lineWidth: 2)
                 }
@@ -812,7 +812,7 @@ struct RecordPreview: View {
             Ed.stage
             VStack(spacing: Ed.Space.l) {
                 Image(systemName: "waveform")
-                    .font(Ed.icon(26, .light))
+                    .font(Ed.icon(Ed.TypeSize.large, .light))
                     .foregroundStyle(Ed.gold)
                     .frame(width: 64, height: 64)
                     .background(Circle().fill(Ed.goldSoft))
@@ -874,13 +874,13 @@ private struct ScreenPlaceholder: View {
             LinearGradient(colors: [Ed.stageTop, Ed.stageBottom], startPoint: .top, endPoint: .bottom)
             GeometryReader { g in
                 let w = g.size.width, h = g.size.height
-                RoundedRectangle(cornerRadius: 4).strokeBorder(Ed.line2)
+                RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(Ed.line2)
                     .frame(width: w * 0.46, height: h * 0.52).position(x: w * 0.33, y: h * 0.42)
-                RoundedRectangle(cornerRadius: 4).strokeBorder(Ed.line2)
+                RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(Ed.line2)
                     .frame(width: w * 0.38, height: h * 0.44).position(x: w * 0.66, y: h * 0.56)
             }
             VStack(spacing: Ed.Space.s) {
-                Image(systemName: "display").font(Ed.icon(22, .light)).foregroundStyle(Ed.text3)
+                Image(systemName: "display").font(Ed.icon(Ed.TypeSize.large, .light)).foregroundStyle(Ed.text3)
                 if let note {
                     Text(verbatim: note).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).multilineTextAlignment(.center)
                         .frame(maxWidth: 440).fixedSize(horizontal: false, vertical: true)

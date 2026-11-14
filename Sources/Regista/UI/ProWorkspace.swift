@@ -25,7 +25,7 @@ struct ProWorkspace: View {
             }
             .frame(height: size.height - l.lower - ProLayout.gutter)
             Splitter(orientation: .horizontal, stored: $lower, current: l.lower, range: l.lowerRange, direction: -1)
-            HStack(spacing: 2) {
+            HStack(spacing: Ed.Space.xxs) {
                 ToolRail().frame(width: 38)
                 TimelinePanel()
                 MeterPanel().frame(width: 96)
@@ -151,7 +151,7 @@ struct ProgramPicture: View {
                     EmptyHint(symbol: "rectangle.portrait", text: "La timeline è vuota. Importa un video o chiedi a Claude di montarlo.")
                 }
                 if let e = store.preview.buildError {
-                    Text(verbatim: loc("Anteprima non disponibile: %@", e)).font(Ed.ui(10)).foregroundStyle(Ed.danger).padding(8).background(Ed.panel.opacity(0.9))
+                    Text(verbatim: loc("Anteprima non disponibile: %@", e)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.danger).padding(Ed.Space.s).background(Ed.panel.opacity(0.9))
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height)
@@ -197,14 +197,14 @@ struct SafeZones: View {
                     .strokeBorder(Ed.gold.opacity(0.8), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
                     .frame(width: W * 0.92, height: H * (captionBand.upperBound - captionBand.lowerBound))
                     .offset(x: W * 0.04, y: H * captionBand.lowerBound)
-                Text(verbatim: loc("Sottotitoli").uppercased(with: Locale.current)).font(Ed.mono(7, .medium)).foregroundStyle(Ed.gold)
+                Text(verbatim: loc("Sottotitoli").uppercased(with: Locale.current)).font(Ed.mono(Ed.TypeSize.tiny, .medium)).foregroundStyle(Ed.gold)
                     .offset(x: W * 0.04 + 3, y: H * captionBand.lowerBound - 10)
             }
         }
     }
 
     private func label(_ text: String) -> some View {
-        Text(verbatim: loc(text)).font(Ed.mono(7, .medium)).foregroundStyle(Color.white.opacity(0.85))
+        Text(verbatim: loc(text)).font(Ed.mono(Ed.TypeSize.tiny, .medium)).foregroundStyle(Color.white.opacity(0.85))
             .padding(.horizontal, 3).background(Color.black.opacity(0.45))
     }
 }
@@ -241,15 +241,15 @@ struct MonitorTransport: View {
 
     var body: some View {
         if compact {
-            VStack(spacing: 2) {
+            VStack(spacing: Ed.Space.xxs) {
                 HStack {
-                    Text(verbatim: timecode(frames: time)).font(Ed.mono(12, .medium)).foregroundStyle(Ed.gold).lineLimit(1)
-                    Spacer(minLength: 4)
-                    Text(verbatim: timecode(frames: duration)).font(Ed.mono(11)).foregroundStyle(Ed.text3).lineLimit(1)
+                    Text(verbatim: timecode(frames: time)).font(Ed.mono(Ed.TypeSize.body, .medium)).foregroundStyle(Ed.gold).lineLimit(1)
+                    Spacer(minLength: Ed.Space.xs)
+                    Text(verbatim: timecode(frames: duration)).font(Ed.mono(Ed.TypeSize.small)).foregroundStyle(Ed.text3).lineLimit(1)
                 }
-                HStack(spacing: 4) { buttons }
+                HStack(spacing: Ed.Space.xs) { buttons }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, Ed.Space.m)
             .padding(.vertical, 5)
             .background(Ed.panel)
         } else {
@@ -257,7 +257,7 @@ struct MonitorTransport: View {
                 wideRow(duration: true)
                 wideRow(duration: false)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, Ed.Space.m)
             .frame(height: large ? 46 : 36)
             .background(Ed.panel)
         }
@@ -265,12 +265,12 @@ struct MonitorTransport: View {
 
     private func wideRow(duration showDuration: Bool) -> some View {
         HStack(spacing: large ? 14 : 6) {
-            Text(verbatim: timecode(frames: time)).font(Ed.mono(large ? 14 : 12, .medium)).foregroundStyle(Ed.gold).fixedSize()
-            Spacer(minLength: 4)
+            Text(verbatim: timecode(frames: time)).font(Ed.mono(large ? Ed.TypeSize.title : Ed.TypeSize.body, .medium)).foregroundStyle(Ed.gold).fixedSize()
+            Spacer(minLength: Ed.Space.xs)
             buttons
-            Spacer(minLength: 4)
+            Spacer(minLength: Ed.Space.xs)
             if showDuration {
-                Text(verbatim: timecode(frames: duration)).font(Ed.mono(large ? 14 : 12)).foregroundStyle(Ed.text3).fixedSize()
+                Text(verbatim: timecode(frames: duration)).font(Ed.mono(large ? Ed.TypeSize.title : Ed.TypeSize.body)).foregroundStyle(Ed.text3).fixedSize()
             }
         }
     }
@@ -322,27 +322,27 @@ struct MeterPanel: View {
         VStack(spacing: 0) {
             PanelHeader(title: "LUFS")
             GeometryReader { g in scale(now, H: g.size.height) }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 8)
+            .padding(.vertical, Ed.Space.s)
+            .padding(.horizontal, Ed.Space.s)
             VStack(spacing: 3) {
                 readout("M", now.m, "LUFS")
                 readout("S", now.s, "LUFS")
                 readout("I", c.integrated, "LUFS", highlight: true)
                 readout("TP", c.truePeak, "dBTP", warn: LoudnessTarget.peakOver(c.truePeak))
             }
-            .padding(.horizontal, 8)
-            .padding(.bottom, 8)
+            .padding(.horizontal, Ed.Space.s)
+            .padding(.bottom, Ed.Space.s)
         }
         .background(Ed.panel)
     }
 
     private func scale(_ now: (m: Double, s: Double), H: CGFloat) -> some View {
         let y: (Double) -> CGFloat = { db in CGFloat(min(max(db / floor, 0), 1)) * H }
-        return HStack(alignment: .top, spacing: 4) {
+        return HStack(alignment: .top, spacing: Ed.Space.xs) {
                     // Scale
                     ZStack(alignment: .topTrailing) {
                         ForEach([0, -6, -12, -18, -24, -30, -36, -42], id: \.self) { d in
-                            Text(verbatim: "\(d)").font(Ed.mono(8)).foregroundStyle(Ed.text3).offset(y: y(Double(d)) - 5)
+                            Text(verbatim: "\(d)").font(Ed.mono(Ed.TypeSize.tiny)).foregroundStyle(Ed.text3).offset(y: y(Double(d)) - 5)
                         }
                     }
                     .frame(width: 20, height: H, alignment: .topTrailing)
@@ -357,9 +357,9 @@ struct MeterPanel: View {
 
     private func bar(_ db: Double, H: CGFloat, y: (Double) -> CGFloat, label: String) -> some View {
         ZStack(alignment: .bottom) {
-            RoundedRectangle(cornerRadius: 1.5).fill(Ed.well)
+            RoundedRectangle(cornerRadius: Ed.Radius.xs).fill(Ed.well)
             if db.isFinite {
-                RoundedRectangle(cornerRadius: 1.5)
+                RoundedRectangle(cornerRadius: Ed.Radius.xs)
                     .fill(LinearGradient(colors: [Ed.audioWave.opacity(0.85), Ed.audioWave, Ed.gold], startPoint: .bottom, endPoint: .top))
                     .frame(height: max(0, H - y(db)))
             }
@@ -369,13 +369,13 @@ struct MeterPanel: View {
     }
 
     private func readout(_ k: String, _ v: Double, _ unit: String, highlight: Bool = false, warn: Bool = false) -> some View {
-        HStack(spacing: 4) {
-            Text(verbatim: k).font(Ed.mono(9.5, .medium)).foregroundStyle(Ed.text3).frame(width: 16, alignment: .leading)
+        HStack(spacing: Ed.Space.xs) {
+            Text(verbatim: k).font(Ed.mono(Ed.TypeSize.micro, .medium)).foregroundStyle(Ed.text3).frame(width: 16, alignment: .leading)
             Spacer(minLength: 0)
             Text(verbatim: v.isFinite ? String(format: "%.1f", v) : (meter.measuring || meter.curve.momentary.isEmpty ? "…" : "–∞"))
-                .font(Ed.mono(10, .medium))
+                .font(Ed.mono(Ed.TypeSize.caption, .medium))
                 .foregroundStyle(warn ? Ed.danger : (highlight ? Ed.gold : Ed.text2))
-            Text(verbatim: unit).font(Ed.mono(7.5)).foregroundStyle(Ed.text3).frame(width: 22, alignment: .leading)
+            Text(verbatim: unit).font(Ed.mono(Ed.TypeSize.tiny)).foregroundStyle(Ed.text3).frame(width: 22, alignment: .leading)
         }
     }
 }

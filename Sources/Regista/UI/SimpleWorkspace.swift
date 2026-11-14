@@ -82,7 +82,7 @@ private struct SimpleRail: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Ed.Space.l) {
                     doAll
-                    VStack(spacing: 2) {
+                    VStack(spacing: Ed.Space.xxs) {
                         ForEach(Array(SimpleStep.allCases.enumerated()), id: \.element) { i, step in
                             SimpleStepRow(step: step, number: i + 1, state: snap[step], open: step == open,
                                           next: step == snap.next && step != open) { onOpen(step) }
@@ -155,7 +155,7 @@ private struct SimpleStepRow: View {
         Button(action: action) {
             HStack(alignment: .top, spacing: 10) {
                 SimpleGlyph(status: state.status, number: number).padding(.top, 1)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Ed.Space.xxs) {
                     HStack(spacing: 6) {
                         Text(verbatim: step.title()).font(Ed.ui(Ed.TypeSize.control, open ? .semibold : .medium))
                             .foregroundStyle(state.status == .blocked ? Ed.text2 : Ed.text).lineLimit(1)
@@ -206,13 +206,13 @@ struct SimpleGlyph: View {
             switch status {
             case .done:
                 Circle().fill(Ed.ok.opacity(0.18))
-                Image(systemName: "checkmark").font(Ed.icon(9, .bold)).foregroundStyle(Ed.ok)
+                Image(systemName: "checkmark").font(Ed.icon(Ed.TypeSize.micro, .bold)).foregroundStyle(Ed.ok)
             case .notNeeded:
                 Circle().strokeBorder(Ed.line2, lineWidth: 1)
-                Image(systemName: "minus").font(Ed.icon(8.5, .bold)).foregroundStyle(Ed.text3)
+                Image(systemName: "minus").font(Ed.icon(Ed.TypeSize.tiny, .bold)).foregroundStyle(Ed.text3)
             case .unavailable:
                 Circle().strokeBorder(Ed.warn.opacity(0.7), lineWidth: 1.2)
-                Image(systemName: "exclamationmark").font(Ed.icon(9, .bold)).foregroundStyle(Ed.warn)
+                Image(systemName: "exclamationmark").font(Ed.icon(Ed.TypeSize.micro, .bold)).foregroundStyle(Ed.warn)
             case .running:
                 Circle().strokeBorder(Ed.line2, lineWidth: 1.2)
                 Circle().trim(from: 0, to: 0.3).stroke(Ed.gold, style: StrokeStyle(lineWidth: 1.6, lineCap: .round)).padding(0.8)
@@ -220,10 +220,10 @@ struct SimpleGlyph: View {
                 Circle().fill(Ed.gold).frame(width: 5, height: 5)
             case .blocked:
                 Circle().strokeBorder(Ed.line2, lineWidth: 1)
-                Text(verbatim: "\(number)").font(Ed.mono(10, .medium)).foregroundStyle(Ed.text4)
+                Text(verbatim: "\(number)").font(Ed.mono(Ed.TypeSize.caption, .medium)).foregroundStyle(Ed.text4)
             case .todo:
                 Circle().strokeBorder(Ed.text3, lineWidth: 1.2)
-                Text(verbatim: "\(number)").font(Ed.mono(10, .semibold)).foregroundStyle(Ed.text2)
+                Text(verbatim: "\(number)").font(Ed.mono(Ed.TypeSize.caption, .semibold)).foregroundStyle(Ed.text2)
             }
         }
         .frame(width: 22, height: 22)
@@ -272,7 +272,7 @@ private struct SimplePanel: View {
 
     private var header: some View {
         HStack(alignment: .top, spacing: Ed.Space.m) {
-            Image(systemName: step.symbol).font(Ed.icon(14, .medium)).foregroundStyle(Ed.text2)
+            Image(systemName: step.symbol).font(Ed.icon(Ed.TypeSize.title, .medium)).foregroundStyle(Ed.text2)
                 .frame(width: 34, height: 34)
                 .background(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).fill(Ed.raised))
             VStack(alignment: .leading, spacing: 3) {
@@ -299,7 +299,7 @@ private struct SimplePanel: View {
     @ViewBuilder private var wayOn: some View {
         VStack(alignment: .leading, spacing: Ed.Space.s + 2) {
             HStack(alignment: .firstTextBaseline, spacing: 7) {
-                Image(systemName: state.status == .unavailable ? "exclamationmark.triangle" : "lock").font(Ed.icon(10.5))
+                Image(systemName: state.status == .unavailable ? "exclamationmark.triangle" : "lock").font(Ed.icon(Ed.TypeSize.caption))
                     .foregroundStyle(state.status == .unavailable ? Ed.warn : Ed.text3)
                 Text(verbatim: state.line).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
             }
@@ -333,13 +333,13 @@ private struct SimplePanel: View {
         if let next = snap.next, next != step {
             footerBar {
                 Text(verbatim: loc("Prossimo passo")).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
-                Spacer(minLength: 4)
+                Spacer(minLength: Ed.Space.xs)
                 EdButton(title: next.title(), symbol: "arrow.right") { onOpen(next) }
             }
         } else if snap.next == nil, snap.hasProject, snap[.cut].status == .done {
             footerBar {
                 Text(verbatim: loc("Ogni passo è a posto")).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
-                Spacer(minLength: 4)
+                Spacer(minLength: Ed.Space.xs)
                 EdButton(title: loc("Esporta il reel"), symbol: "square.and.arrow.up") {
                     ExportOptions.shared.preset = "9:16"
                     store.select(.export)
@@ -530,10 +530,10 @@ private struct SoundPanel: View {
             StepGroup("MUSICA") {
                 if let m = snap.music {
                     HStack(spacing: Ed.Space.s) {
-                        Image(systemName: "music.note").font(Ed.icon(11, .medium)).foregroundStyle(Ed.musicWave)
+                        Image(systemName: "music.note").font(Ed.icon(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.musicWave)
                             .frame(width: 26, height: 26).background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.musicWave.opacity(0.14)))
                         Text(verbatim: m.name).font(Ed.ui(Ed.TypeSize.body, .medium)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
-                        Spacer(minLength: 4)
+                        Spacer(minLength: Ed.Space.xs)
                         IconButton(symbol: "xmark", help: "Togli la musica") {
                             if let t = AudioCalls.musicTrack(store.project) { store.runSimple(SimpleCalls.removeMusic(t)) }
                         }
@@ -612,7 +612,7 @@ private struct VoiceOverComposer: View {
         VStack(alignment: .leading, spacing: Ed.Space.s) {
             TextField(loc("Scrivi cosa deve dire la tua voce"), text: $model.text, axis: .vertical)
                 .textFieldStyle(.plain).font(Ed.ui(Ed.TypeSize.body)).lineLimit(3...6)
-                .padding(8)
+                .padding(Ed.Space.s)
                 .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
                 .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.line2))
             EdButton(title: loc("Metti nel video"), symbol: "waveform.badge.plus",
@@ -683,7 +683,7 @@ struct Filmstrip: View {
                 if effects {
                     if items.isEmpty, p?.duration ?? .zero > .zero {
                         Text("Gli effetti che aggiungi compaiono qui, nel punto dove li hai messi")
-                            .font(Ed.ui(10)).foregroundStyle(Ed.text3)
+                            .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
                             .offset(y: Self.ruler + 1)
                     }
                     ForEach(Array(rows.enumerated()), id: \.offset) { r, row in
@@ -698,12 +698,12 @@ struct Filmstrip: View {
                 // Playhead through ruler, bars and frames, with its timecode.
                 Rectangle().fill(Ed.gold).frame(width: 2, height: g.size.height - 4)
                     .offset(x: x(playhead.time) - 1, y: 2).shadow(color: .black.opacity(0.6), radius: 2).allowsHitTesting(false)
-                Text(verbatim: shortTime(playhead.time)).font(Ed.mono(9.5, .semibold)).foregroundStyle(Color.black.opacity(0.85))
-                    .padding(.horizontal, 4).frame(height: 14).background(RoundedRectangle(cornerRadius: 3).fill(Ed.gold))
+                Text(verbatim: shortTime(playhead.time)).font(Ed.mono(Ed.TypeSize.micro, .semibold)).foregroundStyle(Color.black.opacity(0.85))
+                    .padding(.horizontal, Ed.Space.xs).frame(height: 14).background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(Ed.gold))
                     .fixedSize().offset(x: min(max(x(playhead.time) - 18, 0), W - 36), y: 1).allowsHitTesting(false)
             }
             .padding(.horizontal, Self.pad)
-            .padding(.top, 4)
+            .padding(.top, Ed.Space.xs)
             // A Graphics panel row dropped on the strip applies at that moment (issue #16, E4 #3).
             .onDrop(of: [.text], isTargeted: nil) { providers, loc in
                 guard let pr = providers.first else { return false }
@@ -727,7 +727,7 @@ struct Filmstrip: View {
             while t <= duration + 0.001 {
                 let px = CGFloat(t / duration) * W
                 ctx.fill(Path(CGRect(x: px, y: size.height - 5, width: 1, height: 5)), with: .color(Ed.text3))
-                ctx.draw(Text(verbatim: shortTime(t)).font(Ed.mono(9)).foregroundStyle(Ed.text3), at: CGPoint(x: px + 3, y: 6), anchor: .topLeading)
+                ctx.draw(Text(verbatim: shortTime(t)).font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.text3), at: CGPoint(x: px + 3, y: 6), anchor: .topLeading)
                 t += step
             }
         }
@@ -738,21 +738,21 @@ struct Filmstrip: View {
     private func bar(_ it: AppliedItem, x: CGFloat, width: CGFloat) -> some View {
         let on = studio.appliedSelection == it.id
         return HStack(spacing: 3) {
-            Image(systemName: it.symbol).font(Ed.icon(8, .semibold))
-            if width > 46 { Text(verbatim: loc(it.label)).font(Ed.ui(9.5, .semibold)).lineLimit(1) }
+            Image(systemName: it.symbol).font(Ed.icon(Ed.TypeSize.tiny, .semibold))
+            if width > 46 { Text(verbatim: loc(it.label)).font(Ed.ui(Ed.TypeSize.micro, .semibold)).lineLimit(1) }
             Spacer(minLength: 0)
             if on {
                 Button { studio.appliedSelection = nil; store.run(it.command, .object(it.params)) } label: {
-                    Image(systemName: "xmark").font(Ed.icon(8, .bold))
+                    Image(systemName: "xmark").font(Ed.icon(Ed.TypeSize.tiny, .bold))
                 }
                 .buttonStyle(.plain).tip("Togli")
             }
         }
         .foregroundStyle(Color.black.opacity(0.85))
-        .padding(.horizontal, 4)
+        .padding(.horizontal, Ed.Space.xs)
         .frame(width: max(width, on ? 34 : width), height: Self.lane - 3, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 3).fill(it.color.opacity(on ? 1 : 0.85)))
-        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(on ? Color.white : .clear, lineWidth: 1.5))
+        .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(it.color.opacity(on ? 1 : 0.85)))
+        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(on ? Color.white : .clear, lineWidth: 1.5))
         .offset(x: x)
         .onTapGesture { studio.appliedSelection = it.id; store.preview.seek(it.start) }
         .tip("\(loc(it.label)) · \(shortTime(it.start))–\(shortTime(it.end))")
@@ -768,7 +768,7 @@ struct Filmstrip: View {
                     let rect = CGRect(x: clip.start.seconds * pps, y: 0, width: clip.duration.seconds * pps, height: H)
                     let tw = H * CGFloat(v.width) / CGFloat(max(v.height, 1))
                     ctx.drawLayer { l in
-                        l.clip(to: Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0), cornerRadius: 4))
+                        l.clip(to: Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0), cornerRadius: Ed.Radius.s))
                         var x = rect.minX
                         while x < rect.maxX {
                             if let img = media.thumbnail(a.path, at: clip.sourceIn.seconds + Double((x - rect.minX) / pps)) {
@@ -777,7 +777,7 @@ struct Filmstrip: View {
                             x += tw
                         }
                     }
-                    ctx.stroke(Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0), cornerRadius: 4), with: .color(Color.black.opacity(0.85)), lineWidth: 2)
+                    ctx.stroke(Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0), cornerRadius: Ed.Radius.s), with: .color(Color.black.opacity(0.85)), lineWidth: 2)
                 }
             }
         }

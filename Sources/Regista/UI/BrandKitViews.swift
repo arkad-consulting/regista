@@ -148,13 +148,13 @@ struct BrandPicker: View {
         let active = store.project?.brand?.id
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(verbatim: loc("Marca del progetto")).font(Ed.ui(13, .semibold)).foregroundStyle(Ed.text)
+                Text(verbatim: loc("Marca del progetto")).font(Ed.ui(Ed.TypeSize.control, .semibold)).foregroundStyle(Ed.text)
                 Text(verbatim: loc(store.project == nil ? "Apri un progetto per scegliere la sua marca." : "Sottotitoli, titoli e logo prendono i colori del kit."))
-                    .font(Ed.ui(11)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+                    .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.horizontal, 14).padding(.top, 12).padding(.bottom, 8)
+            .padding(.horizontal, 14).padding(.top, Ed.Space.m).padding(.bottom, Ed.Space.s)
             ScrollView {
-                VStack(spacing: 2) {
+                VStack(spacing: Ed.Space.xxs) {
                     ForEach(library.kits, id: \.id) { kit in
                         KitRow(kit: kit, on: kit.id == active, enabled: store.project != nil) {
                             store.run("brandkit.apply", ["kit": .string(kit.id)])
@@ -187,14 +187,14 @@ struct BrandPicker: View {
                 HStack(spacing: 10) {
                     KitBubble(kit: kit, size: 24)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(verbatim: kit.name).font(Ed.ui(13)).foregroundStyle(Ed.text).lineLimit(1)
-                        Text(verbatim: loc(BrandKitLibrary.isUserKit(kit.id) ? "tuo" : "integrato")).font(Ed.ui(10.5)).foregroundStyle(Ed.text3)
+                        Text(verbatim: kit.name).font(Ed.ui(Ed.TypeSize.control)).foregroundStyle(Ed.text).lineLimit(1)
+                        Text(verbatim: loc(BrandKitLibrary.isUserKit(kit.id) ? "tuo" : "integrato")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
                     }
-                    Spacer(minLength: 4)
+                    Spacer(minLength: Ed.Space.xs)
                     PaletteDots(kit: kit, size: 10)
-                    Image(systemName: "checkmark").font(Ed.icon(10, .bold)).foregroundStyle(on ? Ed.gold : .clear).frame(width: 14)
+                    Image(systemName: "checkmark").font(Ed.icon(Ed.TypeSize.caption, .bold)).foregroundStyle(on ? Ed.gold : .clear).frame(width: 14)
                 }
-                .padding(.horizontal, 8).frame(height: 38)
+                .padding(.horizontal, Ed.Space.s).frame(height: 38)
                 .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(on ? Ed.goldSoft : (hover && enabled ? Ed.hover : .clear)))
                 .contentShape(Rectangle())
             }
@@ -232,7 +232,7 @@ struct LogoPlacementControls: View {
             RSlider(value: Binding(get: { placement.width }, set: { placement.width = $0 }), range: 60...480, step: 10, label: "Grandezza",
                     format: { String(Int($0)) + " px" }, onCommit: { _ in onCommit() })
             VStack(alignment: .leading, spacing: 6) {
-                Text(verbatim: loc("Animazione")).font(Ed.ui(11)).foregroundStyle(Ed.text2)
+                Text(verbatim: loc("Animazione")).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2)
                 RSegmented(items: [("fade", "Dissolve"), ("pop", "Pop"), ("pulse", "Respiro"), ("orbit", "Orbita")],
                            selection: Binding(get: { placement.animation ?? "fade" }, set: { placement.animation = $0; onCommit() }), height: 24)
             }

@@ -109,9 +109,9 @@ struct RSlider: View {
         VStack(alignment: .leading, spacing: 6) {
             if let label {
                 HStack {
-                    Text(verbatim: loc(label)).font(Ed.ui(11)).foregroundStyle(Ed.text2)
+                    Text(verbatim: loc(label)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2)
                     Spacer()
-                    Text(verbatim: format(value)).font(Ed.mono(10.5)).foregroundStyle(dragging || focused ? Ed.gold : Ed.text3)
+                    Text(verbatim: format(value)).font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(dragging || focused ? Ed.gold : Ed.text3)
                 }
             }
             GeometryReader { geo in
@@ -130,9 +130,9 @@ struct RSlider: View {
                         .offset(x: x - (dragging ? 8 : 6.5))
                     if dragging || (hover && label == nil) || (focused && label == nil) {
                         Text(verbatim: format(value))
-                            .font(Ed.mono(10, .medium))
+                            .font(Ed.mono(Ed.TypeSize.caption, .medium))
                             .foregroundStyle(Accent.on)
-                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .padding(.horizontal, 6).padding(.vertical, Ed.Space.xxs)
                             .background(Capsule().fill(Ed.gold))
                             .fixedSize()
                             .offset(x: min(max(x - 18, -4), w - 30), y: -20)
@@ -209,15 +209,15 @@ struct RSegmented<T: Hashable>: View {
                     withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) { selection = item.0 }
                 } label: {
                     HStack(spacing: 5) {
-                        if let s = symbols[item.0] { Image(systemName: s).font(Ed.icon(10, .semibold)) }
-                        if !item.1.isEmpty { Text(verbatim: loc(item.1)).font(Ed.ui(12, .medium)).lineLimit(1).minimumScaleFactor(0.7) }
+                        if let s = symbols[item.0] { Image(systemName: s).font(Ed.icon(Ed.TypeSize.caption, .semibold)) }
+                        if !item.1.isEmpty { Text(verbatim: loc(item.1)).font(Ed.ui(Ed.TypeSize.body, .medium)).lineLimit(1).minimumScaleFactor(0.7) }
                     }
                     .foregroundStyle(on ? Ed.text : Ed.text3)
                     .padding(.horizontal, fill ? 2 : 12)
                     .frame(maxWidth: fill ? .infinity : nil, minHeight: height - 4, maxHeight: height - 4)
                     .background {
                         if on {
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            RoundedRectangle(cornerRadius: Ed.Radius.m, style: .continuous)
                                 .fill(Ed.controlOn)
                                 .matchedGeometryEffect(id: "pill", in: ns)
                         }
@@ -233,9 +233,9 @@ struct RSegmented<T: Hashable>: View {
                 .accessibilityAddTraits(on ? .isSelected : [])
             }
         }
-        .padding(2)
+        .padding(Ed.Space.xxs)
         .frame(height: height)
-        .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Ed.control))
+        .background(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).fill(Ed.control))
         .focusable()
         .focusEffectDisabled()
         .focused($focused)
@@ -268,14 +268,14 @@ struct IntensityBar: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let label { Text(verbatim: loc(label)).font(Ed.ui(11)).foregroundStyle(Ed.text2) }
+            if let label { Text(verbatim: loc(label)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2) }
             HStack(spacing: 10) {
-                Text(verbatim: loc(low)).font(Ed.ui(10)).foregroundStyle(Ed.text3)
+                Text(verbatim: loc(low)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
                 GeometryReader { geo in
                     HStack(alignment: .bottom, spacing: 3) {
                         ForEach(0..<steps, id: \.self) { i in
                             let on = i < level
-                            RoundedRectangle(cornerRadius: 2)
+                            RoundedRectangle(cornerRadius: Ed.Radius.xs)
                                 .fill(on ? AnyShapeStyle(LinearGradient(colors: [Ed.gold.opacity(0.55), Ed.gold], startPoint: .bottom, endPoint: .top))
                                          : AnyShapeStyle(Ed.raised))
                                 .frame(height: 6 + CGFloat(i) / CGFloat(max(steps - 1, 1)) * 14)
@@ -293,7 +293,7 @@ struct IntensityBar: View {
                         .onEnded { _ in dragging = false; onCommit(value) })
                 }
                 .frame(height: 22)
-                Text(verbatim: loc(high)).font(Ed.ui(10)).foregroundStyle(Ed.text3)
+                Text(verbatim: loc(high)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
             }
         }
         .focusable()
@@ -324,7 +324,7 @@ struct SwitchKnob: View {
             Capsule().fill(isOn ? AnyShapeStyle(LinearGradient(colors: [Ed.gold.opacity(0.75), Ed.gold], startPoint: .leading, endPoint: .trailing))
                                 : AnyShapeStyle(Ed.raised))
                 .overlay(Capsule().strokeBorder(isOn ? .clear : Ed.line2))
-            Circle().fill(isOn ? Accent.on : Ed.text2).frame(width: 14, height: 14).padding(2)
+            Circle().fill(isOn ? Accent.on : Ed.text2).frame(width: 14, height: 14).padding(Ed.Space.xxs)
                 .shadow(color: .black.opacity(0.3), radius: 1, y: 1)
         }
         .frame(width: 34, height: 18)
@@ -365,10 +365,10 @@ struct RToggle: View {
         Button { withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) { isOn.toggle() } } label: {
             HStack(spacing: 10) {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(verbatim: loc(title)).font(Ed.ui(11.5)).foregroundStyle(Ed.text)
-                    if let subtitle { Text(verbatim: loc(subtitle)).font(Ed.ui(10)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true) }
+                    Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text)
+                    if let subtitle { Text(verbatim: loc(subtitle)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true) }
                 }
-                Spacer(minLength: 8)
+                Spacer(minLength: Ed.Space.s)
                 SwitchKnob(isOn: isOn, focused: focused)
             }
             .contentShape(Rectangle())
@@ -407,7 +407,7 @@ struct RSwitchRow<Accessory: View, Trailing: View>: View {
             Button(action: { expanded == nil ? toggle() : onOpen() }) {
                 HStack(spacing: Ed.Space.m) {
                     Image(systemName: symbol)
-                        .font(Ed.icon(12.5, .medium))
+                        .font(Ed.icon(Ed.TypeSize.label, .medium))
                         .foregroundStyle(isOn && enabled ? Ed.gold : Ed.text3)
                         .frame(width: 30, height: 30)
                         .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(isOn && enabled ? Ed.goldSoft : Ed.well))
@@ -417,7 +417,7 @@ struct RSwitchRow<Accessory: View, Trailing: View>: View {
                             Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.label, .medium)).foregroundStyle(enabled ? Ed.text : Ed.text3)
                             if let expanded {
                                 Image(systemName: "chevron.right")
-                                    .font(Ed.icon(8.5, .semibold))
+                                    .font(Ed.icon(Ed.TypeSize.tiny, .semibold))
                                     .foregroundStyle(hover || expanded ? Ed.text2 : Ed.text3)
                                     .rotationEffect(.degrees(expanded ? 90 : 0))
                             }
@@ -495,7 +495,7 @@ struct RChips<T: Hashable>: View {
         var body: some View {
             Button(action: { withAnimation(.easeOut(duration: 0.15)) { action() } }) {
                 HStack(spacing: 6) {
-                    if let s = item.symbol { Image(systemName: s).font(Ed.icon(10.5, .medium)).foregroundStyle(on ? Ed.gold : Ed.text3) }
+                    if let s = item.symbol { Image(systemName: s).font(Ed.icon(Ed.TypeSize.caption, .medium)).foregroundStyle(on ? Ed.gold : Ed.text3) }
                     Text(verbatim: loc(item.title)).font(Ed.ui(Ed.TypeSize.small, .medium)).lineLimit(1).minimumScaleFactor(0.8)
                 }
                 .foregroundStyle(on ? Ed.text : (hover ? Ed.text : Ed.text2))
@@ -530,7 +530,7 @@ struct RChoiceList<T: Hashable>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             if items.isEmpty, !empty.isEmpty {
-                Text(verbatim: loc(empty)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).padding(.vertical, 6).padding(.horizontal, 8)
+                Text(verbatim: loc(empty)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).padding(.vertical, 6).padding(.horizontal, Ed.Space.s)
             }
             ForEach(items, id: \.id) { item in Row(item: item, on: item.id == selection) { onSelect(item.id) } }
         }
@@ -546,7 +546,7 @@ struct RChoiceList<T: Hashable>: View {
             Button(action: action) {
                 HStack(spacing: Ed.Space.s) {
                     if let s = item.symbol {
-                        Image(systemName: s).font(Ed.icon(10.5)).foregroundStyle(on ? Ed.gold : Ed.text3).frame(width: 16)
+                        Image(systemName: s).font(Ed.icon(Ed.TypeSize.caption)).foregroundStyle(on ? Ed.gold : Ed.text3).frame(width: 16)
                     }
                     VStack(alignment: .leading, spacing: 1) {
                         Text(verbatim: loc(item.title)).font(Ed.ui(Ed.TypeSize.small + 0.5)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
@@ -554,10 +554,10 @@ struct RChoiceList<T: Hashable>: View {
                             Text(verbatim: loc(sub)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).lineLimit(1).truncationMode(.middle)
                         }
                     }
-                    Spacer(minLength: 4)
-                    Image(systemName: "checkmark").font(Ed.icon(9.5, .bold)).foregroundStyle(on ? Ed.gold : .clear)
+                    Spacer(minLength: Ed.Space.xs)
+                    Image(systemName: "checkmark").font(Ed.icon(Ed.TypeSize.micro, .bold)).foregroundStyle(on ? Ed.gold : .clear)
                 }
-                .padding(.horizontal, 8)
+                .padding(.horizontal, Ed.Space.s)
                 .frame(minHeight: 28)
                 .background(RoundedRectangle(cornerRadius: Ed.Radius.s + 1).fill(hover ? Ed.hover : .clear))
                 .contentShape(Rectangle())
@@ -582,10 +582,10 @@ struct RTextField: View {
     var body: some View {
         TextField(loc(placeholder), text: $text)
             .textFieldStyle(.plain)
-            .font(mono ? Ed.mono(Ed.TypeSize.small) : Ed.ui(11.5))
+            .font(mono ? Ed.mono(Ed.TypeSize.small) : Ed.ui(Ed.TypeSize.body))
             .foregroundStyle(Ed.text)
             .focused($focused)
-            .padding(.horizontal, 8)
+            .padding(.horizontal, Ed.Space.s)
             .frame(height: 26)
             .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
             .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(focused ? Ed.gold.opacity(0.7) : Ed.line2))
@@ -645,8 +645,8 @@ struct ColorSwatch: View {
                     .overlay(Circle().strokeBorder(Ed.gold.opacity(focused ? 1 : 0), lineWidth: 2).padding(-4))
                     .shadow(color: Color(hexString: hex).opacity(hover ? 0.55 : 0.25), radius: hover ? 6 : 3, y: 1)
                     .scaleEffect(hover ? 1.06 : 1)
-                Text(verbatim: loc(caption ?? role)).font(Ed.ui(9.5, .medium)).foregroundStyle(Ed.text2).lineLimit(1)
-                Text(verbatim: hex.uppercased()).font(Ed.mono(8.5)).foregroundStyle(Ed.text3)
+                Text(verbatim: loc(caption ?? role)).font(Ed.ui(Ed.TypeSize.micro, .medium)).foregroundStyle(Ed.text2).lineLimit(1)
+                Text(verbatim: hex.uppercased()).font(Ed.mono(Ed.TypeSize.tiny)).foregroundStyle(Ed.text3)
             }
             .frame(width: size + 26)
             .contentShape(Rectangle())
@@ -693,7 +693,7 @@ struct SectionLabel: View {
     var tint: Color = Ed.text3
     init(_ title: String, tint: Color = Ed.text3) { self.title = title; self.tint = tint }
     var body: some View {
-        Text(verbatim: loc(title).uppercased(with: Locale.current)).font(Ed.ui(11, .semibold)).tracking(0.6).foregroundStyle(tint).lineLimit(1)
+        Text(verbatim: loc(title).uppercased(with: Locale.current)).font(Ed.ui(Ed.TypeSize.small, .semibold)).tracking(0.6).foregroundStyle(tint).lineLimit(1)
     }
 }
 
@@ -718,12 +718,12 @@ struct PanelHeader<Trailing: View>: View {
     @ViewBuilder var trailing: Trailing
 
     var body: some View {
-        HStack(spacing: 8) {
-            Text(verbatim: loc(title)).font(Ed.ui(11, .semibold)).foregroundStyle(Ed.text)
+        HStack(spacing: Ed.Space.s) {
+            Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.small, .semibold)).foregroundStyle(Ed.text)
             if let subtitle {
-                Text(verbatim: loc(subtitle)).font(Ed.ui(11)).foregroundStyle(Ed.text3).lineLimit(1).truncationMode(.middle)
+                Text(verbatim: loc(subtitle)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).lineLimit(1).truncationMode(.middle)
             }
-            Spacer(minLength: 4)
+            Spacer(minLength: Ed.Space.xs)
             trailing
         }
         .padding(.horizontal, 10)
@@ -761,7 +761,7 @@ struct TabStrip<T: Hashable>: View {
             ForEach(items, id: \.0) { item in
                 Button { selection = item.0 } label: {
                     Text(verbatim: loc(item.1))
-                        .font(Ed.ui(11, .medium))
+                        .font(Ed.ui(Ed.TypeSize.small, .medium))
                         .foregroundStyle(selection == item.0 ? Ed.text : Ed.text3)
                         .fixedSize()
                         .padding(.vertical, 7)
@@ -794,7 +794,7 @@ struct IconButton: View {
                 .font(Ed.icon(size * 0.5, .medium))
                 .foregroundStyle(tint ?? (active ? Ed.gold : (hover ? Ed.text : Ed.text2)))
                 .frame(width: size, height: size)
-                .background(RoundedRectangle(cornerRadius: 4).fill(active ? Ed.goldSoft : (hover ? Ed.hover : .clear)))
+                .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(active ? Ed.goldSoft : (hover ? Ed.hover : .clear)))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -849,8 +849,8 @@ struct EmptyHint: View {
     let text: String
     var body: some View {
         VStack(spacing: 10) {
-            Image(systemName: symbol).font(Ed.icon(22, .light)).foregroundStyle(Ed.text3)
-            Text(verbatim: loc(text)).font(Ed.ui(11)).foregroundStyle(Ed.text3).multilineTextAlignment(.center).frame(maxWidth: 220)
+            Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.large, .light)).foregroundStyle(Ed.text3)
+            Text(verbatim: loc(text)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).multilineTextAlignment(.center).frame(maxWidth: 220)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -866,7 +866,7 @@ struct AccentLinkButton: View {
 
     var body: some View {
         Button(action: action) {
-            Text(verbatim: loc(title)).font(Ed.ui(12, .medium)).foregroundStyle(Ed.gold.opacity(hover ? 1 : 0.85))
+            Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.body, .medium)).foregroundStyle(Ed.gold.opacity(hover ? 1 : 0.85))
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }

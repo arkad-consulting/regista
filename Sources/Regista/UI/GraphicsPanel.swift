@@ -173,11 +173,11 @@ struct GraphicsPanel: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 9) {
                 searchField
-                FlowLayout(spacing: 4, lineSpacing: 5) {
+                FlowLayout(spacing: Ed.Space.xs, lineSpacing: 5) {
                     ForEach(Navigation.GraphicsSection.allCases, id: \.self) { s in
                         let on = state.query.isEmpty && s == section
                         Button { store.nav.graphicsSection = s; state.query = "" } label: {
-                            Text(verbatim: loc(GraphicsCatalog.title(s))).font(Ed.ui(12, on ? .semibold : .regular))
+                            Text(verbatim: loc(GraphicsCatalog.title(s))).font(Ed.ui(Ed.TypeSize.body, on ? .semibold : .regular))
                                 .foregroundStyle(on ? Accent.on : Ed.text2)
                                 .padding(.horizontal, 10).frame(height: 24)
                                 .background(Capsule().fill(on ? Ed.gold : Ed.raised))
@@ -188,20 +188,20 @@ struct GraphicsPanel: View {
                     }
                 }
             }
-            .padding(.horizontal, 12).padding(.top, 10).padding(.bottom, 10)
+            .padding(.horizontal, Ed.Space.m).padding(.top, 10).padding(.bottom, 10)
             Ed.rule2.frame(height: 1)
             if store.project?.duration ?? .zero > .zero {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: Ed.Space.l) {
                         if !state.query.trimmingCharacters(in: .whitespaces).isEmpty { SearchResults(query: state.query) }
                         else { content }
                     }
-                    .padding(12)
+                    .padding(Ed.Space.m)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 Text(verbatim: loc("Clic: si applica alla clip selezionata o alla testina. Si può anche trascinare sulla timeline."))
-                    .font(Ed.ui(10.5)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 12).padding(.vertical, 7)
+                    .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, Ed.Space.m).padding(.vertical, 7)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .overlay(alignment: .top) { Ed.rule2.frame(height: 1) }
             } else {
@@ -215,20 +215,20 @@ struct GraphicsPanel: View {
 
     private var searchField: some View {
         HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass").font(Ed.icon(11)).foregroundStyle(Ed.text3)
+            Image(systemName: "magnifyingglass").font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
             ZStack(alignment: .leading) {
                 if state.query.isEmpty {
-                    Text(verbatim: loc("Cerca un effetto")).font(Ed.ui(12)).foregroundStyle(Ed.text3).allowsHitTesting(false)
+                    Text(verbatim: loc("Cerca un effetto")).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).allowsHitTesting(false)
                 }
-                TextField("", text: $state.query).textFieldStyle(.plain).font(Ed.ui(12)).foregroundStyle(Ed.text)
+                TextField("", text: $state.query).textFieldStyle(.plain).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text)
             }
             if !state.query.isEmpty {
                 IconButton(symbol: "xmark.circle.fill", help: "Cancella la ricerca", size: 18) { state.query = "" }
             }
         }
         .padding(.horizontal, 9).frame(height: 26)
-        .background(RoundedRectangle(cornerRadius: 6).fill(Ed.well))
-        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Ed.line))
+        .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
+        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.line))
     }
 
     @ViewBuilder private var content: some View {
@@ -273,13 +273,13 @@ private struct SearchResults: View {
     var body: some View {
         let found = GraphicsCatalog.search(query)
         if found.isEmpty {
-            Text(verbatim: loc("Nessun effetto con questo nome.")).font(Ed.ui(12)).foregroundStyle(Ed.text3)
+            Text(verbatim: loc("Nessun effetto con questo nome.")).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3)
         }
         ForEach(Navigation.GraphicsSection.allCases, id: \.self) { s in
             let items = found.filter { GraphicsCatalog.section(of: $0.category) == s }
             if !items.isEmpty {
-                VStack(alignment: .leading, spacing: 2) {
-                    SectionLabel(GraphicsCatalog.title(s)).padding(.bottom, 4)
+                VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+                    SectionLabel(GraphicsCatalog.title(s)).padding(.bottom, Ed.Space.xs)
                     ForEach(items, id: \.id) { CatalogRowItem(item: $0) }
                 }
             }
@@ -298,8 +298,8 @@ struct CatalogList: View {
         if showsApplied { AppliedHere() }
         let groups = GraphicsCatalog.groups(in: section)
         ForEach(groups, id: \.category) { g in
-            VStack(alignment: .leading, spacing: 2) {
-                if groups.count > 1 { SectionLabel(g.category.label).padding(.bottom, 4) }
+            VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+                if groups.count > 1 { SectionLabel(g.category.label).padding(.bottom, Ed.Space.xs) }
                 ForEach(g.items, id: \.id) { CatalogRowItem(item: $0) }
             }
         }
@@ -328,7 +328,7 @@ private struct FiltersSection: View {
                 }
             }
             AppliedSummary(target: target)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Ed.Space.xxs) {
                 ForEach(GraphicsCatalog.items(in: .filters), id: \.id) { item in
                     CatalogRowItem(item: item, selected: LookItems.lookID(item) == (grade?.look ?? "none")) { tapLook(item, grade: grade, target: target) }
                 }
@@ -361,15 +361,15 @@ private struct AdjustSection: View {
         VStack(alignment: .leading, spacing: 14) {
             ScopePicker()
             AppliedSummary(target: target)
-            VStack(alignment: .leading, spacing: 2) {
-                SectionLabel("Regolazioni rapide").padding(.bottom, 4)
+            VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+                SectionLabel("Regolazioni rapide").padding(.bottom, Ed.Space.xs)
                 ForEach(GraphicsCatalog.items(in: .adjust), id: \.id) { item in
                     CatalogRowItem(item: item) {
                         GraphicsActions.apply(item.id, store: store, at: playhead.time, clipID: target?.id)
                     }
                 }
             }
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: Ed.Space.m) {
                 SectionLabel("Regolazioni")
                 ForEach(Adjustments.properties, id: \.name) { p in
                     RSlider(value: Binding(get: { drafts[p.name] ?? values[p.name] }, set: { drafts[p.name] = $0 }), range: p.range,
@@ -398,7 +398,7 @@ private struct AdjustSection: View {
 /// Effects: what is on the reel at the playhead, the one intensity, then each category's items.
 private struct EffectsSection: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: Ed.Space.l) {
             IntensityRow()
             CatalogList(section: .effects, showsApplied: true)
         }
@@ -410,11 +410,11 @@ struct IntensityRow: View {
     @ObservedObject private var state = GraphicsState.shared
 
     var body: some View {
-        HStack(spacing: 8) {
-            Text(verbatim: loc("Intensità")).font(Ed.ui(12)).foregroundStyle(Ed.text2)
-            Text(verbatim: loc("poco")).font(Ed.ui(10.5)).foregroundStyle(Ed.text3)
+        HStack(spacing: Ed.Space.s) {
+            Text(verbatim: loc("Intensità")).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2)
+            Text(verbatim: loc("poco")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
             RSlider(value: $state.intensity, range: 0...1, format: { String(Int(($0 * 100).rounded())) + "%" })
-            Text(verbatim: loc("tanto")).font(Ed.ui(10.5)).foregroundStyle(Ed.text3)
+            Text(verbatim: loc("tanto")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
         }
     }
 }
@@ -432,10 +432,10 @@ private struct StylesSection: View {
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: Ed.Space.m) {
             Text(verbatim: store.project?.brand.map { loc("Un clic, tanti passi, nei colori del kit %@. Si annulla tutto in una volta (⌘Z).", $0.name) }
                  ?? loc("Un clic, tanti passi, nei colori del kit del progetto. Si annulla tutto in una volta (⌘Z)."))
-                .font(Ed.ui(11.5)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+                .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
             IntensityRow()
             ForEach(GraphicsCatalog.items(in: .styles), id: \.id) { card($0) }
         }
@@ -444,19 +444,19 @@ private struct StylesSection: View {
     private func card(_ item: EffectsCatalog.Item) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
-                Text(verbatim: loc(item.label)).font(Ed.ui(13, .semibold)).foregroundStyle(Ed.text)
-                Spacer(minLength: 8)
+                Text(verbatim: loc(item.label)).font(Ed.ui(Ed.TypeSize.control, .semibold)).foregroundStyle(Ed.text)
+                Spacer(minLength: Ed.Space.s)
                 EdButton(title: "Applica", symbol: "wand.and.stars") {
                     GraphicsActions.apply(item.id, store: store, at: 0)
                 }
             }
-            Text(verbatim: loc(CatalogLines.line(item))).font(Ed.ui(11.5)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
+            Text(verbatim: loc(CatalogLines.line(item))).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
             if let moves = Self.moves[item.id] {
-                Text(verbatim: moves.map { loc($0) }.joined(separator: " · ")).font(Ed.ui(11)).foregroundStyle(Ed.text3)
+                Text(verbatim: moves.map { loc($0) }.joined(separator: " · ")).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(12)
+        .padding(Ed.Space.m)
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(RoundedRectangle(cornerRadius: Ed.Radius.l).fill(Ed.raised.opacity(0.55)))
         .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l).strokeBorder(Ed.line))
@@ -472,8 +472,8 @@ private struct LogoSection: View {
     private var logoClips: [String] { store.project?.tracks.filter { $0.role == "logo" }.flatMap(\.clips).map(\.id) ?? [] }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: Ed.Space.l) {
+            VStack(alignment: .leading, spacing: Ed.Space.m) {
                 RToggle(title: "Logo nel video", isOn: Binding(get: { !logoClips.isEmpty }, set: { on in on ? addLogo() : removeLogo() }),
                         subtitle: kit == nil ? "Scegli prima una marca (Marca, nella barra del montaggio)."
                             : kit?.logoPath() == nil ? "Questo kit non ha ancora un logo" : nil)
@@ -579,14 +579,14 @@ struct CatalogRow: View {
         Button(action: action) {
             HStack(alignment: .center, spacing: 10) {
                 thumb
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(verbatim: loc(item.label)).font(Ed.ui(13, .medium)).foregroundStyle(enabled ? Ed.text : Ed.text3).lineLimit(1)
-                    Text(verbatim: loc(reason ?? CatalogLines.line(item))).font(Ed.ui(11)).foregroundStyle(reason == nil ? Ed.text3 : Ed.warn)
+                VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+                    Text(verbatim: loc(item.label)).font(Ed.ui(Ed.TypeSize.control, .medium)).foregroundStyle(enabled ? Ed.text : Ed.text3).lineLimit(1)
+                    Text(verbatim: loc(reason ?? CatalogLines.line(item))).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(reason == nil ? Ed.text3 : Ed.warn)
                         .lineLimit(2).fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer(minLength: 4)
+                Spacer(minLength: Ed.Space.xs)
                 Image(systemName: selected ? "checkmark" : opens ? "chevron.down" : "plus")
-                    .font(Ed.icon(10, .semibold))
+                    .font(Ed.icon(Ed.TypeSize.caption, .semibold))
                     .foregroundStyle(selected ? Ed.gold : Ed.text3)
                     .opacity(selected || (hover && enabled) ? 1 : 0)
             }
@@ -616,7 +616,7 @@ struct CatalogRow: View {
                     Image(decorative: frames[0], scale: 1).resizable().aspectRatio(9 / 16, contentMode: .fill)
                 }
             } else {
-                Image(systemName: item.symbol).font(Ed.icon(14, .light)).foregroundStyle(Ed.text3)
+                Image(systemName: item.symbol).font(Ed.icon(Ed.TypeSize.title, .light)).foregroundStyle(Ed.text3)
             }
         }
         .frame(width: 36, height: 64)
@@ -634,17 +634,17 @@ struct AppliedSummary: View {
     var body: some View {
         let g = target.map { $0.grade } ?? store.project?.grade
         let chips = Self.chips(g)
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Ed.Space.s) {
             SectionLabel(target == nil ? "Applicato a tutto il video" : "Applicato alla clip")
             if chips.isEmpty {
-                Text(verbatim: loc("Niente: il video è com'è stato girato.")).font(Ed.ui(11.5)).foregroundStyle(Ed.text3)
+                Text(verbatim: loc("Niente: il video è com'è stato girato.")).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3)
             } else {
                 FlowLayout(spacing: 6, lineSpacing: 6) {
                     ForEach(chips, id: \.0) { key, label in
                         Button { remove(key) } label: {
                             HStack(spacing: 5) {
-                                Text(verbatim: label).font(Ed.ui(11.5, .medium)).foregroundStyle(Ed.text)
-                                Image(systemName: "xmark").font(Ed.icon(8, .bold)).foregroundStyle(Ed.text3)
+                                Text(verbatim: label).font(Ed.ui(Ed.TypeSize.body, .medium)).foregroundStyle(Ed.text)
+                                Image(systemName: "xmark").font(Ed.icon(Ed.TypeSize.tiny, .bold)).foregroundStyle(Ed.text3)
                             }
                             .padding(.horizontal, 9).frame(height: 24)
                             .background(Capsule().fill(Ed.raised))
@@ -658,8 +658,8 @@ struct AppliedSummary: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Ed.well))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Ed.line))
+        .background(RoundedRectangle(cornerRadius: Ed.Radius.l).fill(Ed.well))
+        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l).strokeBorder(Ed.line))
     }
 
     static func chips(_ g: Grade?) -> [(String, String)] {
@@ -698,22 +698,22 @@ struct TitleForm: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             TextField(loc("Scrivi il testo"), text: $text, axis: .vertical)
-                .textFieldStyle(.plain).font(Ed.ui(13)).lineLimit(1...3)
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 6).fill(Ed.well))
-                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Ed.gold.opacity(0.7)))
+                .textFieldStyle(.plain).font(Ed.ui(Ed.TypeSize.control)).lineLimit(1...3)
+                .padding(Ed.Space.s)
+                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
+                .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.gold.opacity(0.7)))
                 .focused($focused)
                 .onSubmit { add() }
             RSlider(value: $seconds, range: 1...8, step: 0.5, label: "Durata", format: { String(format: "%.1f s", $0) })
             HStack {
-                Text(verbatim: loc("Alla testina, %@", shortTime(playhead.time))).font(Ed.ui(11)).foregroundStyle(Ed.text3)
+                Text(verbatim: loc("Alla testina, %@", shortTime(playhead.time))).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
                 Spacer()
                 EdButton(title: "Annulla") { state.textItem = nil }
                 EdButton(title: "Aggiungi", symbol: "plus", prominent: true,
                          disabled: text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) { add() }
             }
         }
-        .padding(12)
+        .padding(Ed.Space.m)
         .background(RoundedRectangle(cornerRadius: Ed.Radius.l).fill(Ed.raised.opacity(0.55)))
         .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l).strokeBorder(Ed.line))
         .onAppear { text = loc(Self.placeholder(item)); focused = true }

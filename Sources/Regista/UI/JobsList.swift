@@ -78,13 +78,13 @@ struct JobsStatusItem: View {
                             JobProgressBar(progress: Self.overall(running)).frame(width: 54)
                         } else {
                             Image(systemName: failed ? "exclamationmark.triangle.fill" : "checkmark.circle")
-                                .font(Ed.icon(10)).foregroundStyle(failed ? Ed.warn : Ed.text3)
+                                .font(Ed.icon(Ed.TypeSize.caption)).foregroundStyle(failed ? Ed.warn : Ed.text3)
                             Text(verbatim: loc("Lavori")).foregroundStyle(Ed.text3)
                         }
                     }
                     .padding(.horizontal, 6)
                     .frame(height: 20)
-                    .background(RoundedRectangle(cornerRadius: 5).fill(hover || open ? Ed.control : .clear))
+                    .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(hover || open ? Ed.control : .clear))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -140,7 +140,7 @@ struct JobsListView: View {
                     ForEach(Array(groups.enumerated()), id: \.offset) { _, g in
                         if groups.count > 1 {
                             Text(verbatim: g.tab).font(Ed.ui(Ed.TypeSize.caption, .semibold)).foregroundStyle(Ed.text2).lineLimit(1)
-                                .padding(.top, 4)
+                                .padding(.top, Ed.Space.xs)
                         }
                         // Running first, then the finished ones; newest first in each.
                         ForEach(g.jobs.sorted { ($0.isRunning ? 1 : 0, $0.started) > ($1.isRunning ? 1 : 0, $1.started) }) { job in

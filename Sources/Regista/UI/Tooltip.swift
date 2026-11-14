@@ -223,28 +223,28 @@ struct TipLabel: View {
     static let maxWidth: CGFloat = 320
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(alignment: .firstTextBaseline, spacing: Ed.Space.s) {
             if !content.text.isEmpty {
                 Text(verbatim: content.text)   // already looked up: TipContent.localized()
-                    .font(Ed.ui(11.5, .medium))
+                    .font(Ed.ui(Ed.TypeSize.body, .medium))
                     .foregroundStyle(Ed.text)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let s = content.shortcut {
                 Text(verbatim: s)
-                    .font(Ed.ui(10.5, .medium))
+                    .font(Ed.ui(Ed.TypeSize.caption, .medium))
                     .foregroundStyle(Ed.text2)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1.5)
-                    .background(RoundedRectangle(cornerRadius: 4).fill(Color.white.opacity(0.09)))
-                    .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5))
+                    .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(Color.white.opacity(0.09)))
+                    .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5))
                     .fixedSize()
             }
         }
         .padding(.horizontal, 9)
         .padding(.vertical, 6)
-        .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Ed.tooltip.opacity(0.97)))
-        .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(Color.white.opacity(0.11), lineWidth: 0.5))
+        .background(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).fill(Ed.tooltip.opacity(0.97)))
+        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).strokeBorder(Color.white.opacity(0.11), lineWidth: 0.5))
         .environment(\.colorScheme, .dark)
     }
 }

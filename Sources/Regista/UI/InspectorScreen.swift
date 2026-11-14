@@ -90,7 +90,7 @@ struct ScreenLookSection: View {
     @ViewBuilder private func backgrounds(_ current: ScreenBackground) -> some View {
         let brand = project.brand.map(Backdrop.brand) ?? Backdrop.preset("graphite")!
         VStack(alignment: .leading, spacing: 6) {
-            Text(verbatim: loc("Sfondo")).font(Ed.ui(12)).foregroundStyle(Ed.text2)
+            Text(verbatim: loc("Sfondo")).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 4), spacing: 6) {
                 BackdropChip(backdrop: brand, title: project.brand == nil ? loc("Grafite") : loc("Marca"), on: current == .brand) {
                     run(ScreenLook.background(.brand, target))
@@ -119,7 +119,7 @@ struct ScreenLookSection: View {
                 }
                 Spacer()
             }
-            .padding(.leading, 3).padding(.top, 2)
+            .padding(.leading, 3).padding(.top, Ed.Space.xxs)
         }
     }
 
@@ -245,7 +245,7 @@ struct ScreenLookSection: View {
 
     private func row<C: View>(_ title: String, @ViewBuilder _ content: () -> C) -> some View {
         HStack(spacing: 10) {
-            Text(verbatim: loc(title)).font(Ed.ui(12)).foregroundStyle(Ed.text2).lineLimit(2).minimumScaleFactor(0.8)
+            Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).lineLimit(2).minimumScaleFactor(0.8)
                 .frame(width: 86, alignment: .leading)
             content()
         }
@@ -253,16 +253,16 @@ struct ScreenLookSection: View {
 
     private func note(_ text: String, symbol: String) -> some View {
         HStack(alignment: .top, spacing: 6) {
-            Image(systemName: symbol).font(Ed.icon(10.5)).foregroundStyle(Ed.text3).frame(width: 14)
-            Text(verbatim: loc(text)).font(Ed.ui(11.5)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+            Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).frame(width: 14)
+            Text(verbatim: loc(text)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
         }
     }
 
     /// Why a control is disabled.
     private func reason(_ text: String) -> some View {
         HStack(alignment: .top, spacing: 6) {
-            Image(systemName: "exclamationmark.circle").font(Ed.icon(10.5)).foregroundStyle(Ed.warn).frame(width: 14)
-            Text(verbatim: loc(text)).font(Ed.ui(11.5)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
+            Image(systemName: "exclamationmark.circle").font(Ed.icon(Ed.TypeSize.caption)).foregroundStyle(Ed.warn).frame(width: 14)
+            Text(verbatim: loc(text)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
         }
     }
 }
@@ -277,21 +277,21 @@ struct BackdropChip: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            VStack(spacing: Ed.Space.xs) {
                 ZStack {
                     if let b = backdrop { BackdropFill(backdrop: b) } else {
                         Ed.well
-                        Image(systemName: "photo").font(Ed.icon(12)).foregroundStyle(Ed.text3)
+                        Image(systemName: "photo").font(Ed.icon(Ed.TypeSize.body)).foregroundStyle(Ed.text3)
                     }
                     // The screen floating on it, as the frame draws it.
-                    RoundedRectangle(cornerRadius: 2).fill(Color.white.opacity(backdrop == nil ? 0 : 0.18))
+                    RoundedRectangle(cornerRadius: Ed.Radius.xs).fill(Color.white.opacity(backdrop == nil ? 0 : 0.18))
                         .padding(.horizontal, 9).padding(.vertical, 7)
                 }
                 .frame(height: 30)
-                .clipShape(RoundedRectangle(cornerRadius: 5))
-                .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(on ? Ed.gold : (hover ? Color.white.opacity(0.25) : Color.white.opacity(0.1)),
+                .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.m))
+                .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(on ? Ed.gold : (hover ? Color.white.opacity(0.25) : Color.white.opacity(0.1)),
                                                                         lineWidth: on ? 1.5 : 1))
-                Text(verbatim: loc(title)).font(Ed.ui(10.5, on ? .semibold : .regular)).foregroundStyle(on ? Ed.text : Ed.text3).lineLimit(1)
+                Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.caption, on ? .semibold : .regular)).foregroundStyle(on ? Ed.text : Ed.text3).lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
             .contentShape(Rectangle())

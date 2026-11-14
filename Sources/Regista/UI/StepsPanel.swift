@@ -103,7 +103,7 @@ struct StepsList: View {
                     }
                 }
             }
-            .padding(.horizontal, 12).padding(.top, 2).padding(.bottom, Ed.Space.l)
+            .padding(.horizontal, Ed.Space.m).padding(.top, Ed.Space.xxs).padding(.bottom, Ed.Space.l)
         }
     }
 
@@ -170,7 +170,7 @@ private struct StepRow<Body: View>: View {
             VStack(alignment: .leading, spacing: Ed.Space.s) {
                 Button(action: onToggle) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: Ed.Space.xxs) {
                             HStack(spacing: 5) {
                                 Text(verbatim: step.title()).font(Ed.ui(Ed.TypeSize.label, .semibold))
                                     .foregroundStyle(state.status == .blocked ? Ed.text2 : Ed.text)
@@ -179,15 +179,15 @@ private struct StepRow<Body: View>: View {
                             Text(verbatim: state.line).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(lineColor)
                                 .lineLimit(open ? nil : 2).fixedSize(horizontal: false, vertical: open)
                         }
-                        Spacer(minLength: 4)
-                        Image(systemName: open ? "chevron.up" : "chevron.down").font(Ed.icon(8.5, .semibold))
+                        Spacer(minLength: Ed.Space.xs)
+                        Image(systemName: open ? "chevron.up" : "chevron.down").font(Ed.icon(Ed.TypeSize.tiny, .semibold))
                             .foregroundStyle(hover ? Ed.text2 : Ed.text3)
                     }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .onHover { hover = $0 }
-                if open { content().padding(.bottom, 4) }
+                if open { content().padding(.bottom, Ed.Space.xs) }
             }
             .padding(.bottom, last ? 0 : Ed.Space.m)
         }
@@ -213,19 +213,19 @@ private struct StepGlyph: View {
             switch status {
             case .done:
                 Circle().fill(Ed.ok.opacity(0.18))
-                Image(systemName: "checkmark").font(Ed.icon(8.5, .bold)).foregroundStyle(Ed.ok)
+                Image(systemName: "checkmark").font(Ed.icon(Ed.TypeSize.tiny, .bold)).foregroundStyle(Ed.ok)
             case .stale:
                 Circle().strokeBorder(Ed.warn, lineWidth: 1.2)
-                Image(systemName: "arrow.clockwise").font(Ed.icon(8, .bold)).foregroundStyle(Ed.warn)
+                Image(systemName: "arrow.clockwise").font(Ed.icon(Ed.TypeSize.tiny, .bold)).foregroundStyle(Ed.warn)
             case .running:
                 Circle().strokeBorder(Ed.gold.opacity(0.5), lineWidth: 1.2)
                 ProgressView().controlSize(.mini).scaleEffect(0.55).tint(Ed.gold)
             case .blocked:
                 Circle().strokeBorder(Ed.line2, lineWidth: 1)
-                Text(verbatim: "\(number)").font(Ed.mono(9, .medium)).foregroundStyle(Ed.text3.opacity(0.7))
+                Text(verbatim: "\(number)").font(Ed.mono(Ed.TypeSize.micro, .medium)).foregroundStyle(Ed.text3.opacity(0.7))
             case .todo:
                 Circle().strokeBorder(Ed.text3, lineWidth: 1.2)
-                Text(verbatim: "\(number)").font(Ed.mono(9.5, .semibold)).foregroundStyle(Ed.text2)
+                Text(verbatim: "\(number)").font(Ed.mono(Ed.TypeSize.micro, .semibold)).foregroundStyle(Ed.text2)
             }
         }
         .frame(width: 20, height: 20)
@@ -276,7 +276,7 @@ private struct StepBody: View {
     /// Why the step cannot run, and the way to what is missing.
     @ViewBuilder private var missing: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Image(systemName: "lock").font(Ed.icon(9)).foregroundStyle(Ed.text3)
+            Image(systemName: "lock").font(Ed.icon(Ed.TypeSize.micro)).foregroundStyle(Ed.text3)
             Text(verbatim: state.line).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
         }
         if state.needsImport {
@@ -325,7 +325,7 @@ private struct StepBody: View {
             VStack(alignment: .leading, spacing: 3) {
                 ForEach(Array(snap.scriptLines.prefix(3).enumerated()), id: \.offset) { i, line in
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(verbatim: "\(i + 1)").font(Ed.mono(9.5)).foregroundStyle(Ed.gold).frame(width: 12, alignment: .trailing)
+                        Text(verbatim: "\(i + 1)").font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.gold).frame(width: 12, alignment: .trailing)
                         Text(verbatim: line).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).lineLimit(1)
                     }
                 }
@@ -337,7 +337,7 @@ private struct StepBody: View {
         } else {
             TextField(loc("Incolla qui il copione, una frase per riga"), text: $draft, axis: .vertical)
                 .textFieldStyle(.plain).font(Ed.ui(Ed.TypeSize.small)).lineLimit(4...8)
-                .padding(8)
+                .padding(Ed.Space.s)
                 .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
                 .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(Ed.line2))
             FlowLayout(spacing: 6, lineSpacing: 6) {
@@ -372,18 +372,18 @@ private struct StepBody: View {
         if snap.suggestions.isEmpty && keywords.isEmpty {
             Text(verbatim: loc("Cerco le parole da evidenziare…")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
         }
-        FlowLayout(spacing: 4, lineSpacing: 4) {
+        FlowLayout(spacing: Ed.Space.xs, lineSpacing: Ed.Space.xs) {
             ForEach(Array(Set(snap.suggestions + keywords)).sorted { order($0) < order($1) }, id: \.self) { word in
                 let on = keywords.contains(word)
                 Button { toggle(word) } label: {
                     HStack(spacing: 3) {
                         Text(verbatim: word).font(Ed.ui(Ed.TypeSize.caption, .semibold))
-                        Image(systemName: on ? "xmark" : "plus").font(Ed.icon(7, .bold))
+                        Image(systemName: on ? "xmark" : "plus").font(Ed.icon(Ed.TypeSize.tiny, .bold))
                     }
                     .foregroundStyle(on ? .white : Ed.text2)
                     .padding(.horizontal, 6).frame(height: 20)
-                    .background(RoundedRectangle(cornerRadius: 4).fill(on ? Ed.keyword.opacity(0.85) : .clear))
-                    .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(on ? .clear : Ed.line2, style: StrokeStyle(lineWidth: 1, dash: [3, 2])))
+                    .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(on ? Ed.keyword.opacity(0.85) : .clear))
+                    .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(on ? .clear : Ed.line2, style: StrokeStyle(lineWidth: 1, dash: [3, 2])))
                 }
                 .buttonStyle(.plain)
                 .tip(on ? "Togli dalle parole chiave" : "Evidenzia questa parola")
@@ -428,7 +428,7 @@ private struct StepBody: View {
         let busy = snap.busy
         let disabled = busy != nil || state.status == .running || (step == .script && !snap.hasTranscript)
         if state.status != .running, step != .script || state.status != .done || editingScript {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Ed.Space.xs) {
                 EdButton(title: actionTitle, symbol: step.symbol, prominent: state.status != .done, fill: true, disabled: disabled) {
                     store.runStep(step, settings: settings, keywords: keywords)
                 }
@@ -483,9 +483,9 @@ struct StepOffer: View {
             let busy = store.runningStepJob
             VStack(alignment: compact ? .leading : .center, spacing: 10) {
                 if !compact {
-                    Image(systemName: symbol ?? step.symbol).font(Ed.icon(22, .light)).foregroundStyle(Ed.text3)
+                    Image(systemName: symbol ?? step.symbol).font(Ed.icon(Ed.TypeSize.large, .light)).foregroundStyle(Ed.text3)
                 }
-                Text(verbatim: state.line).font(Ed.ui(11)).foregroundStyle(Ed.text3)
+                Text(verbatim: state.line).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
                     .multilineTextAlignment(compact ? .leading : .center).frame(maxWidth: compact ? .infinity : 240, alignment: compact ? .leading : .center)
                     .fixedSize(horizontal: false, vertical: true)
                 if let job = jobs.latest(step.jobKind), job.isRunning || job.state != .done {

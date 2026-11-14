@@ -116,7 +116,7 @@ struct InspectorPanel: View {
         case .multi:
             InspectorGroup(title: loc("Insieme")) {
                 Text(verbatim: loc("Le modifiche valgono per tutte le clip selezionate, in un solo passo annullabile."))
-                    .font(Ed.ui(12)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+                    .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
             }
         case .opacity:
             InspectorGroup(title: loc("Opacità")) {
@@ -142,7 +142,7 @@ struct InspectorPanel: View {
     private func timingSection(_ target: InspectorTarget, _ p: Project) -> some View {
         let fps = p.settings.frameRate.doubleValue
         return InspectorGroup(title: loc("Tempo")) {
-            HStack(spacing: 8) {
+            HStack(spacing: Ed.Space.s) {
                 InspectorTimeField(label: loc("Da"), seconds: value(.start, target, p), fps: fps) { commit(.start, $0, target, p) }
                 InspectorTimeField(label: loc("A"), seconds: value(.end, target, p), fps: fps) { commit(.end, $0, target, p) }
                 InspectorTimeField(label: loc("Durata"), seconds: value(.duration, target, p), fps: fps) { commit(.duration, $0, target, p) }
@@ -195,14 +195,14 @@ struct InspectorPanel: View {
             slider(loc("Saturazione"), .saturation, target, p, range: 0...2, step: 0.01, format: Fmt.factor)
             if let it = target.item, let look = it.clip.grade?.look {
                 HStack(spacing: 6) {
-                    Image(systemName: "camera.filters").font(Ed.icon(11)).foregroundStyle(Ed.gold)
-                    Text(verbatim: loc("Look: %@", loc(Look.named(look)?.label ?? look))).font(Ed.ui(12, .medium)).foregroundStyle(Ed.text)
+                    Image(systemName: "camera.filters").font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(Ed.gold)
+                    Text(verbatim: loc("Look: %@", loc(Look.named(look)?.label ?? look))).font(Ed.ui(Ed.TypeSize.body, .medium)).foregroundStyle(Ed.text)
                     Spacer()
                     IconButton(symbol: "xmark", help: "Togli il look", size: 18) {
                         store.run("look.apply", ["look": "none", "clipIds": [.string(it.clip.id)]])
                     }
                 }
-                .padding(.top, 2)
+                .padding(.top, Ed.Space.xxs)
                 slider(loc("Intensità"), .lookAmount, target, p, range: 0...1, step: 0.01, format: Fmt.percent, parse: Fmt.parsePercent)
             }
         }
@@ -215,7 +215,7 @@ struct InspectorPanel: View {
             InspectorGroup(title: loc("Velocità"), reset: sp != nil ? { store.run("clip.speed", ["clipId": .string(it.clip.id), "preset": "normal"]) } : nil) {
                 if special {
                     Text(verbatim: sp?.freeze == true ? loc("Fermo immagine") : sp?.reverse == true ? loc("All'indietro") : loc("Rampa di velocità"))
-                        .font(Ed.ui(12)).foregroundStyle(Ed.text2)
+                        .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2)
                 }
                 // A log scale: 0.25× … 4× with 1× in the middle.
                 InspectorSlider(label: loc("Velocità"), value: log2(value(.speed, target, p)), range: -2...2, step: 0.01,
@@ -260,7 +260,7 @@ struct InspectorPanel: View {
                 }), subtitle: loc("Una sola dissolvenza per l'immagine e il suo audio."))
             }
             Text(verbatim: black ? loc("L'immagine parte dal nero e torna al nero.") : loc("L'immagine compare e scompare in trasparenza."))
-                .font(Ed.ui(11)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+                .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -279,7 +279,7 @@ struct InspectorPanel: View {
     }
 
     private func subhead(_ text: String) -> some View {
-        Text(verbatim: text).font(Ed.ui(11, .medium)).foregroundStyle(Ed.text3).padding(.top, 2)
+        Text(verbatim: text).font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text3).padding(.top, Ed.Space.xxs)
     }
 
     private func audioSection(_ target: InspectorTarget, _ p: Project) -> some View {
@@ -307,10 +307,10 @@ struct InspectorPanel: View {
             InspectorGroup(title: loc("Effetti applicati")) {
                 ForEach(it.clip.effects ?? [], id: \.id) { e in
                     let (label, symbol) = AppliedItems.effectLabels[e.kind] ?? (e.kind.rawValue, "sparkles")
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: Ed.Space.xs) {
                         HStack(spacing: 6) {
-                            Image(systemName: symbol).font(Ed.icon(11)).foregroundStyle(Ed.gold).frame(width: 16)
-                            Text(verbatim: loc(label)).font(Ed.ui(12, .medium)).foregroundStyle(Ed.text)
+                            Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(Ed.gold).frame(width: 16)
+                            Text(verbatim: loc(label)).font(Ed.ui(Ed.TypeSize.body, .medium)).foregroundStyle(Ed.text)
                             Spacer()
                             IconButton(symbol: "xmark", help: "Togli l'effetto", size: 18) {
                                 store.run("effect.remove", ["clipId": .string(it.clip.id), "effectId": .string(e.id)])
@@ -335,7 +335,7 @@ struct InspectorPanel: View {
         if let it = target.item {
             InspectorGroup(title: loc("Segui il volto")) {
                 Text(verbatim: loc("Il volto è stato rilevato nel video sotto: l'elemento può seguirlo per tutta la sua durata."))
-                    .font(Ed.ui(12)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+                    .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 6) {
                     EdButton(title: loc("Segui il volto"), symbol: "face.dashed") {
                         store.run("clip.follow", ["clipId": .string(it.clip.id), "target": "face"])
@@ -371,18 +371,18 @@ struct InspectorPanel: View {
                                                           "text": .string(text), "expect": .string(original)])
                     }
                     Text(verbatim: loc("Correggi le parole: cambia il testo, non i tempi. Invio per salvare."))
-                        .font(Ed.ui(11)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+                        .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
                 }
-                Text(verbatim: loc("Parole chiave")).font(Ed.ui(12)).foregroundStyle(Ed.text2).padding(.top, 4)
-                FlowLayout(spacing: 4, lineSpacing: 4) {
+                Text(verbatim: loc("Parole chiave")).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).padding(.top, Ed.Space.xs)
+                FlowLayout(spacing: Ed.Space.xs, lineSpacing: Ed.Space.xs) {
                     ForEach(Array(chunk.words.enumerated()), id: \.offset) { _, w in
                         Button {
                             store.run("captions.setKeywords", w.keyword ? ["remove": [.string(w.text)]] : ["add": [.string(w.text)]])
                         } label: {
-                            Text(verbatim: w.text).font(Ed.ui(12, w.keyword ? .semibold : .regular))
+                            Text(verbatim: w.text).font(Ed.ui(Ed.TypeSize.body, w.keyword ? .semibold : .regular))
                                 .foregroundStyle(w.keyword ? .white : Ed.text2)
                                 .padding(.horizontal, 7).frame(height: 22)
-                                .background(RoundedRectangle(cornerRadius: 5).fill(w.keyword ? Ed.keyword.opacity(0.85) : Ed.control))
+                                .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(w.keyword ? Ed.keyword.opacity(0.85) : Ed.control))
                         }
                         .buttonStyle(.plain)
                         .tip(w.keyword ? "Togli dalle parole chiave" : "Metti in evidenza (parola chiave)")
@@ -402,16 +402,16 @@ struct InspectorHeader: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: symbol).font(Ed.icon(13, .medium)).foregroundStyle(tint)
+            Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.control, .medium)).foregroundStyle(tint)
                 .frame(width: 30, height: 30)
-                .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(tint.opacity(0.16)))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: title).font(Ed.ui(13, .semibold)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
-                Text(verbatim: subtitle).font(Ed.ui(11.5)).foregroundStyle(Ed.text3).lineLimit(1)
+                .background(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).fill(tint.opacity(0.16)))
+            VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+                Text(verbatim: title).font(Ed.ui(Ed.TypeSize.control, .semibold)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
+                Text(verbatim: subtitle).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).lineLimit(1)
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 12)
+        .padding(.horizontal, Ed.Space.l).padding(.top, 14).padding(.bottom, Ed.Space.m)
         .overlay(alignment: .bottom) { Ed.rule2.frame(height: 1) }
     }
 
@@ -482,7 +482,7 @@ struct InspectorGroup<Content: View>: View {
             .frame(height: 18)
             content
         }
-        .padding(.horizontal, 16).padding(.vertical, 14)
+        .padding(.horizontal, Ed.Space.l).padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .bottom) { Ed.rule2.frame(height: 1) }
     }
@@ -502,7 +502,7 @@ struct InspectorSlider: View {
     var body: some View {
         // One line, as in a code editor's settings: the name, the slider, the value (click to type it).
         HStack(spacing: 10) {
-            Text(verbatim: loc(label)).font(Ed.ui(12)).foregroundStyle(Ed.text2).lineLimit(2).minimumScaleFactor(0.8)
+            Text(verbatim: loc(label)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).lineLimit(2).minimumScaleFactor(0.8)
                 .frame(width: 86, alignment: .leading)
             RSlider(value: Binding(get: { min(max(value, range.lowerBound), range.upperBound) }, set: { onDrag($0) }),
                     range: range, step: step, format: format, onCommit: onCommit)
@@ -530,7 +530,7 @@ struct InspectorValueField: View {
             if editing {
                 TextField("", text: $draft)
                     .textFieldStyle(.plain)
-                    .font(Ed.mono(12))
+                    .font(Ed.mono(Ed.TypeSize.body))
                     .multilineTextAlignment(alignment)
                     .foregroundStyle(Ed.text)
                     .focused($focused)
@@ -539,7 +539,7 @@ struct InspectorValueField: View {
                     .onChange(of: focused) { if !focused { editing = false } }
                     .onAppear { focused = true }
             } else {
-                Text(verbatim: text).font(Ed.mono(12)).foregroundStyle(hover ? Ed.text : Ed.text2)
+                Text(verbatim: text).font(Ed.mono(Ed.TypeSize.body)).foregroundStyle(hover ? Ed.text : Ed.text2)
                     .frame(maxWidth: .infinity, alignment: alignment == .trailing ? .trailing : .leading)
                     .contentShape(Rectangle())
                     .onTapGesture { draft = text; editing = true }
@@ -547,8 +547,8 @@ struct InspectorValueField: View {
         }
         .padding(.horizontal, 5)
         .frame(width: width, height: 20)
-        .background(RoundedRectangle(cornerRadius: 4).fill(editing ? Ed.well : (hover ? Ed.control : .clear)))
-        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(editing ? Ed.gold.opacity(0.7) : .clear))
+        .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(editing ? Ed.well : (hover ? Ed.control : .clear)))
+        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(editing ? Ed.gold.opacity(0.7) : .clear))
         .onHover { hover = $0 }
         .tip("Clicca per scrivere il valore")
     }
@@ -563,11 +563,11 @@ struct InspectorTimeField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(verbatim: loc(label)).font(Ed.ui(11)).foregroundStyle(Ed.text3)
+            Text(verbatim: loc(label)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
             InspectorValueField(text: timecode(frames: seconds, fps: fps), width: 92, alignment: .leading) { s in
                 if let v = Fmt.parseTimecode(s, fps: fps) { onCommit(v) }
             }
-            .background(RoundedRectangle(cornerRadius: 4).fill(Ed.control.opacity(0.5)))
+            .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(Ed.control.opacity(0.5)))
         }
     }
 }
@@ -579,9 +579,9 @@ struct InspectorInfoRow: View {
 
     var body: some View {
         HStack {
-            Text(verbatim: loc(label)).font(Ed.ui(12)).foregroundStyle(Ed.text2)
+            Text(verbatim: loc(label)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2)
             Spacer()
-            Text(verbatim: value).font(Ed.mono(12)).foregroundStyle(Ed.text).lineLimit(1)
+            Text(verbatim: value).font(Ed.mono(Ed.TypeSize.body)).foregroundStyle(Ed.text).lineLimit(1)
         }
     }
 }
@@ -595,11 +595,11 @@ struct InspectorTextEditor: View {
 
     var body: some View {
         TextField("", text: $draft, axis: .vertical)
-            .textFieldStyle(.plain).font(Ed.ui(13)).foregroundStyle(Ed.text).lineLimit(1...6)
+            .textFieldStyle(.plain).font(Ed.ui(Ed.TypeSize.control)).foregroundStyle(Ed.text).lineLimit(1...6)
             .focused($focused)
-            .padding(8)
-            .background(RoundedRectangle(cornerRadius: 6).fill(Ed.well))
-            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(focused ? Ed.gold.opacity(0.7) : Ed.rule))
+            .padding(Ed.Space.s)
+            .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
+            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(focused ? Ed.gold.opacity(0.7) : Ed.rule))
             .onAppear { draft = text }
             .onChange(of: text) { draft = text }
             .onSubmit { save() }
@@ -630,8 +630,8 @@ struct InspectorMotionFields: View {
     @ViewBuilder private func row(_ f: EffectsCatalog.Field) -> some View {
         let label = loc(MotionForm.labels[f.name] ?? f.name)
         let v = fields[f.name] ?? f.example
-        VStack(alignment: .leading, spacing: 4) {
-            if f.type != "boolean" { Text(verbatim: label).font(Ed.ui(12)).foregroundStyle(Ed.text2) }
+        VStack(alignment: .leading, spacing: Ed.Space.xs) {
+            if f.type != "boolean" { Text(verbatim: label).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2) }
             switch f.type {
             case "boolean":
                 RToggle(title: label, isOn: Binding(get: { v.boolValue ?? false }, set: { onCommit(f.name, .bool($0)) }))
@@ -663,11 +663,11 @@ struct InspectorHint: View {
     let text: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: symbol).font(Ed.icon(11)).foregroundStyle(Ed.text3).frame(width: 14)
-            Text(verbatim: loc(text)).font(Ed.ui(11.5)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+        HStack(alignment: .top, spacing: Ed.Space.s) {
+            Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(Ed.text3).frame(width: 14)
+            Text(verbatim: loc(text)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, 16).padding(.vertical, 14)
+        .padding(.horizontal, Ed.Space.l).padding(.vertical, 14)
     }
 }
 
@@ -679,10 +679,10 @@ struct InspectorEmpty: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Image(systemName: symbol).font(Ed.icon(20, .light)).foregroundStyle(Ed.text3)
+            Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.heading, .light)).foregroundStyle(Ed.text3)
                 .frame(width: 52, height: 52).background(Circle().fill(Ed.control))
-            Text(verbatim: loc(title)).font(Ed.ui(13, .semibold)).foregroundStyle(Ed.text)
-            Text(verbatim: loc(text)).font(Ed.ui(12)).foregroundStyle(Ed.text3).multilineTextAlignment(.center)
+            Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.control, .semibold)).foregroundStyle(Ed.text)
+            Text(verbatim: loc(text)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true).frame(maxWidth: 240)
         }
         .frame(maxWidth: .infinity)

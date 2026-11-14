@@ -123,35 +123,35 @@ struct AppliedHere: View {
             HStack {
                 SectionLabel(loc("Qui, a %@", shortTime(playhead.time)))
                 Spacer()
-                Text(verbatim: loc("%@ nel video", String(all.count))).font(Ed.ui(10)).foregroundStyle(Ed.text3)
+                Text(verbatim: loc("%@ nel video", String(all.count))).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
             }
             if here.isEmpty {
                 Text(verbatim: all.isEmpty ? loc("Ancora nessun effetto. Clicca un elemento qui sotto: compare in questo elenco e nella timeline.")
                                  : loc("Niente in questo punto: porta la testina su un effetto per vederlo qui."))
-                    .font(Ed.ui(11)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+                    .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
             } else {
                 ForEach(here) { it in row(it) }
             }
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Ed.well))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Ed.line))
+        .background(RoundedRectangle(cornerRadius: Ed.Radius.l).fill(Ed.well))
+        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l).strokeBorder(Ed.line))
     }
 
     private func row(_ it: AppliedItem) -> some View {
         let on = state.appliedSelection == it.id
-        return HStack(spacing: 8) {
-            RoundedRectangle(cornerRadius: 2).fill(it.color).frame(width: 4, height: 22)
-            Image(systemName: it.symbol).font(Ed.icon(11)).foregroundStyle(Ed.text2).frame(width: 16)
+        return HStack(spacing: Ed.Space.s) {
+            RoundedRectangle(cornerRadius: Ed.Radius.xs).fill(it.color).frame(width: 4, height: 22)
+            Image(systemName: it.symbol).font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(Ed.text2).frame(width: 16)
             VStack(alignment: .leading, spacing: 1) {
-                Text(verbatim: it.label).font(Ed.ui(11.5, .medium)).foregroundStyle(Ed.text).lineLimit(1)
-                Text(verbatim: "\(shortTime(it.start)) – \(shortTime(it.end))").font(Ed.mono(9.5)).foregroundStyle(Ed.text3)
+                Text(verbatim: it.label).font(Ed.ui(Ed.TypeSize.body, .medium)).foregroundStyle(Ed.text).lineLimit(1)
+                Text(verbatim: "\(shortTime(it.start)) – \(shortTime(it.end))").font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.text3)
             }
             Spacer()
             IconButton(symbol: "xmark", help: "Togli", size: 20) { remove(it) }
         }
         .padding(.horizontal, 6).padding(.vertical, 3)
-        .background(RoundedRectangle(cornerRadius: 6).fill(on ? Ed.raised : .clear))
+        .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(on ? Ed.raised : .clear))
         .contentShape(Rectangle())
         .onTapGesture { state.appliedSelection = it.id; store.preview.seek(it.start) }
     }

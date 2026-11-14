@@ -17,9 +17,9 @@ struct SidePanel: View {
     var body: some View {
         let a = nav.activity
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
+            HStack(spacing: Ed.Space.s) {
                 SectionLabel(ActivityInfo.of(a).title)
-                Spacer(minLength: 4)
+                Spacer(minLength: Ed.Space.xs)
                 trailing(a)
             }
             .padding(.horizontal, 14)
@@ -65,14 +65,14 @@ struct HomeSide: View {
 
         var body: some View {
             ScrollView {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Ed.Space.xxs) {
                     SideRow(symbol: "plus.square", title: loc("Nuovo progetto…"), detail: "⌘N") { Panels.newProject(store) }
                     SideRow(symbol: "folder", title: loc("Apri progetto…"), detail: "⌘O") { Panels.openProject(store) }
                     SideRow(symbol: "square.and.arrow.down", title: loc("Importa media…"), detail: "⌘I") { Panels.importMedia(store, newProject: true) }
                     SectionLabel("RECENTI")
-                        .padding(.horizontal, 8).padding(.top, 18).padding(.bottom, 4)
+                        .padding(.horizontal, Ed.Space.s).padding(.top, 18).padding(.bottom, Ed.Space.xs)
                     if recents.infos.isEmpty {
-                        Text(verbatim: loc("Nessun progetto recente")).font(Ed.ui(12)).foregroundStyle(Ed.text4).padding(.horizontal, 8)
+                        Text(verbatim: loc("Nessun progetto recente")).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text4).padding(.horizontal, Ed.Space.s)
                     }
                     ForEach(recents.infos) { info in
                         let open = store.projectURL?.standardizedFileURL.path == info.path
@@ -81,7 +81,7 @@ struct HomeSide: View {
                         }
                     }
                 }
-                .padding(8)
+                .padding(Ed.Space.s)
             }
         }
     }
@@ -98,15 +98,15 @@ struct SideRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: symbol).font(Ed.icon(12)).foregroundStyle(on ? Ed.gold : Ed.text3).frame(width: 18)
-                Text(verbatim: loc(title)).font(Ed.ui(13)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
-                Spacer(minLength: 4)
-                if let detail { Text(verbatim: detail).font(Ed.ui(11)).foregroundStyle(Ed.text4).fixedSize() }
+            HStack(spacing: Ed.Space.s) {
+                Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.body)).foregroundStyle(on ? Ed.gold : Ed.text3).frame(width: 18)
+                Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.control)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
+                Spacer(minLength: Ed.Space.xs)
+                if let detail { Text(verbatim: detail).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text4).fixedSize() }
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, Ed.Space.s)
             .frame(height: 28)
-            .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(on ? Ed.control : (hover ? Ed.control.opacity(0.6) : .clear)))
+            .background(RoundedRectangle(cornerRadius: Ed.Radius.m, style: .continuous).fill(on ? Ed.control : (hover ? Ed.control.opacity(0.6) : .clear)))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -131,7 +131,7 @@ struct TextsPanel: View {
             RSegmented(items: [(.steps, "Passi"), (.captions, "Sottotitoli"), (.transcript, "Trascrizione"), (.takes, "Riprese")],
                        selection: Binding(get: { tab }, set: { store.nav.textsTab = $0 }),
                        tips: [.steps: "Dal video ai sottotitoli, un passo alla volta"])
-                .padding(.horizontal, 12).padding(.vertical, 10)
+                .padding(.horizontal, Ed.Space.m).padding(.vertical, 10)
             Group {
                 switch tab {
                 case .steps: StepsPanel()
@@ -316,22 +316,22 @@ struct TabLabel: View {
     @State private var hoverClose = false
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Ed.Space.s) {
             dot(info.state)
             Text(verbatim: info.name)
-                .font(Ed.ui(13, info.active ? .semibold : .regular)).foregroundStyle(info.active ? Ed.text : Ed.text2)
+                .font(Ed.ui(Ed.TypeSize.control, info.active ? .semibold : .regular)).foregroundStyle(info.active ? Ed.text : Ed.text2)
                 .lineLimit(1).truncationMode(.middle)
                 .frame(maxWidth: 220, alignment: .leading).fixedSize(horizontal: true, vertical: false)
             if info.state == .recording {
-                Text(verbatim: loc("sta registrando") + (info.duration.map { " " + timecode($0) } ?? "")).font(Ed.ui(12)).foregroundStyle(Ed.danger).fixedSize()
+                Text(verbatim: loc("sta registrando") + (info.duration.map { " " + timecode($0) } ?? "")).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.danger).fixedSize()
             } else if let d = info.duration {
-                Text(verbatim: clockTime(d)).font(Ed.ui(12)).foregroundStyle(Ed.text3).fixedSize()
+                Text(verbatim: clockTime(d)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).fixedSize()
             }
             Button { onClose?() } label: {
-                Image(systemName: "xmark").font(Ed.icon(9, .bold))
+                Image(systemName: "xmark").font(Ed.icon(Ed.TypeSize.micro, .bold))
                     .foregroundStyle(hoverClose ? Ed.text : Ed.text3)
                     .frame(width: 18, height: 18)
-                    .background(RoundedRectangle(cornerRadius: 4).fill(hoverClose ? Ed.controlOn : .clear))
+                    .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(hoverClose ? Ed.controlOn : .clear))
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -339,7 +339,7 @@ struct TabLabel: View {
             .tip("Chiudi la scheda", shortcut: "⌘W")
             .opacity(info.active || hover || info.hasProject ? 1 : 0)
         }
-        .padding(.leading, 14).padding(.trailing, 8)
+        .padding(.leading, 14).padding(.trailing, Ed.Space.s)
         .frame(height: Chrome.tabsHeight)
         .background(info.active ? Ed.toolbar : (hover ? Ed.control.opacity(0.35) : .clear))
         .overlay(alignment: .top) { if info.active { Ed.gold.frame(height: 2) } }
@@ -397,7 +397,7 @@ struct PlusTab: View {
 
     var body: some View {
         Button { store.bench.openNewTab() } label: {
-            Image(systemName: "plus").font(Ed.icon(13, .regular))
+            Image(systemName: "plus").font(Ed.icon(Ed.TypeSize.control, .regular))
                 .foregroundStyle(hover ? Ed.text : Ed.text3)
                 .frame(width: 36, height: Chrome.tabsHeight)
                 .background(hover ? Ed.control.opacity(0.6) : .clear)
@@ -417,14 +417,14 @@ struct EditorToolbar: View {
     @State private var showHistory = false
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Ed.Space.m) {
             RSegmented(items: [(EditorStore.Workspace.simple, "Semplice"), (.pro, "Pro")], selection: Binding(get: { level }, set: { store.workspace = $0 }),
                        fill: false, tips: [.simple: "Livello semplice: sei passi guidati, un'anteprima e Fai tutto", .pro: "Livello Pro: timeline, monitor e pannelli"],
                        shortcuts: [.simple: "⌥⌘1", .pro: "⌥⌘2"])
             Ed.rule.frame(width: 1, height: 16)
-            Text(verbatim: format).font(Ed.ui(12)).foregroundStyle(Ed.text3).lineLimit(1)
-            Spacer(minLength: 8)
-            HStack(spacing: 2) {
+            Text(verbatim: format).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).lineLimit(1)
+            Spacer(minLength: Ed.Space.s)
+            HStack(spacing: Ed.Space.xxs) {
                 ToolbarIcon(symbol: "arrow.uturn.backward", tip: "Annulla l'ultima modifica", shortcut: "⌘Z", disabled: store.undoNames.isEmpty) { store.undo() }
                 ToolbarIcon(symbol: "arrow.uturn.forward", tip: "Ripeti l'ultima modifica", shortcut: "⇧⌘Z", disabled: store.redoNames.isEmpty) { store.redo() }
                 ToolbarIcon(symbol: "clock.arrow.circlepath", tip: "Cronologia: ogni modifica, tua o di Claude", disabled: false) { showHistory.toggle() }
@@ -465,10 +465,10 @@ struct ToolbarIcon: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: symbol).font(Ed.icon(13))
+            Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.control))
                 .foregroundStyle(hover && !disabled ? Ed.text : Ed.text3)
                 .frame(width: 28, height: 24)
-                .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(hover && !disabled ? Ed.control : .clear))
+                .background(RoundedRectangle(cornerRadius: Ed.Radius.m, style: .continuous).fill(hover && !disabled ? Ed.control : .clear))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -489,14 +489,14 @@ struct MarcaButton: View {
         Button { store.showBrandKits.toggle() } label: {
             HStack(spacing: 6) {
                 if let k = store.project?.brand { KitBubble(kit: k, size: 14) } else {
-                    Image(systemName: "paintpalette").font(Ed.icon(11)).foregroundStyle(Ed.text3)
+                    Image(systemName: "paintpalette").font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
                 }
                 Text(verbatim: String(format: loc("Marca: %@"), store.project?.brand?.name ?? loc("nessuna")))
-                    .font(Ed.ui(12)).foregroundStyle(hover ? Ed.text : Ed.text2).lineLimit(1)
+                    .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(hover ? Ed.text : Ed.text2).lineLimit(1)
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, Ed.Space.s)
             .frame(height: 24)
-            .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(hover ? Ed.control : .clear))
+            .background(RoundedRectangle(cornerRadius: Ed.Radius.m, style: .continuous).fill(hover ? Ed.control : .clear))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -560,7 +560,7 @@ struct RightTabButton: View {
     var body: some View {
         Button(action: action) {
             Text(verbatim: title)
-                .font(Ed.ui(13, .medium))
+                .font(Ed.ui(Ed.TypeSize.control, .medium))
                 .foregroundStyle(on ? Ed.text : (hover ? Ed.text2 : Ed.text3))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .overlay(alignment: .bottom) { (on ? Ed.gold : .clear).frame(height: 2) }
@@ -578,28 +578,28 @@ struct ClaudePanel: View {
 
     var body: some View {
         if !store.agentConnected && store.activity.isEmpty {
-            VStack(spacing: 12) {
-                Image(systemName: "sparkles").font(Ed.icon(20, .light)).foregroundStyle(Ed.text3)
+            VStack(spacing: Ed.Space.m) {
+                Image(systemName: "sparkles").font(Ed.icon(Ed.TypeSize.heading, .light)).foregroundStyle(Ed.text3)
                     .frame(width: 52, height: 52).background(Circle().fill(Ed.control))
-                Text(verbatim: loc("Claude non collegato")).font(Ed.ui(13, .semibold)).foregroundStyle(Ed.text)
+                Text(verbatim: loc("Claude non collegato")).font(Ed.ui(Ed.TypeSize.control, .semibold)).foregroundStyle(Ed.text)
                 Text(verbatim: loc("Apri Claude Code nella cartella di Regista: si collega da solo a questa finestra. Qui vedrai, in parole semplici, ogni passo che fa."))
-                    .font(Ed.ui(12)).foregroundStyle(Ed.text3).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                    .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: 240)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(16)
+            .padding(Ed.Space.l)
         } else {
             VStack(spacing: 0) {
                 HStack(spacing: 6) {
                     Circle().fill(store.agentConnected ? Ed.online : Ed.text4).frame(width: 7, height: 7)
                     Text(verbatim: store.agentConnected ? String(format: loc("%@ collegato"), store.agentName) : loc("Claude non collegato"))
-                        .font(Ed.ui(12)).foregroundStyle(Ed.text2)
+                        .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2)
                     Spacer()
                     let steps = store.activity.filter { $0.isAgent && !$0.readOnly }.count
                     Text(verbatim: steps == 1 ? loc("1 passo di Claude") : String(format: loc("%d passi di Claude"), steps))
-                        .font(Ed.ui(11)).foregroundStyle(Ed.text4)
+                        .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text4)
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, Ed.Space.m)
                 .frame(height: 30)
                 ActivityLog(compact: false)
             }

@@ -286,7 +286,7 @@ struct TimelinePanel: View {
                                 let rect = CGRect(x: Self.originX + c.start.seconds * pps, y: r.minY, width: max(2, c.duration.seconds * pps), height: r.height)
                                 drawClip(&ctx, c, row: row, rect: rect, project: project, selected: selection.contains(clip.id) || ghost)
                                 if ghost {
-                                    ctx.stroke(Path(roundedRect: rect, cornerRadius: 3), with: .color(Ed.gold),
+                                    ctx.stroke(Path(roundedRect: rect, cornerRadius: Ed.Radius.s), with: .color(Ed.gold),
                                                style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
                                 }
                             }
@@ -304,7 +304,7 @@ struct TimelinePanel: View {
 
     private func drawClip(_ ctx: inout GraphicsContext, _ clip: Clip, row: LaneRow, rect: CGRect, project: Project, selected: Bool) {
         let asset = project.asset(clip.assetID)
-        let shape = Path(roundedRect: rect, cornerRadius: 3)
+        let shape = Path(roundedRect: rect, cornerRadius: Ed.Radius.s)
         let isAudio = row.kind == .audio
         let type = ClipPalette.kind(clip, track: row.track)
         ctx.fill(shape, with: .color(ClipPalette.fill(type)))
@@ -334,11 +334,11 @@ struct TimelinePanel: View {
             if rect.width > (isAudio ? 96 : 74) {
                 let name = clip.title.map { "T  " + $0.text.replacingOccurrences(of: "\n", with: " ") }
                     ?? ((asset?.origin != nil ? "✦ " : "") + (asset?.name ?? clip.assetID))
-                l.draw(Text(verbatim: name).font(Ed.ui(9, .medium)).foregroundColor(Ed.text.opacity(0.9)),
+                l.draw(Text(verbatim: name).font(Ed.ui(Ed.TypeSize.micro, .medium)).foregroundColor(Ed.text.opacity(0.9)),
                        at: CGPoint(x: rect.minX + 4, y: rect.minY + 1), anchor: .topLeading)
             }
             if clip.transform != nil || clip.keyframes != nil, !isAudio, rect.width > 60 {
-                l.draw(Text(verbatim: clip.keyframes != nil ? "◆" : "⌗").font(Ed.ui(8)).foregroundColor(Ed.gold.opacity(0.9)),
+                l.draw(Text(verbatim: clip.keyframes != nil ? "◆" : "⌗").font(Ed.ui(Ed.TypeSize.tiny)).foregroundColor(Ed.gold.opacity(0.9)),
                        at: CGPoint(x: rect.maxX - 4, y: rect.minY + 1), anchor: .topTrailing)
             }
         }
@@ -373,7 +373,7 @@ struct TimelinePanel: View {
             guard let first = ch.words.first else { continue }
             let rect = CGRect(x: Self.originX + first.start.seconds * pps, y: r.minY,
                               width: max(2, (ch.end - first.start).seconds * pps - 1), height: r.height)
-            let shape = Path(roundedRect: rect, cornerRadius: 2.5)
+            let shape = Path(roundedRect: rect, cornerRadius: Ed.Radius.xs)
             ctx.fill(shape, with: .color(k % 2 == 0 ? Ed.captionClip : Ed.captionClip.opacity(0.7)))
             if ch.words.contains(where: \.keyword) {
                 ctx.fill(Path(CGRect(x: rect.minX, y: rect.maxY - 2, width: rect.width, height: 2)), with: .color(Ed.keyword.opacity(0.8)))
@@ -383,7 +383,7 @@ struct TimelinePanel: View {
             let words = ch.words.map(\.text)
             for candidate in [words.joined(separator: " "), words[0]] {
                 let kw = candidate == words[0] ? first.keyword : false
-                let text = ctx.resolve(Text(verbatim: candidate).font(Ed.ui(8.5, .semibold))
+                let text = ctx.resolve(Text(verbatim: candidate).font(Ed.ui(Ed.TypeSize.tiny, .semibold))
                     .foregroundColor(kw ? Ed.keyword : Ed.text.opacity(0.88)))
                 if text.measure(in: CGSize(width: 1000, height: 20)).width + 6 <= rect.width {
                     ctx.draw(text, at: CGPoint(x: rect.minX + 3, y: rect.midY), anchor: .leading)
@@ -500,7 +500,7 @@ struct TimelineCorner: View {
     @EnvironmentObject private var playhead: Playhead
     var body: some View {
         HStack {
-            Text(verbatim: timecode(frames: playhead.time)).font(Ed.mono(13, .medium)).foregroundStyle(Ed.gold)
+            Text(verbatim: timecode(frames: playhead.time)).font(Ed.mono(Ed.TypeSize.control, .medium)).foregroundStyle(Ed.gold)
             Spacer()
         }
         .padding(.horizontal, 10)
@@ -519,14 +519,14 @@ struct TrackHeader: View {
     var body: some View {
         HStack(spacing: 6) {
             Text(verbatim: row.label)
-                .font(Ed.mono(10, .bold))
+                .font(Ed.mono(Ed.TypeSize.caption, .bold))
                 .foregroundStyle(row.track == nil ? Ed.text3 : Ed.text)
                 .frame(width: 26, height: 18)
-                .background(RoundedRectangle(cornerRadius: 3).fill(row.track == nil ? Color.clear : Ed.raised))
-                .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(row.track == nil ? Ed.line2 : .clear))
-            Text(verbatim: loc(row.title)).font(Ed.ui(10.5)).foregroundStyle(row.track == nil ? Ed.text3 : Ed.text2)
+                .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(row.track == nil ? Color.clear : Ed.raised))
+                .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(row.track == nil ? Ed.line2 : .clear))
+            Text(verbatim: loc(row.title)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(row.track == nil ? Ed.text3 : Ed.text2)
                 .lineLimit(1).minimumScaleFactor(0.8)
-            Spacer(minLength: 2)
+            Spacer(minLength: Ed.Space.xxs)
             if let t = row.track {
                 // The bin shows on hover (also: right click → Elimina pista).
                 if hover { small("trash", "Elimina pista", false) { delete(t) } }
@@ -543,7 +543,7 @@ struct TrackHeader: View {
                 small("plus", row.role == .music ? loc("Aggiungi musica…") : row.role == .sfx ? loc("Scegli un effetto sonoro") : "Crea la pista", false) { create() }
             }
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, Ed.Space.s)
         .frame(maxHeight: .infinity)
         .overlay(alignment: .bottom) { Ed.line.frame(height: 1) }
         .contentShape(Rectangle())
@@ -618,10 +618,10 @@ struct TrackHeader: View {
 
     private func letter(_ s: String, _ help: String, _ on: Bool, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(verbatim: s).font(Ed.mono(9.5, .bold))
+            Text(verbatim: s).font(Ed.mono(Ed.TypeSize.micro, .bold))
                 .foregroundStyle(on ? Color.black.opacity(0.85) : Ed.text2)
                 .frame(width: 17, height: 17)
-                .background(RoundedRectangle(cornerRadius: 3).fill(on ? Ed.gold : Ed.raised))
+                .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(on ? Ed.gold : Ed.raised))
         }
         .buttonStyle(.plain)
         .tip(help)
@@ -649,7 +649,7 @@ struct Ruler: View {
                 if isMajor {
                     let s = Int(t.rounded(.down)), frac = t - Double(s)
                     let label = frac > 0 ? String(format: "%d:%02d.%d", s / 60, s % 60, Int(frac * 10)) : String(format: "%d:%02d", s / 60, s % 60)
-                    ctx.draw(Text(verbatim: label).font(Ed.mono(9)).foregroundColor(Ed.text3), at: CGPoint(x: x + 3, y: 4), anchor: .topLeading)
+                    ctx.draw(Text(verbatim: label).font(Ed.mono(Ed.TypeSize.micro)).foregroundColor(Ed.text3), at: CGPoint(x: x + 3, y: 4), anchor: .topLeading)
                 }
                 k += 1
             }
@@ -688,11 +688,11 @@ struct ZoomBar: View {
     @EnvironmentObject private var store: EditorStore
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Ed.Space.s) {
             if let p = store.project {
                 let clips = p.tracks.filter { $0.kind == .video }.flatMap(\.clips).count
                 Text(verbatim: clips == 1 ? loc("1 clip · %@", shortTime(p.duration.seconds))
-                     : loc("%@ clip · %@", String(clips), shortTime(p.duration.seconds))).font(Ed.mono(10)).foregroundStyle(Ed.text3)
+                     : loc("%@ clip · %@", String(clips), shortTime(p.duration.seconds))).font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
             }
             Spacer()
             IconButton(symbol: "minus.magnifyingglass", help: "Riduci", shortcut: "−", size: 20) { store.zoom(by: 1 / 1.5) }

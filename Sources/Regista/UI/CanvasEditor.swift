@@ -366,7 +366,7 @@ struct CanvasOverlay: View {
                 Rectangle().fill(Ed.danger.opacity(hot ? 0.34 : 0.2))
                     .overlay(Rectangle().strokeBorder(Ed.danger.opacity(0.7), lineWidth: 1))
                     .frame(width: r[2], height: r[3]).offset(x: r[0], y: r[1])
-                Text(verbatim: loc(zoneLabel(z.name)).uppercased(with: Locale.current)).font(Ed.mono(8, .semibold)).foregroundStyle(Color.white.opacity(0.85))
+                Text(verbatim: loc(zoneLabel(z.name)).uppercased(with: Locale.current)).font(Ed.mono(Ed.TypeSize.tiny, .semibold)).foregroundStyle(Color.white.opacity(0.85))
                     .rotationEffect(.degrees(z.name == "right" ? -90 : 0))
                     .fixedSize()
                     .position(x: r[0] + r[2] / 2, y: r[1] + r[3] / 2)
@@ -418,15 +418,15 @@ struct CanvasOverlay: View {
             let top = rotated(0, -hh), knob = rotated(0, -hh - 22)
             Path { $0.move(to: top); $0.addLine(to: knob) }.stroke(color, lineWidth: 1).allowsHitTesting(false)
             Circle().fill(color).frame(width: 11, height: 11)
-                .overlay(Image(systemName: "arrow.clockwise").font(Ed.icon(6.5, .bold)).foregroundStyle(Color.black.opacity(0.75)))
+                .overlay(Image(systemName: "arrow.clockwise").font(Ed.icon(Ed.TypeSize.tiny, .bold)).foregroundStyle(Color.black.opacity(0.75)))
                 .shadow(color: .black.opacity(0.4), radius: 1.5)
                 .position(knob)
                 .gesture(rotateDrag(e, m))
                 .tip("Trascina per ruotare")
         }
         if hot {
-            Text(verbatim: loc("Zona interfaccia Instagram")).font(Ed.ui(9.5, .semibold)).foregroundStyle(.white)
-                .padding(.horizontal, 6).padding(.vertical, 2)
+            Text(verbatim: loc("Zona interfaccia Instagram")).font(Ed.ui(Ed.TypeSize.micro, .semibold)).foregroundStyle(.white)
+                .padding(.horizontal, 6).padding(.vertical, Ed.Space.xxs)
                 .background(Capsule().fill(Ed.danger))
                 .fixedSize()
                 .position(x: v.x, y: max(m.toView((0, box[1])).y - 12, 8))
@@ -587,22 +587,22 @@ struct CanvasBar: View {
     var body: some View {
         Group {
             if compact {
-                VStack(spacing: 4) {
+                VStack(spacing: Ed.Space.xs) {
                     scope
-                    HStack(spacing: 8) { sizeAndReset }
+                    HStack(spacing: Ed.Space.s) { sizeAndReset }
                 }
             } else {
-                HStack(spacing: 8) {
+                HStack(spacing: Ed.Space.s) {
                     if element.kind == .caption { scope }
                     sizeAndReset
                 }
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(.horizontal, Ed.Space.s)
+        .padding(.vertical, Ed.Space.xs)
         .frame(maxHeight: .infinity)
-        .background(RoundedRectangle(cornerRadius: 9).fill(Ed.panel.opacity(0.96)))
-        .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Ed.line2))
+        .background(RoundedRectangle(cornerRadius: Ed.Radius.l).fill(Ed.panel.opacity(0.96)))
+        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.l).strokeBorder(Ed.line2))
         .shadow(color: .black.opacity(0.45), radius: 8, y: 3)
     }
 
@@ -613,14 +613,14 @@ struct CanvasBar: View {
     }
 
     @ViewBuilder private var sizeAndReset: some View {
-        Image(systemName: "textformat.size").font(Ed.icon(10, .medium)).foregroundStyle(Ed.text3)
+        Image(systemName: "textformat.size").font(Ed.icon(Ed.TypeSize.caption, .medium)).foregroundStyle(Ed.text3)
         RSlider(value: Binding(get: { scale }, set: { scale = $0; onScale(true) }),
                 range: element.kind == .caption ? 0.3...3 : 0.1...4, step: 0.01,
                 format: { String(format: "%.0f%%", $0 * 100) }, onCommit: { _ in onScale(false) })
             .frame(minWidth: 60)
             .tip("Dimensione (anche pizzico sul trackpad o ⌥ + rotella)")
         Button(action: onReset) {
-            Image(systemName: "arrow.uturn.backward").font(Ed.icon(10.5, .semibold)).foregroundStyle(Ed.text2)
+            Image(systemName: "arrow.uturn.backward").font(Ed.icon(Ed.TypeSize.caption, .semibold)).foregroundStyle(Ed.text2)
                 .frame(width: 22, height: 22).contentShape(Rectangle())
         }
         .buttonStyle(.plain)

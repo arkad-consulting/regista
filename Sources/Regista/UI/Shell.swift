@@ -293,10 +293,10 @@ struct PanelToggle: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(Ed.icon(14, .regular))
+                .font(Ed.icon(Ed.TypeSize.title, .regular))
                 .foregroundStyle(on ? Ed.text2 : Ed.text3)
                 .frame(width: 28, height: 24)
-                .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(hover ? Ed.control : .clear))
+                .background(RoundedRectangle(cornerRadius: Ed.Radius.m, style: .continuous).fill(hover ? Ed.control : .clear))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -352,17 +352,17 @@ struct ClaudeStatusLabel: View {
                 .fill(status == .disconnected ? Ed.text4 : (status == .working ? Ed.gold : Ed.online))
                 .frame(width: 7, height: 7)
             Text(verbatim: "\(name) " + (status == .working ? loc("al lavoro") : status == .connected ? loc("collegato") : loc("non collegato")))
-                .font(Ed.ui(12))
+                .font(Ed.ui(Ed.TypeSize.body))
                 .foregroundStyle(status == .disconnected ? Ed.text3 : Ed.text2)
                 .lineLimit(1)
                 .fixedSize()
             if warning {
-                Image(systemName: "exclamationmark.triangle.fill").font(Ed.icon(10)).foregroundStyle(Ed.gold)
+                Image(systemName: "exclamationmark.triangle.fill").font(Ed.icon(Ed.TypeSize.caption)).foregroundStyle(Ed.gold)
             }
         }
         .padding(.horizontal, 10)
         .frame(height: 24)
-        .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(hover ? Ed.controlOn.opacity(0.6) : Ed.control))
+        .background(RoundedRectangle(cornerRadius: Ed.Radius.m, style: .continuous).fill(hover ? Ed.controlOn.opacity(0.6) : Ed.control))
     }
 }
 
@@ -397,12 +397,12 @@ struct ActivityBar: View {
 
     var body: some View {
         let active = (navOverride ?? store.nav).activity
-        VStack(spacing: 4) {
+        VStack(spacing: Ed.Space.xs) {
             ForEach(Navigation.Activity.allCases) { a in
                 let i = ActivityInfo.of(a)
                 ActivityButton(symbol: i.symbol, active: active == a, tip: i.tip, shortcut: a.shortcut, label: i.title) { store.select(a) }
             }
-            Spacer(minLength: 8)
+            Spacer(minLength: Ed.Space.s)
             ActivityButton(symbol: "cpu", active: false, tip: "Motori: RAM, livello e motori installati",
                            shortcut: nil, label: loc("Motori")) { SettingsRoute.open(.engines, with: openSettings) }
             ActivityButton(symbol: "gearshape", active: false, tip: "Impostazioni", shortcut: "⌘,", label: loc("Impostazioni")) { openSettings() }
@@ -427,10 +427,10 @@ struct ActivityButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(Ed.icon(17, .regular))
+                .font(Ed.icon(Ed.TypeSize.heading, .regular))
                 .foregroundStyle(active ? Ed.text : (hover ? Ed.text2 : Ed.text3))
                 .frame(width: 40, height: 40)
-                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(active ? Ed.control : (hover ? Ed.control.opacity(0.55) : .clear)))
+                .background(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).fill(active ? Ed.control : (hover ? Ed.control.opacity(0.55) : .clear)))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -477,7 +477,7 @@ struct StatusBar: View {
     }
 
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: Ed.Space.l) {
             if let s = store.engineSummary {
                 Text(verbatim: String(format: loc("Mac %d GB · livello %@"), s.memoryGB, Self.tierName(s.tier))).fixedSize()
             }
@@ -491,7 +491,7 @@ struct StatusBar: View {
                 }
             }
             Text(verbatim: hint).foregroundStyle(Ed.text4).lineLimit(1).truncationMode(.tail).layoutPriority(-1)
-            Spacer(minLength: 8)
+            Spacer(minLength: Ed.Space.s)
             JobsStatusItem()   // long work of every tab: progress, Cancel, errors (E2 #54)
             if recorder.isRecording {
                 HStack(spacing: 5) {
@@ -503,9 +503,9 @@ struct StatusBar: View {
                 Text(verbatim: save).fixedSize()
             }
         }
-        .font(Ed.ui(11))
+        .font(Ed.ui(Ed.TypeSize.small))
         .foregroundStyle(Ed.text3)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, Ed.Space.m)
         .frame(height: Chrome.statusHeight)
         .background(Ed.bar)
         .overlay(alignment: .top) { Ed.rule.frame(height: 1) }
@@ -607,24 +607,24 @@ struct ApprovalSheet: View {
     var body: some View {
         let e = entry.estimate
         VStack(alignment: .leading, spacing: 14) {
-            Text("Generazione a pagamento").font(Ed.display(20, .semibold)).foregroundStyle(Ed.text)
+            Text("Generazione a pagamento").font(Ed.display(Ed.TypeSize.heading, .semibold)).foregroundStyle(Ed.text)
             Text(verbatim: loc("%@ chiede di generare con %@. Approva solo lo scatto finale: per le prove c'è ComfyUI, gratis.",
                                store.agentName, e.provider.capitalized))
-                .font(Ed.ui(12)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
-            VStack(alignment: .leading, spacing: 8) {
+                .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: Ed.Space.s) {
                 row("Modello", e.model)
                 row("Tipo", e.kind == .video ? loc("clip video") : e.kind == .image ? loc("immagine") : e.kind.rawValue)
                 row("Costo", loc("%@ crediti", String(format: "%g", e.credits)))
                 row("Budget", remaining == 1 ? loc("resta 1 chiamata su %@", String(cap(e.provider)))
                                              : loc("restano %@ chiamate su %@", String(remaining), String(cap(e.provider))))
             }
-            Text("Prompt").font(Ed.ui(11, .medium)).foregroundStyle(Ed.text3)
+            Text("Prompt").font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text3)
             ScrollView {
-                Text(verbatim: e.prompt).font(Ed.mono(11)).foregroundStyle(Ed.text).textSelection(.enabled)
+                Text(verbatim: e.prompt).font(Ed.mono(Ed.TypeSize.small)).foregroundStyle(Ed.text).textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(10)
             }
             .frame(height: 110)
-            .background(RoundedRectangle(cornerRadius: 6).fill(Ed.well))
+            .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
             HStack {
                 Spacer()
                 EdButton(title: "Rifiuta") { store.decideApproval(approve: false) }
@@ -633,7 +633,7 @@ struct ApprovalSheet: View {
                 }
             }
             if remaining == 0 {
-                Text("Budget esaurito: nessuna altra chiamata a pagamento.").font(Ed.ui(11)).foregroundStyle(Ed.danger)
+                Text("Budget esaurito: nessuna altra chiamata a pagamento.").font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.danger)
             }
         }
         .padding(22)
@@ -646,9 +646,9 @@ struct ApprovalSheet: View {
     /// `label` is a key; `value` is already in words.
     private func row(_ label: String, _ value: String) -> some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(verbatim: loc(label)).font(Ed.ui(11, .medium)).foregroundStyle(Ed.text3).frame(width: 80, alignment: .leading)
+            Text(verbatim: loc(label)).font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text3).frame(width: 80, alignment: .leading)
                 .lineLimit(1).minimumScaleFactor(0.8)
-            Text(verbatim: value).font(Ed.ui(12)).foregroundStyle(Ed.text)
+            Text(verbatim: value).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text)
         }
     }
 }

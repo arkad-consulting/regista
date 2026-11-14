@@ -13,7 +13,7 @@ struct JobCard: View {
             HStack(spacing: Ed.Space.s) {
                 stateIcon
                 Text(verbatim: loc(job.title)).font(Ed.ui(Ed.TypeSize.small, .semibold)).foregroundStyle(Ed.text).lineLimit(1)
-                Spacer(minLength: 4)
+                Spacer(minLength: Ed.Space.xs)
                 if job.isRunning, job.cancellable {
                     EdButton(title: loc("Annulla"), action: onCancel).fixedSize()
                 } else if !job.isRunning, let onDismiss {
@@ -57,7 +57,7 @@ struct JobCard: View {
                         else if here, case .failed = job.state { Image(systemName: "xmark").foregroundStyle(Ed.warn) }
                         else { Circle().strokeBorder(Ed.text3, lineWidth: 1).frame(width: 5, height: 5) }
                     }
-                    .font(Ed.icon(8, .bold)).frame(width: 10)
+                    .font(Ed.icon(Ed.TypeSize.tiny, .bold)).frame(width: 10)
                     Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.caption, here ? .semibold : .regular))
                         .foregroundStyle(here ? Ed.text : (done ? Ed.text2 : Ed.text3))
                 }
@@ -82,9 +82,9 @@ struct JobCard: View {
     private var stateIcon: some View {
         switch job.state {
         case .running: ProgressView().controlSize(.mini).tint(Ed.gold).frame(width: 14, height: 14)
-        case .done: Image(systemName: "checkmark.circle.fill").font(Ed.icon(12)).foregroundStyle(Ed.ok)
-        case .cancelled: Image(systemName: "minus.circle").font(Ed.icon(12)).foregroundStyle(Ed.text3)
-        case .failed: Image(systemName: "exclamationmark.triangle.fill").font(Ed.icon(11)).foregroundStyle(Ed.warn)
+        case .done: Image(systemName: "checkmark.circle.fill").font(Ed.icon(Ed.TypeSize.body)).foregroundStyle(Ed.ok)
+        case .cancelled: Image(systemName: "minus.circle").font(Ed.icon(Ed.TypeSize.body)).foregroundStyle(Ed.text3)
+        case .failed: Image(systemName: "exclamationmark.triangle.fill").font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(Ed.warn)
         }
     }
 }

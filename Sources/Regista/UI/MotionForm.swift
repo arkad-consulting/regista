@@ -42,7 +42,7 @@ struct MotionForm: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
-                Text(verbatim: loc(spec.label)).font(Ed.display(17, .medium)).foregroundStyle(Ed.text)
+                Text(verbatim: loc(spec.label)).font(Ed.display(Ed.TypeSize.heading, .medium)).foregroundStyle(Ed.text)
                 Spacer()
                 EdButton(title: "Applica", symbol: "wand.and.stars", prominent: true) { apply() }
             }
@@ -51,8 +51,8 @@ struct MotionForm: View {
             }
         }
         .padding(14)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Ed.raised.opacity(0.55)))
-        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Ed.line))
+        .background(RoundedRectangle(cornerRadius: Ed.Radius.xl).fill(Ed.raised.opacity(0.55)))
+        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.xl).strokeBorder(Ed.line))
         .onAppear { values = [:] }
         .onChange(of: spec.id) { values = [:] }
     }
@@ -61,7 +61,7 @@ struct MotionForm: View {
 
     @ViewBuilder private func row(_ f: EffectsCatalog.Field) -> some View {
         let label = Self.labels[f.name] ?? f.name
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: Ed.Space.xs) {
             if f.type != "boolean" { SectionLabel(label) }
             switch f.type {
             case "boolean":
@@ -92,7 +92,7 @@ struct MotionForm: View {
 
     private func imagePicker(_ f: EffectsCatalog.Field) -> some View {
         let paths = (value(f).arrayValue ?? []).compactMap(\.stringValue)
-        return HStack(spacing: 8) {
+        return HStack(spacing: Ed.Space.s) {
             EdButton(title: "Scegli immagini…", symbol: "photo.on.rectangle") {
                 let panel = NSOpenPanel()
                 panel.allowsMultipleSelection = true
@@ -100,7 +100,7 @@ struct MotionForm: View {
                 if panel.runModal() == .OK { values[f.name] = .array(panel.urls.map { .string($0.path) }) }
             }
             Text(verbatim: paths.isEmpty ? loc("Nessuna: pannelli di esempio") : paths.count == 1 ? loc("1 immagine") : loc("%@ immagini", String(paths.count)))
-                .font(Ed.ui(10.5)).foregroundStyle(Ed.text3)
+                .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
         }
     }
 
