@@ -242,6 +242,8 @@ struct CanvasOverlay: View {
     /// Where a mouse-down started: the element under it, if any.
     @State private var press: (key: String?, start: CGPoint, dragging: Bool)?
     @State private var barScale = 1.0
+    /// The bar's size slider is being dragged: the bar stays (a pointer gesture on the picture hides it).
+    @State private var sliding = false
     let size: CGSize
 
     private var frameSize: (Int, Int) { (store.project?.settings.width ?? 1080, store.project?.settings.height ?? 1920) }
@@ -264,6 +266,11 @@ struct CanvasOverlay: View {
     var body: some View {
         let m = mapping
         ZStack(alignment: .topLeading) {
+            // The picture's own gestures sit on a layer under the handles and the bar, never on the stack: as a
+            // parent's gesture they took the clicks meant for the bar (the element under it was selected and moved, #28).
+            Color.clear.contentShape(Rectangle())
+                .gesture(mainDrag(m))
+                .simultaneousGesture(pinch)
             if let e = selected, let g = live, g.key == canvasKey(e) { dragLayer(e, g, m) }
             if let h = model.hovered, h != store.canvasSelection, let e = model.elements.last(where: { canvasKey($0) == h }), !store.preview.isPlaying {
                 outline(e, CanvasGesture(key: h), m, color: Color.white.opacity(0.7), dash: [3, 3])
@@ -271,19 +278,18 @@ struct CanvasOverlay: View {
             if let e = selected, !store.preview.isPlaying || gesture != nil {
                 let g = live.flatMap { $0.key == canvasKey(e) ? $0 : nil } ?? CanvasGesture(key: canvasKey(e))
                 selection(e, g, m)
-                if gesture == nil || gesture?.committed == true { bar(e, m) }
+                if gesture == nil || gesture?.committed == true || sliding { bar(e, m) }
             }
         }
         .frame(width: size.width, height: size.height, alignment: .topLeading)
-        .contentShape(Rectangle())
         .coordinateSpace(.named("canvas"))
-        .gesture(mainDrag(m))
-        .simultaneousGesture(pinch)
         .onContinuousHover { phase in
             switch phase {
             case .active(let p):
                 store.canvasHover = true
                 guard !store.preview.isPlaying, gesture == nil else { return }
+                // Over the bar the pointer is on the bar, not on what lies under it.
+                if let e = selected, barFrame(e, m).rect.insetBy(dx: -4, dy: -4).contains(p) { model.hovered = nil; return }
                 model.refresh(store, time: playhead.time)
                 let f = m.toFrame((p.x, p.y))
                 model.hovered = CanvasLayout.hit(model.elements, at: f, margin: 6 / m.scale).map(canvasKey)
@@ -403,16 +409,21 @@ struct CanvasOverlay: View {
         let v = m.toView((c[0], c[1]))
         let hw = s[0] * m.scale / 2 + 4, hh = s[1] * m.scale / 2 + 4
         let a = r * .pi / 180
-        let rotated = { (x: Double, y: Double) -> CGPoint in CGPoint(x: v.x + x * cos(a) - y * sin(a), y: v.y + x * sin(a) + y * cos(a)) }
+        // Handles stay inside the picture: the corners of an element as large as the frame (or larger) are on its
+        // edge or outside it, where nothing can be grabbed (#28). The resize follows the pointer's distance from
+        // the centre, so a handle works from wherever it is drawn.
+        let rotated = { (x: Double, y: Double) -> CGPoint in
+            CGPoint(x: min(max(v.x + x * cos(a) - y * sin(a), 7), max(size.width - 7, 7)), y: min(max(v.y + x * sin(a) + y * cos(a), 7), max(size.height - 7, 7)))
+        }
         ForEach(0..<4, id: \.self) { i in
             let p = rotated(i % 2 == 0 ? -hw : hw, i < 2 ? -hh : hh)
             Circle().fill(Color.white).frame(width: 9, height: 9)
                 .overlay(Circle().strokeBorder(color, lineWidth: 1.5))
                 .shadow(color: .black.opacity(0.4), radius: 1.5)
                 .contentShape(Rectangle().size(width: 18, height: 18).offset(x: -4.5, y: -4.5))
+                .tip("Trascina per ridimensionare")
                 .position(p)
                 .gesture(resizeDrag(e, m))
-                .tip("Trascina per ridimensionare")
         }
         if e.rotatable {
             let top = rotated(0, -hh), knob = rotated(0, -hh - 22)
@@ -420,9 +431,10 @@ struct CanvasOverlay: View {
             Circle().fill(color).frame(width: 11, height: 11)
                 .overlay(Image(systemName: "arrow.clockwise").font(Ed.icon(Ed.TypeSize.tiny, .bold)).foregroundStyle(Color.black.opacity(0.75)))
                 .shadow(color: .black.opacity(0.4), radius: 1.5)
+                .contentShape(Rectangle().size(width: 19, height: 19).offset(x: -4, y: -4))
+                .tip("Trascina per ruotare")
                 .position(knob)
                 .gesture(rotateDrag(e, m))
-                .tip("Trascina per ruotare")
         }
         if hot {
             Text(verbatim: loc("Zona interfaccia Instagram")).font(Ed.ui(Ed.TypeSize.micro, .semibold)).foregroundStyle(.white)
@@ -434,8 +446,8 @@ struct CanvasOverlay: View {
         }
     }
 
-    /// The floating bar under (or over) the selection.
-    private func bar(_ e: CanvasElement, _ m: PreviewMapping) -> some View {
+    /// Where the floating bar goes: under the selection, over it when there is no room below.
+    private func barFrame(_ e: CanvasElement, _ m: PreviewMapping) -> (rect: CGRect, compact: Bool) {
         let b = m.toView(box: e.box)
         // A narrow monitor (the Pro workspace's 9:16 column) stacks the bar on two rows.
         let compact = e.kind == .caption && size.width < 380
@@ -444,7 +456,15 @@ struct CanvasOverlay: View {
         let below = b[1] + b[3] + 14 + height < size.height
         let y = below ? b[1] + b[3] + 14 + height / 2 : max(b[1] - 14 - height / 2, height / 2)
         let x = min(max(b[0] + b[2] / 2, width / 2 + 4), size.width - width / 2 - 4)
+        return (CGRect(x: x - width / 2, y: y - height / 2, width: width, height: height), compact)
+    }
+
+    /// The floating bar under (or over) the selection.
+    private func bar(_ e: CanvasElement, _ m: PreviewMapping) -> some View {
+        let (rect, compact) = barFrame(e, m)
+        let width = rect.width, height = rect.height, x = rect.midX, y = rect.midY
         return CanvasBar(element: e, compact: compact, scale: $barScale, onScale: { live in
+            sliding = live
             if live { gesture = CanvasGesture(key: canvasKey(e), scale: barScale / max(e.scale, 0.01)); model.prepare(store, e, time: playhead.time) }
             else { commit(e, CanvasGesture(key: canvasKey(e), scale: barScale / max(e.scale, 0.01))) }
         }, onReset: { store.resetCanvas(e) })
@@ -613,7 +633,9 @@ struct CanvasBar: View {
     }
 
     @ViewBuilder private var sizeAndReset: some View {
-        Image(systemName: "textformat.size").font(Ed.icon(Ed.TypeSize.caption, .medium)).foregroundStyle(Ed.text3)
+        // Text reads its size as a letter; a picture, a sticker or a logo as a frame that grows.
+        Image(systemName: element.kind == .caption || element.kind == .title ? "textformat.size" : "arrow.up.left.and.arrow.down.right")
+            .font(Ed.icon(Ed.TypeSize.caption, .medium)).foregroundStyle(Ed.text3)
         RSlider(value: Binding(get: { scale }, set: { scale = $0; onScale(true) }),
                 range: element.kind == .caption ? 0.3...3 : 0.1...4, step: 0.01,
                 format: { String(format: "%.0f%%", $0 * 100) }, onCommit: { _ in onScale(false) })
