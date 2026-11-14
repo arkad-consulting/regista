@@ -99,7 +99,7 @@ The installer detects the tier from the Mac's RAM (`--tier base|medium|pro` forc
   hand: the installer prints the steps).
 
 Shotcut is offered on every tier. Every engine with the RAM, disk and licence it needs and how it is installed:
-[docs/engines.md](docs/engines.md).
+[docs/reference/engines.md](docs/reference/engines.md).
 
 ## Languages
 
@@ -113,7 +113,7 @@ Shotcut is offered on every tier. Every engine with the RAM, disk and licence it
   teleprompter, tutorials, your own voice, shortcuts.
 - [docs/architecture.md](docs/architecture.md) — how it is built: the command engine, the MCP server, the installer,
   rendering, captions, graphics, analysis engines, tests.
-- [docs/engines.md](docs/engines.md) — the engines by tier (generated from `scripts/engines.manifest.json`).
+- [docs/reference/engines.md](docs/reference/engines.md) — the engines by tier (generated from `scripts/engines.manifest.json`).
 - [LICENSES.md](LICENSES.md) — third-party engines, models, fonts and sound effects.
 
 ### Development

@@ -2,7 +2,7 @@
   "schema": 1,
   "about": [
     "Every engine, model, tool and provider Regista can use: the single source for scripts/install.sh, scripts/doctor.sh,",
-    "the app (RegistaCore EngineManifest, engines.status) and docs/engines.md (scripts/engines.py docs).",
+    "the app (RegistaCore EngineManifest, engines.status) and docs/reference/engines.md (scripts/reference-docs.sh).",
     "Download facts (version, release and pin dates, sha256, download size, url) live ONLY in scripts/engines.lock:",
     "an entry names its lock rows in 'artifacts' (an id ending with ':' means every row with that prefix).",
     "minRamGB is the minimum RAM; the tier (base/medium/pro) is derived from it with 'tiers'. null = planned.",
@@ -12,7 +12,7 @@
     "the first time it is needed), manual (steps), cloud. status: available (Regista uses it) or planned (not built).",
     "files: what the engine puts in Regista's engines folder (~/Library/Application Support/Regista/engines), relative to it:",
     "the Motori screen removes exactly these, and scripts/install.sh --only <id> downloads a single-artifact entry to its one file.",
-    "After editing: scripts/engines.py docs (regenerates docs/engines.md; the pre-commit hook runs --check)."
+    "After editing: scripts/reference-docs.sh (regenerates docs/reference/engines.md; the pre-commit hook runs --check)."
   ],
   "tiers": [
     {"id": "base", "name": "Base", "ramGB": 8, "detectFromGB": 0},

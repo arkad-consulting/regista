@@ -3,7 +3,7 @@ import Foundation
 /// Every engine, model, tool and provider Regista can use, from `scripts/engines.manifest.json`, with the download facts
 /// (version, dates, sha256, size, url) of `scripts/engines.lock`. Both files are compiled into RegistaCore
 /// (`Package.swift`, `.embedInCode`), so the app bundle, `regista-mcp` / `regista-engine` and the tests read the same
-/// facts as the installer and `docs/engines.md`, with nothing to locate at run time.
+/// facts as the installer and `docs/reference/engines.md`, with nothing to locate at run time.
 public struct EngineManifest: Sendable {
     public struct Tier: Codable, Hashable, Sendable {
         public let id: String
@@ -97,7 +97,7 @@ public struct EngineManifest: Sendable {
         return total
     }
 
-    /// "4.96 GB", "28 MB", "–" (nothing to download), "?" (unknown): the same rounding as docs/engines.md.
+    /// "4.96 GB", "28 MB", "–" (nothing to download), "?" (unknown): the same rounding as docs/reference/engines.md.
     public func diskText(_ id: String) -> String {
         guard let e = entry(id), let b = diskBytes(e) else { return "?" }
         if b == 0 { return "–" }

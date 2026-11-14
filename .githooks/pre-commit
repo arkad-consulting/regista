@@ -18,9 +18,10 @@ scripts/check-public.sh --staged || exit 1
 python3 -I Tests/Installer/test_homebrew_bootstrap.py >"$log" 2>&1 || fail "Homebrew bootstrap tests"
 python3 -I Tests/Distribution/test_package.py >"$log" 2>&1 || fail "source package tests"
 
-# The engine manifest is consistent with engines.lock, and docs/engines.md is what it generates (#58).
+# The engine manifest is consistent with engines.lock (#58).
 scripts/engines.py validate >"$log" 2>&1 || fail "scripts/engines.py validate"
-scripts/engines.py docs --check >"$log" 2>&1 || fail "scripts/engines.py docs --check (run scripts/engines.py docs)"
+# docs/reference/ is what the code generates: every command, engine, shortcut and settings key is in it (K1 #7).
+scripts/reference-docs.sh --check >"$log" 2>&1 || fail "scripts/reference-docs.sh --check (run scripts/reference-docs.sh)"
 # Every word the app shows is in the tables of every UI language, and no text bypasses the lookup (L0 #48).
 python3 -I scripts/l10n.py >"$log" 2>&1 || fail "scripts/l10n.py"
 

@@ -3,7 +3,7 @@ import Testing
 @testable import RegistaCore
 
 // The engine manifest (scripts/engines.manifest.json + scripts/engines.lock, issue #58): one source for the installer,
-// the app and docs/engines.md.
+// the app and docs/reference/engines.md.
 
 private let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 private let manifest = EngineManifest.shared
