@@ -58,11 +58,17 @@ public struct CaptionStyle: Codable, Hashable, Sendable {
     /// The approved WeSites talking-head look (reel 2026-10-26, captions.py): Impact 100 uppercase,
     /// 9 px black outline, keyword on a pink #FF2D6F box, word-by-word, ≤ 3 words / 17 characters,
     /// band 1244–1444 on 1080×1920.
-    public static let talkingHeadV1 = CaptionStyle(
-        id: "talking-head-v1", font: "Impact", fontSize: 100, uppercase: true, textColor: "#FFFFFF", strokeColor: "#000000",
-        strokeWidth: 9, keywordBoxColor: "#FF2D6F", keywordTextColor: "#FFFFFF", boxPadX: 18, boxPadY: 14, gap: 24,
-        bandY: 1244, bandHeight: 200, referenceWidth: 1080, referenceHeight: 1920, maxWords: 3, maxChars: 17, hold: 0.4,
-        stopWords: [], reveal: "word", numerals: true)
+    /// Words sit on one baseline: centred one by one, words of different heights ("PAR" / "MOIS") jumped up and
+    /// down inside a line.
+    public static let talkingHeadV1: CaptionStyle = {
+        var s = CaptionStyle(
+            id: "talking-head-v1", font: "Impact", fontSize: 100, uppercase: true, textColor: "#FFFFFF", strokeColor: "#000000",
+            strokeWidth: 9, keywordBoxColor: "#FF2D6F", keywordTextColor: "#FFFFFF", boxPadX: 18, boxPadY: 14, gap: 24,
+            bandY: 1244, bandHeight: 200, referenceWidth: 1080, referenceHeight: 1920, maxWords: 3, maxChars: 17, hold: 0.4,
+            stopWords: [], reveal: "word", numerals: true)
+        s.wordAlign = "baseline"
+        return s
+    }()
 
     /// The Italian list the style carried before stop words came from the language (projects saved then still have it).
     static let legacyItalianStopWords: Set<String> = ["SE", "DA", "NON", "IL", "LO", "LA", "LE", "E", "O", "DI", "CHE", "UN", "IN", "A",

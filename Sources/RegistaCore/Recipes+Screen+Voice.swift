@@ -69,6 +69,8 @@ extension Recipes {
         - One layout change every 20–30 s at most; the screen is the subject, the face is company.
         - No music unless asked; if asked, audio_addMusic (it ducks under the voice) and audio_checkDucking.
         - Titles, cards and sound effects on top: the reel-graphics recipe.
+        - Never deliver a bare edit: before the export the user sees, read effects_catalog and propose 6–12
+          items that fit the lines (one line each: what, where, why) as a yes/no list; apply what they accept.
         """)
 
     public static let voiceOverVideo = Recipe(
@@ -119,6 +121,12 @@ extension Recipes {
            They use the script's own words and spelling from the Voce track. Re-run after moving voice clips.
         8. Titles, cards and sound effects: the reel-graphics recipe (titles land on the word; sound effects
            sparse and quiet: sfx_library → sfx_add).
+        8b. Dress the edit — propose, never skip: read effects_catalog and propose to the user, line by line,
+            6–12 items that fit what is said (a counter or clock on the number, a headline on the punchline, a
+            chip on the thing shown, punch-ins on the strong words, transitions on section changes, the logo of
+            a brand that is named, a photo of a place that is named, a closing logo). One line each: what it is,
+            where it lands, why. Ask as a yes/no list (a multiple-choice question when the client has one) and
+            apply only what they accept. A first export without this pass is a draft, never the delivery.
         9. Music only if asked: audio_addMusic {path} (ducked under the voice by default), then
            audio_checkDucking (pass: music at least 15 dB under the voice while it speaks).
         10. Look: frame_contactSheet {times: [the start of each voice clip + 0.5]}. Check: every beat has its
@@ -135,5 +143,8 @@ extension Recipes {
         - One visual idea per sentence; cut on the voice (a new picture starts with its paragraph).
         - Brand kit colours and fonts only (brandkit_apply before the graphics).
         - No invented facts or numbers on screen: only what the script says.
+        - Use every recording the user hands over where it belongs: a recording of a step (browsing a site,
+          the pricing page, a sign-up) goes, moving, under the line that tells that step.
+        - Never deliver a bare edit: the effects pass of step 8b comes before the export the user sees.
         """)
 }

@@ -140,6 +140,10 @@ public enum Recipes {
           Antropic → Anthropic; Game Face / Hugging Fees → Hugging Face; Cloud Code → Claude Code. Brand and
           product names follow the script's spelling (e.g. WeSites, WordPress, PHP). "IA" (Italian for AI) is
           often split or glued wrong ("AL" + "IA" for "all'IA"): fix it so the caption reads like the script.
+        - Never deliver a bare edit: before the export the user sees, read effects_catalog and propose 6–12
+          items that fit the lines (one line each: what, where, why) as a yes/no list; apply what they accept.
+        - Captions sit on one baseline (captions_setStyle wordAlign "baseline"): words of different heights must
+          not jump up and down inside a line.
         """)
 }
 
