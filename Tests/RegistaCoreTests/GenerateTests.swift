@@ -299,3 +299,95 @@ final class FakeSegmenter: PersonSegmenter {
     if !gone { kill(worker, SIGKILL) }
     #expect(gone, "the worker started after the cancel is still running")
 }
+
+/// G1 (#5): what the Generate panel reads from the commands — the formats per kind, why a kind cannot run (tier or setup,
+/// and the engine to install), the time a local run takes, and the price of an upscale before generate.upscale.
+@Test func providersAndEstimateTellThePanelFormatsReasonsAndTime() throws {
+    let dir = tempDir()
+    var config = EngineConfig()
+    config.cacheDirectory = dir.path
+    config.comfyGen = "/usr/bin/true"
+    config.comfyRun = dir.appendingPathComponent("missing/comfy_run.py").path
+    config.python3 = "/usr/bin/true"
+    func engine(_ tier: MachineTier) throws -> Engine {
+        var s = FakeServices(tier: tier).make()
+        s.config = config
+        s.generators = ["comfyui": ComfyUIProvider(config: config)]
+        s.generationState = tempDir()
+        let e = Engine(prober: FakeProber(), services: s)
+        try e.execute("project.new", params: ["name": "g", "directory": .string(tempDir().path)])
+        return e
+    }
+    let e = try engine(.pro)
+    let comfy = try #require(try e.execute("generate.providers")["providers"]?.arrayValue?.first)
+    #expect(comfy.value(at: "kinds.image.available") == true)
+    #expect(comfy.value(at: "kinds.music.available") == false)
+    #expect(comfy.value(at: "kinds.music.why") == "setup")
+    #expect(comfy.value(at: "kinds.music.engine") == "comfyui")
+    #expect(comfy.value(at: "formats.image")?.arrayValue?.first?["name"] == "9:16")
+    #expect(comfy.value(at: "formats.image")?.arrayValue?.first?["size"] == [720, 1280])
+    #expect(comfy.value(at: "formats.video")?.arrayValue?.map { $0["name"]?.stringValue ?? "" } == ["9:16", "4:5", "1:1", "16:9"])
+    #expect(comfy.value(at: "formats.music") == nil)
+    let low = try #require(try engine(.medium).execute("generate.providers")["providers"]?.arrayValue?.first)
+    #expect(low.value(at: "kinds.image.why") == "tier")
+
+    let still = try e.execute("generate.estimate", params: ["provider": "comfyui", "kind": "image", "prompt": "a calm desk"])
+    #expect(still["seconds"]?.doubleValue.map { $0 > 20 && $0 < 60 } == true)
+    #expect(still["credits"] == 0)
+    let clip = try e.execute("generate.estimate", params: ["provider": "comfyui", "kind": "video", "prompt": "slow push", "duration": 3])
+    #expect(clip["seconds"] == 300)
+    #expect(throws: CommandError.self) { try e.execute("generate.estimate", params: ["provider": "comfyui", "kind": "image"]) }
+
+    // Upscale: the clip by asset id, no prompt; the time follows its length. The same request generate.upscale runs.
+    try FileManager.default.createDirectory(at: dir.appendingPathComponent("missing"), withIntermediateDirectories: true)
+    try Data().write(to: URL(fileURLWithPath: config.comfyRun))
+    try e.execute("media.import", params: ["path": .string(fakeMedia())])
+    let up = try e.execute("generate.estimate", params: ["provider": "comfyui", "kind": "upscale", "refs": ["a1"]])
+    let asset = try #require(e.project?.asset("a1"))
+    #expect(up["seconds"]?.doubleValue == (80 * asset.duration.seconds).rounded())
+    #expect(up["requestHash"]?.stringValue == (try Generate.upscaleRequest(asset, command: "t").hash()))
+}
+
+/// A provider whose job waits a minute (it touches `ready` first).
+private struct SlowGenerator: GeneratorProvider {
+    let ready: URL
+    var id = "slow"
+    var title: String { id }
+    var paid = false
+    var minimumTier = MachineTier.base
+    var models = [GeneratorModel("slow-still", .image, "test", isDefault: true)]
+    func unavailableReason(_ kind: GenerationKind) -> String? { nil }
+    func estimate(_ request: GenerationRequest) throws -> Double { 0 }
+    func process(_ request: GenerationRequest, job: URL) throws -> GenerationProcess {
+        GenerationProcess(URL(fileURLWithPath: "/bin/sh"), ["-c", "touch '\(ready.path)'; sleep 60"])
+    }
+    func collect(_ request: GenerationRequest, job: URL, stdout: String) throws -> GenerationOutput { throw CommandError(.io, "never") }
+}
+
+/// The app runs generate.run inside a job: its Cancel stops the generation process and the command fails "cancelled",
+/// leaving the project as it was.
+@Test func aJobCancelStopsAGenerationRun() throws {
+    let ready = tempDir().appendingPathComponent("ready")
+    var s = FakeServices().make()
+    s.generators = ["slow": SlowGenerator(ready: ready)]
+    s.generationState = tempDir()
+    let e = Engine(prober: FakeProber(), services: s)
+    try e.execute("project.new", params: ["name": "c", "directory": .string(tempDir().path)])
+    let job = CommandJob()
+    Thread.detachNewThread {
+        for _ in 0..<600 where !FileManager.default.fileExists(atPath: ready.path) { Thread.sleep(forTimeInterval: 0.05) }
+        job.cancel()
+    }
+    let started = Date()
+    do {
+        try CommandJob.$current.withValue(job) {
+            _ = try e.execute("generate.run", params: ["provider": "slow", "kind": "image", "prompt": "never"])
+        }
+        Issue.record("the run was not cancelled")
+    } catch let error as CommandError {
+        #expect(error.message.contains("cancelled"))
+    }
+    #expect(Date().timeIntervalSince(started) < 30)
+    #expect(e.project?.generations == nil)
+    #expect(e.project?.assets.isEmpty == true)
+}

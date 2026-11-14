@@ -187,6 +187,24 @@ public protocol GeneratorProvider {
     func collect(_ request: GenerationRequest, job: URL, stdout: String) throws -> GenerationOutput
     /// Called after a waited-for run (ComfyUI: stop the server so it frees the memory).
     func finish(keepRunning: Bool)
+    /// About how long the job takes on this Mac, seconds (nil: not known). `sourceSeconds`: the length of the clip an
+    /// upscale reads.
+    func seconds(_ request: GenerationRequest, sourceSeconds: Double?) -> Double?
+    /// The picture formats this provider makes for a kind ("9:16" → width × height), the first one the default.
+    func formats(_ kind: GenerationKind) -> [GenerationFormat]
+}
+
+/// A picture format a provider makes: its aspect name and the size it asks for.
+public struct GenerationFormat: Hashable, Sendable {
+    public var name: String
+    public var width: Int
+    public var height: Int
+
+    public init(_ name: String, _ width: Int, _ height: Int) {
+        self.name = name
+        self.width = width
+        self.height = height
+    }
 }
 
 extension GeneratorProvider {
@@ -197,6 +215,10 @@ extension GeneratorProvider {
     public func finish(keepRunning: Bool) {}
 
     public func prepare(_ request: GenerationRequest) throws -> GenerationRequest { request }
+
+    public func seconds(_ request: GenerationRequest, sourceSeconds: Double?) -> Double? { nil }
+
+    public func formats(_ kind: GenerationKind) -> [GenerationFormat] { [] }
 }
 
 public enum Generation {

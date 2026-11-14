@@ -65,6 +65,12 @@ enum Generate {
         if let why = provider.unavailableReason(kind) { throw CommandError(.io, "\(command): \(why)") }
     }
 
+    /// What generate.upscale runs for a clip of the project (generate.estimate prices the same request).
+    static func upscaleRequest(_ asset: MediaAsset, command: String) throws -> GenerationRequest {
+        guard asset.video != nil, asset.image == nil else { throw CommandError.conflict("\(command): \(asset.name) is not a video clip") }
+        return GenerationRequest(provider: "comfyui", kind: .upscale, prompt: asset.generated?.prompt ?? "", refs: [asset.path])
+    }
+
     /// The provider's own validation and completion of the request (before hashing).
     static func prepare(_ provider: GeneratorProvider, _ request: GenerationRequest, command: String) throws -> GenerationRequest {
         do { return try provider.prepare(request) }
@@ -201,7 +207,9 @@ enum Generate {
         enc.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         try enc.encode(request).write(to: dir.url.appendingPathComponent("request.json"))
         try JSONValue.object(["credits": .number(cost)]).data().write(to: dir.url.appendingPathComponent("cost.json"))
-        try dir.launch(process, wait: wait, cancellation: ctx.services.cancellation)
+        // The app's job (its Cancel) when the command runs in one, else the host's.
+        let cancellation = CommandJob.current?.cancellation ?? ctx.services.cancellation
+        try dir.launch(process, wait: wait, cancellation: cancellation)
         guard wait else {
             project.generations = (project.generations ?? []) + [job]
             ctx.project = project
@@ -209,7 +217,7 @@ enum Generate {
                     "note": "running in the background: poll generate.status {jobId} (ComfyUI clips take ~5 min)"]
         }
         defer { provider.finish(keepRunning: keepRunning) }
-        if dir.exitStatus != 0, ctx.services.cancellation?.isCancelled == true { throw CommandError(.io, "\(command): cancelled") }
+        if dir.exitStatus != 0, cancellation?.isCancelled == true { throw CommandError(.io, "\(command): cancelled") }
         guard dir.exitStatus == 0 else {
             throw CommandError(.io, "\(command): \(provider.id) failed (exit \(dir.exitStatus.map(String.init) ?? "?")):\n\(dir.stderrTail)\n\(dir.stdout.suffix(600))")
         }
@@ -219,7 +227,7 @@ enum Generate {
 
 enum GenerateProviders: Command {
     static let id = "generate.providers"
-    static let summary = "List the generation providers before generating: comfyui (local, free, Pro tier: Z-Image stills, Wan 2.2 clips from a start frame, ACE-Step music, Real-ESRGAN/RIFE upscale) and higgsfield (paid: every run needs the human's approval, hard budget of 2 calls in total). Returns each provider's models, availability per kind and the budget left."
+    static let summary = "List the generation providers before generating: comfyui (local, free, Pro tier: Z-Image stills, Wan 2.2 clips from a start frame, ACE-Step music, Real-ESRGAN/RIFE upscale) and higgsfield (paid: every run needs the human's approval, hard budget of 2 calls in total). Returns each provider's models, availability per kind (when unavailable: reason, why = tier | setup, and the engine to install or set up), the picture formats it makes per kind (name and size to pass as size) and the budget left."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = []
 
@@ -227,13 +235,22 @@ enum GenerateProviders: Command {
         let budget = GenerationBudget(directory: ctx.services.generationState)
         let list = ctx.services.generators.values.sorted { $0.id < $1.id }.map { g -> JSONValue in
             var kinds: [String: JSONValue] = [:]
+            var formats: [String: JSONValue] = [:]
+            // The manifest entry a person installs or sets up for this provider (Impostazioni › Motori), when there is one.
+            let engine: JSONValue = EngineManifest.shared.entry(g.id) != nil ? .string(g.id) : .null
             for k in GenerationKind.allCases where g.models.contains(where: { $0.kind == k }) {
-                let why = ctx.services.tier < g.minimumTier ? "needs the \(g.minimumTier.rawValue) tier" : g.unavailableReason(k)
-                kinds[k.rawValue] = why.map { ["available": false, "reason": .string($0)] } ?? ["available": true]
+                let lowTier = ctx.services.tier < g.minimumTier
+                let why = lowTier ? "needs the \(g.minimumTier.rawValue) tier" : g.unavailableReason(k)
+                kinds[k.rawValue] = why.map { ["available": false, "reason": .string($0), "why": lowTier ? "tier" : "setup", "engine": engine] }
+                    ?? ["available": true]
+                let f = g.formats(k)
+                if !f.isEmpty {
+                    formats[k.rawValue] = .array(f.map { ["name": .string($0.name), "size": [.number(Double($0.width)), .number(Double($0.height))]] })
+                }
             }
             var o: [String: JSONValue] = [
                 "id": .string(g.id), "title": .string(g.title), "paid": .bool(g.paid), "minimumTier": .string(g.minimumTier.rawValue),
-                "kinds": .object(kinds),
+                "kinds": .object(kinds), "formats": .object(formats),
                 "models": .array(g.models.map { ["id": .string($0.id), "kind": .string($0.kind.rawValue), "note": .string($0.note), "default": .bool($0.isDefault)] }),
             ]
             if g.id == "comfyui" {
@@ -277,13 +294,30 @@ enum GenerateCheck: Command {
 
 enum GenerateEstimate: Command {
     static let id = "generate.estimate"
-    static let summary = "Price a generation before running it: credits from the provider's CLI (Higgsfield) or free (ComfyUI), and whether the result is already cached. For a paid provider it records an approval request that the human sees in the Regista app (prompt, model, cost); generate.run then needs the token they get. Returns {estimateId, credits, model, paid, cached, budgetRemaining, approval}."
+    static let summary = "Price a generation before running it: credits from the provider's CLI (Higgsfield) or free (ComfyUI), about how long it takes on this Mac (local providers), and whether the result is already cached. kind upscale prices generate.upscale of the clip in refs[0] (no prompt). For a paid provider it records an approval request that the human sees in the Regista app (prompt, model, cost); generate.run then needs the token they get. Returns {estimateId, credits, seconds, model, paid, cached, budgetRemaining, approval}."
     static let kind = CommandKind.query
-    static let params: [ParamSpec] = Generate.requestParams
+    static let params: [ParamSpec] = Generate.requestParams.map { spec in
+        switch spec.name {
+        case "kind": return .required("kind", .oneOf(["image", "video", "music", "voice", "upscale"]), "image, video, music or voice as for generate.run; upscale = generate.upscale of the clip in refs[0] (an asset id).")
+        case "prompt": return .optional("prompt", .string, "As for generate.run (required for every kind but upscale).")
+        default: return spec
+        }
+    }
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         let project = try ctx.requireProject()
-        let (raw, _) = try Generate.request(p, project, command: id)
+        let raw: GenerationRequest
+        var sourceSeconds: Double?
+        if p.string("kind") == "upscale" {
+            guard let ref = p.strings("refs")?.first, let asset = project.asset(ref) else {
+                throw CommandError.invalid("\(id): upscale needs the clip's asset id in refs")
+            }
+            raw = try Generate.upscaleRequest(asset, command: id)
+            sourceSeconds = asset.duration.seconds
+        } else {
+            guard p.string("prompt") != nil else { throw CommandError.invalid("\(id): prompt is required") }
+            raw = try Generate.request(p, project, command: id).0
+        }
         let provider = try Generate.provider(raw.provider, ctx, command: id)
         try Generate.check(provider, raw.kind, ctx, command: id)
         let request = try Generate.prepare(provider, raw, command: id)
@@ -292,6 +326,7 @@ enum GenerateEstimate: Command {
         var r: [String: JSONValue] = ["estimateId": .string(e.estimateID), "provider": .string(e.provider), "model": .string(e.model),
                                       "kind": .string(e.kind.rawValue), "credits": .number(e.credits), "unit": .string(e.unit),
                                       "paid": .bool(e.paid), "cached": .bool(cached), "requestHash": .string(e.requestHash)]
+        if let s = provider.seconds(request, sourceSeconds: sourceSeconds) { r["seconds"] = .number(s.rounded()) }
         if provider.paid {
             r["budgetRemaining"] = .number(Double(try GenerationBudget(directory: ctx.services.generationState).remaining(provider.id)))
             if cached {
@@ -370,8 +405,7 @@ enum GenerateUpscale: Command {
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         let project = try ctx.requireProject()
         guard let asset = project.asset(p.requiredString("assetId")) else { throw CommandError.notFound("\(id): no asset \(p.requiredString("assetId"))") }
-        guard asset.video != nil, asset.image == nil else { throw CommandError.conflict("\(id): \(asset.name) is not a video clip") }
-        let request = GenerationRequest(provider: "comfyui", kind: .upscale, prompt: asset.generated?.prompt ?? "", refs: [asset.path])
+        let request = try Generate.upscaleRequest(asset, command: id)
         return try Generate.execute(request, sourceAssetID: asset.id, approval: nil, wait: p.bool("wait") ?? true,
                                     keepRunning: p.bool("keepRunning") ?? false, &ctx, command: id)
     }

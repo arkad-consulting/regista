@@ -40,6 +40,27 @@ public struct ComfyUIProvider: GeneratorProvider {
 
     public func estimate(_ request: GenerationRequest) throws -> Double { 0 }
 
+    /// From the model notes: stills ~25 s per megapixel (plus loading), clips ~100 s per second of clip, music ~70 s for a
+    /// 45 s bed, upscale ~80 s per second of clip.
+    public func seconds(_ r: GenerationRequest, sourceSeconds: Double?) -> Double? {
+        switch r.kind {
+        case .image: return 10 + 25 * Double((r.width ?? 720) * (r.height ?? 1280)) / 1_000_000
+        case .video: return 100 * Double(min(max(Int((r.duration ?? 3).rounded()), 1), 5))
+        case .music: return 30 + 0.9 * (r.duration ?? 45)
+        case .upscale: return sourceSeconds.map { 80 * max($0, 1) }
+        case .voice: return nil
+        }
+    }
+
+    /// Sizes in multiples of 16, about one megapixel for a still and the Wan 2.2 size for a clip.
+    public func formats(_ kind: GenerationKind) -> [GenerationFormat] {
+        switch kind {
+        case .image: return [.init("9:16", 720, 1280), .init("4:5", 832, 1040), .init("1:1", 1024, 1024), .init("16:9", 1280, 720)]
+        case .video: return [.init("9:16", 464, 832), .init("4:5", 576, 720), .init("1:1", 624, 624), .init("16:9", 832, 464)]
+        default: return []
+        }
+    }
+
     static func size(_ r: GenerationRequest, default d: (Int, Int)) throws -> String {
         let w = r.width ?? d.0, h = r.height ?? d.1
         guard w > 0, h > 0, w % 16 == 0, h % 16 == 0 else { throw CommandError.invalid("ComfyUI sizes must be multiples of 16 (got \(w)×\(h))") }
@@ -176,6 +197,14 @@ public struct HiggsfieldProvider: GeneratorProvider {
             throw CommandError(.io, "higgsfield generate cost failed (exit \(res.status)): \(all.split(separator: "\n").suffix(6).joined(separator: "\n"))")
         }
         return credits
+    }
+
+    /// The aspect ratios `arguments` passes (the size only picks one of them).
+    public func formats(_ kind: GenerationKind) -> [GenerationFormat] {
+        switch kind {
+        case .image, .video: return [.init("9:16", 1080, 1920), .init("1:1", 1080, 1080), .init("16:9", 1920, 1080)]
+        default: return []
+        }
     }
 
     public func process(_ r: GenerationRequest, job: URL) throws -> GenerationProcess {
