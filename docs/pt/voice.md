@@ -14,45 +14,68 @@ grava e clona a sua.
 - Um cômodo silencioso, com cortinas ou um sofá que abafem o eco, e sempre a mesma distância do microfone. Um celular
   com um microfone externo serve muito bem: você grava nele e depois importa o arquivo.
 
-## 1. O perfil
+## 1. A primeira vez: clone sua voz
 
-Abra a atividade **Voz** (ou **Ajustes › Perfil e voz**). Se ainda não houver um perfil, o Regista pede **Seu nome** e
-depois **Criar o perfil**. O nome entra na frase de consentimento.
+Abra a atividade **Voz**. Enquanto você não tem uma voz, o painel é a porta para cloná-la: **Clone sua voz** e, em
+**Como funciona**, as quatro etapas com o tempo de cada uma.
 
-## 2. A gravação guiada
+1. **Escolha o idioma**: cada idioma tem sua voz. Comece pelo idioma dos seus vídeos; os outros você adiciona depois.
+2. **Leia o tom neutro**, cerca de dez minutos: assim que terminar, a voz já pode ser usada.
+3. **Adicione outros tons**, opcional, cerca de dois minutos cada.
+4. **Treine a voz**, opcional, em geral umas duas horas: deixa a voz mais fiel. Requer um Mac com pelo menos 32 GB
+   (nível Pro).
 
-No painel **Voz**, aperte **Gravar sua voz…** (quando você já tem uma voz, o botão vira **Gravar…**). Abre uma janela
-com seis passos à esquerda.
+Pressione **Começar a clonar sua voz**. A janela **Suas vozes** se abre.
 
-1. **Perfil**: o perfil que você está gravando.
-2. **Idioma**: o idioma em que você grava. Cada idioma tem o seu roteiro e a sua voz; comece pelo idioma da maioria dos
-   seus vídeos. Os outros você acrescenta depois com **Alterar idioma**.
-3. **Consentimento**: o Regista explica em poucas linhas o que acontece com a sua voz. A primeira gravação começa com
-   uma frase de consentimento lida em voz alta, com o seu nome. Depois de ler, aperte **Entendi, gravar**.
-4. **Gravar**: o roteiro do primeiro bloco, o tom **Neutro**, com a frase de consentimento no topo. Deixe cinco segundos
-   de silêncio no começo e uma pequena pausa entre as linhas. Se errar, pare um instante e leia a linha inteira de novo.
-   Aperte **Gravar** para começar e **Parar** para terminar. Se você gravou no celular, use **Importar um arquivo de
-   áudio…**. O bloco neutro leva uns dez minutos.
-5. **Verificação**: o Regista compara a gravação com o roteiro e mostra **Linhas ouvidas**, **Clipes mantidos**,
-   **Tempo gravado** e se reconheceu o **Consentimento**. São necessárias pelo menos sete linhas de cada dez. Se faltar
-   alguma, a lista **Linhas para ler de novo** diz quais: grave essas linhas numa nova gravação do mesmo tom, que se soma
-   a esta. **Testar a voz** deixa você ouvir o resultado na hora; **Continuar** segue em frente.
-6. **Voz e treinamento**: depois do bloco neutro a voz já pode ser usada. O Regista imita a voz a partir de uma
-   referência tirada da sua gravação. Aqui aparecem os **Tons** (**Neutro**, **Entusiasmado**, **Sério**, **Calmo**,
-   **Divertido**, **Alarmado**, **Triste**): cada um tem um bloco de uns dois minutos, que você grava com
-   **Gravar este tom**. Quanto mais tons você gravar, mais rica fica a voz.
+- Se ainda não houver um perfil, a janela pede **Seu nome** e depois **Criar o perfil**. O nome é usado na frase de
+  consentimento.
+- À esquerda ficam os quatro idiomas, sempre os quatro, cada um com o seu estado: **não gravada**,
+  **treinamento em andamento**, ou "pronta" ou "treinada" com o número de tons. Escolha o idioma a gravar.
+- Para um idioma sem voz, o lado direito lembra as mesmas quatro etapas. Pressione **Começar**.
+- O Regista explica em poucas linhas o que acontece com a sua voz. A primeira gravação começa com uma frase de
+  consentimento lida em voz alta, com o seu nome. Depois de ler, pressione **Entendi, gravar**.
+- O roteiro do tom **Neutro**, com a frase de consentimento no topo. Deixe cinco segundos de silêncio no início e uma
+  pequena pausa entre as linhas. Se errar, pare um instante e leia a linha inteira de novo. Pressione **Gravar** para
+  começar e **Parar** para terminar. Se você gravou com o celular, use **Importar um arquivo de áudio…**.
+- O Regista compara a gravação com o roteiro e mostra **Linhas ouvidas**, **Clipes mantidos**, **Tempo gravado** e se
+  reconheceu o **Consentimento**. São necessárias pelo menos sete linhas de dez. Se faltarem, a lista
+  **Linhas para ler de novo** diz quais: pressione **Gravar de novo** e leia-as em uma nova gravação do mesmo tom, que
+  se soma a esta (ou **Continuar mesmo assim**). **Testar a voz** toca o resultado na hora; **Continuar** leva à
+  página do idioma.
 
-Você pode fechar a janela quando quiser com **Fechar** e continuar depois do mesmo ponto.
+Depois do tom neutro a voz já pode ser usada: o Regista a imita a partir de uma referência da sua gravação. Você pode
+fechar a janela quando quiser com **Fechar** e retomar depois do mesmo ponto.
+
+## 2. Gerenciar vozes: outros tons, outros idiomas
+
+Quando você tem uma voz, o painel **Voz** abre no texto, e a clonagem ocupa pouco espaço:
+
+- **Gerenciar vozes…**, no topo, abre a janela no idioma que você está usando. O mesmo botão fica em
+  **Ajustes › Perfil e voz**.
+- O botão tracejado + **Idioma**, ao lado dos idiomas, abre a janela no primeiro idioma que ainda não tem voz.
+- O botão tracejado + **Tom**, ao lado dos tons, abre a janela nos tons do idioma escolhido.
+
+Na janela, a página de um idioma com voz mostra os **Tons**: **Neutro**, **Entusiasmado**, **Sério**, **Calmo**,
+**Divertido**, **Alarmado**, **Triste**. Um tom gravado tem uma marca de verificação e os minutos gravados; um tom a
+gravar é tracejado e diz quanto dura o seu bloco ("Gravar · ~2 min"). Um clique em um tom abre o seu roteiro; em um tom
+já gravado, acrescenta outra gravação. Ele é gravado e verificado como o tom neutro, e o link
+"‹ Français, todos os tons" no topo volta à página do idioma. Os tons são opcionais: grave só os que você precisar.
+
+Uma voz treinada fora do Regista, sem minutos gravados no perfil, aparece como "treinada · 1 tom", com o tom
+**Neutro** marcado e sem minutos.
 
 ## 3. O treinamento (opcional)
 
-O treinamento deixa a voz mais fiel. Ele fica no fim do último passo, em **Treinamento**: o Regista diz quantos minutos
-você gravou, quantos são necessários e quanto tempo vai levar, normalmente umas duas horas. Aperte **Treinar a voz**.
-Você pode fechar a janela e continuar trabalhando: o treinamento segue em segundo plano. Deixe o Mac ligado e na
-tomada.
+O treinamento deixa a voz mais fiel. Ele fica na página do idioma, em **Treinamento**: o Regista diz quanto tempo vai
+levar, em geral cerca de duas horas. Pressione **Treinar a voz**. Você pode fechar a janela e continuar trabalhando: o
+treinamento segue em segundo plano, com o seu andamento no mesmo cartão. Mantenha o Mac ligado e na tomada.
 
-Se o botão estiver cinza, o motivo está escrito embaixo: um Mac com menos de 32 GB, o bloco neutro ainda não gravado,
+Se o botão estiver cinza, o motivo está escrito embaixo: um Mac com menos de 32 GB, o tom neutro ainda não gravado,
 minutos úteis ainda insuficientes, um treinamento já em andamento.
+
+Enquanto uma voz não estiver treinada e este Mac puder treiná-la, o painel **Voz** lembra disso em uma única linha:
+**A voz ainda não foi treinada: depois fica mais fiel.** com o link **Treinar…**, que abre a página do idioma. O ×
+esconde o aviso para esse idioma.
 
 ## 4. Do texto à narração
 
@@ -60,7 +83,7 @@ No painel **Voz**, aba **Texto**:
 
 1. Escreva o texto. Uma linha em branco separa os parágrafos: cada parágrafo vira um clipe. Escreva os números por
    extenso e os nomes de marcas do jeito que se escrevem (a pronúncia se ajusta na aba **Pronúncia**).
-2. Escolha o **Idioma** e o **Tom**. Só aparecem os tons que você gravou.
+2. Escolha o **Idioma** e o **Tom**. Só aparecem os idiomas e os tons que a sua voz já tem.
 3. **Ouvir** toca a seleção, ou o parágrafo onde está o cursor, sem mexer na edição.
 4. Em **Na linha do tempo**, escolha **Depois da última voz** ou **No indicador**, depois aperte
    **Pôr na linha do tempo**. Cada parágrafo vira um clipe na trilha Voz, com o tempo de cada palavra.
