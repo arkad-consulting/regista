@@ -187,7 +187,7 @@ struct TabInfo: Identifiable, Equatable {
                   state: state, active: t.isActive, path: t.projectURL?.path, hasProject: t.project != nil || recording)
     }
 
-    /// `n` tabs for a render: `active` first, then sample projects (unsaved, recording, saved, working…).
+    /// `n` tabs for a render (1…12): `active` first, then sample projects (unsaved, recording, saved, working…).
     static func samples(_ n: Int, active: TabInfo) -> [TabInfo] {
         var first = active
         first.active = true
@@ -196,7 +196,14 @@ struct TabInfo: Identifiable, Equatable {
                       TabInfo(id: "sample-4", name: loc("Reel lancio"), duration: 42, state: .saved, active: false, path: nil, hasProject: true),
                       TabInfo(id: "sample-5", name: loc("Video senza volto"), duration: 61, state: .working, active: false, path: nil, hasProject: true),
                       TabInfo(id: "sample-6", name: loc("Confronto v2"), duration: 39, state: .saved, active: false, path: nil, hasProject: true)]
-        return [first] + others.prefix(max(0, n - 1))
+        // More than six: the samples again, numbered (a full strip, #38).
+        let more = (0..<max(0, n - 1)).map { i -> TabInfo in
+            var t = others[i % others.count]
+            if i >= others.count { t = TabInfo(id: "\(t.id)-\(i)", name: "\(t.name) \(i / others.count + 1)", duration: t.duration, state: .saved,
+                                               active: false, path: nil, hasProject: true) }
+            return t
+        }
+        return [first] + more
     }
 
     var json: JSONValue {
@@ -216,7 +223,9 @@ extension EnvironmentValues {
 }
 
 /// One tab per open project, in opening order (drag one to reorder it), and a + tab that opens Inizio in a new empty
-/// tab, spanning only the main area (S2 #76).
+/// tab, spanning only the main area (S2 #76). The tabs keep their natural widths while they fit; then they shrink like a
+/// browser's (`TabsLayout`) and, below their minimum, the strip scrolls from the first tab with the active one kept in
+/// view; "+" always stays at the end of what shows (#38).
 struct ProjectTabStrip: View {
     @EnvironmentObject private var store: EditorStore
     @Environment(\.tabsDemo) private var demo
@@ -227,24 +236,84 @@ struct ProjectTabStrip: View {
         @ObservedObject var bench: Workbench
         let demo: [TabInfo]?
 
+        private var activeID: String { demo?.first { $0.active }?.id ?? bench.activeID }
+
         var body: some View {
-            HStack(spacing: 0) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 0) {
-                        if let demo {
-                            ForEach(demo) { TabLabel(info: $0) }
-                        } else {
-                            ForEach(bench.tabs, id: \.tabID) { ProjectTab(tab: $0) }
+            ScrollViewReader { proxy in
+                GeometryReader { g in
+                    StripLayout {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            TabsLayout(available: max(0, g.size.width - PlusTab.width)) {
+                                if let demo {
+                                    ForEach(demo) { TabLabel(info: $0).id($0.id) }
+                                } else {
+                                    ForEach(bench.tabs, id: \.tabID) { ProjectTab(tab: $0).id($0.tabID) }
+                                }
+                            }
                         }
+                        PlusTab()
                     }
                 }
-                .fixedSize(horizontal: true, vertical: false)
-                PlusTab()
-                Spacer(minLength: 0)
+                // The tree is rebuilt when another tab is selected (EditorRoot): the active tab comes into view on appear.
+                .onAppear { DispatchQueue.main.async { proxy.scrollTo(activeID) } }
+                .onChange(of: activeID) { _, id in withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(id) } }
             }
             .frame(height: Chrome.tabsHeight)
             .background(Ed.bar)
             .overlay(alignment: .bottom) { Ed.rule2.frame(height: 1) }
+        }
+    }
+
+    /// The scrolling tabs as wide as they are (at most what is left beside "+"), then "+" right after them.
+    private struct StripLayout: Layout {
+        func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+            CGSize(width: proposal.width ?? subviews.reduce(0) { $0 + $1.sizeThatFits(.unspecified).width }, height: Chrome.tabsHeight)
+        }
+
+        func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+            guard subviews.count == 2 else { return }
+            let plus = subviews[1].sizeThatFits(.unspecified).width
+            let tabs = min(subviews[0].sizeThatFits(.unspecified).width, max(0, bounds.width - plus))
+            subviews[0].place(at: bounds.origin, anchor: .topLeading, proposal: ProposedViewSize(width: tabs, height: bounds.height))
+            subviews[1].place(at: CGPoint(x: bounds.minX + tabs, y: bounds.minY), anchor: .topLeading,
+                              proposal: ProposedViewSize(width: plus, height: bounds.height))
+        }
+    }
+}
+
+/// The tabs side by side: their natural widths while they fit in `available`; otherwise the widest shrink first, all to
+/// one width (as a browser's tabs), never under `minWidth` — then the row is wider than `available` and its scroll view
+/// scrolls (#38).
+struct TabsLayout: Layout {
+    var available: CGFloat
+    /// The narrowest a tab gets: the state dot, the start and end of the name around "…", the close button.
+    static let minWidth: CGFloat = 140
+
+    /// The width of each tab, from their natural widths.
+    static func widths(_ natural: [CGFloat], available: CGFloat) -> [CGFloat] {
+        guard natural.reduce(0, +) > available else { return natural }
+        // The one cap c with Σ min(natural, c) = available: the narrow tabs keep their width, the others share the rest.
+        var rest = available, cap = available / CGFloat(max(1, natural.count))
+        for (i, w) in natural.sorted().enumerated() {
+            let share = rest / CGFloat(natural.count - i)
+            if w > share { cap = share; break }
+            rest -= w
+        }
+        cap = max(cap, minWidth)
+        return natural.map { min($0, cap) }
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let w = Self.widths(subviews.map { $0.sizeThatFits(.unspecified).width }, available: available)
+        return CGSize(width: w.reduce(0, +), height: Chrome.tabsHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let w = Self.widths(subviews.map { $0.sizeThatFits(.unspecified).width }, available: available)
+        var x = bounds.minX
+        for (s, width) in zip(subviews, w) {
+            s.place(at: CGPoint(x: x, y: bounds.minY), anchor: .topLeading, proposal: ProposedViewSize(width: width, height: bounds.height))
+            x += width
         }
     }
 }
@@ -289,15 +358,40 @@ struct TabLabel: View {
     @State private var hoverClose = false
 
     var body: some View {
+        // Natural width with the duration; narrower (the strip is full, #38) without it, the name truncated in the middle.
+        ViewThatFits(in: .horizontal) {
+            row(details: true)
+            row(details: false)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: Chrome.tabsHeight)
+        .background(info.active ? Ed.toolbar : (hover ? Ed.control.opacity(0.35) : .clear))
+        .overlay(alignment: .top) { if info.active { Ed.gold.frame(height: 2) } }
+        .overlay(alignment: .trailing) { Ed.rule2.frame(width: 1) }
+        .contentShape(Rectangle())
+        .onTapGesture { onSelect?() }
+        .overlay(MiddleClickArea { onClose?() })
+        .onHover { hover = $0 }
+        // The full name (a narrow tab truncates it) and where the project is.
+        .tip(info.hasProject ? info.name + "\n" + (info.path ?? loc("Non ancora salvato")) : loc("Scheda vuota: scegli un progetto o registra"))
+        .draggable(info.id)
+        .dropDestination(for: String.self) { ids, _ in
+            guard let id = ids.first, let onDrop else { return false }
+            onDrop(id)
+            return true
+        }
+    }
+
+    private func row(details: Bool) -> some View {
         HStack(spacing: Ed.Space.s) {
             dot(info.state)
             Text(verbatim: info.name)
                 .font(Ed.ui(Ed.TypeSize.control, info.active ? .semibold : .regular)).foregroundStyle(info.active ? Ed.text : Ed.text2)
                 .lineLimit(1).truncationMode(.middle)
-                .frame(maxWidth: 220, alignment: .leading).fixedSize(horizontal: true, vertical: false)
-            if info.state == .recording {
+                .frame(maxWidth: 220, alignment: .leading)
+            if details, info.state == .recording {
                 Text(verbatim: loc("sta registrando") + (info.duration.map { " " + timecode($0) } ?? "")).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.danger).fixedSize()
-            } else if let d = info.duration {
+            } else if details, let d = info.duration {
                 Text(verbatim: clockTime(d)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).fixedSize()
             }
             Button { onClose?() } label: {
@@ -313,21 +407,6 @@ struct TabLabel: View {
             .opacity(info.active || hover || info.hasProject ? 1 : 0)
         }
         .padding(.leading, 14).padding(.trailing, Ed.Space.s)
-        .frame(height: Chrome.tabsHeight)
-        .background(info.active ? Ed.toolbar : (hover ? Ed.control.opacity(0.35) : .clear))
-        .overlay(alignment: .top) { if info.active { Ed.gold.frame(height: 2) } }
-        .overlay(alignment: .trailing) { Ed.rule2.frame(width: 1) }
-        .contentShape(Rectangle())
-        .onTapGesture { onSelect?() }
-        .overlay(MiddleClickArea { onClose?() })
-        .onHover { hover = $0 }
-        .tip(info.path ?? (info.hasProject ? "Non ancora salvato" : "Scheda vuota: scegli un progetto o registra"))
-        .draggable(info.id)
-        .dropDestination(for: String.self) { ids, _ in
-            guard let id = ids.first, let onDrop else { return false }
-            onDrop(id)
-            return true
-        }
     }
 
     @ViewBuilder private func dot(_ s: TabInfo.State) -> some View {
@@ -365,6 +444,7 @@ struct MiddleClickArea: NSViewRepresentable {
 }
 
 struct PlusTab: View {
+    static let width: CGFloat = 36
     @EnvironmentObject private var store: EditorStore
     @State private var hover = false
 
@@ -372,7 +452,7 @@ struct PlusTab: View {
         Button { store.bench.openNewTab() } label: {
             Image(systemName: "plus").font(Ed.icon(Ed.TypeSize.control, .regular))
                 .foregroundStyle(hover ? Ed.text : Ed.text3)
-                .frame(width: 36, height: Chrome.tabsHeight)
+                .frame(width: Self.width, height: Chrome.tabsHeight)
                 .background(hover ? Ed.control.opacity(0.6) : .clear)
                 .contentShape(Rectangle())
         }

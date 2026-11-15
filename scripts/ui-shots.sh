@@ -13,7 +13,8 @@
 #   Workspaces default to every screen of the window shell (S1 #75): each activity (home, record, media, texts, audio,
 #   voice, graphics, generate, export), the editor at both levels (edit-pro, edit-semplice), the right panel's three tabs
 #   (panel-prompter, panel-claude, panel-inspector) and settings; edit-tabs (the Pro editor with three project tabs: the
-#   active one and two sample tabs, S2 #76 — no other project is opened); then the Registra states (issue #50):
+#   active one and two sample tabs, S2 #76 — no other project is opened; edit-tabs-<n>, not in the default list: n tabs, 1…12,
+#   the full strip of #38); then the Registra states (issue #50):
 #   record-screen-only, record-screen-face, record-face, record-voice (the four presets as the permissions really are),
 #   record-open-screen, record-open-camera (screen + face with that row's choices open, as if macOS allowed everything),
 #   record-displays (screen only with the display picker drawn for four sample displays);
@@ -289,6 +290,8 @@ for name in names:
     params = {'workspace': name, 'size': [w, h], 'path': path}
     if name == 'edit-tabs':
         params.update(workspace='edit-pro', tabs=3)
+    elif name.startswith('edit-tabs-'):
+        params.update(workspace='edit-pro', tabs=int(name[len('edit-tabs-'):]))
     elif name == 'record-displays':
         params.update(workspace='record', record={'preset': 'screen-only', 'displays': 4, 'permissions': 'granted'})
     elif name.startswith('record-open-'):
