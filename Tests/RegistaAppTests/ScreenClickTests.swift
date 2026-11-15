@@ -9,8 +9,9 @@ import Testing
 // a command, a navigation, a state, a window or panel, a change on screen — or be disabled, or be a no-op named here with
 // its reason; nothing may be covered by another control or vanish under the pointer. The window's chrome (title row,
 // activity bar, project tabs, toolbar, monitors, timeline, status bar) is audited whole once (`shell`); the other screens
-// audit the part of the window that is theirs. The Record screen and the voice panel are drawn from sample values
-// (RecordDemo, VoiceDemo), never the live capture or the owner's voice.
+// audit the part of the window that is theirs. Every screen is the live one: what a click reaches outside the test is
+// the rig's stand-in (#35, RigIsolation.swift), never the capture, the voice, the generators or the files of the person
+// running the tests — so nothing is skipped because of where it reaches.
 
 /// The parts of the 1440×900 window (title row 40 pt, activity bar 52 pt, side panel 300 pt, right panel 320 pt).
 enum WindowPart {
@@ -24,17 +25,14 @@ enum WindowPart {
 private let alreadyCurrent = "already the current choice: selecting it again changes nothing"
 
 @MainActor
-private func audit(_ screen: String, _ nav: Navigation, project: String? = "rich", area: CGRect? = nil,
+private func audit(_ screen: String, _ nav: Navigation, project: String? = "rich", size: CGSize = CGSize(width: 1440, height: 900), area: CGRect? = nil,
                    skip: [String: String] = [:], noOps: [String: String] = [:],
                    skipContaining: [String: String] = [:], restore: @escaping (AppRig) -> Void = { _ in },
-                   setup: (AppRig) async throws -> Void = { _ in },
+                   setup: (AppRig) async throws -> Void = { _ in }, afterReset: @escaping (AppRig) async -> Void = { _ in },
                    extra: (AppRig) -> [(name: String, at: CGPoint)] = { _ in [] }) async throws -> [ClickAudit.Row] {
     let app = try await AppRig(project: project)
     defer { app.close() }
-    let recorder = app.recorder
-    app.hostEditor(nav) { v in
-        AnyView(v.environment(\.recordDemo, RecordDemo(sources: recorder.sources)).environment(\.voiceDemo, VoiceDemo.model("ready", tier: nil)))
-    }
+    app.hostEditor(nav, size: size)
     // The playhead mid-way and the timeline zoomed by hand: the transport and the zoom have somewhere to go.
     if app.store.project != nil {
         app.store.preview.seek(2)
@@ -45,13 +43,13 @@ private func audit(_ screen: String, _ nav: Navigation, project: String? = "rich
     await app.settle()
     let shared = ["Divisore": "a splitter: a click without a drag moves nothing (its drag is tested in ControlMouseTests)"]
     let rows = await ClickAudit(app: app, screen: screen, skip: skip, noOps: shared.merging(noOps) { $1 }, restore: { restore(app) },
-                                skipContaining: skipContaining, area: area, extra: extra(app)).run()
+                                afterReset: { await afterReset(app) }, skipContaining: skipContaining, area: area, extra: extra(app)).run()
     ClickAudit.check(rows, screen: screen)
     return rows
 }
 
-extension MouseSuites {
-@Suite(.serialized, .enabled(if: clickAuditEnabled, "skipped in the commit hook, run by the push hook")) @MainActor struct ScreenClickTests {
+extension MouseSuites.ClickAudits {
+@Suite(.serialized) @MainActor struct ScreenClickTests {
     /// The whole window on the Pro editor: title row, activity bar, project tab, toolbar, both monitors and their
     /// transports, tool rail, timeline headers and zoom bar, right panel tabs, status bar; the Media panel's tiles.
     @Test func shell() async throws {
@@ -72,9 +70,8 @@ extension MouseSuites {
     }
 
     @Test func record() async throws {
-        _ = try await audit("record", Navigation(activity: .record, rightTab: .inspector), area: WindowPart.content, skip: [
-            "Avvia / Ferma registrazione": "the Record button starts a capture of the screen, camera and microphone of the machine running the tests",
-        ], noOps: [
+        // The live screen on the capture stand-in: the Record button starts a take that opens no device and writes nothing.
+        _ = try await audit("record", Navigation(activity: .record, rightTab: .inspector), area: WindowPart.content, noOps: [
             "Solo volto": "the preset already chosen (the recorder's default sources: the camera alone)",
             "Nuovo progetto": "where the take goes, already chosen (the default for a project with an edit, #39)",
         ], restore: { app in app.store.recordingChoice = nil })
@@ -98,27 +95,23 @@ extension MouseSuites {
     }
 
     @Test func voice() async throws {
-        // The panel on the sample model (VoiceDemo): it draws the panel and runs nothing (no store, no command, never the
-        // owner's voice). What its entries do with the live model is in `voiceEntriesOpenTheVoiceWindow`.
-        let sample = "the sample model has no store and runs no command by design (VoiceDemo); the live model is clicked in voiceEntriesOpenTheVoiceWindow"
+        // The panel on the live model with the rig's voice services (#36): a scratch profiles folder, the stand-in VoxCPM.
         _ = try await audit("voice", Navigation(activity: .voice, rightTab: .inspector), area: WindowPart.side, noOps: [
             "Testo": alreadyCurrent, "Français": alreadyCurrent, "Neutro": alreadyCurrent, "Dopo l'ultima voce": alreadyCurrent,
-            "Le tue voci": sample, "Clona la tua voce": sample, "Registra un altro tono": sample, "Ascolta la selezione": sample,
-            "Ogni paragrafo diventa una clip": sample,
         ])
     }
 
-    /// The Voce panel on the live model: its entries open the "Le tue voci" window (the sheet of the main window).
+    /// The Voce panel on the live model: its entry opens the "Le tue voci" window (the sheet of the main window); with no
+    /// profile yet (the rig's scratch profiles) the entry is «Inizia a clonare la tua voce».
     @Test func voiceEntriesOpenTheVoiceWindow() async throws {
         let app = try await AppRig()
         defer { app.close() }
-        let recorder = app.recorder
-        app.hostEditor(Navigation(activity: .voice, rightTab: .inspector)) { AnyView($0.environment(\.recordDemo, RecordDemo(sources: recorder.sources))) }
+        app.hostEditor(Navigation(activity: .voice, rightTab: .inspector))
         await app.settle()
-        let entry = try #require(app.rig.elements(containing: "Le tue voci").first { $0.isControl }, "no Le tue voci entry on the live panel")
+        let entry = try #require(app.rig.elements(containing: "Inizia a clonare la tua voce").first { $0.isControl }, "no entry to the voice window on the live panel")
         app.rig.click(entry.centre)
         await app.settle()
-        #expect(app.store.showVoiceSetup, "Le tue voci did not open the voice window")
+        #expect(app.store.showVoiceSetup, "the entry did not open the voice window")
     }
 
     @Test(arguments: Navigation.GraphicsSection.allCases)
@@ -134,23 +127,67 @@ extension MouseSuites {
     }
 
     @Test func generate() async throws {
+        // A described image: «Genera» asks the stand-in providers (ComfyUI is not ready in the rig: no runner, no server;
+        // the paid stand-in prices it, no CLI, and shows its approval card).
+        let prompt = "Una sedia rossa in una stanza bianca"
         _ = try await audit("generate", Navigation(activity: .generate, rightTab: .inspector), area: WindowPart.side, skip: [
-            "Genera": "starts a generation (the local ComfyUI of the machine running the tests, or a paid estimate)",
-            "Approva e spendi": "approves a paid generation",
-            "ComfyUI": "the generator already chosen; its row's line follows the format chosen just before, so it is not found again by name on a fresh screen",
+            "ComfyUI": "its row's line follows the format chosen just before, so it is not found again by name on a fresh screen",
         ], noOps: [
             "Immagine": alreadyCurrent, "9:16": "the format already chosen (the project's)",
+            "Higgsfield": "the generator already chosen (ComfyUI is not ready in the rig: no runner, no server)",
         ], restore: { app in
             // The Generate panel's form lives in the store (one per tab): back to how the screen started.
             let g = app.store.generation
             g.kind = .still
-            g.prompts = [:]
+            g.prompts = [.still: prompt]
             g.chosen = [:]
             g.formats = [:]
             g.durations = [:]
             g.startAsset = nil
             g.upscaleAsset = nil
             g.problem = nil
+        }, setup: { app in
+            app.store.generation.prompts = [.still: prompt]
+        })
+    }
+
+    /// The approval card of a paid estimate (the stand-in Higgsfield, a fixed price, no CLI): «Approva e spendi» starts
+    /// the run as a job, which the stand-in fails before anything is spent outside the scratch budget; «Rifiuta» declines.
+    @Test func generateApproval() async throws {
+        func form(_ g: GenerateState) {
+            g.kind = .still
+            g.prompts = [.still: "Una sedia rossa in una stanza bianca"]
+            g.chosen = [.still: "higgsfield"]
+            g.formats = [:]
+            g.durations = [:]
+            g.problem = nil
+        }
+        /// A paid estimate of the stand-in, waiting on its card.
+        func price(_ app: AppRig) async {
+            let g = app.store.generation
+            guard g.pending == nil else { return }
+            form(g)
+            await app.settle()
+            g.generate()
+            for _ in 0..<100 where g.pending == nil { await app.idle(0.05) }
+            await app.settle()
+        }
+        // A taller window: the card sits under the form, past the bottom of a 900 pt window.
+        _ = try await audit("generate-approval", Navigation(activity: .generate, rightTab: .inspector), size: CGSize(width: 1440, height: 1300),
+                            area: CGRect(x: 52, y: 40, width: 296, height: 1236), skip: [
+            "ComfyUI": "the free generator: choosing it declines the estimate and rewrites its row's line, so it is not found again by name on a fresh screen",
+        ], noOps: [
+            "Immagine": alreadyCurrent, "9:16": "the format already chosen (the project's)",
+        ], restore: { app in
+            form(app.store.generation)
+        }, setup: { app in
+            await app.idle(0.5)   // the panel's own first reading (it declines a waiting estimate)
+            await price(app)
+            #expect(app.store.generation.pending != nil, "no approval card: \(app.store.generation.problem ?? "")")
+        }, afterReset: { app in
+            // The rebuilt panel reads its providers again, which declines a waiting estimate: a new one is asked for.
+            await app.idle(0.5)
+            await price(app)
         })
     }
 
@@ -173,9 +210,8 @@ extension MouseSuites {
 
     @Test(arguments: Navigation.RightTab.allCases)
     func rightPanel(_ tab: Navigation.RightTab) async throws {
-        _ = try await audit("right-\(tab.rawValue)", Navigation(activity: .media, rightTab: tab), area: WindowPart.right, skip: [
-            "Ascolta e segui": "starts listening to the microphone with speech recognition: a permission prompt on the machine running the tests",
-        ], noOps: [
+        // "Ascolta e segui" listens through the capture stand-in: no microphone, no speech recognition.
+        _ = try await audit("right-\(tab.rawValue)", Navigation(activity: .media, rightTab: tab), area: WindowPart.right, noOps: [
             "Gobbo": alreadyCurrent, "Claude": alreadyCurrent, "Ispettore": alreadyCurrent, "Français": alreadyCurrent,
             "Ricomincia": "scrolls the teleprompter's own window back to the top: that window is hidden here (Mostra il gobbo is clicked on its own)",
         ])
@@ -183,8 +219,8 @@ extension MouseSuites {
 }
 }
 
-extension MouseSuites {
-@Suite(.serialized, .enabled(if: clickAuditEnabled, "skipped in the commit hook, run by the push hook")) @MainActor struct MoreScreenClickTests {
+extension MouseSuites.ClickAudits {
+@Suite(.serialized) @MainActor struct MoreScreenClickTests {
     /// The side panel answers the mouse on the Semplice level (#33): the level's content, wider than the main area,
     /// overflowed it and took the clicks on the right of the side panel.
     @Test func theSidePanelAnswersOnTheSimpleLevel() async throws {
@@ -254,23 +290,25 @@ extension MouseSuites {
         })
     }
 
-    /// The "Le tue voci" window (the voice sheet) on a language's overview, from the sample model.
+    /// The "Le tue voci" window (the voice sheet) on the live model with the rig's voice services (#36).
     @Test func voiceWindow() async throws {
         let app = try await AppRig()
         defer { app.close() }
-        let demo = VoiceDemo.model("overview", tier: nil)
-        app.host(VoiceSetupSheet().environment(\.voiceDemo, demo), size: VoiceSetupView.size)
+        // A profile of the rig's scratch folder: the window shows its languages to record and train.
+        try await app.store.perform("profile.create", ["name": "Prova"])
+        let model = app.store.voice
+        await model.refresh()
+        app.host(VoiceSetupSheet(), size: VoiceSetupView.size)
         await app.settle()
-        let sample = "the sample model has no store and runs no command by design (VoiceDemo)"
-        let setup = demo.setup, language = demo.language, pane = demo.pane
+        let setup = model.setup, language = model.language, pane = model.pane
         let rows = await ClickAudit(app: app, screen: "voice-window", noOps: [
             "Français": alreadyCurrent, "Neutro": alreadyCurrent,
-            "Registra": sample, "Allena": sample, "Chiudi": sample, "Fatto": sample, "Annulla": sample, "Ascolta": sample, "Prova": sample,
+            "Chiudi": "closes the main window's sheet: the window is hosted on its own here, so there is no sheet to close",
         ], restore: {
-            // The sample model is one object for the whole audit: its page back to the start.
-            demo.setup = setup
-            demo.language = language
-            demo.pane = pane
+            // The model is one object for the whole audit: its page back to the start.
+            model.setup = setup
+            model.language = language
+            model.pane = pane
         }).run()
         ClickAudit.check(rows, screen: "voice-window")
     }

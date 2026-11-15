@@ -6,16 +6,16 @@ import Testing
 
 // The app's other windows and the project tabs, clicked through (#29): Settings (every tab, through its own tab bar),
 // the Help window, the Marca picker (the brand kit gallery of the toolbar), and the project tab strip with two tabs
-// (select, close, "+"). Controls that would write the owner's data are not clicked and say why: the voice profiles
-// and the forced tier live in the owner's Application Support, the Claude clients' configuration in the home folder,
-// the engines' installers download and install.
+// (select, close, "+"). Engines, voice profiles and Claude are the live tabs on the rig's stand-ins (#35): engines.json,
+// the engines folder and the installer, the profiles folder, the Claude clients' home and the pasteboard are scratch
+// ones, so every control is clicked, and so is every button of the confirmations they open.
 
 /// The defaults the Settings window writes (the test process's own domain): put back after each Settings audit.
 private let settingsKeys = [SettingsRoute.tabKey, SettingsRoute.engineKey, GeneralPrefs.folderKey, GeneralPrefs.formatKey,
                             GeneralPrefs.autoSaveKey, GeneralPrefs.spokenLanguageKey, Accent.followKey]
 
-extension MouseSuites {
-@Suite(.serialized, .enabled(if: clickAuditEnabled, "skipped in the commit hook, run by the push hook")) @MainActor struct WindowsClickTests {
+extension MouseSuites.ClickAudits {
+@Suite(.serialized) @MainActor struct WindowsClickTests {
     @Test(arguments: SettingsTab.allCases)
     func settings(_ tab: SettingsTab) async throws {
         let saved = settingsKeys.map { ($0, UserDefaults.standard.object(forKey: $0)) }
@@ -26,41 +26,86 @@ extension MouseSuites {
         let status = try await app.store.silent("engines.status")
         // General: the window itself (a hosted TabView shows its first tab). Brand kit: the tab's own view, live. The other
         // tabs: their content under the drawn tab strip (`pinned`; the tab items belong to the Settings window's toolbar,
-        // which a hosted view does not have). The voice tab draws the sample profiles and voice.
-        let engines = EnginesDemo(status: status, tier: nil)
+        // which a hosted view does not have), live, Motori and Claude drawn whole.
+        let restoreOutside = try prepareOutside(tab, app: app, status: status)
         let root: AnyView
+        var size = SettingsView.size
         switch tab {
-        case .general: root = AnyView(SettingsView(engines: engines, voiceProfiles: VoiceDemo.profiles))
+        case .general: root = AnyView(SettingsView(engines: EnginesDemo(status: status, tier: nil), voiceProfiles: VoiceDemo.profiles))
         case .brand: root = AnyView(BrandKitSettings(demo: false).frame(width: SettingsView.size.width, height: SettingsView.size.height))
-        default: root = AnyView(SettingsView(pinned: tab, engines: engines, voiceProfiles: VoiceDemo.profiles))
+        case .engines, .claude:
+            size.height = tab == .engines ? CGFloat(SettingsView.enginesRenderHeight) : 1000
+            root = AnyView(SettingsView(pinned: tab, height: size.height))
+        default: root = AnyView(SettingsView(pinned: tab))
         }
-        app.host(root.environment(\.voiceDemo, VoiceDemo.model("ready", tier: nil)).environment(\.colorScheme, .dark)
-            .background(Color(nsColor: .windowBackgroundColor)), size: SettingsView.size)
+        app.host(root.environment(\.colorScheme, .dark).background(Color(nsColor: .windowBackgroundColor)), size: size)
+        await app.settle()
+        await app.idle(0.5)   // the live tabs read engines.status and the profiles
         await app.settle()
         let notDriven = "NOT VERIFIED: a native AppKit control of the system form, which the rig's synthetic events do not drive reliably"
-        let owner = "writes the voice profiles of the person running the tests (Application Support), never touched by a test"
-        let rows = await ClickAudit(app: app, screen: "settings-\(tab.rawValue)", skip: [
-            "Crea profilo": owner, "È mio": owner, "Usa questo profilo": owner, "Elimina": owner, "Sposta nel Cestino": owner,
-            "Installa": "runs the engine's installer (downloads and installs on the machine running the tests)",
-            "Accetto la licenza": "runs the engine's installer", "Rimuovi": "removes an installed engine from the machine running the tests",
-            "Forza livello": "writes engines.json in the owner's Application Support",
-            "Collega": "writes the Claude clients' configuration in the home folder",
-            "Copia le istruzioni": "replaces the clipboard of the person running the tests",
-        ], noOps: [
+        let rows = await ClickAudit(app: app, screen: "settings-\(tab.rawValue)", noOps: [
             SettingsTab.allCases.first { $0 == tab }!.title: "the tab already shown",
-            "Gestisci voci": "the sample voice model runs nothing (VoiceDemo); the live model's window entry is clicked in ScreenClickTests.voiceEntriesOpenTheVoiceWindow",
             // NOT VERIFIED by a click: the system form's own AppKit controls (bordered buttons, check boxes, fields) do not
             // take the rig's synthetic events reliably — the same control answered in one run and not in the next.
             "Nuovo kit": notDriven, "Importa…": notDriven, "Nome del kit": notDriven, "0": notDriven, "1": notDriven,
         ], restore: {
             for (k, v) in saved where k != SettingsRoute.tabKey { UserDefaults.standard.set(v, forKey: k) }
             UserDefaults.standard.set(tab.rawValue, forKey: SettingsRoute.tabKey)
+            restoreOutside()
         }, skipRoles: [
             "AXTextField": "NOT VERIFIED: a native text field of the system form, which the rig's synthetic events do not drive reliably",
             "AXColorWell": "a native colour well (the kit form keeps the system ColorPicker): a press starts AppKit's colour drag, tracked in a loop until the real mouse moves; the design system's ColorSwatch is clicked in ControlMouseTests",
             "AXPopUpButton": "a native pop-up (Settings keeps the system form): AppKit tracks its menu in a modal loop until a real click picks an item; its menu opening was seen with a click, a choice in it is not driven",
         ]).run()
         ClickAudit.check(rows, screen: "settings-\(tab.rawValue)")
+        if tab == .claude {
+            // The copy landed on the rig's pasteboard (the general one is refused by RigGuard and checked by the proof).
+            #expect(rigPasteboard.string(forType: .string) == StartPrompt.text, "Copia le istruzioni did not reach the rig's pasteboard")
+        }
+    }
+
+    /// The scratch state a live Settings tab starts from, and how to put it back after each click: engine files to remove
+    /// (Motori), voice profiles (Profilo e voce), the Claude clients' home (Claude). Everything lives in the rig's scratch
+    /// folders (RigIsolation.swift).
+    private func prepareOutside(_ tab: SettingsTab, app: AppRig, status: JSONValue) throws -> () -> Void {
+        let fm = FileManager.default
+        switch tab {
+        case .engines:
+            // An installed engine's files in the scratch engines folder: its row offers Rimuovi.
+            let catalog = EngineCatalog(status: status, enginesDirectory: URL(fileURLWithPath: "/nonexistent"))
+            let installed = catalog.rows.filter { $0.state == .installed && ["installer", "homebrew"].contains($0.method) }
+            let files = installed.compactMap { r in EngineManifest.shared.entry(r.id)?.files.first }
+            let engines = try Data(contentsOf: rigOutside.enginesFile)
+            let seed = {
+                for f in files {
+                    let url = rigOutside.enginesFolder.appendingPathComponent(f)
+                    try? fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    if !fm.fileExists(atPath: url.path) { fm.createFile(atPath: url.path, contents: Data("rig".utf8)) }
+                }
+                try? engines.write(to: rigOutside.enginesFile)
+            }
+            seed()
+            return seed
+        case .voice:
+            // Three profiles: the active one, another of this Mac, one made on another Mac (locked).
+            let profiles = app.store.engine.context.services.profiles
+            let e = Engine(services: app.store.engine.context.services)
+            _ = try e.execute("profile.create", params: ["name": "Prima"])
+            _ = try e.execute("profile.create", params: ["name": "Seconda"])
+            let other = ProfileStore(directory: profiles.directory, machine: "another-mac")
+            _ = try other.create(name: "Altro Mac")
+            let pristine = rigTempDir("profiles-pristine").appendingPathComponent("profiles")
+            try fm.copyItem(at: profiles.directory, to: pristine)
+            return {
+                try? fm.removeItem(at: profiles.directory)
+                try? fm.copyItem(at: pristine, to: profiles.directory)
+            }
+        case .claude:
+            let config = rigOutside.desktopConfig
+            return { try? fm.removeItem(at: config) }
+        default:
+            return {}
+        }
     }
 
     @Test func help() async throws {

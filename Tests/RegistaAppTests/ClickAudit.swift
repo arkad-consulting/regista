@@ -43,6 +43,13 @@ struct AuditState {
             "sidePanel": "\(UserDefaults.standard.object(forKey: ShellPrefs.sideShown) as? Bool ?? true)",
             "rightPanel": "\(UserDefaults.standard.object(forKey: ShellPrefs.rightShown) as? Bool ?? true)",
             "sheet": app.rig.window.attachedSheet.map { "\(type(of: $0))" } ?? "",
+            // What reaches the rig's stand-ins (#35): a take, the installer, the pasteboard, the Trash.
+            "recorder state": "recording \(app.recorder.isRecording) error \(app.recorder.errorMessage ?? "")",
+            "installer": rigOutside.installs.last ?? "",
+            "engine files": "\((FileManager.default.enumerator(atPath: rigOutside.enginesFolder.path)?.allObjects.count) ?? 0)", "pasteboard": "\(RigPasteboard.writes) writes", "trash": RigTrash.taken.last ?? "",
+            "claude": "claude command \(((try? String(contentsOf: rigOutside.claudeLog, encoding: .utf8)) ?? "").count) bytes, Claude Desktop configuration \(FileManager.default.contents(atPath: rigOutside.desktopConfig.path)?.count ?? 0) bytes",
+            "engines.json": (try? String(contentsOf: rigOutside.enginesFile, encoding: .utf8)).map { "\($0.hashValue)" } ?? "",
+            "generation": "\(s.generation.pending != nil) \(s.generation.problem ?? "")",
             "popover": NSApp.windows.filter { $0.isVisible && $0 !== app.rig.window && String(describing: type(of: $0)).contains("Popover") }.count.description,
         ]
         events = RigGuard.events
@@ -84,6 +91,14 @@ struct AuditState {
 /// anything is published, once per push instead of once per commit.
 let clickAuditEnabled = ProcessInfo.processInfo.environment["REGISTA_SKIP_CLICK_AUDIT"] == nil
 
+extension MouseSuites {
+    /// Every click audit of whole screens and windows (ScreenClickTests, MoreScreenClickTests, WindowsClickTests), inside
+    /// the proof of #35: the owner's side is the same after them as before, no process was refused, the clipboard was
+    /// not written.
+    @Suite(.serialized, .ownerSideUntouched, .enabled(if: clickAuditEnabled, "skipped in the commit hook, run by the push hook"))
+    struct ClickAudits {}
+}
+
 @MainActor
 struct ClickAudit {
     struct Row {
@@ -108,6 +123,8 @@ struct ClickAudit {
     var noOps: [String: String] = [:]
     /// Run after each click, before the screen is rebuilt (put back what the click changed outside the store).
     var restore: () -> Void = {}
+    /// Run after the screen was rebuilt (state its views reset when they appear, such as a pending estimate).
+    var afterReset: () async -> Void = {}
     /// Controls not clicked whose name contains a text (text → why).
     var skipContaining: [String: String] = [:]
     /// Roles not clicked (role → why).
@@ -182,8 +199,11 @@ struct ClickAudit {
                 problem = "covered by \(over.description)"
             }
             let before = AuditState(app)
+            let refused = RigProcesses.refused.count
             rig.click(p)
             await app.settle()
+            // An alert the click's command opened (its error) animates in: its stop lands in a loop of ours (#40).
+            if before.ui["sheet"] == "", rig.window.attachedSheet != nil { rig.hold() }
             var changes = AuditState(app).changes(since: before)
             if changes.isEmpty {
                 // A tap that also answers a double tap, a popover: they come after the double-click interval.
@@ -209,7 +229,17 @@ struct ClickAudit {
                 row.reason = match(e.name, noOps)
             }
             if let problem { row.problem = problem }
+            if RigProcesses.refused.count > refused { row.problem = "refused process: " + RigProcesses.refused.dropFirst(refused).joined(separator: "; ") }
             rows.append(row)
+            // A click that opened an alert (a confirmation): each of its buttons is clicked too, each on the alert opened
+            // again from a fresh screen.
+            let buttons = rig.sheetButtons().map(\.title)
+            if !buttons.isEmpty {
+                for title in buttons {
+                    rows.append(await clickInAlert(opener: e, at: p, button: title, base: base, nav: baseNav))
+                }
+                dirty = true
+            }
         }
         for x in extra {
             await back(to: base, nav: baseNav)
@@ -232,6 +262,32 @@ struct ClickAudit {
         return rows
     }
 
+    /// Opens the alert again with a click on `opener` and clicks its button `title`.
+    private func clickInAlert(opener e: RigElement, at p: CGPoint, button title: String, base: AuditState, nav: Navigation) async -> Row {
+        let rig = app.rig!
+        let name = e.description + " › «\(title)»"
+        await back(to: base, nav: nav)
+        rig.click(p)
+        await app.settle()
+        guard let button = rig.sheetButtons().first(where: { $0.title == title }) else {
+            return Row(control: name, at: p, effect: "the alert did not open again", problem: "unstable")
+        }
+        if let why = match(title, skip) {
+            return Row(control: name, at: p, effect: "not clicked", reason: why, skipped: true)
+        }
+        let before = AuditState(app)
+        let refused = RigProcesses.refused.count
+        rig.click(button)
+        await app.settle()
+        await app.idle(0.3)
+        await app.settle()
+        let changes = AuditState(app).changes(since: before)
+        var row = Row(control: name, at: p, effect: changes.isEmpty ? "NOTHING" : changes.joined(separator: "; "))
+        if changes.isEmpty { row.nothing = true; row.reason = match(title, noOps) }
+        if RigProcesses.refused.count > refused { row.problem = "refused process: " + RigProcesses.refused.dropFirst(refused).joined(separator: "; ") }
+        return row
+    }
+
     /// The screen as it was: sheets and popovers closed, the store's UI state and the project put back, the tree rebuilt.
     private func back(to base: AuditState, nav: Navigation) async {
         let rig = app.rig!
@@ -248,9 +304,18 @@ struct ClickAudit {
             if p.redoWords != v.redoWords { p.redoWords = v.redoWords }
             if p.stopWords != v.stopWords { p.stopWords = v.stopWords }
         }
-        if let sheet = rig.window.attachedSheet { rig.window.endSheet(sheet) }
+        if let sheet = rig.window.attachedSheet {
+            rig.window.endSheet(sheet)
+            rig.hold()
+        }
         for w in NSApp.windows where w !== rig.window && w.isVisible && !(w is RigWindow) { w.orderOut(nil) }
         restore()
+        // A take the click started stops (the capture stand-in writes nothing); its message goes.
+        if app.recorder.isRecording {
+            app.recorder.stop()
+            for _ in 0..<20 where app.recorder.isRecording { await app.idle(0.05) }
+        }
+        app.recorder.errorMessage = nil
         if let src = sourcesBox.value, app.recorder.sources != src { app.recorder.sources = src }
         // The Graphics panel's state is one for the app: back to how the screen started.
         let g = GraphicsState.shared
@@ -294,6 +359,7 @@ struct ClickAudit {
         // AppKit-backed controls (native buttons, text fields) of the rebuilt tree are placed a moment later.
         rig.host.layoutSubtreeIfNeeded()
         await app.idle(0.15)
+        await afterReset()
     }
 
     /// The table, as Markdown, in $REGISTA_CLICK_AUDIT (or a temporary folder).
