@@ -12,7 +12,7 @@ import Testing
 
 /// The defaults the Settings window writes (the test process's own domain): put back after each Settings audit.
 private let settingsKeys = [SettingsRoute.tabKey, SettingsRoute.engineKey, GeneralPrefs.folderKey, GeneralPrefs.formatKey,
-                            GeneralPrefs.autoSaveKey, GeneralPrefs.spokenLanguageKey, Accent.followKey]
+                            GeneralPrefs.autoSaveKey, GeneralPrefs.spokenLanguageKey, Accent.followKey, SettingsRoute.rulesKey]
 
 extension MouseSuites.ClickAudits {
 @Suite(.serialized) @MainActor struct WindowsClickTests {
@@ -45,6 +45,7 @@ extension MouseSuites.ClickAudits {
         let notDriven = "NOT VERIFIED: a native AppKit control of the system form, which the rig's synthetic events do not drive reliably"
         let rows = await ClickAudit(app: app, screen: "settings-\(tab.rawValue)", noOps: [
             SettingsTab.allCases.first { $0 == tab }!.title: "the tab already shown",
+            "For every video": "Regole: the sheet already shown (the tab opens on it)",
             // NOT VERIFIED by a click: the system form's own AppKit controls (bordered buttons, check boxes, fields) do not
             // take the rig's synthetic events reliably — the same control answered in one run and not in the next.
             "Nuovo kit": notDriven, "Importa…": notDriven, "Nome del kit": notDriven, "0": notDriven, "1": notDriven,
@@ -103,6 +104,20 @@ extension MouseSuites.ClickAudits {
         case .claude:
             let config = rigOutside.desktopConfig
             return { try? fm.removeItem(at: config) }
+        case .rules:
+            // «For every video» edited (Ripristina il predefinito has something to put back) in the rig's scratch rules
+            // folder, put back after each click.
+            UserDefaults.standard.removeObject(forKey: SettingsRoute.rulesKey)
+            let e = Engine(services: app.store.engine.context.services)
+            _ = try e.execute("rules.set", params: ["kind": "every-video", "checks": ["text-size": false]])
+            let folder = app.store.engine.context.services.rules.directory
+            let pristine = rigTempDir("rules-pristine").appendingPathComponent("rules")
+            try fm.copyItem(at: folder, to: pristine)
+            return {
+                try? fm.removeItem(at: folder)
+                try? fm.copyItem(at: pristine, to: folder)
+                UserDefaults.standard.removeObject(forKey: SettingsRoute.rulesKey)   // the screen starts on «for every video»
+            }
         default:
             return {}
         }

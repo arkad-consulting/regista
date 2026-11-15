@@ -4,7 +4,7 @@ import SwiftUI
 
 /// The Settings window's tabs (M2 #59).
 enum SettingsTab: String, CaseIterable, Identifiable {
-    case general, engines, voice, brand, claude, shortcuts
+    case general, engines, voice, brand, rules, claude, shortcuts
 
     var id: String { rawValue }
 
@@ -14,6 +14,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .engines: loc("Motori")
         case .voice: loc("Profilo e voce")
         case .brand: loc("Brand kit")
+        case .rules: loc("Regole")
         case .claude: loc("Claude")
         case .shortcuts: loc("Scorciatoie")
         }
@@ -25,6 +26,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .engines: "cpu"
         case .voice: "person.wave.2"
         case .brand: "paintpalette"
+        case .rules: "checklist"
         case .claude: "sparkles"
         case .shortcuts: "keyboard"
         }
@@ -39,6 +41,9 @@ enum SettingsTab: String, CaseIterable, Identifiable {
 enum SettingsRoute {
     static let tabKey = "settings.tab"
     static let engineKey = "settings.engine"
+    /// The rule sheet Impostazioni › Regole shows (the last one chosen there, or the project's kind when the Export card's
+    /// link opened it).
+    static let rulesKey = "settings.rules"
 
     /// Selects the tab (and the engine row) the next time Settings shows, then opens it.
     @MainActor static func open(_ tab: SettingsTab, engine: String? = nil, with openSettings: OpenSettingsAction) {
@@ -46,6 +51,12 @@ enum SettingsRoute {
         if let engine { UserDefaults.standard.set(engine, forKey: engineKey) } else { UserDefaults.standard.removeObject(forKey: engineKey) }
         openSettings()
         NSApp.activate()
+    }
+
+    /// Opens Impostazioni › Regole on a sheet (the Export card: the project's kind).
+    @MainActor static func openRules(kind: String?, with openSettings: OpenSettingsAction) {
+        if let kind { UserDefaults.standard.set(kind, forKey: rulesKey) }
+        open(.rules, with: openSettings)
     }
 }
 

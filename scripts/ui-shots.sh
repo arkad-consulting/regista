@@ -35,7 +35,7 @@
 #   graphics-adjust, graphics-effects, graphics-styles, graphics-motion, graphics-logo; brand-picker (the Marca picker,
 #   the one place that picks the project's kit, at its own size);
 #   then Impostazioni (M2 #59), each tab at the window's own size: settings-general, settings-engines, settings-brand
-#   (the brand kit editor), settings-claude, settings-shortcuts (settings-voice above), and settings-engines-<base|medium|pro> (Motori with the Mac's real engine
+#   (the brand kit editor), settings-rules (the editing rules from sample sheets, #31), settings-claude, settings-shortcuts (settings-voice above), and settings-engines-<base|medium|pro> (Motori with the Mac's real engine
 #   states drawn as on that tier, for the render only: engines.json is never touched);
 #   then music, sound effects and level (E3 #55) on synthetic projects made here in a temporary folder: audio-empty (the mix,
 #   no music yet), audio-music (music added by audio.addMusic, ducked, its clip in the Ispettore, a sample "ducking OK"),
@@ -48,7 +48,8 @@
 #   kind ready to run), generate-unavailable (a Mac with no generator set up), generate-approval (a paid clip's cost on
 #   the approval card), generate-running, generate-failed and generate-recent;
 #   then the help window (K1 #7) at its own size, in the app's language: help (the user guide), help-voice, help-install and
-#   help-troubleshooting.
+#   help-troubleshooting; then the editing rules' card on Esporta from a sample report (#31): export-rules (two rules
+#   failing, with their fixes) and export-rules-pass (everything passing: one line).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT="${1:?usage: scripts/ui-shots.sh <outdir> [--lang it|en] [--size WxH] [--real] [workspace …]}"
@@ -79,13 +80,13 @@ done
                                inspector-screen-cutout inspector-screen-screen inspector-screen-clip
                                texts-fresh texts-transcribing texts-transcribed texts-cut texts-keywords texts-captions texts-stale
                                texts-doall texts-failed jobs jobs-closed
-                               settings-general settings-engines settings-brand settings-claude settings-shortcuts
+                               settings-general settings-engines settings-brand settings-rules settings-claude settings-shortcuts
                                settings-engines-base settings-engines-medium settings-engines-pro
                                audio-empty audio-music audio-sfx audio-loud
                                simple-midway simple-cut simple-captions simple-look simple-sound simple-voice simple-graphics simple-doall
                                generate-still generate-clip generate-music generate-upscale generate-unavailable generate-approval
                                generate-running generate-failed generate-recent
-                               help help-voice help-install help-troubleshooting)
+                               help help-voice help-install help-troubleshooting export-rules export-rules-pass)
 SOCK="${REGISTA_ENGINE_SOCKET:-$HOME/Library/Application Support/Regista/engine.sock}"
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"

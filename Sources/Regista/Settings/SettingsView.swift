@@ -1,7 +1,7 @@
 import RegistaCore
 import SwiftUI
 
-/// Impostazioni (M2 #59): Generale, Motori, Profilo e voce, Brand kit (E4 #3), Claude, Scorciatoie. The tab follows `SettingsRoute` (the
+/// Impostazioni (M2 #59): Generale, Motori, Profilo e voce, Brand kit (E4 #3), Regole (#31), Claude, Scorciatoie. The tab follows `SettingsRoute` (the
 /// activity bar's Motori button and the "Installa" links open it on Motori); a render pins one tab and draws it from
 /// injected data.
 struct SettingsView: View {
@@ -11,6 +11,8 @@ struct SettingsView: View {
     var pinned: SettingsTab? = nil
     var engines: EnginesDemo? = nil
     var voiceProfiles: [ProfileSettings.ProfileRow]? = nil
+    /// A render of Regole from sample sheets (nothing is read or written).
+    var rulesDemo = false
     /// A render's height (a long Motori list drawn whole); nil: the window's.
     var height: CGFloat? = nil
 
@@ -44,6 +46,7 @@ struct SettingsView: View {
         case .engines: EnginesSettings(demo: engines)
         case .voice: ProfileSettings(demoProfiles: voiceProfiles)
         case .brand: BrandKitSettings(demo: pinned != nil)
+        case .rules: RulesSettings(demo: rulesDemo)
         case .claude: ClaudeSettings()
         case .shortcuts: ShortcutsSettings()
         }

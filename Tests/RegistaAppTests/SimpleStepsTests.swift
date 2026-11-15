@@ -328,7 +328,9 @@ private struct StubProber: MediaProber {
     let s = snap(e)
     #expect(SimpleStep.allCases.allSatisfy { s[$0].status == .done }, "\(SimpleStep.allCases.map { "\($0): \(s[$0].status)" })")
 
-    // Esporta il reel: Reel 9:16, the mix at −15 LUFS, then the checks.
+    // Esporta il reel: the editing rules first, as the Export card's «Sistema tutto ed esporta» (#31: the opening title
+    // over the captions), then Reel 9:16, the mix at −15 LUFS, then the checks.
+    _ = try e.execute(ExportCalls.fixAll.id, params: ExportCalls.fixAll.params)
     let out = dir.appendingPathComponent("reel.mp4")
     let render = ExportCalls.render(path: out.path, preset: "9:16", captions: true, bitrate: 8)
     let r = try e.execute(render.id, params: render.params)

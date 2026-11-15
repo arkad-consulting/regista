@@ -17,13 +17,17 @@ final class ExportOptions: ObservableObject {
 /// The commands behind Esporta's buttons (the same calls a test replays).
 enum ExportCalls {
     /// Esporta video…: the mix brought to the house loudness (−15 LUFS, also with music and sound effects in it). The
-    /// person may always export: the editing rules' check (#31) does not stop this button (the Export card that shows
-    /// the failing rules first is the next step of #31).
-    static func render(path: String, preset: String, captions: Bool, bitrate: Double) -> StepCall {
-        StepCall(id: "export.render", params: ["path": .string(path), "preset": .string(preset), "captions": .bool(captions),
-                                               "bitrate": .number(bitrate), "loudness": .number(LoudnessTarget.integrated),
-                                               "exportAnyway": true])
+    /// engine checks the editing rules first (#31) and refuses while one fails, unless `anyway`: «Esporta lo stesso», the
+    /// person's own choice after the Export card showed what fails.
+    static func render(path: String, preset: String, captions: Bool, bitrate: Double, anyway: Bool = false) -> StepCall {
+        var params: [String: JSONValue] = ["path": .string(path), "preset": .string(preset), "captions": .bool(captions),
+                                           "bitrate": .number(bitrate), "loudness": .number(LoudnessTarget.integrated)]
+        if anyway { params["exportAnyway"] = true }
+        return StepCall(id: "export.render", params: .object(params))
     }
+
+    /// «Sistema tutto ed esporta»: every safe fix of the failing rules, in one undo step.
+    static let fixAll = StepCall(id: "rules.fix", params: ["all": true])
 }
 
 /// Esporta's main area: the program monitor, what the export will look like.
@@ -38,6 +42,9 @@ struct ExportSettingsPanel: View {
     @EnvironmentObject private var store: EditorStore
     @EnvironmentObject private var meter: LoudnessMeter
     @ObservedObject private var o = ExportOptions.shared
+    @ObservedObject private var revision = RulesRevision.shared
+    @StateObject private var rules = ExportRulesModel()
+    @Environment(\.rulesDemo) private var rulesDemo
     /// The folder of the last export (the save panel opens there next time).
     @AppStorage("export.lastFolder") private var lastFolder = ""
 
@@ -51,6 +58,9 @@ struct ExportSettingsPanel: View {
                     RToggle(title: "Sottotitoli impressi", isOn: $o.captions)
                     RSlider(value: $o.bitrate, range: 6...30, step: 1, label: "Bit rate", format: { String(Int($0)) + " Mbps" })
                 }
+                if let report = rulesDemo ?? rules.report {
+                    ExportRulesCard(report: report, model: rules, demo: rulesDemo != nil)
+                }
                 section("Controlli") {
                     check("Durata", store.project.map { shortTime($0.duration.seconds) } ?? "–", ok: (store.project?.duration ?? .zero) > .zero)
                     check("Loudness", meter.curve.integrated.isFinite ? String(format: "%.1f LUFS", meter.curve.integrated) : "–",
@@ -62,11 +72,12 @@ struct ExportSettingsPanel: View {
                 section("File") {
                     // Standard Save As: a proposed name, the user picks the name and the folder.
                     ExportJob(jobs: store.jobs)
-                    EdButton(title: "Esporta video…", symbol: "square.and.arrow.up", prominent: true, fill: true,
-                             disabled: store.project == nil || store.jobs.latest("export")?.isRunning == true) {
-                        guard let url = ask("mp4", .mpeg4Movie, "Esporta il video") else { return }
-                        // A job (E2 #54): progress by frames, Cancel removes the partial file; the window stays usable.
-                        store.exportVideo(ExportCalls.render(path: url.path, preset: o.preset, captions: o.captions, bitrate: o.bitrate).params, to: url)
+                    if let report = rulesDemo ?? rules.report, !report.failures.isEmpty {
+                        rulesActions(report)
+                    } else {
+                        EdButton(title: "Esporta video…", symbol: "square.and.arrow.up", prominent: true, fill: true, disabled: exportBusy) {
+                            exportVideo(anyway: false)
+                        }
                     }
                     FlowLayout(spacing: 6, lineSpacing: 6) {
                         EdButton(title: "Sottotitoli .srt…", symbol: "captions.bubble", disabled: !hasCaptions) {
@@ -91,6 +102,46 @@ struct ExportSettingsPanel: View {
                 }
             }
             .padding(Ed.Space.l)
+        }
+        .task(id: "\(store.projectVersion)-\(revision.value)") {
+            guard rulesDemo == nil else { return }
+            rules.store = store
+            // A burst of edits checks once, after the last.
+            if rules.report != nil { try? await Task.sleep(for: .seconds(ExportRulesModel.pause)) }
+            guard !Task.isCancelled else { return }
+            await rules.refresh()
+        }
+    }
+
+    private var exportBusy: Bool { store.project == nil || store.jobs.latest("export")?.isRunning == true }
+
+    /// Asks where, then exports as a job (E2 #54): progress by frames, Cancel removes the partial file; the window stays usable.
+    private func exportVideo(anyway: Bool) {
+        guard rulesDemo == nil, let url = ask("mp4", .mpeg4Movie, "Esporta il video") else { return }
+        store.exportVideo(ExportCalls.render(path: url.path, preset: o.preset, captions: o.captions, bitrate: o.bitrate, anyway: anyway).params, to: url)
+    }
+
+    /// A rule fails: «Sistema tutto ed esporta» (when a fix exists: the fixes, then the export, or the card shows what is left)
+    /// and «Esporta lo stesso», which is always there.
+    private func rulesActions(_ report: RulesReport) -> some View {
+        VStack(alignment: .leading, spacing: Ed.Space.s) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Ed.Space.s) { anywayButton.fixedSize(); if report.fixable { fixAllButton } }
+                VStack(spacing: Ed.Space.s) { if report.fixable { fixAllButton }; anywayButton }
+            }
+            Text(verbatim: loc("Claude non consegna un video con una regola rotta. Tu puoi sempre esportare lo stesso."))
+                .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var anywayButton: some View {
+        EdButton(title: "Esporta lo stesso", large: true, fill: true, disabled: rulesDemo == nil && exportBusy) { exportVideo(anyway: true) }
+    }
+
+    private var fixAllButton: some View {
+        EdButton(title: "Sistema tutto ed esporta", prominent: true, large: true, fill: true, disabled: rulesDemo == nil && exportBusy) {
+            guard rulesDemo == nil else { return }
+            Task { if await rules.fixAll() { exportVideo(anyway: false) } }
         }
     }
 

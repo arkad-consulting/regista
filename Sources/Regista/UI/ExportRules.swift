@@ -1,0 +1,250 @@
+import RegistaCore
+import SwiftUI
+
+// The editing rules on the Export panel (#31): the project's kind, the checks that fail with «go to» and «fix», the ones
+// that pass in one line. One line when everything passes; it grows only when something fails. The panel then offers
+// «fix all and export» (when a fix exists) and «export anyway», which a person can always use.
+
+/// rules.check (and the kinds of rules.list) as the card draws them.
+struct RulesReport: Equatable {
+    struct Violation: Equatable, Identifiable {
+        let id: Int
+        let check: String
+        /// The check's English title (a lookup key).
+        let title: String
+        /// In the app's language.
+        let message: String
+        let time: Double
+        let blocking: Bool
+        /// The fix's command call, when the engine offers one.
+        let fix: StepCall?
+    }
+
+    var kind: String
+    /// The kind's name as the person reads it.
+    var kindTitle: String
+    var violations: [Violation]
+    /// The English titles of the checks that ran and passed.
+    var passed: [String]
+    var problems: [String]
+    var kinds: [RulesModel.Sheet]
+
+    var failures: [Violation] { violations.filter(\.blocking) }
+    var fixable: Bool { failures.contains { $0.fix != nil } }
+
+    init(kind: String, kindTitle: String, violations: [Violation], passed: [String], problems: [String], kinds: [RulesModel.Sheet]) {
+        self.kind = kind
+        self.kindTitle = kindTitle
+        self.violations = violations
+        self.passed = passed
+        self.problems = problems
+        self.kinds = kinds
+    }
+
+    init(check c: JSONValue, list: JSONValue?) {
+        let kinds = (list?["sheets"]?.arrayValue ?? []).compactMap(RulesModel.sheet).filter { $0.kind != RuleBook.everyVideo }
+        let kind = c["kind"]?.stringValue ?? ""
+        let checks = c["checks"]?.arrayValue ?? []
+        func title(_ id: String) -> String { checks.first { $0["id"]?.stringValue == id }?["title"]?.stringValue ?? id }
+        let violations = (c["violations"]?.arrayValue ?? []).enumerated().map { i, v in
+            let check = v["check"]?.stringValue ?? ""
+            let fix = v["fix"].flatMap { f in f["command"]?.stringValue.map { StepCall(id: $0, params: f["params"] ?? [:]) } }
+            return Violation(id: i, check: check, title: title(check), message: loc(message: v), time: v["time"]?.doubleValue ?? 0,
+                             blocking: v["severity"]?.stringValue != "warn", fix: fix)
+        }
+        let passed = checks.filter { $0["ran"]?.boolValue == true && ($0["violations"]?.doubleValue ?? 0) == 0 }.compactMap { $0["title"]?.stringValue }
+        let problems = (c["sheetProblems"]?.arrayValue ?? []).map { loc(message: $0) } + (c["note"].flatMap { $0 == .null ? nil : [loc(message: $0)] } ?? [])
+        let shown = kinds.first { $0.kind == kind }?.shownTitle ?? loc(c["kindTitle"]?.stringValue ?? kind)
+        self.init(kind: kind, kindTitle: shown, violations: violations, passed: passed, problems: problems, kinds: kinds)
+    }
+
+    /// Sample reports for the renders (ui.screenshot export-rules, export-rules-pass): a reel with two rules broken, and one that passes.
+    static func sample(failing: Bool) -> RulesReport {
+        let book = RuleBook(directory: URL(fileURLWithPath: "/nonexistent"))
+        let kinds = RuleBook.builtInKinds.map { RulesModel.Sheet(kind: $0, title: book.title($0, language: "en"), builtIn: true, edited: false) }
+        let all = RuleCheckSpec.all.map(\.title)
+        guard failing else {
+            return RulesReport(kind: "talking-head-reel", kindTitle: loc("Talking-head reel"), violations: [], passed: all, problems: [], kinds: kinds)
+        }
+        // l10n-ignore-begin — sample data: the engine's own message keys and values
+        let violations = [
+            Violation(id: 0, check: "title-captions", title: RuleCheckSpec.all[0].title,
+                      message: loc("Captions show while the opening title is on screen (%1$@–%2$@ s).", "0.00", "2.00"), time: 0.3, blocking: true,
+                      fix: StepCall(id: "captions.clear", params: ["from": 0, "to": 2])),
+            Violation(id: 1, check: "logo-pause", title: RuleCheckSpec.all[2].title,
+                      message: loc("The logo enters %1$@ s before the last spoken word ends: the pause must be at least %2$@ s.", "0.30", "0.30"),
+                      time: 41.5, blocking: true, fix: StepCall(id: "timeline.move", params: ["clipId": "logo", "start": 42.2])),
+        ]
+        // l10n-ignore-end
+        return RulesReport(kind: "talking-head-reel", kindTitle: loc("Talking-head reel"), violations: violations,
+                           passed: all.filter { $0 != RuleCheckSpec.all[0].title && $0 != RuleCheckSpec.all[2].title }, problems: [], kinds: kinds)
+    }
+}
+
+private struct RulesDemoKey: EnvironmentKey { static let defaultValue: RulesReport? = nil }
+
+extension EnvironmentValues {
+    /// The Export card drawn from a sample report (ui.screenshot export-rules / export-rules-pass).
+    var rulesDemo: RulesReport? {
+        get { self[RulesDemoKey.self] }
+        set { self[RulesDemoKey.self] = newValue }
+    }
+}
+
+/// The card's report, checked again when the project changes (after a short pause) and when a rule sheet is written.
+@MainActor
+final class ExportRulesModel: ObservableObject {
+    @Published var report: RulesReport?
+    /// The kinds are open under the card's kind button.
+    @Published var choosing = false
+    weak var store: EditorStore?
+    private var list: JSONValue?
+
+    /// Seconds after the last change before the project is checked again.
+    static let pause: Double = 0.4
+
+    func refresh() async {
+        guard let store, store.project != nil else { report = nil; return }
+        guard let check = try? await store.silent("rules.check") else { return }
+        list = (try? await store.silent("rules.list")) ?? list
+        report = RulesReport(check: check, list: list)
+    }
+
+    /// rules.fix {all: true} (one undo step), then the check it returns: true when nothing blocks the export any more.
+    func fixAll() async -> Bool {
+        guard let store else { return false }
+        do {
+            let r = try await store.perform(ExportCalls.fixAll.id, ExportCalls.fixAll.params)
+            if let c = r["check"] { report = RulesReport(check: c, list: list) }
+            return report?.failures.isEmpty ?? false
+        } catch {
+            store.show(error)
+            return false
+        }
+    }
+}
+
+/// The card itself (inside the Export panel's scroll view).
+struct ExportRulesCard: View {
+    @EnvironmentObject private var store: EditorStore
+    @Environment(\.openSettings) private var openSettings
+    let report: RulesReport
+    @ObservedObject var model: ExportRulesModel
+    /// A render: the links and buttons do nothing.
+    var demo = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Ed.Space.s) {
+            VStack(alignment: .leading, spacing: 0) {
+                if report.failures.isEmpty { compact } else { header }
+                if model.choosing { kinds }
+                ForEach(report.violations) { v in
+                    Ed.line.frame(height: 1)
+                    violation(v)
+                }
+                if !report.failures.isEmpty, !report.passed.isEmpty {
+                    Ed.line.frame(height: 1)
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Image(systemName: "checkmark").font(Ed.icon(Ed.TypeSize.caption, .bold)).foregroundStyle(Ed.ok)
+                        Text(verbatim: report.passed.map { loc($0) }.joined(separator: ", "))
+                            .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, Ed.Space.m).padding(.vertical, 9)
+                }
+                ForEach(report.problems, id: \.self) { p in
+                    Ed.line.frame(height: 1)
+                    Label { Text(verbatim: p) } icon: { Image(systemName: "exclamationmark.triangle") }
+                        .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.warn).fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, Ed.Space.m).padding(.vertical, Ed.Space.s)
+                }
+            }
+            .rCard(.raised, border: report.failures.isEmpty ? nil : Ed.danger.opacity(0.45), padding: 0)
+            VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+                if report.fixable {
+                    Text(verbatim: loc("«Sistema» applica la correzione come un comando qualsiasi: un passo di annulla."))
+                        .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+                }
+                AccentLinkButton(title: "Le regole si cambiano in Impostazioni › Regole") {
+                    guard !demo else { return }
+                    SettingsRoute.openRules(kind: report.kind, with: openSettings)
+                }
+            }
+        }
+    }
+
+    private var kindButton: some View {
+        // Named by the kind it shows (a tooltip would name it instead).
+        // Whole (the text beside it wraps instead).
+        EdButton(title: report.kindTitle, symbol: model.choosing ? "chevron.up" : "chevron.down") { model.choosing.toggle() }
+            .fixedSize()
+    }
+
+    /// Everything passes: one line.
+    private var compact: some View {
+        HStack(spacing: Ed.Space.s) {
+            Image(systemName: "checkmark.circle.fill").font(Ed.icon(Ed.TypeSize.body)).foregroundStyle(Ed.ok)
+            Text(verbatim: report.passed.count == 1 ? loc("1 controllo rispettato") : loc("%@ controlli rispettati", "\(report.passed.count)"))
+                .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: Ed.Space.xs)
+            kindButton
+        }
+        .padding(.horizontal, Ed.Space.m).padding(.vertical, Ed.Space.s)
+    }
+
+    private var header: some View {
+        // The title and the count wrap in a narrow panel; the kind stays whole beside them.
+        HStack(alignment: .top, spacing: Ed.Space.s) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(verbatim: loc("Regole di montaggio")).font(Ed.ui(Ed.TypeSize.control, .bold)).foregroundStyle(Ed.text)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(verbatim: loc("%1$@ da sistemare · %2$@ rispettate", "\(report.failures.count)", "\(report.passed.count)"))
+                    .font(Ed.ui(Ed.TypeSize.small, .semibold)).foregroundStyle(Ed.danger).fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: Ed.Space.xs)
+            kindButton
+        }
+        .padding(.horizontal, Ed.Space.m).padding(.vertical, 10)
+    }
+
+    private var kinds: some View {
+        RChoiceList(items: report.kinds.map { .init(id: $0.kind, title: $0.shownTitle, symbol: RulesSettings.symbol($0.kind)) },
+                    selection: report.kind) { k in
+            model.choosing = false
+            guard !demo, k != report.kind else { return }
+            store.run("project.setKind", ["kind": .string(k)])
+        }
+        .padding(.horizontal, Ed.Space.xs).padding(.bottom, Ed.Space.xs)
+    }
+
+    private func violation(_ v: RulesReport.Violation) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.circle").font(Ed.icon(Ed.TypeSize.body, .semibold))
+                .foregroundStyle(v.blocking ? Ed.danger : Ed.warn).padding(.top, 1)
+            VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+                Text(verbatim: loc(v.title)).font(Ed.ui(Ed.TypeSize.body, .semibold)).foregroundStyle(Ed.text).fixedSize(horizontal: false, vertical: true)
+                Text(verbatim: v.message).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: Ed.Space.m) {
+                    AccentLinkButton(title: loc("Vai a %@", Self.time(v.time))) {
+                        guard !demo else { return }
+                        store.preview.seek(v.time)
+                    }
+                    if let fix = v.fix {
+                        AccentLinkButton(title: "Sistema") {
+                            guard !demo else { return }
+                            store.run(fix.id, fix.params)
+                        }
+                    }
+                }
+                .padding(.top, Ed.Space.xxs)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Ed.Space.m).padding(.vertical, 10)
+    }
+
+    /// "0:41".
+    static func time(_ seconds: Double) -> String {
+        let s = Int(max(0, seconds))
+        return String(format: "%d:%02d", s / 60, s % 60)
+    }
+}

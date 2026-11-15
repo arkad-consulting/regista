@@ -124,7 +124,7 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                                       height: height ?? (tab == .engines ? SettingsView.enginesRenderHeight
                                                                        : tab == .brand ? SettingsView.brandRenderHeight : Int(SettingsView.size.height)))
                     let demo = enginesStatus.map { EnginesDemo(status: $0, tier: enginesTier) }
-                    view = NSHostingView(rootView: makeView(AnyView(SettingsView(pinned: tab, engines: demo, height: size.height)
+                    view = NSHostingView(rootView: makeView(AnyView(SettingsView(pinned: tab, engines: demo, rulesDemo: tab == .rules, height: size.height)
                         .environment(\.colorScheme, .dark).background(Color(nsColor: .windowBackgroundColor)))))
                     view.frame = CGRect(origin: .zero, size: size)
                     var o: [String: JSONValue] = ["workspace": .string(w), "tab": .string(tab.rawValue)]
@@ -159,7 +159,9 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                     }
                 } else {
                     let size = CGSize(width: width ?? Int(live?.width ?? 1440), height: height ?? Int(live?.height ?? 900))
-                    var nav = Self.navigation(for: workspace, current: store.nav)
+                    // export-rules / export-rules-pass: Esporta with the editing rules' card from a sample report (#31).
+                    let rulesDemo = workspace?.hasPrefix("export-rules") == true ? RulesReport.sample(failing: workspace == "export-rules") : nil
+                    var nav = Self.navigation(for: rulesDemo != nil ? "export" : workspace, current: store.nav)
                     // `texts`: the steps from sample data (E2 #54); `jobs`: sample jobs in the status bar.
                     let stepsDemo = texts?["state"]?.stringValue.map { StepsDemo.snapshot($0, tier: texts?["tier"]?.stringValue ?? "medium") }
                     if stepsDemo != nil { nav.textsTab = .steps }
@@ -186,7 +188,7 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                     if generateDemo != nil { nav = Self.navigation(for: "generate", current: nav) }
                     view = NSHostingView(rootView: makeRoot(nav).environment(\.canvasDemo, demo).environment(\.recordDemo, recordDemo)
                         .environment(\.tabsDemo, tabsDemo).environment(\.stepsDemo, stepsDemo).environment(\.jobsDemo, jobsDemo)
-                        .environment(\.audioDemo, audioDemo).environment(\.simpleDemo, simpleDemo).environment(\.generateDemo, generateDemo))
+                        .environment(\.audioDemo, audioDemo).environment(\.simpleDemo, simpleDemo).environment(\.generateDemo, generateDemo).environment(\.rulesDemo, rulesDemo))
                     view.frame = CGRect(origin: .zero, size: size)
                     shown = Self.describe(store, nav: nav, width: size.width)
                     if case .object(var o) = shown {
@@ -217,6 +219,11 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                                              return ["id": .string(p.id), "paid": .bool(p.paid), "available": .bool(a.available),
                                                      "reason": a.reason.map { .string($0) } ?? .null]
                                          })]
+                        shown = .object(o)
+                    }
+                    if let rulesDemo, case .object(var o) = shown {
+                        o["rules"] = ["kind": .string(rulesDemo.kind), "failures": .number(Double(rulesDemo.failures.count)),
+                                      "passed": .number(Double(rulesDemo.passed.count)), "fixable": .bool(rulesDemo.fixable)]
                         shown = .object(o)
                     }
                     if let recordDemo, let recorder, case .object(var o) = shown {

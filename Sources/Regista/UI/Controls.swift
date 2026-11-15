@@ -697,7 +697,8 @@ struct RTextField: View {
 /// The one multi-line editor, on the same well as the field. `.grows(lines)` grows with the text between those line
 /// counts (Invio runs `onSubmit` when given, ⌥Invio adds a line); `.scrolls(min, max)` keeps a height and scrolls a long
 /// text inside (a script, a voice-over), optionally reporting the selection. `editing` keeps the accent border on (a
-/// text edited in place); `focusOnAppear` puts the cursor in it when it appears.
+/// text edited in place); `focusOnAppear` puts the cursor in it when it appears; `mono` writes in SF Mono (a Markdown
+/// file); `onBlur` runs when the cursor leaves it (a text saved on leaving).
 struct RTextEditor: View {
     enum Kind { case grows(ClosedRange<Int>), scrolls(min: CGFloat, max: CGFloat) }
 
@@ -708,14 +709,19 @@ struct RTextEditor: View {
     var selection: Binding<TextSelection?>? = nil
     var editing = false
     var focusOnAppear = false
+    var mono = false
     var onSubmit: (() -> Void)? = nil
     var onExit: (() -> Void)? = nil
+    var onBlur: (() -> Void)? = nil
 
     @FocusState private var focused: Bool
+
+    private var font: Font { mono ? Ed.mono(size) : Ed.ui(size) }
 
     var body: some View {
         content
             .focused($focused)
+            .onChange(of: focused) { if !focused { onBlur?() } }
             .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.well))
             .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(focused || editing ? Ed.gold.opacity(0.7) : Ed.line2))
             .onExitCommand { onExit?(); focused = false }
@@ -728,7 +734,7 @@ struct RTextEditor: View {
             ZStack(alignment: .topLeading) {
                 if text.isEmpty, !placeholder.isEmpty { placeholderText }
                 TextField("", text: $text, axis: .vertical)
-                    .textFieldStyle(.plain).font(Ed.ui(size)).foregroundStyle(Ed.text)
+                    .textFieldStyle(.plain).font(font).foregroundStyle(Ed.text)
                     .lineLimit(lines)
                     .onSubmit { onSubmit?() }
                     .accessibilityLabel(loc(placeholder))
@@ -739,7 +745,7 @@ struct RTextEditor: View {
                 Group {
                     if let selection { TextEditor(text: $text, selection: selection) } else { TextEditor(text: $text) }
                 }
-                .font(Ed.ui(size)).foregroundStyle(Ed.text)
+                .font(font).foregroundStyle(Ed.text)
                 .scrollContentBackground(.hidden)
                 .padding(.horizontal, 3).padding(.vertical, Ed.Space.s)
                 .accessibilityLabel(loc(placeholder))
@@ -750,7 +756,7 @@ struct RTextEditor: View {
     }
 
     private var placeholderText: some View {
-        Text(verbatim: loc(placeholder)).font(Ed.ui(size)).foregroundStyle(Ed.text3)
+        Text(verbatim: loc(placeholder)).font(font).foregroundStyle(Ed.text3)
             .fixedSize(horizontal: false, vertical: true).allowsHitTesting(false)
     }
 }

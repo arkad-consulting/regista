@@ -342,6 +342,8 @@ final class EditorStore: ObservableObject {
             if id.hasPrefix("generate.") { refreshApprovals() }
             // A kit written or put back by undo (E4 #3): the Marca picker and Settings › Brand kit read the kits again.
             if case .success = result, id.hasPrefix("brandkit.") || id.hasPrefix("history.") { BrandKitLibrary.shared.reload() }
+            // A rule sheet written (Settings › Regole or an agent, #31): the Export card checks again.
+            if case .success = result, id.hasPrefix("rules."), kind == .session { RulesRevision.shared.bump() }
         }
         return result
     }
