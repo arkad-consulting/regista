@@ -504,6 +504,8 @@ enum RigGuard {
         swap(NSWindow.self, #selector(NSWindow.orderFrontRegardless), #selector(NSWindow.rig_orderFrontRegardless))
         swap(NSWindow.self, #selector(NSWindow.makeKeyAndOrderFront(_:)), #selector(NSWindow.rig_makeKeyAndOrderFront(_:)))
         swap(NSWindow.self, #selector(NSWindow.orderFront(_:)), #selector(NSWindow.rig_orderFront(_:)))
+        swap(NSWindow.self, #selector(NSWindow.order(_:relativeTo:)), #selector(NSWindow.rig_order(_:relativeTo:)))
+        swap(NSWindow.self, #selector(NSWindow.constrainFrameRect(_:to:)), #selector(NSWindow.rig_constrainFrameRect(_:to:)))
         // A sheet's opening and closing animations stop the running run loop when they end (#40): whoever opens or
         // closes one (an alert of a failed command, a confirmation), a loop of ours turns until they are over.
         swap(NSWindow.self, #selector(NSWindow.beginSheet(_:completionHandler:)), #selector(NSWindow.rig_beginSheet(_:completionHandler:)))
@@ -638,9 +640,14 @@ enum RigGuard {
         CFRunLoopWakeUp(CFRunLoopGetMain())
     }
 
-    /// A window the code under test shows: kept off every display.
+    /// A window the code under test shows: never seen and never in the way of the person at the Mac. It is moved off
+    /// every display, and, because AppKit brings a titled window back onto a screen when it is ordered front (the
+    /// teleprompter's panel kept appearing during the click audits), it is also made fully transparent and deaf to
+    /// the mouse, and AppKit's frame constraint is switched off for the test process.
     static func offscreen(_ w: NSWindow) {
         guard !(w is RigWindow) else { return }
+        w.alphaValue = 0
+        w.ignoresMouseEvents = true
         if NSScreen.screens.contains(where: { $0.frame.intersects(w.frame) }) || w.frame.origin == .zero {
             w.setFrameOrigin(CGPoint(x: -30000, y: -30000))
         }
@@ -737,6 +744,14 @@ extension NSWindow {
         MainActor.assumeIsolated { RigGuard.offscreen(self) }
         rig_orderFront(sender)
     }
+
+    @objc fileprivate func rig_order(_ place: NSWindow.OrderingMode, relativeTo other: Int) {
+        if place != .out { MainActor.assumeIsolated { RigGuard.offscreen(self) } }
+        rig_order(place, relativeTo: other)
+    }
+
+    /// No window is brought back onto a screen in the test process.
+    @objc fileprivate func rig_constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
 }
 
 extension NSMenu {

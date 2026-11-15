@@ -129,6 +129,31 @@ extension MouseSuites {
 /// The net and the redirections of RigGuard, and the rig's tabs (serialized with the click audits: a refusal made here
 /// must not land inside their proof).
 @Suite(.serialized) @MainActor struct RigNetTests {
+    /// A window a test shows is never seen by the person at the Mac: a titled floating panel in the middle of the
+    /// screen (what the teleprompter is) ends up off every display, transparent and deaf to the mouse, and stays so
+    /// when it is shown again.
+    @Test func aWindowShownByATestIsNeverSeen() throws {
+        RigGuard.install()
+        let screen = try #require(NSScreen.screens.first).frame
+        let panel = NSPanel(contentRect: NSRect(x: screen.midX - 200, y: screen.midY - 100, width: 400, height: 200),
+                            styleMask: [.titled, .closable, .resizable, .nonactivatingPanel], backing: .buffered, defer: false)
+        panel.isReleasedWhenClosed = false
+        panel.isFloatingPanel = true
+        panel.level = .floating
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        defer { panel.orderOut(nil) }
+        for _ in 0..<2 {
+            panel.orderFrontRegardless()
+            RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+            #expect(panel.alphaValue == 0 && panel.ignoresMouseEvents)
+            #expect(!NSScreen.screens.contains { $0.frame.intersects(panel.frame) }, "\(panel.frame)")
+            panel.orderOut(nil)
+        }
+        panel.makeKeyAndOrderFront(nil)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+        #expect(panel.alphaValue == 0 && !NSScreen.screens.contains { $0.frame.intersects(panel.frame) }, "\(panel.frame)")
+    }
+
     /// A process off the allow-list does not start and is recorded; the tools the suite needs on scratch files do.
     @Test func theNetRefusesProcessesOffTheList() throws {
         RigGuard.install()
