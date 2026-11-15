@@ -119,11 +119,13 @@ enum MotionAdd: Command {
 /// motion-gallery scenario checks behind/in-front layering anywhere (no Vision, no test take).
 enum MediaSynthesize: Command {
     static let id = "media.synthesize"
-    static let summary = "Test helper: write a synthetic talking head (1080×1920 30 fps H.264: a wall, a speaker silhouette that sways and nods) with its exact person matte, import it and attach the matte (as matte.track would), so behind-the-speaker graphics can be tested without footage or Vision. Returns the asset."
+    static let summary = "Test helper: write a synthetic talking head (1080×1920 30 fps H.264: a wall, a speaker silhouette that sways and nods) with its exact person matte, import it and attach the matte (as matte.track would), so behind-the-speaker graphics can be tested without footage or Vision; optionally its exact face track (as faces.track would) and spoken words (as transcript.run would). Returns the asset."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .required("path", .string, "Output .mov."),
         .optional("duration", .time, "Seconds (default 8, at most 240)."),
+        .optional("faces", .boolean, "Also attach the face track of the drawn head."),
+        .optional("words", .array(.object), "Also attach a transcript: [{text, start, end}] (seconds of the take)."),
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
@@ -141,6 +143,26 @@ enum MediaSynthesize: Command {
         }
         var analysis = project.assets[i].analysis ?? AssetAnalysis()
         analysis.matte = MatteTrack(directory: matte.path, width: 270, height: 480, frameRate: 30, ranges: [[0, frames - 1]], engine: "synthetic")
+        if p.bool("faces") == true {
+            let track = FaceTrack(video: url.path, engine: "synthetic", width: 1080, height: 1920, fps: 30, minCutoff: 0, beta: 0, cuts: [],
+                                  frames: (0..<frames).map { k in
+                                      let box = SyntheticTalkingHead.face(t: Double(k) / 30, W: 1080, H: 1920)
+                                      return FaceTrack.Frame(t: Double(k) / 30, raw: box, smooth: box)
+                                  })
+            let file = url.deletingPathExtension().appendingPathExtension("faces.json")
+            do { try JSONEncoder().encode(track).write(to: file, options: .atomic) }
+            catch { throw CommandError(.io, "\(id): cannot write \(file.path)") }
+            analysis.faces = FaceTrackSummary(path: file.path, frames: frames, detected: frames, cuts: 0, jitterPx: 0, rawJitterPx: 0)
+        }
+        if let list = p.json("words")?.arrayValue {
+            let words = try list.map { w -> Word in
+                guard let text = w["text"]?.stringValue, let s = w["start"]?.doubleValue, let e = w["end"]?.doubleValue, e > s, s >= 0 else {
+                    throw CommandError.invalid("\(id): each word is {text, start, end} with end > start ≥ 0")
+                }
+                return Word(text: text, start: MediaTime(seconds: s), end: MediaTime(seconds: e))
+            }
+            analysis.transcript = Transcript(engine: "synthetic", model: "synthetic", language: "en", words: words)
+        }
         project.assets[i].analysis = analysis
         ctx.project = project
         return ["asset": ProjectState.summary(of: project.assets[i]), "frames": .number(Double(frames)), "matte": .string(matte.path)]

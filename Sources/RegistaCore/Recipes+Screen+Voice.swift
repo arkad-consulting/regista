@@ -23,8 +23,8 @@ extension Recipes {
         ## Steps
         1. Find the take: media_list → the files named session.json (their folder is the take; the newest unless the
            user names one). Ask the format only if unclear: 16:9 for a tutorial, 9:16 for a reel.
-        2. project_new {name, directory: <projectsDirectory from media_list>, width: 1920, height: 1080} for 16:9
-           (no width/height = 1080×1920, a 9:16 reel).
+        2. project_new {name, directory: <projectsDirectory from media_list>, width: 1920, height: 1080, kind:
+           "screen-tutorial"} for 16:9 (no width/height = 1080×1920, a 9:16 reel).
         3. recording_import {path: <the take's folder>, faces: true}. It builds the timeline — Schermo (screen),
            Camera above it, Microfono — in sync, and returns recordingId, assets {screen, camera, mic}, tracks and
            cursorInVideo. A take without camera gets the layout "screen"; without microphone there is no voice
@@ -54,7 +54,7 @@ extension Recipes {
         11. Look: frame_contactSheet {times: [the click times from step 5, plus the start and the end]}. Check: the
             face never covers what is being clicked (move the bubble to another corner for that range), the zoom
             lands on the right element, captions are readable and clear of the face, no black frame. Fix, look again.
-        12. Export: export_render {path: <exportsDirectory>/<name>.mp4, preset: "16:9" | "9:16"} (expect −15 ±0.5
+        12. Export: rules_check first (fix what fails), then export_render {path: <exportsDirectory>/<name>.mp4, preset: "16:9" | "9:16"} (expect −15 ±0.5
             LUFS when there is a voice), export_srt if there are captions, then recording_check {path: <mp4>}
             (sync, face in its box, zoom on the clicks) and project_save.
         13. Another format from the same edit: project_format {preset: "9:16" | "4:5" | "1:1" | "16:9"} lays the
@@ -98,8 +98,8 @@ extension Recipes {
         2. The script: text_read it, or write it with the user. One idea per paragraph (a blank line between
            paragraphs: each becomes one clip and one visual beat). Numbers in words, brand names as they are
            spelled. Show the final text and get a yes before step 4.
-        3. project_new {name, directory: <projectsDirectory from media_list>} (1080×1920; pass width/height for
-           another format).
+        3. project_new {name, directory: <projectsDirectory from media_list>, kind: "voice-over-video"} (1080×1920;
+           pass width/height for another format).
         4. voice_preview {text, language, estimate: true} gives the paragraphs with their length without
            rendering. To let the user hear one first: voice_preview {text, language, paragraph: 0} returns the
            audio file. A name said wrong → voice_lexicon {language, add: {word, say}} and preview that paragraph again.
@@ -132,7 +132,7 @@ extension Recipes {
         10. Look: frame_contactSheet {times: [the start of each voice clip + 0.5]}. Check: every beat has its
             picture, nothing important sits under the caption band or in the top 110 px, text is readable. Fix,
             look again.
-        11. Export: export_render {path: <exportsDirectory>/<name>.mp4, preset: "9:16", loudness: \(Int(LoudnessTarget.integrated))} (the mix is
+        11. Export: rules_check first (fix what fails), then export_render {path: <exportsDirectory>/<name>.mp4, preset: "9:16", loudness: \(Int(LoudnessTarget.integrated))} (the mix is
             brought to −15 LUFS; the result gives the measured loudness and any warning), export_srt, project_save.
 
         Finish with a short report: text said, visuals used per paragraph, where the files are — and remind the

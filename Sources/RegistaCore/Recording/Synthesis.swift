@@ -70,6 +70,19 @@ public struct SyntheticTalkingHead: Sendable {
         self.output = output
         self.matteDirectory = matteDirectory
     }
+
+    /// The head at time t (top-left origin pixels of a W×H frame): centre and size of its ellipse, with a slow sway
+    /// and a small nod. The synthesizer draws it there; media.synthesize writes the face track from it.
+    public static func head(t: Double, W: Double, H: Double) -> (cx: Double, cy: Double, w: Double, h: Double) {
+        let sway = 0.025 * W * sin(t * 1.3), nod = 0.006 * H * sin(t * 2.7 + 0.4)
+        return (W / 2 + sway, 0.43 * H + nod, 0.27 * W, 0.36 * W)
+    }
+
+    /// The face box at time t as a face tracker reports it (eyes to chin, inside the head ellipse), [x, y, w, h].
+    public static func face(t: Double, W: Double, H: Double) -> [Double] {
+        let h = head(t: t, W: W, H: H)
+        return [h.cx - 0.38 * h.w, h.cy - 0.12 * h.h, 0.76 * h.w, 0.55 * h.h]
+    }
 }
 
 /// Encodes a synthetic screen recording (H.264 .mov). Lives in RegistaEngines (Core Graphics + AVFoundation).

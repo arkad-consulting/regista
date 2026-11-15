@@ -23,6 +23,12 @@ let testKitsDirectory: URL = {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tests-kits-\(ProcessInfo.processInfo.processIdentifier)")
     try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     setenv("REGISTA_BRANDKITS", url.path, 1)
+    // The editing-rule sheets (#31) live in `rules/` of the support folder: a scratch one too, unless the app's rig
+    // already set its own (RigIsolation.swift).
+    if (ProcessInfo.processInfo.environment["REGISTA_SUPPORT_DIR"] ?? "").isEmpty {
+        let support = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tests-support-\(ProcessInfo.processInfo.processIdentifier)")
+        setenv("REGISTA_SUPPORT_DIR", support.path, 1)
+    }
     return url
 }()
 

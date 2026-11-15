@@ -16,10 +16,13 @@ final class ExportOptions: ObservableObject {
 
 /// The commands behind Esporta's buttons (the same calls a test replays).
 enum ExportCalls {
-    /// Esporta video…: the mix brought to the house loudness (−15 LUFS, also with music and sound effects in it).
+    /// Esporta video…: the mix brought to the house loudness (−15 LUFS, also with music and sound effects in it). The
+    /// person may always export: the editing rules' check (#31) does not stop this button (the Export card that shows
+    /// the failing rules first is the next step of #31).
     static func render(path: String, preset: String, captions: Bool, bitrate: Double) -> StepCall {
         StepCall(id: "export.render", params: ["path": .string(path), "preset": .string(preset), "captions": .bool(captions),
-                                               "bitrate": .number(bitrate), "loudness": .number(LoudnessTarget.integrated)])
+                                               "bitrate": .number(bitrate), "loudness": .number(LoudnessTarget.integrated),
+                                               "exportAnyway": true])
     }
 }
 

@@ -37,6 +37,7 @@ import Testing
     let s = RigServices.factory()()
     let tmp = FileManager.default.temporaryDirectory.path
     #expect(s.generationState.path.hasPrefix(tmp) && s.profiles.directory.path.hasPrefix(tmp) && s.config.cacheDirectory.hasPrefix(tmp))
+    #expect(s.rules.directory.path.hasPrefix(tmp) && RuleBook.defaultDirectory.path.hasPrefix(tmp))
     #expect(Set(s.generators.keys) == ["comfyui", "higgsfield", "voxcpm"] && s.generators.values.allSatisfy { $0 is RigGenerator })
     #expect(s.comfyServer() == nil)
     for path in [s.config.uv, s.config.comfyGen, s.config.higgsfield ?? "", s.config.voxcpmProject, s.config.blender, s.config.node, s.config.whisperXProject] {
@@ -49,7 +50,7 @@ import Testing
 @MainActor
 @Test func theRigWritesOnlyUnderItsScratchRoot() {
     #expect(RigScratch.outside().isEmpty, "\(RigScratch.outside())")
-    #expect(RigScratch.seams().count == 14)
+    #expect(RigScratch.seams().count == 16)   // with the rule sheets (#31): the rig's and the support folder's
 }
 
 /// A difference in the owner-side listing fails the proof only when the owner's app is not running.

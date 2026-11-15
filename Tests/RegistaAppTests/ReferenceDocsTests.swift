@@ -245,7 +245,7 @@ enum ReferenceDocs {
         "REGISTA_MCP_PROGRESS_INTERVAL": "Seconds between two progress notifications of a long MCP tool call (default 10, at least 0.2).",
         "REGISTA_MEDIA_ROOT": "Extra folders media.list may read, separated by `:` (as regista-mcp's --media-root).",
         "REGISTA_OUTPUT_DIR": "Where projects and exports go when Claude does not say (as regista-mcp's --output-dir).",
-        "REGISTA_SUPPORT_DIR": "Regista's support folder for the engines (default ~/Library/Application Support/Regista), as in scripts/lib.sh.",
+        "REGISTA_SUPPORT_DIR": "Regista's support folder for the engines and the user's editing-rule sheets (`rules/`) (default ~/Library/Application Support/Regista), as in scripts/lib.sh.",
         "REGISTA_TIER": "Force a tier (base, medium, pro) for this process, before engines.json and the RAM.",
         "REGISTA_WESITES_ASSETS": "Folder of the WeSites brand kit's fonts and logo (not in the repository).",
     ]

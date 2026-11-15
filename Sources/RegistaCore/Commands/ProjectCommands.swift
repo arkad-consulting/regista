@@ -47,10 +47,14 @@ enum ProjectNew: Command {
         .optional("width", .integer, "Output width in pixels (default 1080)."),
         .optional("height", .integer, "Output height in pixels (default 1920, vertical 9:16)."),
         .optional("fps", .number, "Timeline frame rate (default 30; 29.97 and 23.976 are understood)."),
+        .optional("kind", .string, "Kind of video, which selects the editing rules: the recipe's name (talking-head-reel, screen-tutorial, voice-over-video, reel-graphics) or a kind of the user's (rules.list). Default: from the format (project.setKind changes it)."),
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         let name = p.requiredString("name").trimmingCharacters(in: .whitespaces)
+        if let kind = p.string("kind"), !ctx.services.rules.kinds.contains(kind) {
+            throw CommandError.notFound("project.new: no kind '\(kind)' (kinds: \(ctx.services.rules.kinds.joined(separator: ", ")))")
+        }
         guard !name.isEmpty, !name.contains("/") else { throw CommandError.invalid("project.new: invalid name '\(name)'") }
         var settings = ProjectSettings()
         if let w = p.int("width") { settings.width = w }
@@ -67,6 +71,7 @@ enum ProjectNew: Command {
             url = folder
         }
         ctx.project = Project(name: name, settings: settings)
+        ctx.project?.kind = p.string("kind")
         ctx.projectURL = url
         ctx.history.reset()
         ctx.dirty = true
@@ -224,6 +229,7 @@ enum ProjectState: Command {
                 ["id": .string(t.id), "kind": .string(t.kind.rawValue), "at": seconds(t.time(in: project)), "duration": seconds(t.duration)]
             }),
             "brand": project.brand.map { .string($0.id) } ?? .null,
+            "kind": .string(ctx.services.rules.kind(of: project).kind), "kindSet": .bool(project.kind != nil),
             "grade": project.grade.map(EffectsJSON.grade) ?? .null,
             "recordings": .array((project.recordings ?? []).map { r in
                 ["id": .string(r.id), "session": .string(r.session), "screen": r.screen.map { .string($0) } ?? .null,

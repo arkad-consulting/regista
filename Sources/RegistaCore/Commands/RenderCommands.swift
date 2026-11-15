@@ -33,7 +33,7 @@ enum Render {
 
 enum ExportRender: Command {
     static let id = "export.render"
-    static let summary = "Render the final video: the timeline to an mp4 with the same compositor frame.render uses (crops/keyframes/grade, captions drawn natively); H.264 High yuv420p 30 fps, faststart, AAC 48 kHz 192 kb/s; preset \"9:16\" for a reel. The sound is the mix of the unmuted audio tracks through a limiter. Returns frames, duration, the measured loudness (expect −15 ±0.5 LUFS, true peak ≤ −1.5) and warnings (e.g. stale captions)."
+    static let summary = "Render the final video: the timeline to an mp4 with the same compositor frame.render uses (crops/keyframes/grade, captions drawn natively); H.264 High yuv420p 30 fps, faststart, AAC 48 kHz 192 kb/s; preset \"9:16\" for a reel. The sound is the mix of the unmuted audio tracks through a limiter. It runs rules.check first and refuses while a rule of the project's kind fails, with the list and the fixes (rules.fix {all: true} applies the safe ones). Returns frames, duration, the measured loudness (expect −15 ±0.5 LUFS, true peak ≤ −1.5), the rule check and warnings (e.g. stale captions)."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [
         .required("path", .string, "Output .mp4."),
@@ -42,12 +42,23 @@ enum ExportRender: Command {
         .optional("bitrate", .number, "Video bit rate, Mb/s (default 14)."),
         .optional("ceiling", .number, "True-peak ceiling of the mix, dBTP (default \(LoudnessTarget.text(LoudnessTarget.truePeak)))."),
         .optional("loudness", .number, "Integrated loudness target of the final mix, LUFS (e.g. -15 once music and SFX are added): the mix is measured and re-made with one static gain before the limiter. Default: no correction (the voice is already at -15)."),
+        .optional("exportAnyway", .boolean, "Export although an editing rule fails. Only when the user said to export anyway, after being told what fails; never on your own."),
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         let project = try ctx.requireProject()
         let renderer = try Render.renderer(ctx, command: id)
         guard project.duration > .zero else { throw CommandError.conflict("\(id): the timeline is empty") }
+        // The editing rules (#31): no delivery while a check fails, unless the person said to export anyway.
+        let rules = RuleCheck.run(project, book: ctx.services.rules, language: RuleBook.interfaceLanguage(), renderer: renderer)
+        let anyway = p.bool("exportAnyway") == true
+        if !rules.pass && !anyway {
+            let failures = rules.failures
+            throw CommandError.conflict("\(id): the edit breaks \(failures.count) editing rule\(failures.count == 1 ? "" : "s") of its kind (\(rules.kind)):\n"
+                + failures.map { "- " + $0.line }.joined(separator: "\n")
+                + "\nFix them first — rules.fix {all: true} applies every safe fix in one undo step; the others need an edit — then export "
+                + "again. Pass exportAnyway: true only if the user, told what fails, said to export anyway.")
+        }
         let preset = ExportPreset.named(p.string("preset"), project: project)
         let job = RenderJob(project: project, preset: preset, captions: p.bool("captions") ?? true)
         let output = try Render.output(p.requiredString("path"), command: id)
@@ -86,6 +97,8 @@ enum ExportRender: Command {
             "duration": ProjectState.seconds(project.duration), "audioClips": .number(Double(clips.count)),
             "captions": .bool(job.captions != nil), "seconds": Analysis.seconds(Date().timeIntervalSince(started), places: 10),
             "warnings": .array(Render.warnings(job, project)),
+            "rules": ["kind": .string(rules.kind), "pass": .bool(rules.pass), "exportedAnyway": .bool(anyway && !rules.pass),
+                      "violations": .array(rules.violations.map(\.json))],
         ]
         // EU AI Act art. 50: a cloned voice in the video must be disclosed where it is published.
         let voiceAssets = Set(project.assets.filter { $0.generated?.kind == .voice }.map(\.id))

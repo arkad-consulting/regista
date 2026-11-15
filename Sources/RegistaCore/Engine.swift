@@ -122,7 +122,13 @@ public enum Commands {
         CaptionsPlace.self, ClipPlace.self, FrameElements.self, MediaCheckPlacement.self, VoiceList.self,
         ProfileGet.self, ProfileCreate.self, ProfileSwitch.self, ProfileAdopt.self, ProfileDelete.self,
         VoiceEnrollScript.self, VoiceEnrollAdd.self, VoiceEnrollStatus.self, VoiceEnrollTrain.self, VoiceSay.self, VoicePreview.self, VoiceLexiconCommand.self,
-    ] + effects
+    ] + effects + rules
+
+    /// Editing rules (#31).
+    static let rules: [any Command.Type] = [
+        RulesList.self, RulesGet.self, RulesSet.self, RulesReset.self, RulesAddKind.self, RulesRemoveKind.self, ProjectSetKind.self,
+        RulesCheck.self, RulesFix.self, CaptionsClear.self,
+    ]
 
     /// Effects for users (issue #16).
     static let effects: [any Command.Type] = [

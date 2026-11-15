@@ -17,7 +17,9 @@ Green only when, for Sources/Regista:
      translation (so `loc` may run twice on a text: Words.swift);
   5. the engine manifest's user-facing phrases (scripts/engines.manifest.json: names, prose licences,
      unlocks, install steps) are in every
-     table too, keyed by their English text (Impostazioni › Motori looks them up, #84).
+     table too, keyed by their English text (Impostazioni › Motori looks them up, #84);
+  6. the editing rules' phrases (every `rulePhrase("…")` in Sources/RegistaCore/Rules: sheet and check titles, check
+     messages, fixes, header problems) are in every table too, keyed by their English text (#31).
 Not UI, so not checked: lines marked `// l10n-ignore`, blocks between `// l10n-ignore-begin` and `// l10n-ignore-end`
 (sample data for renders, engine replies to agents), Debug/, command ids, SF Symbol names, user-defaults keys, and
 literals that are only format specifiers, numbers and units.
@@ -174,6 +176,16 @@ def manifest_phrases():
     return out
 
 
+def rule_phrases():
+    """The editing rules' phrases (#31): the English texts the engine returns as message keys for the interface."""
+    out = {}
+    for f in sorted(glob.glob(os.path.join(ROOT, 'Sources/RegistaCore/Rules/*.swift'))):
+        for n, line in enumerate(open(f, encoding='utf-8'), 1):
+            for m in re.finditer(r'rulePhrase\(\s*"((?:[^"\\]|\\.)*)"', line):
+                out.setdefault(unescape(m.group(1)), f'{os.path.relpath(f, ROOT)}:{n}')
+    return out
+
+
 def placeholders(s):
     return sorted(re.sub(r'\d+\$', '', p) for p in PLACEHOLDER.findall(s) if p != '%%')
 
@@ -182,6 +194,8 @@ def main():
     tables = {l: read_table(l) for l in LANGS}
     keys, problems = scan()
     for k, w in manifest_phrases().items():
+        keys.setdefault(k, w)
+    for k, w in rule_phrases().items():
         keys.setdefault(k, w)
     if '--todo' in sys.argv:
         lang = sys.argv[sys.argv.index('--todo') + 1]

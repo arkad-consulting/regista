@@ -29,6 +29,9 @@ public struct Project: Codable, Hashable, Sendable {
     /// Look and adjustments for the whole picture (look.apply / adjust.set without a clip): applied to every video and
     /// image layer that has no grade of its own; titles, stickers and callouts keep their colours. Keys: timeline time.
     public var grade: Grade?
+    /// Kind of video (a recipe id or a kind of the user's own, #31): selects the rule sheet. nil (projects made before
+    /// kinds existed, or never set): the kind follows the format (`RuleBook.kind(of:)`).
+    public var kind: String?
     /// Next serial per id prefix: ids stay short, stable and predictable ("c3").
     var idCounters: [String: Int] = [:]
 

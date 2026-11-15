@@ -99,9 +99,11 @@ private func request(_ method: String, _ params: JSONValue = [:], id: JSONValue 
                  "frame_contactSheet", "export_render", "export_srt", "export_mlt", "−15 LUFS", "Claude Code"] {
         #expect(text.contains(step), "recipe lacks \(step)")
     }
-    // The same text is a tool for clients that do not show prompts to the model.
-    let tool = try #require(s.handle(request("tools/call", ["name": "recipe_get", "arguments": ["name": "talking-head-reel"]])))
-    #expect(tool.value(at: "result.structuredContent.text")?.stringValue == Recipes.talkingHeadReel.text())
+    // The same text is a tool for clients that do not show prompts to the model, followed by the editing rules (#31).
+    let tool = try #require(s.handle(request("tools/call", ["name": "recipe_get", "arguments": ["name": "talking-head-reel", "language": "en"]])))
+    let toolText = try #require(tool.value(at: "result.structuredContent.text")?.stringValue)
+    #expect(toolText.hasPrefix(Recipes.talkingHeadReel.text() + "\n\n# Editing rules (talking-head-reel)"))
+    #expect(toolText.contains("# For every video") && toolText.contains("# Talking-head reel") && toolText.contains("logo-pause (0.3 s)"))
 
     #expect(s.handle(request("prompts/get", ["name": "nope"]))?.value(at: "error.code") == -32602)
     #expect(s.handle(request("prompts/get"))?.value(at: "error.code") == -32602)

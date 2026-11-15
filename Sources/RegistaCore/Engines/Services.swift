@@ -224,6 +224,9 @@ public struct EngineServices {
     /// Voice profiles (#41): `~/Library/Application Support/Regista/profiles` in the standard set; a throwaway folder
     /// otherwise, so tests never see a real voice.
     public var profiles = ProfileStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent("regista-profiles-\(UUID().uuidString.prefix(8))"))
+    /// The editing-rule sheets (#31): `rules/` of the support folder in the standard set (`RuleBook.defaultDirectory`); a
+    /// throwaway folder otherwise, so tests never write the user's sheets.
+    public var rules = RuleBook(directory: FileManager.default.temporaryDirectory.appendingPathComponent("regista-rules-\(UUID().uuidString.prefix(8))"))
     /// The host's Cancel for waited-for generation runs (the app's jobs engine has one; nil elsewhere).
     public var cancellation: GenerationCancellation?
     /// The local ComfyUI server's node list (`/object_info`; nil when it is off), read by generate.check and before a
@@ -259,6 +262,7 @@ public struct EngineServices {
         for g in generators { s.generators[g.id] = g }
         s.generationState = Generation.defaultStateDirectory
         s.profiles = ProfileStore(directory: ProfileStore.defaultDirectory)
+        s.rules = RuleBook(directory: RuleBook.defaultDirectory)
         return s
     }
 

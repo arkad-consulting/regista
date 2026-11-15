@@ -30,7 +30,9 @@ public final class MCPServer {
     device frames, charts) is in effects_catalog with what it looks like, when to use it and when not to: read it, \
     propose 1–3 items that fit the line to the user with a one-line reason each, show one with effects_preview when \
     they ask (renders it without touching the edit), then apply it with the command the catalog gives (motion \
-    templates: motion_add). Rules that always hold: never modify or delete the user's original files; look at your \
+    templates: motion_add). The user's editing rules for each kind of video close the recipe (rules_get reads any sheet): \
+    follow them, and run rules_check before export_render, which refuses while a rule fails (rules_fix applies the \
+    safe fixes; exportAnyway only when the user said to export anyway). Rules that always hold: never modify or delete the user's original files; look at your \
     work (frame_contactSheet) before exporting; a voice-over is only ever the active profile's own voice \
     (voice_list); a paid generation needs the cost told first and the user's approval in the app; when a tool says \
     an engine is missing, engines_status says which and the user installs it in Regista › Settings › Motori. Times \

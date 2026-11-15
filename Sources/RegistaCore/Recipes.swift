@@ -51,7 +51,8 @@ public enum Recipes {
         1. Find the material: media_list (footage = kind "video", script = the .md/.txt next to it); text_read the
            script to know what was meant to be said (names, numbers, the hook). media_list also says where to
            save: projectsDirectory for the project, exportsDirectory for the mp4 / srt / mlt.
-        2. project_new {name, directory: <projectsDirectory>} (default 1080×1920, 30 fps), then media_import the take.
+        2. project_new {name, directory: <projectsDirectory>, kind: "talking-head-reel"} (default 1080×1920, 30 fps),
+           then media_import the take.
         3. media_extractAudio → transcript_run {language: "it" | "fr" | "en" | "pt"} (word timings; cached). Captions follow
            the transcript language: its stop words (a chunk never ends on an article, preposition or conjunction —
            captions_get reports any in stopWordEnds) and how numbers are written (French: "10", "9,2", "11 000", "20 %").
@@ -97,7 +98,7 @@ public enum Recipes {
             word is spelled right (names!); keyword boxes are on meaningful words; no black or frozen frames;
             no "stale captions" warning. Fix what is wrong (takes_select / transcript_deleteWords for a stumble
             or repeated word, captions_setKeywords, captions_generate with fixes, edit_punchIns) and look again.
-        12. Export: export_render {path: <exportsDirectory>/<name>.mp4, preset: "9:16"} (check frames, duration and
+        12. Export: rules_check first (fix what fails), then export_render {path: <exportsDirectory>/<name>.mp4, preset: "9:16"} (check frames, duration and
             loudness in the result: −15 ±0.5 LUFS, true peak ≤ −1.5), export_srt {path: …/<name>.srt},
             export_mlt {path: …/<name>.mlt} (Shotcut project), then project_save.
         13. Verify the file: captions_checkTiming {path: <mp4>} (pass, words on their frame, band inside),
@@ -167,8 +168,9 @@ extension Recipes {
            (hook, hookLight, question, kicker, card, stat, chipOK, chipWarn, word), colour roles (primary, ink, paper,
            accent, success, highlight) and font roles (display, text, mono), and recolours the captions (keyword box =
            highlight). Re-run it after captions_generate, or any time to switch kit: preset titles and the logo follow.
-           Brand logo: logo_add {} (the kit's corner, inside the safe area, the whole reel) or {start, duration} for a
-           closing card; brandkit_check verifies keyword colour, logo zone and fonts on a rendered frame.
+           Brand logo: only as a closing card at the end, logo_add {start: <last word's end + 0.4>, duration} — never at
+           the start, never the whole reel in a corner (the editing rules check it); brandkit_check verifies keyword
+           colour, logo zone and fonts on a rendered frame.
         2. Read the transcript (transcript_timeline) and pick the beats: the hook word, each number, the product
            name, the call to action. Graphics land ON the word (title start = word start, ±1 frame).
         3. Hook (0–4 s): one title. graphics_blenderTitle {line1, line2, start: 0, duration: 4, scale: 0.85} for a real
@@ -226,10 +228,10 @@ extension Recipes {
            underline / box / highlight): on the thing the voice names, one at a time; tutorials: on clicks.
            progress_add for tutorials and lists. glitch: a few frames on a hard cut, never a sentence. chromaKey
            only for real green-screen overlays.
-           Logo (logo_animate): a sting at the very end (outro) or within the first second — long logo intros and a
-           spinning logo on every cut are out of fashion. The outro starts after the last spoken word and its
-           caption hold (pass start: the last word's end + 0.5 s, extend the picture or let it end on black): the
-           closing frame carries the logo alone, never a caption, a header title or a card over the last line. Beat sync (edit_beatSync, needs a music bed): punches on
+           Logo (logo_animate): a sting at the very end only (outro) — logo intros and a spinning logo on every cut
+           are out. The outro starts after the last spoken word with 0.3–0.6 s of clean picture (pass start: the last
+           word's end + 0.4 s, extend the picture or let it end on black): the closing frame carries the logo alone,
+           never a caption, a header title or a card over the last line. Beat sync (edit_beatSync, needs a music bed): punches on
            the downbeats of one section, not on every beat of the reel.
            One-click styles (style_apply energico / pulito / tutorial) bundle these moves as one undo step: use one
            as a starting point when the user asks for "a style", then tune.
@@ -242,7 +244,7 @@ extension Recipes {
         9. Look: frame_contactSheet {times: [the graphics beats]} and frame_render on each card's first frame. Check:
            nothing in the caption band (y 1230–1460), nothing above y 110, below y 1540 or in the right 120 px;
            text readable (≥ 28 px), no card over the mouth, no two cards at once, no gimmicks.
-        10. Checks: graphics_checkLayout (pass = caption band clean), export_render {path, preset: "9:16",
+        10. Checks: graphics_checkLayout (pass = caption band clean), rules_check (fix what fails), export_render {path, preset: "9:16",
             loudness: −15} (−15 ±1 LUFS, true peak ≤ −1.5), audio_checkDucking (music ≥ 15 dB under the voice),
             sfx_checkOnsets {path} (every effect within 1 frame), media_checkOverlay {path, trackId: <inserts>}
             (inserts exactly in their windows), captions_checkTiming, effects_check {path} (every effect visible in
@@ -289,16 +291,18 @@ extension Recipes {
 
 enum RecipeGet: Command {
     static let id = "recipe.get"
-    static let summary = "Read this before making any video: the step-by-step recipe and the house rules for a kind of video — talking-head-reel (a person speaking to camera), screen-tutorial (a screen recording made in Regista, with or without the face), voice-over-video (no one on camera: the user's cloned voice over footage, stills and graphics), reel-graphics (titles, cards, sound effects and music on top of an edit). Without name, lists the recipes with what each is for: call it first and pick. Returns {name, title, text}."
+    static let summary = "Read this before making any video: the step-by-step recipe and the house rules for a kind of video — talking-head-reel (a person speaking to camera), screen-tutorial (a screen recording made in Regista, with or without the face), voice-over-video (no one on camera: the user's cloned voice over footage, stills and graphics), reel-graphics (titles, cards, sound effects and music on top of an edit). Without name, lists the recipes with what each is for: call it first and pick. The text ends with the editing rules of that kind of video (the user's rule sheets: they always hold, and export.render refuses while one of their checks fails). Returns {name, title, text, kind}."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [
         .optional("name", .oneOf(Recipes.all.map(\.name)), "Recipe: \(Recipes.all.map(\.name).joined(separator: ", "))."),
+        Rules.languageParam,
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         guard let name = p.string("name"), let r = Recipes.named(name) else {
             return ["recipes": .array(Recipes.all.map { ["name": .string($0.name), "title": .string($0.title), "description": .string($0.description)] })]
         }
-        return ["name": .string(r.name), "title": .string(r.title), "text": .string(r.text())]
+        let rules = ctx.services.rules.briefing(r.name, language: Rules.language(p))
+        return ["name": .string(r.name), "title": .string(r.title), "text": .string(r.text() + "\n\n" + rules), "kind": .string(r.name)]
     }
 }

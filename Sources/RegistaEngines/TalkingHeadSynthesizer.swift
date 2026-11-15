@@ -77,9 +77,7 @@ extension CGScreenSynthesizer {
 
     /// Head and shoulders at time t (top-left origin pixels): a slow sway and a small nod.
     static func person(t: Double, W: Double, H: Double) -> (body: CGPath, neck: CGPath, head: CGPath, hair: CGPath, eyes: [CGRect]) {
-        let sway = 0.025 * W * sin(t * 1.3), nod = 0.006 * H * sin(t * 2.7 + 0.4)
-        let cx = W / 2 + sway, headY = 0.43 * H + nod
-        let hw = 0.27 * W, hh = 0.36 * W
+        let (cx, headY, hw, hh) = SyntheticTalkingHead.head(t: t, W: W, H: H)
         let head = CGPath(ellipseIn: CGRect(x: cx - hw / 2, y: headY - hh / 2, width: hw, height: hh), transform: nil)
         let hair = CGMutablePath()
         hair.addEllipse(in: CGRect(x: cx - hw * 0.53, y: headY - hh * 0.58, width: hw * 1.06, height: hh * 0.5))

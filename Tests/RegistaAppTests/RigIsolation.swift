@@ -132,6 +132,7 @@ enum RigServices {
                           WhisperXTranscriber.engineID: FixtureTranscriber(id: WhisperXTranscriber.engineID)]
         s.profiles = ProfileStore(directory: folder.appendingPathComponent("profiles", isDirectory: true))
         s.generationState = folder.appendingPathComponent("generation", isDirectory: true)
+        s.rules = RuleBook(directory: folder.appendingPathComponent("rules", isDirectory: true))
         s.generators = [:]
         for g in [ComfyUIProvider(config: s.config), HiggsfieldProvider(config: s.config),
                   VoxCPMProvider(config: s.config, profiles: s.profiles)] as [GeneratorProvider] {
@@ -378,6 +379,7 @@ enum RigScratch {
         return [
             ("Regista's folder", Paths.root), ("recordings", Paths.recordings),
             ("support folder (budget, approvals)", s.generationState), ("voice profiles", s.profiles.directory),
+            ("rule sheets", s.rules.directory), ("rule sheets of the support folder", RuleBook.defaultDirectory),
             ("caches", URL(fileURLWithPath: EngineConfig.expand(s.config.cacheDirectory))),
             ("engines.json", EngineConfig.defaultFile), ("engines folder", EngineCatalog.enginesDirectory),
             ("brand kits", BrandKit.userDirectory),

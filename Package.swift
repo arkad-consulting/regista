@@ -8,8 +8,12 @@ let package = Package(
         // Pure logic (timeline model, script aligner, cutting): no UI, fully testable.
         // The engine manifest and the download lock (symlinks to scripts/) are compiled in: one source of truth for the
         // installer, the app and the docs, with nothing to find at run time.
+        // The default editing-rule sheets (#31), one per kind and interface language, are compiled in too.
         .target(name: "RegistaCore", resources: [.embedInCode("Engines/Manifest/engines.manifest.json"),
-                                                 .embedInCode("Engines/Manifest/engines.lock")]),
+                                                 .embedInCode("Engines/Manifest/engines.lock")]
+                    + ["every-video", "talking-head-reel", "screen-tutorial", "voice-over-video", "reel-graphics"].flatMap { kind in
+                        ["it", "en", "fr", "pt"].map { Resource.embedInCode("Rules/Sheets/\(kind).\($0).md") }
+                    }),
         // The start prompt for Claude (handoff/START-PROMPT.md, a symlink) is compiled in for Impostazioni › Claude.
         .executableTarget(name: "Regista", dependencies: ["RegistaCore", "RegistaEngines", "RegistaMCP"],
                           resources: [.embedInCode("Resources/START-PROMPT.md")]),
