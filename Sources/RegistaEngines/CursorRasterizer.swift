@@ -25,12 +25,23 @@ final class CursorSprites: @unchecked Sendable {
         var cursor = kind.nsCursor
         if cursor.image.size.width < 1 {
             // Headless (regista-engine): the system cursors (arrow, I-beam) load only once the app object exists.
-            _ = NSApplication.shared
+            Self.ensureApplication()
             cursor = kind.nsCursor
         }
         let sprite = Self.render(cursor, size: size) ?? Self.vectorArrow(size: size)
         cache[key] = sprite
         return sprite
+    }
+
+    /// The app object, made on the main thread. Made on another thread first, AppKit's main event queue belongs to
+    /// that thread, and the first event the main thread asks for afterwards traps (a render of a cursor on a worker
+    /// thread, then a click in a text field: the process died). A headless tool whose main thread is busy and never
+    /// asks for events gets it here after a short wait, as before.
+    static func ensureApplication(wait: TimeInterval = 3) {
+        if Thread.isMainThread { _ = NSApplication.shared; return }
+        let made = DispatchSemaphore(value: 0)
+        DispatchQueue.main.async { _ = NSApplication.shared; made.signal() }
+        if made.wait(timeout: .now() + wait) == .timedOut { _ = NSApplication.shared }
     }
 
     static func context(_ w: Int, _ h: Int) -> CGContext? {
