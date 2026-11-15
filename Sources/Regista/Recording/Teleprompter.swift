@@ -782,7 +782,21 @@ struct PrompterEditorView: View {
     /// Whether this Mac recognizes the chosen language on device (nil while checking).
     @State private var support: LiveSpeechSession.OnDeviceSupport?
 
+    /// The script editor's height when the panel is short; with room to spare it grows to fill the panel.
+    static let editorMin: CGFloat = 160
+
+    // The panel scrolls inside the height the right panel gets (#41): at the window's minimum size the script, the
+    // settings and the buttons are taller than it.
     var body: some View {
+        GeometryReader { g in
+            ScrollView {
+                content.frame(minHeight: g.size.height, alignment: .top)
+            }
+        }
+        .task(id: p.language) { support = await LiveSpeechSession.onDeviceSupport(for: PrompterLanguage.locale(p.language)) }
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: Ed.Space.l) {
                 Text(verbatim: String(format: loc("%d frasi · %d parole · circa %d min"), p.prompt.sentences.count,
@@ -794,7 +808,7 @@ struct PrompterEditorView: View {
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
 
-                RTextEditor(text: $p.text, kind: .scrolls(min: 120, max: .infinity), size: Ed.TypeSize.title)
+                RTextEditor(text: $p.text, kind: .scrolls(min: Self.editorMin, max: .infinity), size: Ed.TypeSize.title)
 
                 RSection(loc("Scorrimento")) {
                     RSegmented(items: TeleprompterController.Mode.allCases.map { ($0, $0.label) }, selection: $p.mode,
@@ -839,10 +853,10 @@ struct PrompterEditorView: View {
                 }
                 Text(verbatim: loc("Spazio, frecce e pedale o telecomando guidano il gobbo quando è in uso."))
                     .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(Ed.Space.l)
         }
-        .task(id: p.language) { support = await LiveSpeechSession.onDeviceSupport(for: PrompterLanguage.locale(p.language)) }
     }
 
     private var supportNote: (text: String, warning: Bool)? {

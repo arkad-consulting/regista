@@ -15,7 +15,7 @@ struct TipContent: Equatable {
     var isEmpty: Bool { text.isEmpty && shortcut == nil }
 
     /// Through the app's Localizable.strings (Italian keys, like every UI literal; unknown texts stay as they are).
-    func localized(_ bundle: Bundle = .main) -> TipContent {
+    func localized(_ bundle: Bundle = Words.table) -> TipContent {
         TipContent(bundle.localizedString(forKey: text, value: text, table: nil),
                    shortcut: shortcut.map { bundle.localizedString(forKey: $0, value: $0, table: nil) })
     }

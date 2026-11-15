@@ -49,9 +49,22 @@ final class MouseRig {
         NSApp.accessibilitySetValue(true, forAttribute: NSAccessibility.Attribute(rawValue: "AXEnhancedUserInterface"))
     }
 
-    init<V: View>(_ view: V, size: CGSize) {
+    /// Whether this rig set the words' language (it puts it back on close).
+    private var speaks = false
+
+    /// `language` (it, en, fr, pt): the window's views read their words in that language; nil, in the test process's own
+    /// (the Italian keys). The language holds while the rig is open, for the code the window runs (SwiftUI's updates, the
+    /// main queue's blocks) and the test that hosts it; the other tests running beside it keep the Italian keys
+    /// (`Test.current` tells them apart: SwiftUI's work runs outside every test's task).
+    init<V: View>(_ view: V, size: CGSize, language: String? = nil) {
         Self.reportActive()
         self.size = size
+        if let language {
+            let test = Test.current?.id
+            Words.override = Self.table(language)
+            Words.applies = { Test.current == nil || Test.current?.id == test }
+            speaks = true
+        }
         let host = NSHostingView(rootView: view)
         host.frame = CGRect(origin: .zero, size: size)
         window = RigWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
@@ -68,6 +81,14 @@ final class MouseRig {
         pump(0.1)
     }
 
+    /// The app's words in `language`: Resources/Localization/<language>.lproj.
+    nonisolated static func table(_ language: String) -> Bundle {
+        let dir = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Resources/Localization/\(language).lproj")
+        guard let bundle = Bundle(path: dir.path) else { fatalError("no table for \(language) at \(dir.path)") }
+        return bundle
+    }
+
     func close() {
         if let sheet = window.attachedSheet {
             window.endSheet(sheet)
@@ -75,6 +96,11 @@ final class MouseRig {
         }
         window.orderOut(nil)
         window.contentView = nil
+        if speaks {
+            Words.override = nil
+            Words.applies = nil
+            speaks = false
+        }
     }
 
     /// Mouse suites of other files run beside this one and their rigs take the key window at their turn: the window
@@ -234,6 +260,26 @@ final class MouseRig {
     }
 
     /// A scroll-wheel turn at a point (positive `dy` scrolls the content down, as a trackpad swipe up does).
+    /// Scrolls the scroll view under `p` by `dy` points (positive: towards its end), as the wheel would, and says whether
+    /// it moved. A synthetic wheel event does not move a SwiftUI scroll view in this window, which lies outside every
+    /// display (tried: pixel, line and phased events, sent through the window and to the scroll view itself), so the
+    /// scroll view's own clip view is moved, within its content.
+    @discardableResult
+    func scrollContent(at p: CGPoint, by dy: CGFloat) -> Bool {
+        var v = viewAt(p)
+        while let x = v, !(x is NSScrollView) { v = x.superview }
+        guard let sv = v as? NSScrollView, let doc = sv.documentView else { return false }
+        let clip = sv.contentView
+        let maxY = max(0, doc.frame.height - clip.bounds.height)
+        let from = clip.bounds.origin.y
+        let to = min(max(from + (doc.isFlipped ? dy : -dy), 0), maxY)
+        guard abs(to - from) > 0.5 else { return false }
+        clip.scroll(to: NSPoint(x: clip.bounds.origin.x, y: to))
+        sv.reflectScrolledClipView(clip)
+        pump(0.05)
+        return true
+    }
+
     func scroll(at p: CGPoint, dx: Int32 = 0, dy: Int32, modifiers: NSEvent.ModifierFlags = []) {
         guard let cg = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2, wheel1: -dy, wheel2: -dx, wheel3: 0) else { return }
         let screen = window.convertPoint(toScreen: CGPoint(x: p.x, y: size.height - p.y))

@@ -205,7 +205,9 @@ final class AppRig {
     }
 
     /// The editor window at a navigation state, on the tab on screen (another tab selected rebuilds it, as in the app).
-    func hostEditor(_ nav: Navigation, size: CGSize = CGSize(width: 1440, height: 900), env: @escaping (AnyView) -> AnyView = { $0 }) {
+    /// `language`: the window's words in that language (MouseRig), nil for the Italian keys.
+    func hostEditor(_ nav: Navigation, size: CGSize = CGSize(width: 1440, height: 900), language: String? = nil,
+                    env: @escaping (AnyView) -> AnyView = { $0 }) {
         store.nav = nav
         let meter = meter, recorder = recorder
         let root = ActiveTab(bench: store.bench) { s in
@@ -213,7 +215,7 @@ final class AppRig {
                 .environmentObject(s).environmentObject(s.preview).environmentObject(s.preview.playhead)
                 .environmentObject(s.media).environmentObject(meter).environmentObject(recorder)))
         }
-        mount(root, size: size)
+        mount(root, size: size, language: language)
     }
 
     /// Any view with the editor's environment.
@@ -223,8 +225,8 @@ final class AppRig {
             .environmentObject(store.media).environmentObject(meter).environmentObject(recorder))), size: size)
     }
 
-    private func mount<V: View>(_ root: V, size: CGSize) {
-        rig = MouseRig(Resettable(reset: reset, content: root.environment(\.pasteboard, rigPasteboard)), size: size)
+    private func mount<V: View>(_ root: V, size: CGSize, language: String? = nil) {
+        rig = MouseRig(Resettable(reset: reset, content: root.environment(\.pasteboard, rigPasteboard)), size: size, language: language)
         // The editor's window, as the live window sets it (the keyboard monitor and the panels look for it).
         store.ui.window = rig.window
         rig.pump(0.3)

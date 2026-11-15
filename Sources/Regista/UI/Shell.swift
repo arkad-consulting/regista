@@ -68,12 +68,15 @@ struct EditorRoot: View {
                     if sideShown || !live {
                         // Above the main area (#33): a level wider than the main area overflows it, and `clipped` clips
                         // its drawing, not its hit testing: drawn first, the panels lost their clicks to the overflow.
-                        SidePanel().frame(width: side).environment(\.sidePanelWidth, side).zIndex(1)
+                        // The panels keep the height they are given (#41): a tab taller than it scrolls, and anything
+                        // still taller goes on below, clipped, never pushing the panel's header up.
+                        SidePanel().frame(width: side, height: g.size.height, alignment: .top).clipped()
+                            .environment(\.sidePanelWidth, side).zIndex(1)
                         Splitter(orientation: .vertical, stored: $sideWidth, current: side, range: range, thickness: 0)
                     }
                     MainArea().frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity).clipped()
                     if rightShown || !live {
-                        RightPanel().frame(width: Chrome.rightWidth).zIndex(1)
+                        RightPanel().frame(width: Chrome.rightWidth, height: g.size.height, alignment: .top).clipped().zIndex(1)
                     }
                 }
                 .frame(width: g.size.width, height: g.size.height)

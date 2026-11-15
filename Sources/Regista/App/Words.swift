@@ -16,7 +16,21 @@ import Foundation
 // through a control again unchanged.
 
 /// The text of `key` in the app's language (the key itself when the table has no entry).
-func loc(_ key: String) -> String { Bundle.main.localizedString(forKey: key, value: key, table: nil) }
+func loc(_ key: String) -> String { Words.table.localizedString(forKey: key, value: key, table: nil) }
+
+/// Where `loc` and the tooltips read their words: the app's own tables. A test lays a window out in another language by
+/// setting `override` while that window is hosted (MouseRig), with `applies` saying which callers read it (the window's
+/// views, not the other tests running beside it); it is read on the main thread only, so every other thread keeps the
+/// app's language.
+enum Words {
+    nonisolated(unsafe) static var override: Bundle?
+    nonisolated(unsafe) static var applies: (() -> Bool)?
+
+    static var table: Bundle {
+        guard let o = override, Thread.isMainThread, applies?() ?? true else { return .main }
+        return o
+    }
+}
 
 /// A format key filled with `args` (`%@` placeholders take strings: format numbers before, `shortTime`, `"\(n)"`).
 func loc(_ format: String, _ args: CVarArg...) -> String {

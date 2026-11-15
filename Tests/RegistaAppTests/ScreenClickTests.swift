@@ -229,10 +229,12 @@ extension MouseSuites.ClickAudits {
         ])
     }
 
-    @Test(arguments: Navigation.RightTab.allCases)
-    func rightPanel(_ tab: Navigation.RightTab) async throws {
+    /// The right panel's tabs at the default and the minimum window size (#41: the tab scrolls inside the panel there).
+    @Test(arguments: Navigation.RightTab.allCases, [RigWindowSize.standard, .minimum])
+    func rightPanel(_ tab: Navigation.RightTab, _ window: RigWindowSize) async throws {
         // "Ascolta e segui" listens through the capture stand-in: no microphone, no speech recognition.
-        _ = try await audit("right-\(tab.rawValue)", Navigation(activity: .media, rightTab: tab), area: WindowPart.right, noOps: [
+        let name = "right-\(tab.rawValue)" + (window.width == RigWindowSize.standard.width ? "" : "-\(window.testDescription)")
+        _ = try await audit(name, Navigation(activity: .media, rightTab: tab), size: window.size, area: RenderParts.right(window.size), noOps: [
             "Gobbo": alreadyCurrent, "Claude": alreadyCurrent, "Ispettore": alreadyCurrent, "Français": alreadyCurrent,
             "Ricomincia": "scrolls the teleprompter's own window back to the top: that window is hidden here (Mostra il gobbo is clicked on its own)",
         ])
@@ -303,9 +305,11 @@ extension MouseSuites.ClickAudits {
         #expect(app.commands(since: n).contains("sfx.add"), "the row's + did not add the sound (\(app.commands(since: n)))")
     }
 
-    /// The Ispettore with the take selected: its sections for a clip.
-    @Test func inspectorOnAClip() async throws {
-        _ = try await audit("right-inspector-clip", Navigation(activity: .media, rightTab: .inspector), area: WindowPart.right,
+    /// The Ispettore with the take selected: its sections for a clip, at the default and the minimum window size (#41).
+    @Test(arguments: [RigWindowSize.standard, .minimum])
+    func inspectorOnAClip(_ window: RigWindowSize) async throws {
+        let name = "right-inspector-clip" + (window.width == RigWindowSize.standard.width ? "" : "-\(window.testDescription)")
+        _ = try await audit(name, Navigation(activity: .media, rightTab: .inspector), size: window.size, area: RenderParts.right(window.size),
                             noOps: ["Ispettore": alreadyCurrent], setup: { app in
             app.store.selection = [app.clips.first { $0.assetID == "a1" }?.id ?? ""]
         })
