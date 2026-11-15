@@ -44,6 +44,22 @@ import Testing
     }
 }
 
+/// Every seam the rig writes through resolves under the scratch root of the test process (the hard part of the proof of
+/// the click audits, also checked around them).
+@MainActor
+@Test func theRigWritesOnlyUnderItsScratchRoot() {
+    #expect(RigScratch.outside().isEmpty, "\(RigScratch.outside())")
+    #expect(RigScratch.seams().count == 14)
+}
+
+/// A difference in the owner-side listing fails the proof only when the owner's app is not running.
+@Test func anOwnerSideDifferenceFailsOnlyWithoutTheOwnersApp() {
+    #expect(OwnerSideVerdict.decide(changes: [], ownersAppRunning: false) == .same)
+    #expect(OwnerSideVerdict.decide(changes: [], ownersAppRunning: true) == .same)
+    #expect(OwnerSideVerdict.decide(changes: ["/a 1 2"], ownersAppRunning: false) == .failure(["/a 1 2"]))
+    #expect(OwnerSideVerdict.decide(changes: ["/a 1 2"], ownersAppRunning: true) == .ownersAppMayHaveWritten(["/a 1 2"]))
+}
+
 /// A generation in the rig: the free one fails with the stand-in's message, the paid one is priced without its CLI and,
 /// once approved, starts nothing either; the budget and the approvals are the scratch ones.
 @MainActor

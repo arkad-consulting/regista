@@ -361,20 +361,90 @@ enum OwnerSide {
     }
 }
 
-/// Wraps the click audits of whole screens (#35): the owner-side listing is the same after them as before, no process
-/// was refused, the general pasteboard and the Trash were not written.
+/// Every place the rig can write to, seam by seam (#35): each must resolve under the scratch root of the test process
+/// (its temporary folder). This is the hard part of the proof: it holds whatever else runs on the Mac.
+enum RigScratch {
+    static var roots: [String] {
+        let t = FileManager.default.temporaryDirectory
+        return Set([t.path, t.resolvingSymlinksInPath().path, t.standardizedFileURL.path]).map { $0.hasSuffix("/") ? $0 : $0 + "/" }
+    }
+
+    /// The seams and where they point now (nil: the seam found nothing, which is a failure too).
+    @MainActor static func seams() -> [(seam: String, path: URL?)] {
+        _ = rigFolder
+        _ = rigKitsDirectory
+        _ = rigOutside
+        let s = RigServices.factory()()
+        return [
+            ("Regista's folder", Paths.root), ("recordings", Paths.recordings),
+            ("support folder (budget, approvals)", s.generationState), ("voice profiles", s.profiles.directory),
+            ("caches", URL(fileURLWithPath: EngineConfig.expand(s.config.cacheDirectory))),
+            ("engines.json", EngineConfig.defaultFile), ("engines folder", EngineCatalog.enginesDirectory),
+            ("brand kits", BrandKit.userDirectory),
+            ("Claude home", ClaudeClients.home), ("Claude Desktop configuration", ClaudeClients.desktopConfig),
+            ("Claude Code configuration", ClaudeClients.codeConfig), ("claude command", ClaudeClients.claudeCLI().map { URL(fileURLWithPath: $0) }),
+            ("Trash target", RigTrash.folder), ("installer", EngineInstaller.locate(resources: nil)?.script),
+        ]
+    }
+
+    /// The seams that point outside the scratch root, in words; empty when every one is inside.
+    @MainActor static func outside() -> [String] {
+        seams().compactMap { s in
+            guard let url = s.path else { return "\(s.seam): nothing" }
+            let paths = [url.path, url.standardizedFileURL.path, url.resolvingSymlinksInPath().path]
+            return paths.contains { p in roots.contains { p.hasPrefix($0) } } ? nil : "\(s.seam): \(url.path)"
+        }
+    }
+}
+
+/// What a difference in the owner-side listing means. The owner may use Regista while the audits run (the push hook
+/// runs them on his Mac): his app autosaves projects and writes brand kits there. With it running, a difference is
+/// reported as a known issue naming the paths, never a failure; with it closed, it fails.
+enum OwnerSideVerdict: Equatable {
+    case same
+    case failure([String])
+    case ownersAppMayHaveWritten([String])
+
+    static func decide(changes: [String], ownersAppRunning: Bool) -> OwnerSideVerdict {
+        if changes.isEmpty { return .same }
+        return ownersAppRunning ? .ownersAppMayHaveWritten(changes) : .failure(changes)
+    }
+
+    /// A process named Regista whose executable is inside an app bundle (the test process is not one).
+    @MainActor static var ownersAppRunning: Bool {
+        NSWorkspace.shared.runningApplications.contains { app in
+            app.executableURL?.lastPathComponent == "Regista" && app.bundleURL?.pathExtension == "app"
+        }
+    }
+}
+
+/// Wraps the click audits of whole screens (#35). Always: every seam the rig writes through resolves under the scratch
+/// root, no process was refused, the general pasteboard was not written. And the owner-side listing is the same after
+/// them as before (a difference while the owner's app runs is a known issue: it may be the app's own writes).
 struct OwnerSideUntouched: SuiteTrait, TestScoping {
     var isRecursive: Bool { false }
 
     func provideScope(for test: Test, testCase: Test.Case?, performing function: @Sendable () async throws -> Void) async throws {
+        let outsideBefore = await MainActor.run { RigScratch.outside() }
+        #expect(outsideBefore.isEmpty, "rig seams outside the scratch root: \(outsideBefore)")
         let before = OwnerSide.listing()
         let refused = RigProcesses.refused.count, writes = RigPasteboard.generalWrites.count
         try await function()
-        let after = OwnerSide.listing()
-        let gone = Set(before).subtracting(after).sorted(), new = Set(after).subtracting(before).sorted()
-        #expect(gone.isEmpty && new.isEmpty, "the owner's side changed during the click audits: before \(gone.prefix(20)), after \(new.prefix(20))")
+        let outsideAfter = await MainActor.run { RigScratch.outside() }
+        #expect(outsideAfter.isEmpty, "rig seams outside the scratch root: \(outsideAfter)")
         #expect(RigProcesses.refused.count == refused, "processes refused during the click audits: \(RigProcesses.refused.dropFirst(refused))")
         #expect(RigPasteboard.generalWrites.count == writes, "writes to the general pasteboard: \(RigPasteboard.generalWrites.dropFirst(writes))")
+        let after = OwnerSide.listing()
+        let changes = Set(before).symmetricDifference(after).sorted()
+        switch OwnerSideVerdict.decide(changes: changes, ownersAppRunning: await OwnerSideVerdict.ownersAppRunning) {
+        case .same: break
+        case .failure(let paths):
+            Issue.record("the owner's side changed during the click audits (the owner's app is not running): \(paths.prefix(20))")
+        case .ownersAppMayHaveWritten(let paths):
+            withKnownIssue("the owner's app is running: these may be its own writes", isIntermittent: true) {
+                Issue.record("the owner's side changed during the click audits: \(paths.prefix(20))")
+            }
+        }
         let started = RigProcesses.started
         FileHandle.standardError.write(Data(("RigGuard: \(started.count) processes started in this test process; by executable: "
             + Dictionary(grouping: started) { String($0.prefix { $0 != " " }) }.map { "\($0.key) ×\($0.value.count)" }.sorted().joined(separator: ", ")
