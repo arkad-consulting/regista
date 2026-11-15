@@ -5,8 +5,10 @@ import Testing
 @testable import Regista
 
 // The window from its default size down to its minimum (1024×640, RegistaApp's window), both panels shown, in Italian and
-// French, driven with real mouse events (MouseRig). #41: the right panel keeps the height it gets at every tab (its tab
-// bar at the top, under the title row) and the Gobbo tab scrolls to its last control.
+// French, driven with real mouse events (MouseRig). #34: the Semplice level gives way to a narrow main area (the preview
+// shrinks, then the rail turns compact, then the preview goes under the step panel) and nothing of it is cut or drawn
+// outside the main area: its toolbar, rail and step panel are inside and answer. #41: the right panel keeps the height
+// it gets at every tab (its tab bar at the top, under the title row) and the Gobbo tab scrolls to its last control.
 
 /// A window size a test renders (the default, one between, the minimum).
 struct RigWindowSize: Sendable, CustomTestStringConvertible {
@@ -54,7 +56,125 @@ private func inside(_ frame: CGRect, _ area: CGRect) -> Bool { area.insetBy(dx: 
 
 extension MouseSuites {
 @Suite(.serialized) @MainActor struct NarrowWindowTests {
+    static let sizes: [RigWindowSize] = [.standard, .between, .minimum]
     static let languages = ["it", "fr"]
+
+    /// The stages come from the width measured for the level: the preview first, then the rail, then the preview's place.
+    @Test func theSimpleLevelGivesWayInOrder() {
+        let L = SimpleLayout.self
+        #expect(L.stage(width: 1200) == .full)
+        #expect(L.stage(width: L.rail + L.panel + L.previewMin) == .full)
+        #expect(L.stage(width: L.rail + L.panel + L.previewMin - 1) == .compactRail)
+        #expect(L.stage(width: L.compactRail + L.panel + L.previewMin) == .compactRail)
+        #expect(L.stage(width: L.compactRail + L.panel + L.previewMin - 1) == .stacked)
+        #expect(L.stage(width: 340) == .stacked)
+    }
+
+    /// #34: at every size from the default to the minimum, nothing of the Semplice level crosses the main area's edges;
+    /// the level's two words are whole and both answer; each step of the rail is inside, answers and opens its panel;
+    /// a choice in the step panel runs its command; «Esporta il reel» goes to Esporta.
+    @Test(arguments: sizes, languages)
+    func theSimpleLevelStaysInsideTheMainArea(_ window: RigWindowSize, _ language: String) async throws {
+        let app = try await AppRig()
+        defer { app.close() }
+        var nav = Navigation(activity: .media, rightTab: .inspector)
+        nav.show(.simple)
+        app.hostEditor(nav, size: window.size, language: language)
+        await app.settle()
+        let main = RenderParts.main(window.size)
+        let stage = SimpleLayout.stage(width: main.width)
+
+        // Nothing drawn across the main area's left or right edge (the splitter's grip is the side panel's).
+        func crossing() -> [RigElement] {
+            app.rig.elements().filter { e in
+                e.visible && !["Divisore", word("Divisore", language)].contains(e.name) && e.frame.width > 0
+                    && e.frame.maxX > main.minX + 1.5 && e.frame.minX < main.maxX - 1.5
+                    && e.frame.midY > main.minY && e.frame.midY < main.maxY
+                    && (e.frame.minX < main.minX - 1.5 || e.frame.maxX > main.maxX + 1.5)
+            }
+        }
+        #expect(crossing().isEmpty, "\(window) \(language) \(stage): drawn across the main area's edge \(main): \(crossing().prefix(4).map { "\($0) \($0.frame)" })")
+        // Every control of the level on screen is the one a click at its centre reaches.
+        for c in app.rig.controls() where main.contains(c.centre) {
+            if let hit = app.rig.elementAt(c.centre), hit !== c.ref, !hit.isEqual(c.ref),
+               let over = app.rig.elements().first(where: { $0.ref === hit }), over.isControl {
+                Issue.record("\(window) \(language): \(c) is covered by \(over)")
+            }
+        }
+
+        // The level toggle: whole words, inside, both segments answer.
+        let simpleWord = word("Semplice", language), proWord = word("Pro", language)
+        let font = NSFont.systemFont(ofSize: Ed.TypeSize.body, weight: .medium)
+        for w in [simpleWord, proWord] {
+            let segment = try #require(app.rig.elements().first { $0.name == w && $0.role == "AXButton" && $0.visible }, "\(window) \(language): no segment «\(w)»")
+            #expect(inside(segment.frame, main), "\(window) \(language): «\(w)» at \(segment.frame), main area \(main)")
+            let natural = (w as NSString).size(withAttributes: [.font: font]).width
+            #expect(segment.frame.width >= natural + 20, "\(window) \(language): «\(w)» is \(segment.frame.width) pt wide, its word needs \(natural)")
+        }
+        #expect(app.rig.click(proWord, role: "AXButton"))
+        await app.settle()
+        #expect(app.store.nav.level == .pro, "\(window) \(language): «\(proWord)» did not switch to Pro")
+        #expect(app.rig.click(simpleWord, role: "AXButton"))
+        await app.settle()
+        #expect(app.store.nav.level == .simple, "\(window) \(language): «\(simpleWord)» did not switch back")
+
+        // Each step of the rail: inside the main area, answers, opens its panel (its title in the panel's header). The rail
+        // is looked for between the activity bar and the right panel, so a row drawn over the side panel is found too.
+        let between = { (e: RigElement) in e.frame.minX >= Chrome.activityWidth && e.frame.maxX <= main.maxX + 0.5 }
+        func reveal(column x: CGFloat? = nil, _ find: () -> RigElement?) async -> RigElement? {
+            // A control under the fold of the rail or the step panel (or not built yet: a lazy grid builds what is in
+            // view), its column (`x`, or where it is) scrolled until it is on screen.
+            for _ in 0..<16 {
+                let e = find()
+                if let e, e.visible, main.insetBy(dx: 0, dy: 1).contains(CGPoint(x: e.frame.midX, y: e.frame.maxY - 1)) { return e }
+                guard let cx = e?.frame.midX ?? x,
+                      let column = app.rig.elements().filter({ $0.role == "AXScrollArea" && $0.visible && $0.frame.minX <= cx && $0.frame.maxX >= cx
+                          && main.contains($0.centre) }).min(by: { $0.frame.width < $1.frame.width }) else { return e }
+                guard app.rig.scrollContent(at: column.centre, by: (e.map { $0.frame.midY < column.frame.minY } ?? false) ? -60 : 60) else { return e }
+                await app.settle()
+            }
+            return find()
+        }
+        for step in SimpleStep.allCases {
+            let title = step.title { word($0, language) }
+            let found = await reveal { app.rig.elements().first { $0.role == "AXButton" && $0.name.contains(title) && between($0) } }
+            let row = try #require(found, "\(window) \(language): no step «\(title)» on the rail")
+            #expect(row.visible, "\(window) \(language): the step «\(title)» could not be scrolled into view")
+            #expect(inside(row.frame, main), "\(window) \(language): the step «\(title)» at \(row.frame), main area \(main)")
+            app.rig.click(row.centre)
+            await app.settle()
+            // The panel's header names the step opened (the rail is to its left), inside the main area.
+            let header = app.rig.elements().first { $0.name == title && $0.role == "AXStaticText" && $0.frame.minX > row.frame.maxX && $0.visible }
+            #expect(header.map { inside($0.frame, main) } == true, "\(window) \(language): a click on «\(title)» did not open its panel inside the main area")
+        }
+
+        // A choice in the step panel: Aspetto › a colour runs its command.
+        let lookTitle = SimpleStep.look.title { word($0, language) }
+        let look = try #require(await reveal { app.rig.elements().first { $0.role == "AXButton" && $0.name.contains(lookTitle) && between($0) } })
+        app.rig.click(look.centre)
+        await app.settle()
+        let film = word(SimpleLooks.title("film"), language)
+        let lookHeader = try #require(app.rig.elements().first { $0.name == lookTitle && $0.role == "AXStaticText" && $0.frame.minX > look.frame.maxX })
+        let chip = try #require(await reveal(column: lookHeader.frame.minX) { app.rig.elements().first { $0.name == film && $0.isControl && between($0) } }, "\(window) \(language): no «\(film)» in the panel: \(app.rig.elements().filter { main.contains($0.centre) && !$0.name.isEmpty }.map { "\($0.role) \($0.name) \($0.frame)" })")
+        #expect(inside(chip.frame, main))
+        let n = app.store.activity.count
+        app.rig.click(chip.centre)
+        await app.settle()
+        #expect(!app.commands(since: n).isEmpty, "\(window) \(language): «\(film)» ran no command")
+
+        // «Fai tutto» is on the rail, inside; «Esporta il reel» goes to Esporta.
+        // (Both buttons are named by their tooltips, #32.)
+        let doAll = word("Taglia, sceglie le riprese, pulisce la voce, mette i sottotitoli e una luce più viva, in ordine", language)
+        let export = word("Apre Esporta con il formato Reel 9:16: voce a −15 LUFS e i controlli prima di salvare", language)
+        let doAllButton = await reveal { app.rig.elements().first { $0.name.hasPrefix(doAll) && $0.isControl && between($0) } }
+        #expect(doAllButton.map { inside($0.frame, main) } == true, "\(window) \(language): «\(word("Fai tutto", language))» is not on screen inside the main area")
+        let exportButton = try #require(app.rig.controls().first { $0.name.hasPrefix(export) && between($0) },
+                                        "\(window) \(language): no «\(word("Esporta il reel", language))» on the rail")
+        #expect(inside(exportButton.frame, main))
+        app.rig.click(exportButton.centre)
+        await app.settle()
+        #expect(app.store.nav.activity == .export, "\(window) \(language): «\(export)» did not open Esporta")
+    }
 
     /// #41: at the default and the minimum size, on every tab (the Ispettore with a clip too), the right panel's tab bar is
     /// at its top, under the title row, nothing of the panel is above it, and each tab answers.

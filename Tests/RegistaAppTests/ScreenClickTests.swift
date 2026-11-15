@@ -219,13 +219,16 @@ extension MouseSuites.ClickAudits {
         })
     }
 
-    @Test func simple() async throws {
+    /// The Semplice level at the default size (its rail compact, #34) and at the window's minimum size (the preview under
+    /// the step panel): every control of the side panel and the level answers.
+    @Test(arguments: [RigWindowSize.standard, .minimum])
+    func simple(_ window: RigWindowSize) async throws {
         var nav = Navigation(activity: .media, rightTab: .inspector)
         nav.show(.simple)
-        _ = try await audit("simple", nav, area: WindowPart.content, skip: [
-            "Semplice": "#34 (open): the level is wider than the main area and this segment lies partly under the side panel's splitter; it is the current level",
-        ], noOps: [
-            "1, Taglio e riprese": "the step already open", "Medio": alreadyCurrent,
+        _ = try await audit(window.width == RigWindowSize.standard.width ? "simple" : "simple-\(window.testDescription)", nav, size: window.size,
+                            area: RenderParts.content(window.size), noOps: [
+            "1, Taglio e riprese": "the step already open", "Taglio e riprese": "the step already open", "Medio": alreadyCurrent,
+            "Semplice": alreadyCurrent,
         ])
     }
 
@@ -276,9 +279,7 @@ extension MouseSuites.ClickAudits {
         app.hostEditor(nav)
         await app.settle()
         let segment = try #require(app.rig.elements().first { $0.name == "Semplice" && $0.role == "AXButton" })
-        withKnownIssue("#34: the Semplice level is wider than the main area at 1440 pt with both panels") {
-            #expect(segment.frame.minX >= WindowPart.main.minX, "the toolbar starts at \(segment.frame.minX), left of the main area (\(WindowPart.main.minX))")
-        }
+        #expect(segment.frame.minX >= WindowPart.main.minX, "the toolbar starts at \(segment.frame.minX), left of the main area (\(WindowPart.main.minX))")
     }
 
     /// A sound row of the Audio panel's browser: its + adds the sound at the playhead (sfx.add).

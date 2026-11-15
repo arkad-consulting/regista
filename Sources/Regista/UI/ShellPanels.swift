@@ -502,14 +502,20 @@ struct EditorToolbar: View {
     let level: EditorStore.Workspace
     @State private var showHistory = false
 
+    // In a narrow main area (#34) the level keeps its whole words; the format gives way first (whole, then cut, then
+    // gone), then "Marca" keeps only its swatch. Each part asks for the width that is left (ViewThatFits).
     var body: some View {
-        HStack(spacing: Ed.Space.m) {
+        HStack(spacing: 0) {
             RSegmented(items: [(EditorStore.Workspace.simple, "Semplice"), (.pro, "Pro")], selection: Binding(get: { level }, set: { store.workspace = $0 }),
                        fill: false, tips: [.simple: "Livello semplice: sei passi guidati, un'anteprima e Fai tutto", .pro: "Livello Pro: timeline, monitor e pannelli"],
                        shortcuts: [.simple: "⌥⌘1", .pro: "⌥⌘2"])
-            Ed.rule.frame(width: 1, height: 16)
-            Text(verbatim: format).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).lineLimit(1)
-            Spacer(minLength: Ed.Space.s)
+                .fixedSize()
+            ViewThatFits(in: .horizontal) {
+                formatPart(whole: true)
+                formatPart(whole: false)
+                Spacer(minLength: Ed.Space.s)
+            }
+            .layoutPriority(-1)
             HStack(spacing: Ed.Space.xxs) {
                 IconButton(symbol: "arrow.uturn.backward", help: "Annulla l'ultima modifica", shortcut: "⌘Z", chrome: true) { store.undo() }
                     .disabled(store.undoNames.isEmpty)
@@ -520,13 +526,26 @@ struct EditorToolbar: View {
                         HistoryTab().frame(width: 300, height: 380).background(Ed.panel).environment(\.colorScheme, .dark)
                     }
             }
-            Ed.rule.frame(width: 1, height: 16)
+            .fixedSize()
+            Ed.rule.frame(width: 1, height: 16).padding(.horizontal, Ed.Space.m)
             MarcaButton()
         }
         .padding(.horizontal, 14)
         .frame(height: Chrome.toolbarHeight)
         .background(Ed.toolbar)
         .overlay(alignment: .bottom) { Ed.rule2.frame(height: 1) }
+    }
+
+    /// The rule and the project's format after the level, then the free space: the whole text, or cut to the width left.
+    private func formatPart(whole: Bool) -> some View {
+        HStack(spacing: Ed.Space.m) {
+            Ed.rule.frame(width: 1, height: 16)
+            Text(verbatim: format).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).lineLimit(1)
+                .fixedSize(horizontal: whole, vertical: false)
+                .frame(minWidth: 0, idealWidth: whole ? nil : 56, alignment: .leading)
+            Spacer(minLength: Ed.Space.s)
+        }
+        .padding(.leading, Ed.Space.m)
     }
 
     /// "Formato 9:16 · 1080×1920 · 30 fps".
@@ -551,12 +570,14 @@ struct MarcaButton: View {
 
     var body: some View {
         Button { store.showBrandKits.toggle() } label: {
-            HStack(spacing: 6) {
-                if let k = store.project?.brand { KitBubble(kit: k, size: 14) } else {
-                    Image(systemName: "paintpalette").font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
+            // Its name beside the swatch while there is room (#34), the swatch alone in a narrow toolbar.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 6) {
+                    swatch
+                    Text(verbatim: String(format: loc("Marca: %@"), store.project?.brand?.name ?? loc("nessuna")))
+                        .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(hover ? Ed.text : Ed.text2).lineLimit(1).fixedSize()
                 }
-                Text(verbatim: String(format: loc("Marca: %@"), store.project?.brand?.name ?? loc("nessuna")))
-                    .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(hover ? Ed.text : Ed.text2).lineLimit(1)
+                swatch
             }
             .padding(.horizontal, Ed.Space.s)
             .frame(height: 24)
@@ -572,6 +593,12 @@ struct MarcaButton: View {
                 .frame(height: BrandPicker.height(kits: BrandKitLibrary.shared.kits.count))
                 .background(Ed.side)
                 .environment(\.colorScheme, .dark)
+        }
+    }
+
+    @ViewBuilder private var swatch: some View {
+        if let k = store.project?.brand { KitBubble(kit: k, size: 14) } else {
+            Image(systemName: "paintpalette").font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
         }
     }
 }

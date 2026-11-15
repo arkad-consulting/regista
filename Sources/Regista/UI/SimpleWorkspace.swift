@@ -22,6 +22,28 @@ extension EnvironmentValues {
     }
 }
 
+/// How the Semplice level lays itself out in the width the main area gives it (#34): nothing of it is ever cut or drawn
+/// outside the main area. As that width narrows: the preview column shrinks down to `previewMin` (`full`); then the rail
+/// becomes compact, each step its number and state with its title under it (`compactRail`); then the preview leaves the
+/// row for a picture under the step panel, which keeps the rest of the width (`stacked`). The thresholds are the widths
+/// of what the row holds, compared with the width measured for the level, never with the window's.
+enum SimpleLayout {
+    static let rail: CGFloat = 268, compactRail: CGFloat = 88, panel: CGFloat = 344
+    /// The narrowest preview column where the picture and its transport stay usable.
+    static let previewMin: CGFloat = 220
+
+    enum Stage: String { case full, compactRail, stacked }
+
+    static func stage(width: CGFloat) -> Stage {
+        if width >= rail + panel + previewMin { return .full }
+        if width >= compactRail + panel + previewMin { return .compactRail }
+        return .stacked
+    }
+
+    /// The preview's height under the step panel (`stacked`), from the row's height: the panel keeps most of it.
+    static func stackedPreview(height: CGFloat) -> CGFloat { min(max(height * 0.44, 160), 300) }
+}
+
 struct SimpleWorkspace: View {
     @EnvironmentObject private var store: EditorStore
     @Environment(\.simpleDemo) private var demo
@@ -36,28 +58,32 @@ struct SimpleWorkspace: View {
         /// The step the user opened; until then the next one to do.
         @State private var chosen: SimpleStep?
 
-        static let railWidth: CGFloat = 268, panelWidth: CGFloat = 344
-
         var body: some View {
             let snap = demo?.snapshot ?? store.simpleSnapshot
             let open = demo?.open ?? chosen ?? SimpleStep.allCases.first { snap[$0].status == .running } ?? snap.next ?? .cut
             VStack(spacing: 0) {
-                HStack(spacing: 0) {
-                    SimpleRail(snap: snap, open: open) { chosen = $0 }
-                        .frame(width: Self.railWidth)
-                    SimplePanel(snap: snap, step: open) { chosen = $0 }
-                        .frame(width: Self.panelWidth)
-                    VStack(spacing: 0) {
-                        ProgramPicture(zones: false)
-                            .padding(.horizontal, Ed.Space.xl).padding(.top, Ed.Space.l).padding(.bottom, Ed.Space.s)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        TransportBar()
-                            .frame(maxWidth: 440)
-                            .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous))
-                            .padding(.bottom, Ed.Space.m)
+                GeometryReader { g in
+                    let stage = SimpleLayout.stage(width: g.size.width)
+                    let compact = stage != .full
+                    HStack(spacing: 0) {
+                        SimpleRail(snap: snap, open: open, compact: compact) { chosen = $0 }
+                            .frame(width: compact ? SimpleLayout.compactRail : SimpleLayout.rail)
+                        if stage == .stacked {
+                            VStack(spacing: 0) {
+                                SimplePanel(snap: snap, step: open, showsAllJob: true) { chosen = $0 }
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                SimplePreview(tight: true)
+                                    .frame(height: SimpleLayout.stackedPreview(height: g.size.height))
+                                    .overlay(alignment: .top) { Ed.rule.frame(height: 1) }
+                            }
+                            .frame(maxWidth: .infinity)
+                        } else {
+                            SimplePanel(snap: snap, step: open, showsAllJob: compact) { chosen = $0 }
+                                .frame(width: SimpleLayout.panel)
+                            SimplePreview().frame(minWidth: 0, maxWidth: .infinity)
+                        }
                     }
-                    .frame(maxWidth: .infinity)
-                    .background(Ed.main)
+                    .frame(width: g.size.width, height: g.size.height)
                 }
                 Filmstrip().frame(height: 112)
             }
@@ -67,29 +93,55 @@ struct SimpleWorkspace: View {
     }
 }
 
+/// The level's monitor: the clean picture in the project's format and its transport (two rows when the column is narrow).
+/// `tight`: under the step panel, with less room around the picture.
+private struct SimplePreview: View {
+    var tight = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ProgramPicture(zones: false)
+                .padding(.horizontal, Ed.Space.l).padding(.top, tight ? Ed.Space.s : Ed.Space.m).padding(.bottom, tight ? Ed.Space.xs : Ed.Space.s)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ViewThatFits(in: .horizontal) {
+                TransportBar()
+                TransportBar(compact: true)
+            }
+            .frame(maxWidth: 440)
+            .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous))
+            .padding(.horizontal, Ed.Space.s)
+            .padding(.bottom, tight ? Ed.Space.s : Ed.Space.m)
+        }
+        .background(Ed.main)
+    }
+}
+
 // MARK: - The rail
 
 /// "Fai tutto", the six steps (glyph, name, state in words; the open one marked, the next one tagged) and the export.
+/// `compact` (a narrow main area, SimpleLayout): each step its glyph with its title under it, "Fai tutto" and the export
+/// as stacked buttons; the running "Fai tutto" card and the captions move to the step panel.
 private struct SimpleRail: View {
     @EnvironmentObject private var store: EditorStore
     @ObservedObject private var prompter = TeleprompterController.shared
     let snap: SimpleSnapshot
     let open: SimpleStep
+    var compact = false
     let onOpen: (SimpleStep) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ScrollView {
-                VStack(alignment: .leading, spacing: Ed.Space.l) {
+                VStack(alignment: .leading, spacing: compact ? Ed.Space.m : Ed.Space.l) {
                     doAll
                     VStack(spacing: Ed.Space.xxs) {
                         ForEach(Array(SimpleStep.allCases.enumerated()), id: \.element) { i, step in
                             SimpleStepRow(step: step, number: i + 1, state: snap[step], open: step == open,
-                                          next: step == snap.next && step != open) { onOpen(step) }
+                                          next: step == snap.next && step != open, compact: compact) { onOpen(step) }
                         }
                     }
                 }
-                .padding(Ed.Space.m)
+                .padding(compact ? Ed.Space.s : Ed.Space.m)
             }
             exportBar
         }
@@ -100,18 +152,20 @@ private struct SimpleRail: View {
     @ViewBuilder private var doAll: some View {
         let pending = SimpleStep.allCases.filter { snap[$0].status == .todo }
         VStack(alignment: .leading, spacing: Ed.Space.s) {
-            if let job = snap.allJob, job.isRunning || job.state != .done {
+            if !compact, let job = snap.allJob, job.isRunning || job.state != .done {
                 JobCard(job: job, onCancel: { store.jobs.cancel(job.id) }, onDismiss: { store.jobs.dismiss(job.id) })
             }
             if snap.allJob?.isRunning != true {
                 EdButton(title: pending.isEmpty && snap.hasProject ? loc("Tutto fatto") : loc("Fai tutto"), symbol: "wand.and.stars",
                          prominent: snap.canDoEverything && !pending.isEmpty, large: true, fill: true,
-                         disabled: !snap.canDoEverything || pending.isEmpty || snap.busy != nil) {
+                         disabled: !snap.canDoEverything || pending.isEmpty || snap.busy != nil, stacked: compact) {
                     store.doEverything(script: prompter.text)
                 }
                 .tip("Taglia, sceglie le riprese, pulisce la voce, mette i sottotitoli e una luce più viva, in ordine", shortcut: "⇧⌘M")
-                Text(verbatim: caption(pending)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
-                    .fixedSize(horizontal: false, vertical: true)
+                if !compact {
+                    Text(verbatim: caption(pending)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
     }
@@ -128,51 +182,38 @@ private struct SimpleRail: View {
         let ready = snap.hasProject && snap.next == nil && snap[.cut].status == .done
         return VStack(alignment: .leading, spacing: 6) {
             EdButton(title: loc("Esporta il reel"), symbol: "square.and.arrow.up", prominent: ready, fill: true,
-                     disabled: !snap.hasProject || snap[.cut].needsImport) {
+                     disabled: !snap.hasProject || snap[.cut].needsImport, stacked: compact) {
                 ExportOptions.shared.preset = "9:16"
                 store.select(.export)
             }
             .tip("Apre Esporta con il formato Reel 9:16: voce a −15 LUFS e i controlli prima di salvare")
-            Text(verbatim: loc("Reel 9:16 a −15 LUFS, con i controlli prima di salvare."))
-                .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+            if !compact {
+                Text(verbatim: loc("Reel 9:16 a −15 LUFS, con i controlli prima di salvare."))
+                    .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .padding(Ed.Space.m)
+        .padding(compact ? Ed.Space.s : Ed.Space.m)
         .overlay(alignment: .top) { Ed.rule2.frame(height: 1) }
     }
 }
 
-/// One step on the rail.
+/// One step on the rail: its glyph, title and state in words; `compact`, its glyph with the title under it.
 private struct SimpleStepRow: View {
     let step: SimpleStep
     let number: Int
     let state: SimpleState
     let open: Bool
     let next: Bool
+    var compact = false
     let action: () -> Void
     @State private var hover = false
 
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .top, spacing: 10) {
-                StateGlyph(state.status.rawValue, number: number).padding(.top, 1)
-                VStack(alignment: .leading, spacing: Ed.Space.xxs) {
-                    HStack(spacing: 6) {
-                        Text(verbatim: step.title()).font(Ed.ui(Ed.TypeSize.control, open ? .semibold : .medium))
-                            .foregroundStyle(state.status == .blocked ? Ed.text2 : Ed.text).lineLimit(1)
-                        if next {
-                            RTag("Prossimo")
-                        }
-                    }
-                    // Before a video is imported only the first step says so: the others wait silently.
-                    if !(state.needsImport && step != .cut) {
-                        Text(verbatim: state.line).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(lineColor)
-                            .lineLimit(3).fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                Spacer(minLength: 0)
+            Group {
+                if compact { compactLabel } else { label }
             }
-            .padding(.horizontal, 10).padding(.vertical, 9)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: compact ? .center : .leading)
             .background(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).fill(open ? Ed.control : (hover ? Ed.control.opacity(0.5) : .clear)))
             .overlay(alignment: .leading) {
                 UnevenRoundedRectangle(cornerRadii: .init(bottomTrailing: 2, topTrailing: 2)).fill(Ed.gold)
@@ -183,6 +224,41 @@ private struct SimpleStepRow: View {
         .buttonStyle(.plain)
         .onHover { hover = $0 }
         .accessibilityAddTraits(open ? .isSelected : [])
+    }
+
+    private var label: some View {
+        HStack(alignment: .top, spacing: 10) {
+            StateGlyph(state.status.rawValue, number: number).padding(.top, 1)
+            VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+                HStack(spacing: 6) {
+                    Text(verbatim: step.title()).font(Ed.ui(Ed.TypeSize.control, open ? .semibold : .medium))
+                        .foregroundStyle(state.status == .blocked ? Ed.text2 : Ed.text).lineLimit(1)
+                    if next {
+                        RTag("Prossimo")
+                    }
+                }
+                // Before a video is imported only the first step says so: the others wait silently.
+                if !(state.needsImport && step != .cut) {
+                    Text(verbatim: state.line).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(lineColor)
+                        .lineLimit(3).fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 9)
+    }
+
+    /// The glyph (number and state; the next step to do ringed in the accent) and the title under it, on two lines at most.
+    private var compactLabel: some View {
+        VStack(spacing: Ed.Space.xs) {
+            StateGlyph(state.status.rawValue, number: number)
+                .overlay { if next { Circle().strokeBorder(Ed.gold, lineWidth: 1.5).padding(-3) } }
+            Text(verbatim: step.title()).font(Ed.ui(Ed.TypeSize.caption, open ? .semibold : .medium))
+                .foregroundStyle(open ? Ed.text : (state.status == .blocked ? Ed.text3 : Ed.text2))
+                .multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.85)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, Ed.Space.xs).padding(.vertical, Ed.Space.s)
     }
 
     private var lineColor: Color {
@@ -203,6 +279,8 @@ private struct SimplePanel: View {
     @Environment(\.openSettings) private var openSettings
     let snap: SimpleSnapshot
     let step: SimpleStep
+    /// The running "Fai tutto" card is here when the rail is compact (it has no room for it).
+    var showsAllJob = false
     let onOpen: (SimpleStep) -> Void
 
     private var state: SimpleState { snap[step] }
@@ -211,6 +289,9 @@ private struct SimplePanel: View {
         VStack(alignment: .leading, spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: Ed.Space.xl) {
+                    if showsAllJob, let job = snap.allJob, job.isRunning || job.state != .done {
+                        JobCard(job: job, onCancel: { store.jobs.cancel(job.id) }, onDismiss: { store.jobs.dismiss(job.id) })
+                    }
                     header
                     if let job = snap.jobs[step], job.isRunning || isFailed(job) {
                         JobCard(job: job, onCancel: { store.jobs.cancel(job.id) }, onDismiss: { store.jobs.dismiss(job.id) })

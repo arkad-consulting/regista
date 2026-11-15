@@ -263,7 +263,7 @@ final class MouseRig {
     /// Scrolls the scroll view under `p` by `dy` points (positive: towards its end), as the wheel would, and says whether
     /// it moved. A synthetic wheel event does not move a SwiftUI scroll view in this window, which lies outside every
     /// display (tried: pixel, line and phased events, sent through the window and to the scroll view itself), so the
-    /// scroll view's own clip view is moved, within its content.
+    /// scroll view's own clip view is moved, within its content (#50).
     @discardableResult
     func scrollContent(at p: CGPoint, by dy: CGFloat) -> Bool {
         var v = viewAt(p)

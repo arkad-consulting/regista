@@ -1308,9 +1308,11 @@ struct EdButtonStyle: ButtonStyle {
     var kind: Kind = .secondary
     var large = false
     var fill = false
+    /// The symbol above the title, which may take two lines (a narrow column: the Semplice level's compact rail).
+    var stacked = false
 
     func makeBody(configuration: Configuration) -> some View {
-        Look(configuration: configuration, kind: kind, large: large, fill: fill)
+        Look(configuration: configuration, kind: kind, large: large, fill: fill, stacked: stacked)
     }
 
     private struct Look: View {
@@ -1318,17 +1320,20 @@ struct EdButtonStyle: ButtonStyle {
         let kind: Kind
         let large: Bool
         let fill: Bool
+        let stacked: Bool
         @Environment(\.isEnabled) private var enabled
         @State private var hover = false
 
         var body: some View {
             let radius = large ? Ed.Radius.l : Ed.Radius.m
             configuration.label
-                .font(Ed.ui(large ? Ed.TypeSize.control : Ed.TypeSize.body, large ? .semibold : .medium))
+                .font(stacked ? Ed.ui(Ed.TypeSize.caption, .semibold) : Ed.ui(large ? Ed.TypeSize.control : Ed.TypeSize.body, large ? .semibold : .medium))
                 .foregroundStyle(kind == .destructive ? .white : (kind == .primary ? Accent.on : (kind == .quiet && !hover ? Ed.text2 : Ed.text)))
-                .padding(.horizontal, large ? Ed.Space.l : 10)
+                .padding(.horizontal, stacked ? Ed.Space.xs : (large ? Ed.Space.l : 10))
+                .padding(.vertical, stacked ? 6 : 0)
                 .frame(maxWidth: fill ? .infinity : nil)
-                .frame(height: large ? Ed.Height.large : Ed.Height.control)
+                .frame(minHeight: stacked ? Ed.Height.large : nil)
+                .frame(height: stacked ? nil : (large ? Ed.Height.large : Ed.Height.control))
                 .background(RoundedRectangle(cornerRadius: radius, style: .continuous).fill(fillColor))
                 .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(kind == .secondary ? Ed.line2 : .clear))
                 .contentShape(Rectangle())
@@ -1350,7 +1355,8 @@ struct EdButtonStyle: ButtonStyle {
 
 /// A text button (EdButtonStyle): secondary by default, `prominent` for the one primary action of a panel, `quiet` for a
 /// frameless one (Annulla beside a primary, a toolbar text), `destructive` in red. `large` is the size of a screen's main
-/// action; `fill` stretches it to the available width.
+/// action; `fill` stretches it to the available width; `stacked` puts the symbol above a title of up to two lines (a
+/// narrow column).
 struct EdButton: View {
     let title: String
     var symbol: String? = nil
@@ -1360,16 +1366,26 @@ struct EdButton: View {
     var large = false
     var fill = false
     var disabled = false
+    var stacked = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: large ? Ed.Space.s : 6) {
-                if let symbol { Image(systemName: symbol).font(Ed.icon(large ? Ed.TypeSize.body : Ed.TypeSize.caption, .semibold)) }
-                Text(verbatim: loc(title)).lineLimit(1).minimumScaleFactor(0.75)
+            if stacked {
+                VStack(spacing: 3) {
+                    if let symbol { Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.body, .semibold)) }
+                    Text(verbatim: loc(title)).multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.85)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
+                HStack(spacing: large ? Ed.Space.s : 6) {
+                    if let symbol { Image(systemName: symbol).font(Ed.icon(large ? Ed.TypeSize.body : Ed.TypeSize.caption, .semibold)) }
+                    Text(verbatim: loc(title)).lineLimit(1).minimumScaleFactor(0.75)
+                }
             }
         }
-        .buttonStyle(EdButtonStyle(kind: destructive ? .destructive : (prominent ? .primary : (quiet ? .quiet : .secondary)), large: large, fill: fill))
+        .buttonStyle(EdButtonStyle(kind: destructive ? .destructive : (prominent ? .primary : (quiet ? .quiet : .secondary)), large: large, fill: fill,
+                                   stacked: stacked))
         .disabled(disabled)
     }
 }
