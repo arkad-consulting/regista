@@ -6,7 +6,9 @@ import SwiftUI
 // Direct manipulation on the Program monitor and the Semplice monitor (issue #21): click a caption, title, sticker or
 // logo, drag it, resize it (corner handle, trackpad pinch, ⌥-scroll), rotate it (titles, stickers, logos). Snap guides
 // and Instagram's interface zones show while dragging. Every gesture ends in ONE command (captions.place / clip.place):
-// one undo step, visible in the Agent log, the same thing the agent can do.
+// one undo step, visible in the Agent log, the same thing the agent can do. Everything drawn on the frame answers (#30):
+// the full-frame picture (selected by a click before a drag can move it), layout boxes, callouts; a halo or a motion
+// template is only selected.
 
 /// What a caption drag moves.
 enum CaptionScope: String { case all, one }
@@ -96,7 +98,7 @@ extension EditorStore {
     func handleCanvasKey(_ code: UInt16, shift: Bool) -> Bool {
         guard canvasSelection != nil else { return false }
         if code == 53 { canvasSelection = nil; return true }   // esc
-        guard let e = canvasElement, canvasKey(e) == canvasSelection, !preview.isPlaying else { return false }
+        guard let e = canvasElement, canvasKey(e) == canvasSelection, e.movable, !preview.isPlaying else { return false }
         let step = shift ? 10.0 : 1.0
         let (dx, dy): (Double, Double)
         switch code {
@@ -116,7 +118,7 @@ extension EditorStore {
 
     /// ⌥-scroll over the preview resizes the selection.
     func canvasScroll(_ event: NSEvent) -> Bool {
-        guard event.modifierFlags.contains(.option), canvasHover, let e = canvasElement, canvasKey(e) == canvasSelection else { return false }
+        guard event.modifierFlags.contains(.option), canvasHover, let e = canvasElement, canvasKey(e) == canvasSelection, e.movable else { return false }
         let d = event.hasPreciseScrollingDeltas ? event.scrollingDeltaY : event.scrollingDeltaY * 8
         var p = canvasPending ?? CanvasPending(id: canvasKey(e))
         p.scale = min(max(p.scale * exp(Double(d) * 0.004), 0.2), 5)
@@ -239,8 +241,9 @@ struct CanvasOverlay: View {
     @Environment(\.canvasDemo) private var demo
     @StateObject private var model = CanvasModel()
     @State private var gesture: CanvasGesture?
-    /// Where a mouse-down started: the element under it, if any.
-    @State private var press: (key: String?, start: CGPoint, dragging: Bool)?
+    /// Where a mouse-down started: the element under it, if any (`select`: a full-frame picture not selected yet, which
+    /// a click selects and a drag leaves where it is).
+    @State private var press: (key: String?, start: CGPoint, dragging: Bool, select: String?)?
     @State private var barScale = 1.0
     /// The bar's size slider is being dragged: the bar stays (a pointer gesture on the picture hides it).
     @State private var sliding = false
@@ -272,13 +275,14 @@ struct CanvasOverlay: View {
                 .gesture(mainDrag(m))
                 .simultaneousGesture(pinch)
             if let e = selected, let g = live, g.key == canvasKey(e) { dragLayer(e, g, m) }
-            if let h = model.hovered, h != store.canvasSelection, let e = model.elements.last(where: { canvasKey($0) == h }), !store.preview.isPlaying {
+            if let h = model.hovered, h != store.canvasSelection, let e = model.elements.last(where: { canvasKey($0) == h }), !store.preview.isPlaying,
+               !(e.needsSelection && coversFrame(e)) {
                 outline(e, CanvasGesture(key: h), m, color: Color.white.opacity(0.7), dash: [3, 3])
             }
             if let e = selected, !store.preview.isPlaying || gesture != nil {
                 let g = live.flatMap { $0.key == canvasKey(e) ? $0 : nil } ?? CanvasGesture(key: canvasKey(e))
                 selection(e, g, m)
-                if gesture == nil || gesture?.committed == true || sliding { bar(e, m) }
+                if e.movable, gesture == nil || gesture?.committed == true || sliding { bar(e, m) }
             }
         }
         .frame(width: size.width, height: size.height, alignment: .topLeading)
@@ -323,6 +327,12 @@ struct CanvasOverlay: View {
         let a = r * .pi / 180
         let bw = abs(cos(a)) * s[0] + abs(sin(a)) * s[1], bh = abs(sin(a)) * s[0] + abs(cos(a)) * s[1]
         return (c, s, r, [c[0] - bw / 2, c[1] - bh / 2, bw, bh])
+    }
+
+    /// The element covers the whole frame (a picture at its full size).
+    private func coversFrame(_ e: CanvasElement) -> Bool {
+        let W = Double(frameSize.0), H = Double(frameSize.1)
+        return e.box[0] <= 0.5 && e.box[1] <= 0.5 && e.box[0] + e.box[2] >= W - 0.5 && e.box[1] + e.box[3] >= H - 0.5
     }
 
     private func inInstagramZone(_ box: [Double]) -> Bool {
@@ -392,10 +402,16 @@ struct CanvasOverlay: View {
     private func outline(_ e: CanvasElement, _ g: CanvasGesture, _ m: PreviewMapping, color: Color, dash: [CGFloat] = []) -> some View {
         let (c, s, r, _) = moved(e, g)
         let v = m.toView((c[0], c[1]))
+        var rect = CGRect(x: v.x - s[0] * m.scale / 2 - 4, y: v.y - s[1] * m.scale / 2 - 4, width: s[0] * m.scale + 8, height: s[1] * m.scale + 8)
+        // Kept just inside the picture: around an element as large as the frame it would be drawn outside it (#30).
+        if r == 0 {
+            let inside = rect.intersection(CGRect(origin: .zero, size: size).insetBy(dx: 1, dy: 1))
+            if !inside.isNull, inside.width > 2, inside.height > 2 { rect = inside }
+        }
         return Rectangle().strokeBorder(color, style: StrokeStyle(lineWidth: 1, dash: dash))
-            .frame(width: s[0] * m.scale + 8, height: s[1] * m.scale + 8)
+            .frame(width: rect.width, height: rect.height)
             .rotationEffect(.degrees(r))
-            .position(x: v.x, y: v.y)
+            .position(x: rect.midX, y: rect.midY)
             .allowsHitTesting(false)
     }
 
@@ -406,6 +422,13 @@ struct CanvasOverlay: View {
         let hot = gesture != nil && !g.committed && inInstagramZone(box)
         let color = hot ? Ed.danger : Ed.gold
         outline(e, g, m, color: color)
+        if e.movable { handles(e, g, m, c: c, s: s, r: r, box: box, hot: hot, color: color) }
+    }
+
+    /// The corner handles, the rotation knob and the Instagram warning of a selection that can move.
+    @ViewBuilder
+    private func handles(_ e: CanvasElement, _ g: CanvasGesture, _ m: PreviewMapping, c: [Double], s: [Double], r: Double, box: [Double], hot: Bool,
+                         color: Color) -> some View {
         let v = m.toView((c[0], c[1]))
         let hw = s[0] * m.scale / 2 + 4, hh = s[1] * m.scale / 2 + 4
         let a = r * .pi / 180
@@ -448,13 +471,21 @@ struct CanvasOverlay: View {
 
     /// Where the floating bar goes: under the selection, over it when there is no room below.
     private func barFrame(_ e: CanvasElement, _ m: PreviewMapping) -> (rect: CGRect, compact: Bool) {
-        let b = m.toView(box: e.box)
+        Self.barFrame(box: m.toView(box: e.box), kind: e.kind, view: size)
+    }
+
+    /// The bar for a selection whose box is `b` (view points) on a picture of `view` points: under it, over it when
+    /// there is no room below, inside the picture near the bottom of the selection when there is room neither below
+    /// nor above (a full-frame picture), clear of the corner handles.
+    static func barFrame(box b: [Double], kind: CanvasElement.Kind, view size: CGSize) -> (rect: CGRect, compact: Bool) {
         // A narrow monitor (the Pro workspace's 9:16 column) stacks the bar on two rows.
-        let compact = e.kind == .caption && size.width < 380
-        let width = min(e.kind == .caption ? (compact ? 214.0 : 370.0) : 220.0, size.width - 8)
+        let compact = kind == .caption && size.width < 380
+        let width = min(kind == .caption ? (compact ? 214.0 : 370.0) : 220.0, size.width - 8)
         let height = compact ? 62.0 : 34.0
-        let below = b[1] + b[3] + 14 + height < size.height
-        let y = below ? b[1] + b[3] + 14 + height / 2 : max(b[1] - 14 - height / 2, height / 2)
+        let y: Double
+        if b[1] + b[3] + 14 + height < size.height { y = b[1] + b[3] + 14 + height / 2 }
+        else if b[1] - 14 - height >= 0 { y = b[1] - 14 - height / 2 }
+        else { y = max(min(b[1] + b[3], size.height) - 20 - height / 2, height / 2) }
         let x = min(max(b[0] + b[2] / 2, width / 2 + 4), size.width - width / 2 - 4)
         return (CGRect(x: x - width / 2, y: y - height / 2, width: width, height: height), compact)
     }
@@ -485,15 +516,15 @@ struct CanvasOverlay: View {
                 if press == nil {
                     model.refresh(store, time: playhead.time)
                     let e = hit(v.startLocation, m)
-                    press = (e.map(canvasKey), v.startLocation, false)
-                    if let e {
-                        if store.preview.isPlaying { store.preview.togglePlay() }
-                        store.canvasSelection = canvasKey(e)
-                        store.canvasElement = e
-                        model.prepare(store, e, time: playhead.time)
+                    if let e, e.needsSelection, store.canvasSelection != canvasKey(e) {
+                        // A full-frame picture is never moved by accident: the click selects it, a drag leaves it alone.
+                        press = (nil, v.startLocation, false, canvasKey(e))
+                    } else {
+                        press = (e.map(canvasKey), v.startLocation, false, nil)
+                        if let e { select(e) }
                     }
                 }
-                guard var pr = press, let key = pr.key, let e = model.elements.last(where: { canvasKey($0) == key }) else { return }
+                guard var pr = press, let key = pr.key, let e = model.elements.last(where: { canvasKey($0) == key }), e.movable else { return }
                 let t = v.translation
                 if !pr.dragging, hypot(t.width, t.height) < 3 { return }
                 pr.dragging = true
@@ -517,16 +548,28 @@ struct CanvasOverlay: View {
                     commit(e, g)
                     return
                 }
+                if let key = pr.select {
+                    if hypot(v.translation.width, v.translation.height) < 3, let e = model.elements.last(where: { canvasKey($0) == key }) { select(e) }
+                    return
+                }
                 // A click.
                 let double = (NSApp.currentEvent?.clickCount ?? 1) >= 2
                 if let key = pr.key, let e = model.elements.last(where: { canvasKey($0) == key }) {
-                    if double { store.resetCanvas(e) }
+                    if double, e.movable { store.resetCanvas(e) }
                 } else if store.canvasSelection != nil {
                     store.canvasSelection = nil
                 } else if store.project?.duration ?? .zero > .zero {
                     store.preview.togglePlay()
                 }
             }
+    }
+
+    /// Selects an element (the playback stops, its pictures for a drag are prepared).
+    private func select(_ e: CanvasElement) {
+        if store.preview.isPlaying { store.preview.togglePlay() }
+        store.canvasSelection = canvasKey(e)
+        store.canvasElement = e
+        model.prepare(store, e, time: playhead.time)
     }
 
     /// A corner handle: uniform resize around the centre.

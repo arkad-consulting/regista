@@ -66,7 +66,7 @@ enum ClipFollow: Command {
         let (t0, c) = try Timeline.locate(clip: p.requiredString("clipId"), in: project)
         var t = t0
         var clip = project.tracks[t].clips[c]
-        guard clip.placement.map({ $0.fit != .fill }) ?? clip.isGenerated, clip.shape == nil else {
+        guard clip.placement.map({ $0.fit != .fill }) ?? clip.isGenerated, clip.shape == nil, !clip.isFullFramePicture else {
             throw CommandError.conflict("\(id): \(clip.id) fills the frame: follow moves placed overlays (stickers, logos, images, titles)")
         }
         let target = p.requiredString("target")

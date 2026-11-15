@@ -18,6 +18,7 @@ public enum ElementSprites {
             guard let drawer = try? FrameDrawer(job: job, trackIDs: [:], orientations: [:]),
                   let layer = job.layers(at: t).first(where: { $0.clipID == cid }) else { return nil }
             picture = drawer.picture(layer, source: { _ in nil })
+            if picture == nil, case .video = layer.source, let alone = videoAlone(project, clipID: cid, at: t) { picture = CIImage(cgImage: alone) }
         } else if let ci = element.chunk {
             var job = RenderJob(project: project, preset: preset)
             guard var c = job.captions, c.chunks.indices.contains(ci) else { return nil }
@@ -43,6 +44,17 @@ public enum ElementSprites {
         if let cid = element.clipID, let loc = p.locate(clip: cid) { p.tracks[loc.track].clips.remove(at: loc.clip) } else { captions = false }
         let job = RenderJob(project: p, preset: ExportPreset.named(nil, project: project), captions: captions)
         return try? AVRenderer().renderImages(job, at: [t]).first
+    }
+
+    /// The frame drawn with one video clip alone (no other layer, no captions, no backdrop): the camera or a layout box
+    /// as the compositor draws it.
+    private static func videoAlone(_ project: Project, clipID: String, at t: MediaTime) -> CGImage? {
+        var p = project
+        for i in p.tracks.indices where p.tracks[i].kind == .video || p.tracks[i].kind == .overlay {
+            p.tracks[i].clips.removeAll { $0.id != clipID }
+        }
+        p.settings.backdrop = nil
+        return try? AVRenderer().renderImages(RenderJob(project: p, preset: ExportPreset.named(nil, project: project), captions: false), at: [t]).first
     }
 
     private static let context = CIContext(options: [.workingColorSpace: NSNull(), .outputColorSpace: NSNull()])

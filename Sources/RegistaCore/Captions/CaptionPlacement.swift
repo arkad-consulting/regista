@@ -26,7 +26,7 @@ public struct OutputFaces {
     /// Face boxes (landmark extent) on the output frame at timeline time `t`, output pixels.
     public mutating func boxes(at t: MediaTime) -> [[Double]] {
         let layers = job.layers(at: t)
-        guard let top = layers.last(where: { $0.placement == nil || $0.placement?.fit == .fill }), case .video = top.source,
+        guard let top = layers.last(where: \.isMainPicture), case .video = top.source,
               let asset = job.project.asset(top.assetID), asset.image == nil, top.crop[0] > 0, let track = track(asset),
               let clip = job.project.tracks.first(where: { $0.id == top.trackID })?.clips.first(where: { $0.id == top.clipID }) else { return [] }
         if perClip[clip.id] == nil {
@@ -43,9 +43,9 @@ public struct OutputFaces {
         return samples[lo].boxes.map { Self.toOutput($0, layer: top, width: job.width, height: job.height) }
     }
 
-    /// A source box through a full-frame layer's crop, scale and offset.
+    /// A source box through a full-frame layer's crop, scale and offset (and its box, once moved by hand).
     public static func toOutput(_ b: [Double], layer: VideoLayer, width: Int, height: Int) -> [Double] {
-        let k = Double(width) / layer.crop[0] * layer.scale
+        let k = layer.baseSize(width: width, height: height).0 / layer.crop[0] * layer.scale
         let (cx, cy) = layer.centre(width: width, height: height)
         let sx = layer.crop[2] + layer.crop[0] / 2, sy = layer.crop[3] + layer.crop[1] / 2
         return [cx + (b[0] - sx) * k, cy + (b[1] - sy) * k, b[2] * k, b[3] * k]

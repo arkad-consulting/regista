@@ -239,7 +239,7 @@ struct InspectorPanel: View {
         let sound = target.item.map { InspectorEdits.linkedAudio(of: $0.clip, in: p) } ?? []
         let key = target.clipIDs.joined(separator: ",")
         let apart = fadesApart.contains(key) || sound.isEmpty
-        let black = target.item.map { $0.track.kind == .video && ($0.clip.placement == nil || $0.clip.placement?.fit == .fill) } ?? false
+        let black = target.item.map { $0.track.kind == .video && ($0.clip.placement == nil || $0.clip.isFullFramePicture) } ?? false
         InspectorGroup(title: loc("Dissolvenze")) {
             if apart {
                 if !sound.isEmpty { subhead(loc("Immagine")) }

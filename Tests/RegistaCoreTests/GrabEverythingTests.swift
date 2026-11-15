@@ -162,3 +162,30 @@ private func layer(_ e: Engine, _ id: String, at s: Double) -> VideoLayer {
     #expect(listed.value(at: "elements.2.movable") == false)
     for id in ["m1", "h1"] { #expect(throws: CommandError.self) { try s.execute("clip.place", params: ["clipId": .string(id), "x": 10]) } }
 }
+
+@Test func aCameraMovedByHandIsStillTheCameraForFacesFadesAndFollow() throws {
+    let e = try analysisEngine()
+    try e.execute("faces.track", params: ["assetId": "a1"])
+    try e.execute("track.add", params: ["kind": "video"])
+    try e.execute("timeline.place", params: ["assetId": "a1", "trackId": "t1", "sourceIn": 0, "sourceOut": 3])
+    try e.execute("clip.set", params: ["clipId": "c1", "pictureFadeOut": 1])
+    let at = t(0.5)
+    var faces = OutputFaces(job: RenderJob(project: e.project!, preset: .vertical))
+    let before = faces.boxes(at: at)
+    #expect(!before.isEmpty)
+    try e.execute("clip.place", params: ["clipId": "c1", "dx": 100, "scale": 0.5])
+    // The faces under the captions follow the picture: moved with it and half the size, around its centre.
+    faces = OutputFaces(job: RenderJob(project: e.project!, preset: .vertical))
+    let after = faces.boxes(at: at)
+    #expect(after.count == before.count)
+    for (a, b) in zip(after, before) {
+        let want = [640 + (b[0] - 540) * 0.5, 960 + (b[1] - 960) * 0.5, b[2] * 0.5, b[3] * 0.5]
+        #expect(zip(a, want).allSatisfy { abs($0 - $1) < 1e-6 }, "face \(a), expected \(want)")
+    }
+    // Still the main picture: it fades to black and its person matte is the subject of the layers behind it.
+    let job = RenderJob(project: e.project!, preset: .vertical)
+    let fading = job.layers(at: t(2.5)).first { $0.clipID == "c1" }!
+    #expect(fading.isMainPicture && fading.dim > 0.4 && fading.opacity == 1)
+    // A camera is never a follower, moved or not.
+    #expect(throws: CommandError.self) { try e.execute("clip.follow", params: ["clipId": "c1", "target": "face"]) }
+}

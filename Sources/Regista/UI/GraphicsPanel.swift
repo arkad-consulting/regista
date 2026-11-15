@@ -98,7 +98,7 @@ enum GraphicsCatalog {
         guard item.command == "clip.follow" else { return nil }
         guard let id = selection.first, let (t, c) = p.locate(clip: id) else { return .follower }
         let clip = p.tracks[t].clips[c]
-        guard clip.placement.map({ $0.fit != .fill }) ?? clip.isGenerated, clip.shape == nil,
+        guard clip.placement.map({ $0.fit != .fill }) ?? clip.isGenerated, clip.shape == nil, !clip.isFullFramePicture,
               let main = EffectsCatalog.mainClip(at: clip.start, in: p), let asset = p.asset(main.assetID) else { return .follower }
         if item.id == "follow-face" {
             return asset.analysis?.faces == nil ? .track(command: "faces.track", params: ["assetId": .string(asset.id)]) : nil

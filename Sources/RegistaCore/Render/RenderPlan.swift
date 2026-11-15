@@ -92,6 +92,10 @@ public struct VideoLayer: Hashable, Sendable {
     /// to black, its person matte under the layers drawn behind the subject).
     public var fullFrame = false
 
+    /// The picture the frame is made of (the camera, a full-frame insert), also when it was moved by hand from filling
+    /// the frame: what the person matte, the picture fade to black and the faces under the captions are read from.
+    public var isMainPicture: Bool { placement == nil || placement?.fit == .fill || fullFrame }
+
     /// Size of the drawn picture before the transform, output pixels, for a `width`×`height` output
     /// (`content`: the title's box size at that output, for titles).
     public func baseSize(width: Int, height: Int, content: (Double, Double)? = nil) -> (Double, Double) {
@@ -193,7 +197,7 @@ public struct RenderJob: Sendable {
         var subject: Int?
         for (i, l) in layers.enumerated() {
             if l.behindSubject { out[i] = subject }
-            if l.placement == nil || l.placement?.fit == .fill || l.fullFrame { subject = l.matte != nil ? i : nil }
+            if l.isMainPicture { subject = l.matte != nil ? i : nil }
         }
         return out
     }
@@ -228,7 +232,7 @@ public struct RenderJob: Sendable {
             case .shake:
                 let (dx, dy, r) = Effect.shake(at: t.seconds, frequency: e.frequency ?? 7)
                 tr.x += dx * s; tr.y += dy * s; tr.rotation += r * s
-                if clip.placement == nil || clip.placement?.fit == .fill { tr.scale *= 1 + 0.04 * s }   // keep the edges out of view
+                if clip.placement == nil || clip.isFullFramePicture { tr.scale *= 1 + 0.04 * s }   // keep the edges out of view
             case .flash: break   // frame-wide: frameFX
             default:
                 var le = LayerEffect(kind: e.kind, strength: s, radius: (e.radius ?? Self.defaultRadius(e.kind)) * Double(width) / SafeZones.referenceWidth,
@@ -251,7 +255,7 @@ public struct RenderJob: Sendable {
         layer.fullFrame = clip.isFullFramePicture && clip.placement?.fit == .box
         let visible = clip.pictureVisibility(at: local)
         if visible < 1 {
-            if track.kind == .video, clip.placement == nil || clip.placement?.fit == .fill || layer.fullFrame { layer.dim = 1 - visible }
+            if track.kind == .video, clip.placement == nil || clip.isFullFramePicture { layer.dim = 1 - visible }
             else { layer.opacity *= visible }
         }
         layer.behindSubject = clip.isBehindSubject(at: local)

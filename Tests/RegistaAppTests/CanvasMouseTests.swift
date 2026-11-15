@@ -1,11 +1,13 @@
 import AppKit
 import RegistaCore
+import RegistaEngines
 import SwiftUI
 import Testing
 @testable import Regista
 
 // The mouse path of the preview (#28): click, drag, the corner handles, the rotation knob and the floating bar of the
-// Program picture, driven with real mouse events (MouseRig).
+// Program picture, driven with real mouse events (MouseRig). #30: the same gestures on everything drawn on the frame —
+// the full-frame camera, a full-frame insert, a callout, a layout box — and a full-frame picture never moved by accident.
 
 private func scratchDefaults() -> UserDefaults {
     let name = "regista-tests-\(UUID().uuidString)"
@@ -14,30 +16,53 @@ private func scratchDefaults() -> UserDefaults {
     return d
 }
 
+/// The kinds made grabbable by #30, as a CanvasRig puts them on the frame.
+enum CanvasGrab: String, CaseIterable, CustomStringConvertible, Sendable {
+    /// A synthetic camera take filling the frame.
+    case camera
+    /// An opaque picture filling the frame (overlay.add fit fill).
+    case insert
+    /// A box callout in the middle of the frame.
+    case callout
+    /// The camera in a picture-in-picture bubble (layout.speaker pip-bubble).
+    case layoutBox
+    var description: String { rawValue }
+}
+
 /// The Program picture with one overlay on the timeline (and, with `under`, a second one as wide as the frame lying
-/// under the first and under its floating bar).
+/// under the first and under its floating bar), or one element of a kind made grabbable by #30.
 @MainActor
 private final class CanvasRig {
     let store: EditorStore
     let rig: MouseRig
     let clipID: String
+    let dir: URL
     /// The monitor: the picture with the 10 pt margin it has in the Program monitor.
     static let view = CGSize(width: 320, height: 540)
     static let margin = 10.0
 
-    init(scale: Double, at centre: [Double] = [540, 960], under: Bool = false) async throws {
+    private static func setUp() throws -> (EditorStore, URL) {
         _ = NSApplication.shared
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-canvas-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         setenv("REGISTA_ENGINE_SOCKET", dir.appendingPathComponent("e.sock").path, 1)
-        store = EditorStore(defaults: scratchDefaults(), seedFolders: [])
+        return (EditorStore(defaults: scratchDefaults(), seedFolders: []), dir)
+    }
+
+    /// An opaque PNG of one colour.
+    static func png(_ url: URL, width: Int, height: Int, red: Double, green: Double, blue: Double) throws {
+        let ctx = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        ctx.setFillColor(CGColor(red: red, green: green, blue: blue, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        try #require(NSBitmapImageRep(cgImage: ctx.makeImage()!).representation(using: .png, properties: [:])).write(to: url)
+    }
+
+    init(scale: Double, at centre: [Double] = [540, 960], under: Bool = false) async throws {
+        (store, dir) = try Self.setUp()
         // A 1080×600 picture: fitted in the frame it is as wide as the frame.
         let png = dir.appendingPathComponent("card.png")
-        let ctx = CGContext(data: nil, width: 1080, height: 600, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
-                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
-        ctx.setFillColor(CGColor(red: 0.2, green: 0.4, blue: 0.9, alpha: 1))
-        ctx.fill(CGRect(x: 0, y: 0, width: 1080, height: 600))
-        try #require(NSBitmapImageRep(cgImage: ctx.makeImage()!).representation(using: .png, properties: [:])).write(to: png)
+        try Self.png(png, width: 1080, height: 600, red: 0.2, green: 0.4, blue: 0.9)
         try await store.perform("project.new", ["name": "canvas"])
         if under {
             try await store.perform("overlay.add", ["path": .string(png.path), "start": 0, "duration": 3, "fit": "contain", "position": [540, 960]])
@@ -51,11 +76,84 @@ private final class CanvasRig {
             .environmentObject(store).environmentObject(store.preview).environmentObject(store.preview.playhead), size: Self.view)
     }
 
+    /// The synthetic camera take, written once per test run and imported by every rig after the first.
+    private static var take: URL?
+
+    /// Puts the camera take on V1, filling the frame; returns its clip.
+    private static func camera(_ store: EditorStore) async throws -> String {
+        let r: JSONValue
+        if let take {
+            r = try await store.perform("media.import", ["path": .string(take.path)])
+        } else {
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-canvas-take-\(UUID().uuidString)/take.mov")
+            r = try await store.perform("media.synthesize", ["path": .string(url.path), "duration": 3])
+            take = url
+        }
+        let asset = try #require(r.value(at: "asset.id")?.stringValue)
+        let t = try await store.perform("track.add", ["kind": "video"])
+        let track = try #require(t.value(at: "track.id")?.stringValue)
+        let placed = try await store.perform("timeline.place", ["assetId": .string(asset), "trackId": .string(track)])
+        return try #require(placed.value(at: "clip.id")?.stringValue)
+    }
+
+    init(_ grab: CanvasGrab) async throws {
+        (store, dir) = try Self.setUp()
+        try await store.perform("project.new", ["name": .string("canvas-\(grab)")])
+        var id: String
+        switch grab {
+        case .camera:
+            id = try await Self.camera(store)
+        case .insert:
+            let png = dir.appendingPathComponent("insert.png")
+            try Self.png(png, width: 1080, height: 1920, red: 0.1, green: 0.6, blue: 0.3)
+            let r = try await store.perform("overlay.add", ["path": .string(png.path), "start": 0, "duration": 3, "fit": "fill"])
+            id = try #require(r.value(at: "clip.id")?.stringValue)
+        case .callout:
+            let r = try await store.perform("callout.add", ["kind": "box", "start": 0, "duration": 3, "rect": [240, 760, 600, 400], "drawOn": 0])
+            id = try #require(r.value(at: "clip.id")?.stringValue)
+        case .layoutBox:
+            id = try await Self.camera(store)
+            try await store.perform("layout.speaker", ["preset": "pip-bubble"])
+        }
+        for _ in 0..<200 where store.project?.tracks.flatMap(\.clips).contains(where: { $0.id == id }) != true { try await Task.sleep(for: .milliseconds(50)) }
+        if grab == .layoutBox {
+            // The bubble's clip (the layout may have cut the take at the range edges).
+            for _ in 0..<100 where CanvasLayout.elements(store.project!, at: .zero, renderer: nil).contains(where: { $0.kind == .layoutBox }) != true {
+                try await Task.sleep(for: .milliseconds(50))
+            }
+            id = try #require(CanvasLayout.elements(store.project!, at: .zero, renderer: nil).first { $0.kind == .layoutBox }?.clipID)
+        }
+        clipID = id
+        rig = MouseRig(ProgramPicture().padding(Self.margin)
+            .environmentObject(store).environmentObject(store.preview).environmentObject(store.preview.playhead), size: Self.view)
+    }
+
+    /// Runs a command (another element on the frame) and waits for the store to show it; returns the clip it added.
+    @discardableResult
+    func add(_ id: String, _ params: JSONValue) async throws -> String {
+        let before = store.projectVersion
+        let r = try await store.perform(id, params)
+        let cid = try #require(r.value(at: "clip.id")?.stringValue)
+        for _ in 0..<200 where store.project?.tracks.flatMap(\.clips).contains(where: { $0.id == cid }) != true { try await Task.sleep(for: .milliseconds(50)) }
+        try await settle(since: before)
+        return cid
+    }
+
     func close() { rig.close() }
 
     var clip: Clip { store.project!.tracks.flatMap(\.clips).first { $0.id == clipID }! }
-    var element: CanvasElement {
-        CanvasLayout.elements(store.project!, at: .zero, renderer: nil).first { $0.clipID == clipID }!
+    func clip(_ id: String) -> Clip? { store.project!.tracks.flatMap(\.clips).first { $0.id == id } }
+    var element: CanvasElement { element(clipID) }
+    func element(_ id: String) -> CanvasElement {
+        CanvasLayout.elements(store.project!, at: .zero, renderer: nil).first { $0.clipID == id }!
+    }
+
+    /// View points per frame pixel.
+    var pointsPerPixel: Double { (viewPoint((1080, 0)).x - viewPoint((0, 0)).x) / 1080 }
+    /// The picture in the hosting view.
+    var picture: CGRect {
+        let o = viewPoint((0, 0)), end = viewPoint((1080, 1920))
+        return CGRect(x: o.x, y: o.y, width: end.x - o.x, height: end.y - o.y)
     }
 
     /// A frame point in the hosting view (top-left origin).
@@ -87,13 +185,18 @@ private final class CanvasRig {
         return inPicture(CGPoint(x: p.x, y: p.y - 4 - 22))
     }
 
-    /// The floating bar under the selection: its middle (the size slider) and its reset button.
-    var bar: CGPoint {
-        let e = element
-        let p = viewPoint((e.center[0], e.box[1] + e.box[3]))
-        return CGPoint(x: p.x, y: p.y + 14 + 17)
+    /// The floating bar of the selection, where the picture draws it (under it, over it, or inside the picture): its
+    /// middle (the size slider) and its reset button.
+    var barRect: CGRect {
+        let e = element, o = picture.origin, k = pointsPerPixel
+        let p = viewPoint((e.box[0], e.box[1]))
+        return CanvasOverlay.barFrame(box: [p.x - o.x, p.y - o.y, e.box[2] * k, e.box[3] * k], kind: e.kind, view: picture.size).rect
+            .offsetBy(dx: o.x, dy: o.y)
     }
-    var reset: CGPoint { CGPoint(x: bar.x + 110 - 8 - 11, y: bar.y) }
+    var bar: CGPoint { CGPoint(x: barRect.midX, y: barRect.midY) }
+    var reset: CGPoint { CGPoint(x: barRect.maxX - 8 - 11, y: barRect.midY) }
+    /// The bar's reset button as the accessibility tree finds it on screen (nil: no bar).
+    var resetButton: RigElement? { rig.element(loc("Ripristina la posizione originale (anche doppio clic)")) }
 
     /// A click on the overlay: selected, its handles drawn.
     func select() { rig.click(viewPoint((element.center[0], element.center[1]))) }
@@ -103,6 +206,20 @@ private final class CanvasRig {
         let before = store.projectVersion
         rig.drag(from: from, by: delta)
         try await settle(since: before)
+    }
+
+    /// Undo takes the last gesture back in one step (`before`: the clip before it); redo puts it back.
+    func expectOneUndoStep(_ before: Clip, _ what: String, sourceLocation: SourceLocation = #_sourceLocation) async throws {
+        let after = clip
+        #expect(after != before, "\(what) changed nothing", sourceLocation: sourceLocation)
+        var v = store.projectVersion
+        store.undo()
+        try await settle(since: v)
+        #expect(clip == before, "undo after \(what) did not restore the clip in one step", sourceLocation: sourceLocation)
+        v = store.projectVersion
+        store.redo()
+        try await settle(since: v)
+        #expect(clip == after, "redo after \(what) did not put it back", sourceLocation: sourceLocation)
     }
 
     func settle(since version: Int) async throws {
@@ -194,6 +311,121 @@ extension MouseSuites {
         c.rig.click(c.reset)
         try await c.settle(since: version)
         #expect(c.clip.placeOrigin == nil && c.clip.placement == home)
+        #expect(c.store.canvasSelection == c.clipID)
+    }
+
+    // MARK: Everything drawn on the frame (#30)
+
+    /// On the full-frame camera, a full-frame insert, a callout and a layout box: a click selects it with its handles
+    /// and bar inside the picture; a drag moves it by the drag; a corner makes it larger and smaller; the bar's slider
+    /// resizes it (twice: the bar stays); the bar's reset puts it back. Each gesture is one command, one undo step.
+    @Test(arguments: CanvasGrab.allCases)
+    func everyGestureAnswersOnEachKind(_ grab: CanvasGrab) async throws {
+        let c = try await CanvasRig(grab)
+        defer { c.close() }
+        let original = c.clip
+        let k = c.pointsPerPixel
+        c.select()
+        #expect(c.store.canvasSelection == c.clipID, "\(grab): the click did not select it")
+        #expect(c.picture.contains(c.handle), "\(grab): the corner handle is outside the picture")
+        let reset = try #require(c.resetButton, "\(grab): no floating bar after the click")
+        #expect(c.picture.insetBy(dx: -0.5, dy: -0.5).contains(reset.frame), "\(grab): the bar is outside the picture (\(reset.frame) in \(c.picture))")
+        // A drag moves it by the drag (snapping may pull it a few pixels).
+        var before = c.clip
+        let e0 = c.element
+        try await c.drag(from: c.viewPoint((e0.center[0], e0.center[1])), by: CGSize(width: -20, height: -40))
+        let e1 = c.element
+        #expect(abs(e1.center[0] - e0.center[0] + 20 / k) < 8 / k && abs(e1.center[1] - e0.center[1] + 40 / k) < 8 / k,
+                "\(grab): moved by \(e1.center[0] - e0.center[0]), \(e1.center[1] - e0.center[1]) for a drag of \(-20 / k), \(-40 / k)")
+        #expect(c.store.canvasSelection == c.clipID)
+        try await c.expectOneUndoStep(before, "\(grab): the drag")
+        // A corner: larger, then smaller.
+        before = c.clip
+        let s0 = c.element.scale
+        try await c.drag(from: c.handle, by: CGSize(width: 14, height: 8))
+        #expect(c.element.scale > s0 * 1.04, "\(grab): the corner did not make it larger")
+        try await c.expectOneUndoStep(before, "\(grab): the corner (larger)")
+        before = c.clip
+        let s1 = c.element.scale
+        try await c.drag(from: c.handle, by: CGSize(width: -30, height: -17))
+        #expect(c.element.scale < s1 * 0.95, "\(grab): the corner did not make it smaller")
+        try await c.expectOneUndoStep(before, "\(grab): the corner (smaller)")
+        // The bar's slider, twice: the bar stays under the pointer.
+        before = c.clip
+        let s2 = c.element.scale
+        try await c.drag(from: c.bar, by: CGSize(width: 12, height: 0))
+        #expect(c.store.canvasSelection == c.clipID, "\(grab): the click on the bar selected something else")
+        #expect(c.element.scale > s2 + 0.1, "\(grab): the slider did not resize it")
+        try await c.expectOneUndoStep(before, "\(grab): the slider")
+        let s3 = c.element.scale
+        try await c.drag(from: CGPoint(x: c.bar.x + 12, y: c.bar.y), by: CGSize(width: -30, height: 0))
+        #expect(c.element.scale < s3 - 0.2, "\(grab): the slider did not answer a second time")
+        // The bar's reset button: as it was.
+        before = c.clip
+        let version = c.store.projectVersion
+        c.rig.click(c.reset)
+        try await c.settle(since: version)
+        #expect(c.clip == original, "\(grab): reset did not put it back")
+        #expect(c.store.canvasSelection == c.clipID)
+        try await c.expectOneUndoStep(before, "\(grab): reset")
+    }
+
+    /// A drag that starts on a full-frame picture nobody selected moves nothing; a click selects it, Esc lets it go.
+    @Test(arguments: [CanvasGrab.camera, .insert])
+    func aDragOnAnUnselectedFullFramePictureMovesNothing(_ grab: CanvasGrab) async throws {
+        let c = try await CanvasRig(grab)
+        defer { c.close() }
+        let before = c.clip, version = c.store.projectVersion
+        c.rig.drag(from: c.viewPoint((540, 960)), by: CGSize(width: 30, height: 60))
+        try await Task.sleep(for: .milliseconds(300))
+        c.rig.pump(0.2)
+        #expect(c.clip == before && c.store.projectVersion == version, "\(grab): a drag on the unselected picture moved it")
+        #expect(c.store.canvasSelection == nil, "\(grab): a drag selected it")
+        c.select()
+        #expect(c.store.canvasSelection == c.clipID)
+        #expect(c.store.handleCanvasKey(53, shift: false) && c.store.canvasSelection == nil, "Esc did not deselect it")
+    }
+
+    /// An overlay and a title lying over the full-frame camera are still the ones hit and moved; the camera is
+    /// selected where nothing lies over it.
+    @Test func elementsOverAFullFramePictureAreStillTheOnesHit() async throws {
+        let c = try await CanvasRig(.camera)
+        defer { c.close() }
+        let png = c.dir.appendingPathComponent("card.png")
+        try CanvasRig.png(png, width: 1080, height: 600, red: 0.9, green: 0.4, blue: 0.2)
+        let card = try await c.add("overlay.add", ["path": .string(png.path), "start": 0, "duration": 3, "fit": "contain", "scale": 0.3, "position": [540, 700]])
+        let title = try await c.add("title.add", ["text": "CIAO", "start": 0, "duration": 3, "position": [540, 1300], "animIn": "none"])
+        let camera = c.clip
+        c.rig.click(c.viewPoint((540, 700)))
+        #expect(c.store.canvasSelection == card, "the overlay over the camera was not the one hit")
+        let y0 = c.clip(card)!.placement!.y
+        try await c.drag(from: c.viewPoint((540, 700)), by: CGSize(width: 0, height: 30))
+        #expect(c.clip(card)!.placement!.y > y0 + 0.02 && c.clip == camera, "the drag moved the camera, not the overlay")
+        let t = c.element(title)
+        c.rig.click(c.viewPoint((t.center[0], t.center[1])))
+        #expect(c.store.canvasSelection == title, "the title over the camera was not the one hit")
+        c.rig.click(c.viewPoint((200, 300)))
+        #expect(c.store.canvasSelection == c.clipID, "the camera was not selected where nothing lies over it")
+        #expect(c.clip == camera)
+    }
+
+    /// A motion template cannot be placed by hand: a click selects its clip (no handles, no bar), a drag moves nothing.
+    @Test func aMotionTemplateIsSelectedByAClickAndNeverMoved() async throws {
+        MotionLibrary.registerAll()
+        let c = try await CanvasRig(scale: 0.3, at: [540, 400])
+        defer { c.close() }
+        let motion = try await c.add("motion.add", ["template": "counter", "start": 0, "duration": 3])
+        #expect(c.element(motion).kind == .motion && !c.element(motion).movable)
+        let before = c.clip(motion), version = c.store.projectVersion
+        c.rig.click(c.viewPoint((540, 1500)))
+        #expect(c.store.canvasSelection == motion, "the click did not select the motion template")
+        #expect(c.resetButton == nil, "a motion template shows the bar")
+        c.rig.drag(from: c.viewPoint((540, 1500)), by: CGSize(width: 20, height: 30))
+        try await Task.sleep(for: .milliseconds(300))
+        c.rig.pump(0.2)
+        #expect(c.clip(motion) == before && c.store.projectVersion == version)
+        // The overlay over it is still the one hit.
+        c.select()
         #expect(c.store.canvasSelection == c.clipID)
     }
 }
