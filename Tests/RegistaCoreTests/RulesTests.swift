@@ -218,3 +218,20 @@ private func rulesEngine(_ fakes: FakeServices = FakeServices()) throws -> (Engi
     let fixed = try e.checkUndoRedo("rules.fix", ["all": true])
     #expect(fixed.value(at: "check.pass") == true && fixed["applied"]?.arrayValue?.count == 1)
 }
+
+@Test func violationsOfOneCheckOverTheSameWindowAreListedOnce() throws {
+    // Seen on a real project: two title layers over the same opening stretch listed «captions under the opening title»
+    // twice, with the same time, message and fix.
+    let (e, _) = try rulesEngine()
+    try e.execute("captions.generate")
+    try e.execute("title.add", params: ["text": "HOOK", "start": 0, "duration": 2])
+    try e.execute("title.add", params: ["text": "SUBTITLE", "start": 0, "duration": 2])
+    let check = try e.execute("rules.check")
+    let opening = check["violations"]?.arrayValue?.filter { $0["check"] == "title-captions" } ?? []
+    #expect(opening.count == 1, "\(opening)")
+    #expect(check["failures"]?.doubleValue == Double(check["violations"]?.arrayValue?.filter { $0["severity"] == "fail" }.count ?? -1))
+    // Another window is another problem.
+    try e.execute("history.undo")
+    try e.execute("title.add", params: ["text": "SHORT", "start": 0, "duration": 1.2])
+    #expect(try e.execute("rules.check")["violations"]?.arrayValue?.filter { $0["check"] == "title-captions" }.count == 2)
+}

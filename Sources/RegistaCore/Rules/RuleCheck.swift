@@ -104,9 +104,24 @@ enum RuleCheck {
             violations += found
             rows.append(.init(state: state, skipped: skipped))
         }
+        violations = merged(violations)
         violations.sort { ($0.time, $0.check) < ($1.time, $1.check) }
         return RuleReport(kind: kind, kindTitle: book.title(kind, language: language), kindSource: source, note: note, rows: rows,
                           violations: violations, problems: book.problems(kind, language: language))
+    }
+
+    /// One violation per check and window: two clips over the same stretch (two title layers shown together, a logo
+    /// on two tracks) give the same message, time and fix — one problem, listed once (the first clip's).
+    static func merged(_ violations: [RuleViolation]) -> [RuleViolation] {
+        struct Same: Hashable {
+            var check: String
+            var severity: RuleViolation.Severity
+            var text: RuleText
+            var time: MediaTime
+            var fix: RuleFix?
+        }
+        var seen = Set<Same>()
+        return violations.filter { seen.insert(Same(check: $0.check, severity: $0.severity, text: $0.text, time: $0.time, fix: $0.fix)).inserted }
     }
 
     /// The edit as the checks see it.
