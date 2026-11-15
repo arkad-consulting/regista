@@ -1,0 +1,26 @@
+{
+ "name": "rules-logo-end",
+ "description": "Editing rules (#31), the logo only at the end: on a synthetic talking head with its spoken words (last word ends at 4.8 s), a logo in the first 1.5 s and then one across the whole video each fail logo-end with their time and no automatic fix, and export.render refuses; the logo redone as a closing card 0.4 s after the last word (logo.add replace) passes and exports without the override. No engines, no footage (ffmpeg only for the export).",
+ "steps": [
+  {"command": "project.new", "params": {"name": "rules-logo-end", "directory": "${WORK}"}, "expect": {"result.kind": "talking-head-reel", "result.kindSet": false}},
+  {"command": "media.synthesize", "params": {"path": "${WORK}/talking-head.mov", "duration": 6, "words": [
+     {"text": "Logos", "start": 0.3, "end": 0.8}, {"text": "go", "start": 0.82, "end": 1.1}, {"text": "last.", "start": 4.3, "end": 4.8}]},
+   "capture": {"cam": "result.asset.id"}},
+  {"command": "track.add", "params": {"kind": "video"}, "capture": {"v1": "result.track.id"}},
+  {"command": "timeline.place", "params": {"assetId": "${cam}", "trackId": "${v1}", "sourceIn": 0, "sourceOut": 6}},
+  {"command": "logo.add", "params": {"path": "${SCENARIO_DIR}/../Fixtures/overlay-card.png", "start": 0, "duration": 1.5}},
+  {"command": "rules.check",
+   "expect": {"result.pass": false, "result.failures": 1, "result.violations.0.check": "logo-end", "result.violations.0.time": 0,
+              "result.violations.0.messageKey": "A logo at the start of the video (%1$@ s): the logo goes only at the end.",
+              "result.violations.0.fix": null}},
+  {"command": "logo.add", "params": {"path": "${SCENARIO_DIR}/../Fixtures/overlay-card.png", "replace": true}},
+  {"command": "rules.check",
+   "expect": {"result.failures": 1, "result.violations.0.check": "logo-end", "result.violations.0.messageArgs": ["0.00", "6.00"],
+              "result.violations.0.messageKey": "A logo across the video (%1$@–%2$@ s): the logo goes only at the end.", "result.violations.0.fix": null}},
+  {"command": "rules.fix", "params": {"all": true}, "expect": {"result.applied": {"count": 0}, "result.check.pass": false}},
+  {"command": "export.render", "params": {"path": "${WORK}/blocked.mp4"}, "expectError": "logo-end at 0.00 s"},
+  {"command": "logo.add", "params": {"path": "${SCENARIO_DIR}/../Fixtures/overlay-card.png", "replace": true, "start": 5.2, "end": 6}},
+  {"command": "rules.check", "expect": {"result.pass": true, "result.violations": {"count": 0}}},
+  {"command": "export.render", "params": {"path": "${WORK}/rules-logo-end.mp4"}, "expect": {"result.rules.pass": true, "result.duration": {"approx": 6, "tol": 0.05}}}
+ ]
+}

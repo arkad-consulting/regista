@@ -1,0 +1,47 @@
+{
+ "name": "rules-reel",
+ "description": "Editing rules (#31), the reel of the acceptance: a synthetic talking head (media.synthesize with its spoken words) captioned, a hook title over the first 2 s and a logo landing on the last spoken word. rules.check lists the three broken rules with their times and fixes (captions under the opening title, captions on the closing logo, no pause before the logo); export.render refuses with the list, and exports with exportAnyway. Each fix is one command and one undo step (captions.clear twice as the check gives them, then rules.fix moving the logo 0.4 s after the last word); after them the check passes and export.render exports without the override. No engines, no footage (ffmpeg only for the export).",
+ "steps": [
+  {"command": "project.new", "params": {"name": "rules-reel", "directory": "${WORK}", "kind": "talking-head-reel"},
+   "expect": {"result.kind": "talking-head-reel", "result.kindSet": true}},
+  {"command": "media.synthesize", "params": {"path": "${WORK}/talking-head.mov", "duration": 6, "words": [
+     {"text": "Three", "start": 0.3, "end": 0.6}, {"text": "rules", "start": 0.62, "end": 1.0}, {"text": "every", "start": 1.05, "end": 1.4},
+     {"text": "editor", "start": 1.42, "end": 1.9}, {"text": "forgets.", "start": 1.92, "end": 2.5}, {"text": "Here", "start": 2.9, "end": 3.2},
+     {"text": "they", "start": 3.22, "end": 3.5}, {"text": "come", "start": 3.52, "end": 3.9}, {"text": "now.", "start": 4.4, "end": 4.8}]},
+   "capture": {"cam": "result.asset.id"}},
+  {"command": "track.add", "params": {"kind": "video"}, "capture": {"v1": "result.track.id"}},
+  {"command": "timeline.place", "params": {"assetId": "${cam}", "trackId": "${v1}", "sourceIn": 0, "sourceOut": 6}},
+  {"command": "captions.generate", "params": {"style": "talking-head-v1"}, "capture": {"c1": "result.trackId"}},
+  {"command": "title.add", "params": {"text": "THREE RULES", "start": 0, "duration": 2, "size": 96}, "capture": {"title": "result.clip.id"}},
+  {"command": "logo.add", "params": {"path": "${SCENARIO_DIR}/../Fixtures/overlay-card.png", "start": 4.6, "end": 6}, "capture": {"logo": "result.clip.id"}},
+
+  {"command": "rules.check",
+   "expect": {"result.kind": "talking-head-reel", "result.pass": false, "result.failures": 3,
+              "result.violations.0.check": "title-captions", "result.violations.0.time": {"approx": 0.3},
+              "result.violations.0.fix.command": "captions.clear", "result.violations.0.fix.params.from": 0, "result.violations.0.fix.params.to": 2,
+              "result.violations.1.check": "logo-captions", "result.violations.1.time": {"approx": 4.6},
+              "result.violations.1.fix.command": "captions.clear", "result.violations.1.fix.params.from": {"approx": 4.6}, "result.violations.1.fix.params.to": 6,
+              "result.violations.2.check": "logo-pause", "result.violations.2.time": {"approx": 4.6}, "result.violations.2.severity": "fail",
+              "result.violations.2.fix.command": "timeline.move", "result.violations.2.fix.params.start": {"approx": 5.2},
+              "result.checks": {"includes": [{"id": "face-clear", "ran": false}, {"id": "logo-end", "ran": true, "violations": 0}]}}},
+  {"command": "export.render", "params": {"path": "${WORK}/blocked.mp4"}, "expectError": "editing rules"},
+  {"command": "export.render", "params": {"path": "${WORK}/anyway.mp4", "exportAnyway": true},
+   "expect": {"result.rules.pass": false, "result.rules.exportedAnyway": true, "result.rules.violations": {"count": 3}}},
+
+  {"command": "captions.clear", "params": {"trackId": "${c1}", "from": 0, "to": 2}, "expect": {"result.removed": {"min": 1}}},
+  {"command": "rules.check", "expect": {"result.failures": 2, "result.violations.0.check": "logo-captions"}},
+  {"command": "history.undo", "expect": {"result.undone": "captions.clear"}},
+  {"command": "rules.check", "expect": {"result.failures": 3}},
+  {"command": "history.redo", "expect": {"result.redone": "captions.clear"}},
+  {"command": "captions.clear", "params": {"trackId": "${c1}", "from": 4.6, "to": 6}},
+  {"command": "rules.check", "expect": {"result.failures": 1, "result.violations.0.check": "logo-pause"}},
+  {"command": "rules.fix", "params": {"check": "logo-pause"},
+   "expect": {"result.applied": {"count": 1}, "result.applied.0.command": "timeline.move", "result.check.pass": true}},
+  {"command": "history.undo", "expect": {"result.undone": "rules.fix"}},
+  {"command": "rules.check", "expect": {"result.failures": 1}},
+  {"command": "history.redo", "expect": {"result.redone": "rules.fix"}},
+  {"command": "rules.check", "expect": {"result.pass": true, "result.violations": {"count": 0}}},
+  {"command": "export.render", "params": {"path": "${WORK}/rules-reel.mp4"},
+   "expect": {"result.rules.pass": true, "result.rules.exportedAnyway": false, "result.duration": {"approx": 6.6, "tol": 0.05}}}
+ ]
+}

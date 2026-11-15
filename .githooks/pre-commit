@@ -39,8 +39,10 @@ BIN="$(swift build --show-bin-path)"
 # the engine socket points at a path where nothing listens. A scenario that hangs (e.g. an export stuck in AVFoundation,
 # #71) fails after SCENARIO_TIMEOUT seconds, its regista-mcp child included, instead of blocking the commit forever.
 sockdir="$(mktemp -d -t regista-precommit-sock)"
-trap 'rm -f "$log"; rmdir "$sockdir" 2>/dev/null || true' EXIT
+trap 'rm -f "$log"; rm -rf "$sockdir" 2>/dev/null || true' EXIT
 export REGISTA_ENGINE_SOCKET="$sockdir/none.sock"
+# …nor the owner's editing-rule sheets (#31): the support folder is a scratch one, so the defaults apply.
+export REGISTA_SUPPORT_DIR="$sockdir/support"
 SCENARIO_TIMEOUT="${REGISTA_SCENARIO_TIMEOUT:-600}"
 . scripts/lib.sh   # with_timeout
 scenario() {   # scenario <label> <regista-engine args…>

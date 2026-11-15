@@ -1,7 +1,7 @@
 {
   "name": "wesites-generate",
   "defaults": {"REGISTA_GOLDEN_MEDIA": "${HOME}/.config/regista/test-media/wesites-2026-10-26", "REGISTA_COMFY_RUN": "${HOME}/.config/regista/test-media/comfy_run.py"},
-  "description": "Generated B-roll and text behind the person on the WeSites take: the wesites-v1 edit (auto cut, voice, punch-ins, grade, captions), then a ComfyUI still (Z-Image) animated into a 3 s clip (Wan 2.2 I2V from that still) and upscaled to 1080×1920 at 30 fps (Real-ESRGAN + RIFE), placed as a full-frame insert on \"il motore sotto ogni sito WordPress\" (8.37–10.17 s); the person matte of the first 3 s (Apple Vision) and the hook word \"SICURO?\" in big IKB serif behind the speaker's head (0.1–3 s). Checks: provider metadata on the generated assets, insert ≥ 1080 px and visible exactly in its window, title hidden where the person is and visible elsewhere (render and mp4), caption band clean, −15 ±0.5 LUFS / true peak ≤ −1.5 dBTP. Needs the engines, the footage and ComfyUI (Pro tier); generations are cached by request, so a re-run costs seconds.",
+  "description": "Generated B-roll and text behind the person on the WeSites take: the wesites-v1 edit (auto cut, voice, punch-ins, grade, captions), then a ComfyUI still (Z-Image) animated into a 3 s clip (Wan 2.2 I2V from that still) and upscaled to 1080×1920 at 30 fps (Real-ESRGAN + RIFE), placed as a full-frame insert on \"il motore sotto ogni sito WordPress\" (8.37–10.17 s); the person matte of the first 3 s (Apple Vision) and the hook word \"SICURO?\" in big IKB serif behind the speaker's head (0.1–3 s), with the captions under it taken off (rules.fix: no captions while the opening title is on screen, #31). Checks: provider metadata on the generated assets, insert ≥ 1080 px and visible exactly in its window, title hidden where the person is and visible elsewhere (render and mp4), caption band clean, −15 ±0.5 LUFS / true peak ≤ −1.5 dBTP. Needs the engines, the footage and ComfyUI (Pro tier); generations are cached by request, so a re-run costs seconds.",
   "requires": ["engines", "footage", "comfyui"],
   "footage": ["${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV", "${REGISTA_GOLDEN_MEDIA}/script.md",
               "${REGISTA_GOLDEN_MEDIA}/work/keywords.json", "${HOME}/.local/bin/comfy-gen",
@@ -65,6 +65,9 @@
     {"command": "graphics.checkBehindSubject", "params": {"clipId": "${hook.clip.id}"},
      "expect": {"result.pass": true, "result.hiddenRatio": {"min": 0.97}, "result.visibleRatio": {"min": 0.97},
                 "result.personPixels": {"min": 1000}, "result.backgroundPixels": {"min": 1000}}},
+
+    {"command": "rules.check", "expect": {"result.failures": 1, "result.violations.0.check": "title-captions"}},
+    {"command": "rules.fix", "params": {"check": "title-captions"}, "expect": {"result.applied": {"count": 1}, "result.check.pass": true}},
 
     {"command": "export.render", "params": {"path": "${WORK}/wesites-generate.mp4", "preset": "9:16", "loudness": -15},
      "expect": {"result.frames": {"approx": 1470, "tol": 2}, "result.width": 1080, "result.height": 1920,

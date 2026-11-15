@@ -1,0 +1,22 @@
+{
+ "name": "rules-face",
+ "description": "Editing rules (#31), no title or logo over the speaker's face: a synthetic talking head with its exact face track (media.synthesize faces) and a title placed over the head fails face-clear at its first frame (the face track through the crop, as captions.checkFaces reads it; no automatic fix), and export.render refuses; the title moved to the top band (clip.place, one undo step) passes and exports without the override. No engines, no footage (ffmpeg only for the export).",
+ "steps": [
+  {"command": "project.new", "params": {"name": "rules-face", "directory": "${WORK}"}},
+  {"command": "media.synthesize", "params": {"path": "${WORK}/talking-head.mov", "duration": 4, "faces": true}, "capture": {"cam": "result.asset.id"}},
+  {"command": "track.add", "params": {"kind": "video"}, "capture": {"v1": "result.track.id"}},
+  {"command": "timeline.place", "params": {"assetId": "${cam}", "trackId": "${v1}", "sourceIn": 0, "sourceOut": 4}},
+  {"command": "title.add", "params": {"text": "OVER THE FACE", "start": 1, "duration": 2, "size": 80, "position": [540, 830]}, "capture": {"title": "result.clip.id"}},
+  {"command": "rules.check",
+   "expect": {"result.pass": false, "result.failures": 1, "result.violations.0.check": "face-clear", "result.violations.0.clipId": "${title}",
+              "result.violations.0.time": {"approx": 1, "tol": 0.11}, "result.violations.0.fix": null,
+              "result.checks": {"includes": [{"id": "face-clear", "ran": true, "violations": 1}]}}},
+  {"command": "export.render", "params": {"path": "${WORK}/blocked.mp4"}, "expectError": "face-clear"},
+  {"command": "clip.place", "params": {"clipId": "${title}", "y": 300}},
+  {"command": "rules.check", "expect": {"result.pass": true}},
+  {"command": "history.undo", "expect": {"result.undone": "clip.place"}},
+  {"command": "rules.check", "expect": {"result.pass": false}},
+  {"command": "history.redo", "expect": {"result.redone": "clip.place"}},
+  {"command": "export.render", "params": {"path": "${WORK}/rules-face.mp4"}, "expect": {"result.rules.pass": true, "result.duration": {"approx": 4, "tol": 0.05}}}
+ ]
+}

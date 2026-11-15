@@ -1,0 +1,18 @@
+{
+ "name": "rules-text-size",
+ "description": "Editing rules (#31), the minimum text size: on a synthetic talking head a title of 20 px (on a 1080-wide frame) fails text-size with its size and the minimum (28 px; no automatic fix), and export.render refuses; the title scaled 1.5× by hand (clip.place, one undo step) is 30 px, passes and exports without the override. No engines, no footage (ffmpeg only for the export).",
+ "steps": [
+  {"command": "project.new", "params": {"name": "rules-text-size", "directory": "${WORK}"}},
+  {"command": "media.synthesize", "params": {"path": "${WORK}/talking-head.mov", "duration": 4}, "capture": {"cam": "result.asset.id"}},
+  {"command": "track.add", "params": {"kind": "video"}, "capture": {"v1": "result.track.id"}},
+  {"command": "timeline.place", "params": {"assetId": "${cam}", "trackId": "${v1}", "sourceIn": 0, "sourceOut": 4}},
+  {"command": "title.add", "params": {"text": "small print", "start": 1, "duration": 2, "size": 20}, "capture": {"title": "result.clip.id"}},
+  {"command": "rules.check",
+   "expect": {"result.pass": false, "result.failures": 1, "result.violations.0.check": "text-size", "result.violations.0.time": 1,
+              "result.violations.0.messageArgs": ["small print", "20", "28"], "result.violations.0.fix": null}},
+  {"command": "export.render", "params": {"path": "${WORK}/blocked.mp4"}, "expectError": "text-size"},
+  {"command": "clip.place", "params": {"clipId": "${title}", "scale": 1.5}},
+  {"command": "rules.check", "expect": {"result.pass": true}},
+  {"command": "export.render", "params": {"path": "${WORK}/rules-text-size.mp4"}, "expect": {"result.rules.pass": true}}
+ ]
+}

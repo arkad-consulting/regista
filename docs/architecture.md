@@ -1336,6 +1336,48 @@ a take.
 `captions.checkFaces` → export → `captions.checkTiming` → `media.checkSync` → contact sheet. Footage from
 `$REGISTA_TEST_MEDIA_DIR` (default `~/Movies/Regista`); everything is written in the scenario's work folder.
 
+## Editing rules (issue #31)
+
+The rules an edit must follow are sheets, not prose buried in the recipes, and the measurable ones are checks that run
+before every export (`Sources/RegistaCore/Rules/`, commands in `Commands/RulesCommands.swift`).
+
+- **Sheets.** One Markdown file for every video (`every-video`) and one per kind of video: the four recipes
+  (`talking-head-reel`, `screen-tutorial`, `voice-over-video`, `reel-graphics`) and kinds the user adds
+  (`rules.addKind`). The defaults are compiled in (`Rules/Sheets/<kind>.<it|en|fr|pt>.md`); a user's file in
+  `rules/` of the support folder (`$REGISTA_SUPPORT_DIR/rules`, default `~/Library/Application Support/Regista/rules`)
+  replaces the default of its kind in every language, and `rules.reset` deletes it. A sheet starts with a header that
+  switches the checks, then the prose an agent reads (`recipe.get` appends the prose of every-video and of the kind):
+
+  ```
+  ---
+  logo-pause: on 0.3
+  text-size: off
+  ---
+  # Talking-head reel
+  …
+  ```
+
+  One line per check: `id: on|off [number]`; `#` lines are comments. An unknown id or a malformed line is reported
+  (`rules.get` status, `rules.check` `sheetProblems`) and ignored, never fatal. A check's state is its default, then
+  every-video's line, then the kind's line.
+- **Kind.** `Project.kind` (set by `project.new {kind}` or `project.setKind`); without it (older projects) the kind
+  follows the format: landscape → screen-tutorial, else talking-head-reel.
+- **Checks** (`RuleCheck.swift`, on the edit, no render): `title-captions` (no caption while a title that starts in the
+  first second is on screen; fix `captions.clear` over the title), `logo-captions` (none on the closing logo; fix
+  `captions.clear` over the logo), `logo-pause` (the closing logo enters at least N s after the last spoken word,
+  default 0.3; fix `timeline.move` to N + 0.1 s; more than N + 0.3 s is a warning), `logo-end` (a logo that does not
+  close the video: at the start, in the middle or across it; no fix), `face-clear` (a logo or title over a face of the
+  face track through the crops, as `captions.checkFaces` reads it; no fix), `text-size` (titles and captions under N
+  px on a 1080-wide frame, default 28, scaled with the frame's short side; no fix). A logo is a clip on a Logo track,
+  the brand kit's logo file, or a logo motion; the closing logo reaches the end of the picture and starts at most 3 s
+  before the last word ends.
+- **Gate.** `export.render` runs the check and refuses while one fails, listing the violations and their fixes;
+  `exportAnyway: true` is for when the person said so (the app's Export button passes it until the Export card shows
+  the check). `rules.fix` applies the safe fixes (one check or all), re-checking after each, in one undo step.
+- **Scenarios.** `rules-reel` (the acceptance reel: captions over the hook title and a logo on the last word, the
+  gate, each fix one undo step, the export after), `rules-logo-end`, `rules-face` (`media.synthesize {faces: true}`
+  gives the synthetic head its exact face track), `rules-text-size`.
+
 ## Test media
 
 Scenarios name their footage through variables with overridable `defaults` (`REGISTA_GOLDEN_MEDIA`, the folder of

@@ -1,7 +1,7 @@
 {
  "name": "wesites-v3",
  "defaults": {"REGISTA_GOLDEN_MEDIA": "${HOME}/.config/regista/test-media/wesites-2026-10-26", "REGISTA_SFX_LIBRARY": "${HOME}/.config/regista/test-media/sfx"},
- "description": "Golden reel with graphics: the wesites-v1 edit (auto cut, voice, punch-ins, grade, captions) dressed like the hand-made reel-v3 by commands only. Times of the v3 composition (compose.json, on the 49.8 s roughcut) are mapped onto this 49.0 s timeline through the source frames (timeline.mapTimes with the roughcut's segments.json): the two AI inserts, the 25 SFX with their volumes, and the cards. Adds a Blender 3D hook title (AGGIORNATO = SICURO?, top band 0–4 s), Core Text title cards (kicker, CVSS chip, TUOI., the closing question), a HyperFrames chip row (Tests/Fixtures/hyperframes-kicker), and the ComfyUI music bed ducked under the voice. Checks: layout (caption band clean), −15 ±1 LUFS / true peak ≤ −1.5 dBTP, music ≥ 15 dB under the voice during speech, SFX onsets within 1 frame in the mp4, inserts exactly in their windows, captions timing, A/V sync, MLT. Needs the engines (whisper/WhisperX, DeepFilterNet, Blender, npx + network for GSAP on the first HyperFrames render) and the footage.",
+ "description": "Golden reel with graphics: the wesites-v1 edit (auto cut, voice, punch-ins, grade, captions) dressed like the hand-made reel-v3 by commands only. Times of the v3 composition (compose.json, on the 49.8 s roughcut) are mapped onto this 49.0 s timeline through the source frames (timeline.mapTimes with the roughcut's segments.json): the two AI inserts, the 25 SFX with their volumes, and the cards. Adds a Blender 3D hook title (AGGIORNATO = SICURO?, top band 0–4 s), Core Text title cards (kicker, CVSS chip, TUOI., the closing question), a HyperFrames chip row (Tests/Fixtures/hyperframes-kicker), and the ComfyUI music bed ducked under the voice. The editing rules (#31): the captions under the 3D hook title are taken off (rules.fix), so no captions show while the opening title is on screen. Checks: layout (caption band clean), −15 ±1 LUFS / true peak ≤ −1.5 dBTP, music ≥ 15 dB under the voice during speech, SFX onsets within 1 frame in the mp4, inserts exactly in their windows, captions timing, A/V sync, MLT. Needs the engines (whisper/WhisperX, DeepFilterNet, Blender, npx + network for GSAP on the first HyperFrames render) and the footage.",
  "requires": [
   "engines",
   "footage"
@@ -417,6 +417,15 @@
      "count": 0
     }
    }
+  },
+  {
+   "command": "rules.check",
+   "expect": {"result.failures": 1, "result.violations.0.check": "title-captions", "result.violations.0.fix.command": "captions.clear"}
+  },
+  {
+   "command": "rules.fix",
+   "params": {"check": "title-captions"},
+   "expect": {"result.applied": {"count": 1}, "result.check.pass": true}
   },
   {
    "command": "audio.addMusic",
