@@ -15,6 +15,8 @@ final class Recorder: NSObject, ObservableObject {
     private let audioOutput = AVCaptureAudioDataOutput()
     private let videoOutput = AVCaptureVideoDataOutput()
     private let queue = DispatchQueue(label: "regista.capture")   // l10n-ignore
+    /// The Mac's permissions and devices, or a test's stand-in that opens nothing (#35).
+    let hardware: CaptureHardware
     /// Live microphone buffers (the teleprompter listens here while recording).
     let audioTap = AudioTap()
     /// The teleprompter's speech recognizer: gets every microphone buffer while the capture session runs, in camera-only
@@ -71,8 +73,10 @@ final class Recorder: NSObject, ObservableObject {
     private var cursorTimer: Timer?
     private let cursorKind = CursorKindProbe()
 
-    init(defaults: UserDefaults = .standard) {
+    /// `hardware`: the Mac's capture hardware (a test gives a stand-in).
+    init(defaults: UserDefaults = .standard, hardware: CaptureHardware? = nil) {
         self.defaults = defaults
+        self.hardware = hardware ?? MacCapture(queue: queue)
         screenAsk = ScreenAskMemory(defaults: defaults, signature: CodeSignature.current)
         screenAsk.migrate()
         sources = RecordingSources.load(from: defaults)
@@ -169,25 +173,17 @@ final class Recorder: NSObject, ObservableObject {
         return nil
     }
 
-    static func permission(_ type: AVMediaType) -> CapturePermission {
-        switch AVCaptureDevice.authorizationStatus(for: type) {
-        case .authorized: .granted
-        case .notDetermined: .undetermined
-        default: .denied
-        }
-    }
-
     func refreshPermissions() {
-        cameraPermission = Self.permission(.video)
-        microphonePermission = Self.permission(.audio)
-        screenPermission = CGPreflightScreenCaptureAccess() ? .granted : (screenAsk.askedForThisSignature ? .denied : .undetermined)
+        cameraPermission = hardware.permission(.video)
+        microphonePermission = hardware.permission(.audio)
+        screenPermission = hardware.screenAllowed() ? .granted : (screenAsk.askedForThisSignature ? .denied : .undetermined)
     }
 
     func prepare() async {
         guard !isReady else { return }
         // Ask only for what is switched on: a screen-only take never asks for the camera.
-        if sources.camera, Self.permission(.video) == .undetermined { _ = await AVCaptureDevice.requestAccess(for: .video) }
-        if sources.microphone, Self.permission(.audio) == .undetermined { _ = await AVCaptureDevice.requestAccess(for: .audio) }
+        if sources.camera, hardware.permission(.video) == .undetermined { await hardware.requestAccess(.video) }
+        if sources.microphone, hardware.permission(.audio) == .undetermined { await hardware.requestAccess(.audio) }
         refreshPermissions()
         refreshDevices()
         isReady = true
@@ -196,12 +192,8 @@ final class Recorder: NSObject, ObservableObject {
     }
 
     func refreshDevices() {
-        cameras = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.builtInWideAngleCamera, .external, .continuityCamera],
-            mediaType: .video, position: .unspecified).devices
-        microphones = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.microphone, .external],
-            mediaType: .audio, position: .unspecified).devices
+        cameras = hardware.devices(.video)
+        microphones = hardware.devices(.audio)
         refreshPermissions()
         configure()
     }
@@ -220,8 +212,8 @@ final class Recorder: NSObject, ObservableObject {
             if isReady {
                 Task {
                     // Turned on for the first time: macOS asks now, not at launch.
-                    if sources.camera, Self.permission(.video) == .undetermined { _ = await AVCaptureDevice.requestAccess(for: .video) }
-                    if sources.microphone, Self.permission(.audio) == .undetermined { _ = await AVCaptureDevice.requestAccess(for: .audio) }
+                    if sources.camera, hardware.permission(.video) == .undetermined { await hardware.requestAccess(.video) }
+                    if sources.microphone, hardware.permission(.audio) == .undetermined { await hardware.requestAccess(.audio) }
                     refreshPermissions()
                     configure()
                 }
@@ -246,7 +238,7 @@ final class Recorder: NSObject, ObservableObject {
         let videoOutput = self.videoOutput
         let audioTap = self.audioTap
         let cameraTap = self.cameraTap
-        queue.async {
+        hardware.openDevices {
             session.beginConfiguration()
             session.inputs.forEach { session.removeInput($0) }
             if let cam, let input = try? AVCaptureDeviceInput(device: cam), session.canAddInput(input) {
@@ -291,7 +283,7 @@ final class Recorder: NSObject, ObservableObject {
             return
         }
         // Issue #67: the automatic paths ask macOS once per code signature; afterwards only "Riprova" asks again.
-        switch ScreenAccess.decide(preflight: CGPreflightScreenCaptureAccess(), askedForThisSignature: screenAsk.askedForThisSignature,
+        switch ScreenAccess.decide(preflight: hardware.screenAllowed(), askedForThisSignature: screenAsk.askedForThisSignature,
                                    userClicked: userClicked) {
         case .guide:
             screenPermission = .denied
@@ -302,13 +294,13 @@ final class Recorder: NSObject, ObservableObject {
             screenPermission = .denied
             screenFrame = nil
             screenPromptShown = true
-            CGRequestScreenCaptureAccess()
+            hardware.requestScreen()
             return
         case .proceed:
             break
         }
         do {
-            let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+            let content = try await hardware.shareableContent()
             let me = ProcessInfo.processInfo.processIdentifier
             displays = content.displays
             windows = content.windows.filter {
@@ -408,8 +400,7 @@ final class Recorder: NSObject, ObservableObject {
             let f = DateFormatter()
             f.dateFormat = "yyyy-MM-dd HH.mm.ss"
             let url = Paths.recordings.appendingPathComponent(loc("Registrazione %@", f.string(from: Date())) + ".mov")
-            let output = self.output
-            queue.async { output.startRecording(to: url, recordingDelegate: self) }
+            hardware.startMovie(output, to: url, delegate: self)
             recordingScreen = false
         }
 
@@ -480,8 +471,7 @@ final class Recorder: NSObject, ObservableObject {
                 await restartPreview()
             }
         } else {
-            let output = self.output
-            queue.async { output.stopRecording() }
+            hardware.stopMovie(output)
         }
     }
 

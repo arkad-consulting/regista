@@ -95,11 +95,12 @@ final class ScriptFollower: ObservableObject {
             return
         }
         localeID = locale.identifier(.bcp47)
-        let s = LiveSpeechSession(locale: locale, contextualStrings: Self.rareWords(in: prompt)) { [weak self] h in
-            Task { @MainActor in self?.handle(h) }
-        }
+        let s: LiveSpeechSession
         do {
-            try await s.start()
+            // Through the recorder's hardware, like the microphone it hears (a test's stand-in starts no recognition).
+            s = try await recorder.hardware.listen(locale: locale, contextualStrings: Self.rareWords(in: prompt)) { [weak self] h in
+                Task { @MainActor in self?.handle(h) }
+            }
         } catch {
             errorMessage = loc("Il gobbo non riesce ad ascoltare: %@", "\(error)")
             return

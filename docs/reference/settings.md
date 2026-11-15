@@ -43,6 +43,7 @@ Read by the app, `regista-mcp` and `regista-engine` (developers and tests; nobod
 |---|---|
 | `REGISTA_BRANDKITS` | Folder of the user's brand kits (default ~/Library/Application Support/Regista/brandkits). |
 | `REGISTA_BUILD_ID` | Makes regista-mcp claim another build id: only to try the app / server mismatch warning. |
+| `REGISTA_CLAUDE_HOME` | Folder that stands for the home folder where the Claude clients keep their configuration (Claude Desktop's claude_desktop_config.json, Claude Code's .claude.json and its `claude` command), for Settings › Claude; the tests point it at a scratch folder. |
 | `REGISTA_ENGINE` | How regista-mcp runs commands: `auto` (default: the running app, else its own headless engine), `app` or `local`. |
 | `REGISTA_ENGINES` | Path of the engines.json to read instead of the default one. |
 | `REGISTA_ENGINE_SOCKET` | Path of the app's engine socket (default ~/Library/Application Support/Regista/engine.sock). |

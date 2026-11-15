@@ -226,6 +226,9 @@ public struct EngineServices {
     public var profiles = ProfileStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent("regista-profiles-\(UUID().uuidString.prefix(8))"))
     /// The host's Cancel for waited-for generation runs (the app's jobs engine has one; nil elsewhere).
     public var cancellation: GenerationCancellation?
+    /// The local ComfyUI server's node list (`/object_info`; nil when it is off), read by generate.check and before a
+    /// ComfyUI run.
+    public var comfyServer: () -> Data? = { ComfyCheck.fetchObjectInfo() }
 
     public init(config: EngineConfig, configWarning: String? = nil, tier: MachineTier, audio: AudioToolkit,
                 transcribers: [Transcriber], cleaner: VoiceCleaner, faces: FaceTracker?, renderer: VideoRenderer? = nil,

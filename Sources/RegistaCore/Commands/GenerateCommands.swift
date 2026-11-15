@@ -144,7 +144,7 @@ enum Generate {
         let provider = try Self.provider(request.provider, ctx, command: command)
         try check(provider, request.kind, ctx, command: command)
         // ComfyUI: its node packs and model files before anything is queued (#36); a server that is off does not block.
-        if provider.id == "comfyui" { try ComfyCheck.gate(model: provider.model(for: request), config: ctx.services.config, command: command) }
+        if provider.id == "comfyui" { try ComfyCheck.gate(model: provider.model(for: request), config: ctx.services.config, command: command, fetch: ctx.services.comfyServer) }
         let request = try prepare(provider, request, command: command)
         let hash = try request.hash()
         let dir = jobDir(ctx, provider.id, hash)
@@ -280,7 +280,7 @@ enum GenerateCheck: Command {
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         let s = ctx.services
         let minimum = EngineManifest.shared.minimumTier("comfyui")
-        let results = ComfyCheck.run(model: p.string("model"), config: s.config, objectInfo: ComfyCheck.fetchObjectInfo())
+        let results = ComfyCheck.run(model: p.string("model"), config: s.config, objectInfo: s.comfyServer())
         var o: [String: JSONValue] = [
             "models": .array(results.map(\.json)),
             "ready": .bool(results.allSatisfy { $0.state == "ready" }),

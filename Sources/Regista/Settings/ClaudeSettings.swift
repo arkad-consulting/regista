@@ -15,11 +15,19 @@ struct ClaudeClients: Equatable {
     var desktop: State
     var code: State
 
+    /// The folder that stands for the home folder of the Claude clients when `REGISTA_CLAUDE_HOME` names one (the tests:
+    /// a scratch folder), nil otherwise.
+    static var homeOverride: URL? {
+        ProcessInfo.processInfo.environment["REGISTA_CLAUDE_HOME"].flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: EngineConfig.expand($0), isDirectory: true) }
+    }
+    /// Where the Claude clients keep their configuration: the home folder.
+    static var home: URL { homeOverride ?? FileManager.default.homeDirectoryForCurrentUser }
+
     static var desktopConfig: URL {
-        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Claude/claude_desktop_config.json")
+        home.appendingPathComponent("Library/Application Support/Claude/claude_desktop_config.json")
     }
     /// Claude Code's user-scope servers (`claude mcp add --scope user`).
-    static var codeConfig: URL { FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude.json") }
+    static var codeConfig: URL { home.appendingPathComponent(".claude.json") }
 
     static func read(desktop: URL = desktopConfig, code: URL = codeConfig) -> ClaudeClients {
         ClaudeClients(desktop: state(desktop), code: state(code))
@@ -74,9 +82,11 @@ struct ClaudeClients: Equatable {
     }
 
     /// The `claude` command line (Claude Code), where its installers put it.
+    /// With `REGISTA_CLAUDE_HOME`, only the copies under that folder.
     static func claudeCLI() -> String? {
-        ["~/.local/bin/claude", "~/.claude/local/claude", "/opt/homebrew/bin/claude", "/usr/local/bin/claude"]
-            .map(EngineConfig.expand).first { FileManager.default.isExecutableFile(atPath: $0) }
+        let own = [".local/bin/claude", ".claude/local/claude"].map { home.appendingPathComponent($0).path }
+        return (homeOverride == nil ? own + ["/opt/homebrew/bin/claude", "/usr/local/bin/claude"] : own)
+            .first { FileManager.default.isExecutableFile(atPath: $0) }
     }
 
     /// The entry "Collega Claude Desktop" writes, shown before it is written.
@@ -94,8 +104,19 @@ enum StartPrompt {
     }
 }
 
+/// The pasteboard a copy button writes to: the general one (a test gives a private one).
+private struct PasteboardKey: EnvironmentKey { static let defaultValue: NSPasteboard = .general }
+
+extension EnvironmentValues {
+    var pasteboard: NSPasteboard {
+        get { self[PasteboardKey.self] }
+        set { self[PasteboardKey.self] = newValue }
+    }
+}
+
 struct ClaudeSettings: View {
     @EnvironmentObject private var store: EditorStore
+    @Environment(\.pasteboard) private var pasteboard
     @State private var clients = ClaudeClients.read()
     @State private var confirm: Target?
     @State private var copied = false
@@ -147,8 +168,8 @@ struct ClaudeSettings: View {
                     Spacer()
                     if copied { Text("Copiate").foregroundStyle(.secondary) }
                     Button("Copia le istruzioni") {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(StartPrompt.text, forType: .string)
+                        pasteboard.clearContents()
+                        pasteboard.setString(StartPrompt.text, forType: .string)
                         copied = true
                     }
                 }
@@ -228,7 +249,9 @@ struct ClaudeSettings: View {
     /// The installer's own steps (claude_desktop.py set / claude mcp add), as a job.
     private func connect(_ t: Target) {
         guard let mcp = clients.mcpBinary() else { return }
-        let home = FileManager.default.homeDirectoryForCurrentUser
+        let home = ClaudeClients.home
+        // The `claude` command writes its user-scope servers in the home folder it is given.
+        let environment = ClaudeClients.homeOverride.map { ["HOME": $0.path] }
         let steps: [(URL, [String])]
         switch t {
         case .desktop:
@@ -245,7 +268,7 @@ struct ClaudeSettings: View {
         store.jobs.start(kind: "claude.\(t)", title: t == .desktop ? loc("Collego Claude Desktop") : loc("Collego Claude Code"), tab: loc("Claude")) { _ in
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
                 Thread.detachNewThread {
-                    cont.resume(with: Result { for (exe, args) in steps { try Subprocess.check(exe, args, currentDirectory: home) } })
+                    cont.resume(with: Result { for (exe, args) in steps { try Subprocess.check(exe, args, environment: environment, currentDirectory: home) } })
                 }
             }
             clients = ClaudeClients.read()

@@ -173,7 +173,7 @@ final class EditorStore: ObservableObject {
     init(bench: Workbench, tabID: String) {
         self.bench = bench
         self.tabID = tabID
-        var services = EngineServices.live(library: MediaLibrary.from(arguments: [], environment: ProcessInfo.processInfo.environment))
+        var services = bench.makeServices()
         services.ui = ui
         services.tabs = WorkbenchTabs(bench)
         engine = Engine(services: services)
@@ -194,9 +194,11 @@ final class EditorStore: ObservableObject {
     }
 
     /// A workbench of its own with this store as its one tab (tests, previews). `defaults` and `seedFolders` (where the
-    /// recent list is seeded from) are for tests; the app makes its tabs through `Workbench`.
-    convenience init(defaults: UserDefaults = .standard, seedFolders: [URL]? = nil) {
-        let bench = Workbench(defaults: defaults, seedFolders: seedFolders)
+    /// recent list is seeded from) are for tests, and so are `services` (what the workbench's tabs may call outside the
+    /// process); the app makes its tabs through `Workbench`.
+    convenience init(defaults: UserDefaults = .standard, seedFolders: [URL]? = nil,
+                     services: @escaping @MainActor () -> EngineServices = Workbench.liveServices) {
+        let bench = Workbench(defaults: defaults, seedFolders: seedFolders, services: services)
         self.init(bench: bench, tabID: bench.nextTabID())
         bench.adopt(self)
     }

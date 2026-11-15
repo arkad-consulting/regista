@@ -69,13 +69,19 @@ final class Workbench: ObservableObject {
     var onNewTab: ((EditorStore) -> Void)?
     private var server: EngineSocketServer?
     private var nextNumber = 1
+    /// Builds the services of every tab's engines, including tabs opened later by a click or by the agent (#35): the
+    /// app's are `liveServices`; a test gives services that cannot reach outside the test.
+    let makeServices: @MainActor () -> EngineServices
 
     static let tabsKey = "workbench.tabs", activeTabKey = "workbench.activeTab"
 
     /// `defaults` and `seedFolders` (where the recent list is seeded from) are for tests; the app uses the standard ones.
-    /// `socketPath`: where to listen for the agent (one engine socket per app; nil: nowhere).
-    init(defaults: UserDefaults = .standard, seedFolders: [URL]? = nil, socketPath: URL? = EngineSocket.defaultPath()) {
+    /// `socketPath`: where to listen for the agent (one engine socket per app; nil: nowhere). `services`: what each tab's
+    /// engines may call outside the process (the app: `liveServices`).
+    init(defaults: UserDefaults = .standard, seedFolders: [URL]? = nil, socketPath: URL? = EngineSocket.defaultPath(),
+         services: @escaping @MainActor () -> EngineServices = Workbench.liveServices) {
         self.defaults = defaults
+        makeServices = services
         recents = RecentProjects(defaults: defaults, seedFolders: seedFolders)
         nav = Navigation.restored(activity: defaults.string(forKey: Navigation.activityKey) ?? defaults.string(forKey: Navigation.legacyWorkspaceKey),
                                   level: defaults.string(forKey: Navigation.levelKey), rightTab: defaults.string(forKey: Navigation.rightTabKey),
@@ -85,6 +91,12 @@ final class Workbench: ObservableObject {
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.server?.stop() }
         }
+    }
+
+    /// The app's services: the engines of this Mac, its support folder (voice profiles, budget and approvals), the
+    /// generation providers and the folders media.list may read.
+    static func liveServices() -> EngineServices {
+        EngineServices.live(library: MediaLibrary.from(arguments: [], environment: ProcessInfo.processInfo.environment))
     }
 
     /// The tab on screen (there is always one).
