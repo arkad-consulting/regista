@@ -56,10 +56,29 @@ for t in d.get("threads", []):
 EOF
 }
 
-# run <args…>: one swift test, its output shown and kept in $log; returns its status.
+# run <args…>: one swift test, its output shown and kept in $log; returns its status. A run with no result after
+# REGISTA_TEST_TIMEOUT seconds (default 40 minutes, about four times a full run) hangs on a test: it is stopped and
+# fails with 124, instead of blocking a commit or an agent for ever.
+LIMIT="${REGISTA_TEST_TIMEOUT:-2400}"
 run() {
-  local rc=0
-  "$SWIFT" test ${args[@]+"${args[@]}"} "$@" 2>&1 | tee "$log" || rc=$?
+  local rc=0 pid tailer waited=0
+  : > "$log"
+  "$SWIFT" test ${args[@]+"${args[@]}"} "$@" > "$log" 2>&1 & pid=$!
+  tail -f "$log" 2>/dev/null & tailer=$!
+  while kill -0 "$pid" 2>/dev/null; do
+    if [ "$waited" -ge $((LIMIT * 5)) ]; then
+      pkill -TERM -P "$pid" 2>/dev/null || true
+      kill "$pid" 2>/dev/null || true
+      pkill -TERM -f "swiftpm-testing-helper --test-bundle-path $PWD/" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+      sleep 0.3; kill "$tailer" 2>/dev/null || true; wait "$tailer" 2>/dev/null || true
+      echo "test.sh: no result after ${LIMIT}s: a test hangs (the last tests started are above). The run was stopped."
+      return 124
+    fi
+    sleep 0.2; waited=$((waited + 1))
+  done
+  wait "$pid" || rc=$?
+  sleep 0.3; kill "$tailer" 2>/dev/null || true; wait "$tailer" 2>/dev/null || true
   return "$rc"
 }
 
@@ -92,10 +111,19 @@ if [ "$rc" != 0 ] && grep -q "unexpected signal code 11" "$log"; then
     echo "test.sh: nothing was compiled in this run, so this is not a stale build: a bug in the code (stack above). No retry."
   fi
 fi
-# A run that ended without its summary did not finish: something ended the test process (exit code 0 included, e.g. a
-# quit reached from a click), and the tests not yet run are missing. Never green.
-if [ "$rc" = 0 ] && ! grep -qE "Test run with [0-9]+ tests? .*passed" "$log"; then
+# A run that ended without its summary did not finish: something ended the test process with exit code 0 (the mouse
+# rig's known case: a stop of the main run loop reaching the test runner's own loop), and the tests not yet run are
+# missing. Never green: the suite runs ONCE more, and a second unfinished run fails.
+unfinished() { [ "$rc" = 0 ] && ! grep -qE "Test run with [0-9]+ tests? .*passed" "$log"; }
+if unfinished; then
+  echo
   echo "test.sh: the test process ended before the run's summary: the run did not finish (the last tests started are above)."
-  rc=1
+  echo "test.sh: running the suite ONCE more."
+  log="$scratch/run3.log"
+  rc=0; run "$@" || rc=$?
+  if unfinished; then
+    echo "test.sh: the second run did not finish either."
+    rc=1
+  fi
 fi
 exit "$rc"

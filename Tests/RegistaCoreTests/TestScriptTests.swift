@@ -3,9 +3,9 @@ import Testing
 
 // #19: scripts/test.sh on a crashed test process (signal 11). A fake `swift` plays the cases: a crash in a run that
 // compiled (maybe a stale build: one clean rebuild and one retry), a crash with nothing compiled (the code's: no
-// retry), an ordinary failure (no retry, no crash talk) and a process that ends with 0 before the run's summary (the
-// run did not finish: not green). The crashed thread of the crash report is printed. Also what test.sh sets for every
-// run: the parallelism cap (#80).
+// retry), an ordinary failure (no retry, no crash talk), a process that ends with 0 before the run's summary (the run
+// did not finish: one more run, never green by itself) and a test that hangs (stopped after the time limit). The crashed thread of the crash
+// report is printed. Also what test.sh sets for every run: the parallelism cap (#80).
 
 private let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 
@@ -26,6 +26,9 @@ case "$FAKE_MODE:$n" in
   code:*) crash ;;
   fail:*) echo "✘ Test run with 1 test failed"; exit 1 ;;
   quit:*) echo "◇ Test aTest() started."; exit 0 ;;
+  quitonce:1) echo "◇ Test aTest() started."; exit 0 ;;
+  quitonce:*) echo "✔ Test run with 1 test passed"; exit 0 ;;
+  hang:*) echo "◇ Test aTest() started."; sleep 60 ;;
 esac
 """#
 
@@ -51,6 +54,7 @@ private func runTestScript(_ mode: String) throws -> (status: Int32, output: Str
     env["REGISTA_SWIFT"] = swift.path
     env["REGISTA_CRASH_REPORTS"] = dir.appendingPathComponent("reports").path
     env["FAKE_MODE"] = mode
+    if mode == "hang" { env["REGISTA_TEST_TIMEOUT"] = "1" } else { env.removeValue(forKey: "REGISTA_TEST_TIMEOUT") }
     env["FAKE_STATE"] = state.path
     env.removeValue(forKey: "SWT_EXPERIMENTAL_MAXIMUM_PARALLELIZATION_WIDTH")
     p.environment = env
@@ -83,7 +87,16 @@ private func runTestScript(_ mode: String) throws -> (status: Int32, output: Str
     #expect(fail.status != 0 && fail.calls == 1 && fail.debugKept)
     #expect(!fail.output.contains("signal 11"))
 
-    // The test process ended with 0 before the run's summary (a quit reached from a click): not a green run.
+    // The test process ended with 0 before the run's summary: not a green run. The suite runs once more; a second
+    // unfinished run fails, a finished one decides.
     let quit = try runTestScript("quit")
-    #expect(quit.status != 0 && quit.calls == 1 && quit.output.contains("did not finish"), "\(quit.output)")
+    #expect(quit.status != 0 && quit.calls == 2 && quit.output.contains("did not finish either"), "\(quit.output)")
+    let once = try runTestScript("quitonce")
+    #expect(once.status == 0 && once.calls == 2 && once.output.contains("ONCE more"), "\(once.output)")
+
+    // A test that hangs: the run is stopped after the time limit and fails, it does not block for ever.
+    let started = Date()
+    let hang = try runTestScript("hang")
+    #expect(hang.status != 0 && hang.calls == 1 && hang.output.contains("a test hangs"), "\(hang.output)")
+    #expect(Date().timeIntervalSince(started) < 20)
 }

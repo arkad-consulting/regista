@@ -418,20 +418,12 @@ enum RigGuard {
         swap(AVPlayer.self, #selector(AVPlayer.play), #selector(AVPlayer.rig_play))
         swap(AVPlayer.self, #selector(setter: AVPlayer.rate), #selector(AVPlayer.rig_setRate(_:)))
         swap(AVAudioPlayer.self, #selector(AVAudioPlayer.play as (AVAudioPlayer) -> () -> Bool), #selector(AVAudioPlayer.rig_play))
-        // The test runner's main loop is a bare CFRunLoopRun followed by exit(0): one stop reaching it ends the process
-        // with a green exit code and the tests not yet run missing. AppKit stops the running loop for ordinary reasons
-        // (an event posted, the accessibility tree read), which an app's own loop simply survives. So the runner's loop
-        // is never the one running: from here on the main thread stays in this loop of ours, which starts again when
-        // stopped. It is a run loop block, not a main-queue block, so the main queue (the tests) is served inside it.
-        CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue) {
-            while true {
-                if CFRunLoopRunInMode(.defaultMode, 1e10, false) == .finished { usleep(1000) }
-            }
-        }
-        CFRunLoopWakeUp(CFRunLoopGetMain())
         // A click must never end the test run: a quit is recorded, not obeyed (the process would exit with 0 and the
         // tests not yet run would be missing from a run that looks green). Any other exit than the test runner's own,
-        // at the end of the run, prints where it came from.
+        // at the end of the run, prints where it came from. One such exit is known and not prevented here: the test
+        // runner's main loop is a bare CFRunLoopRun followed by exit(0), and a stop that AppKit queues while a test
+        // awaits ends it (`drain` absorbs most of them). scripts/test.sh sees a run without its summary and runs the
+        // suite once more; it is never counted as green.
         swap(NSApplication.self, #selector(NSApplication.terminate(_:)), #selector(NSApplication.rig_terminate(_:)))
         atexit {
             let stack = Thread.callStackSymbols
