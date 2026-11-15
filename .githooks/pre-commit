@@ -25,6 +25,9 @@ scripts/reference-docs.sh --check >"$log" 2>&1 || fail "scripts/reference-docs.s
 # Every word the app shows is in the tables of every UI language, and no text bypasses the lookup (L0 #48).
 python3 -I scripts/l10n.py >"$log" 2>&1 || fail "scripts/l10n.py"
 
+# The click audits of whole screens (six of the suite's nine minutes) run in the push hook, not here: every control
+# is still clicked before anything is published. REGISTA_FULL_HOOK=1 runs them here too.
+[ "${REGISTA_FULL_HOOK:-}" = 1 ] || export REGISTA_SKIP_CLICK_AUDIT=1
 echo "pre-commit: unit tests…"
 scripts/test.sh >"$log" 2>&1 || fail "scripts/test.sh"
 grep -E "Test run with" "$log" | tail -1

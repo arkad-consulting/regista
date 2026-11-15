@@ -51,7 +51,7 @@ private func audit(_ screen: String, _ nav: Navigation, project: String? = "rich
 }
 
 extension MouseSuites {
-@Suite(.serialized) @MainActor struct ScreenClickTests {
+@Suite(.serialized, .enabled(if: clickAuditEnabled, "skipped in the commit hook, run by the push hook")) @MainActor struct ScreenClickTests {
     /// The whole window on the Pro editor: title row, activity bar, project tab, toolbar, both monitors and their
     /// transports, tool rail, timeline headers and zoom bar, right panel tabs, status bar; the Media panel's tiles.
     @Test func shell() async throws {
@@ -183,7 +183,7 @@ extension MouseSuites {
 }
 
 extension MouseSuites {
-@Suite(.serialized) @MainActor struct MoreScreenClickTests {
+@Suite(.serialized, .enabled(if: clickAuditEnabled, "skipped in the commit hook, run by the push hook")) @MainActor struct MoreScreenClickTests {
     /// The side panel answers the mouse on the Semplice level (#33): the level's content, wider than the main area,
     /// overflowed it and took the clicks on the right of the side panel.
     @Test func theSidePanelAnswersOnTheSimpleLevel() async throws {

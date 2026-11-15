@@ -330,7 +330,7 @@ source `scripts/lib.sh`, and both speak the macOS language — Italian, English,
 deny-list of names is read from outside the repository, `${REGISTA_PRIVATE_WORDS:-~/.config/regista/private-words}`,
 one case-insensitive regex per line; `--all` checks the whole tree, `--self-test` checks the checker), the engine
 manifest (`scripts/engines.py validate`), the generated reference (`scripts/reference-docs.sh --check`: fails, naming them,
-when a command, engine, shortcut or settings key is missing from `docs/reference/`) and the words (`scripts/l10n.py`). Then it runs `scripts/test.sh` (RegistaCore, RegistaMCP and RegistaEngines tests — the latter push a
+when a command, engine, shortcut or settings key is missing from `docs/reference/`) and the words (`scripts/l10n.py`). Then it runs `scripts/test.sh` without the click audits of whole screens, which take most of the suite's time and run in `.githooks/pre-push` instead (every control is clicked before a push; `REGISTA_FULL_HOOK=1` runs them at commit too) (RegistaCore, RegistaMCP and RegistaEngines tests — the latter push a
 synthetic clip through the real compositor and writer) and every scenario that does not need the engines, directly and
 through `regista-mcp` (~20 s). Scenarios that need the WeSites test footage (`"requires": ["footage"]`) skip themselves
 with a note on a clone without it, so the hook passes on any clone. After changing a public struct of RegistaCore, `touch Sources/RegistaEngines/*.swift`:

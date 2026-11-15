@@ -79,6 +79,11 @@ struct AuditState {
     }
 }
 
+/// The click audits of whole screens take most of the suite's time (about six of its nine minutes). The commit hook
+/// skips them (`REGISTA_SKIP_CLICK_AUDIT=1`) and the push hook runs them: every control is still clicked before
+/// anything is published, once per push instead of once per commit.
+let clickAuditEnabled = ProcessInfo.processInfo.environment["REGISTA_SKIP_CLICK_AUDIT"] == nil
+
 @MainActor
 struct ClickAudit {
     struct Row {

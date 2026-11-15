@@ -15,7 +15,7 @@ private let settingsKeys = [SettingsRoute.tabKey, SettingsRoute.engineKey, Gener
                             GeneralPrefs.autoSaveKey, GeneralPrefs.spokenLanguageKey, Accent.followKey]
 
 extension MouseSuites {
-@Suite(.serialized) @MainActor struct WindowsClickTests {
+@Suite(.serialized, .enabled(if: clickAuditEnabled, "skipped in the commit hook, run by the push hook")) @MainActor struct WindowsClickTests {
     @Test(arguments: SettingsTab.allCases)
     func settings(_ tab: SettingsTab) async throws {
         let saved = settingsKeys.map { ($0, UserDefaults.standard.object(forKey: $0)) }
