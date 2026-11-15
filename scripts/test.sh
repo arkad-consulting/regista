@@ -113,17 +113,32 @@ if [ "$rc" != 0 ] && grep -q "unexpected signal code 11" "$log"; then
 fi
 # A run that ended without its summary did not finish: something ended the test process with exit code 0 (the mouse
 # rig's known case: a stop of the main run loop reaching the test runner's own loop), and the tests not yet run are
-# missing. Never green: the suite runs ONCE more, and a second unfinished run fails.
+# missing. Never green by itself: the run is taken up again, without the tests that already passed, up to
+# REGISTA_TEST_RUNS runs in all (default 4); if the last one does not reach its summary either, the run fails. A test
+# is left out only when every test of that name passed in one same run (two suites can share a function name).
+RUNS="${REGISTA_TEST_RUNS:-4}"
 unfinished() { [ "$rc" = 0 ] && ! grep -qE "Test run with [0-9]+ tests? .*passed" "$log"; }
-if unfinished; then
+runs=1; ids=""; passed="$scratch/passed-ids"; : > "$passed"; skips=()
+while unfinished && [ "$runs" -lt "$RUNS" ]; do
   echo
   echo "test.sh: the test process ended before the run's summary: the run did not finish (the last tests started are above)."
-  echo "test.sh: running the suite ONCE more."
-  log="$scratch/run3.log"
-  rc=0; run "$@" || rc=$?
-  if unfinished; then
-    echo "test.sh: the second run did not finish either."
-    rc=1
-  fi
+  [ -n "$ids" ] || ids="$("$SWIFT" test list ${args[@]+"${args[@]}"} 2>/dev/null || true)"
+  # The names that passed in this run, with how many times each.
+  sed -nE 's/^[^T]*Test (.+\)) (passed|with [0-9]+ test cases? passed) after .*/\1/p' "$log" | sort | uniq -c | while read -r count name; do
+    matches="$(printf '%s\n' "$ids" | awk -v n="/$name" 'length($0) >= length(n) && substr($0, length($0) - length(n) + 1) == n')"
+    if [ -n "$matches" ] && [ "$count" -ge "$(printf '%s\n' "$matches" | grep -c .)" ]; then printf '%s\n' "$matches" >> "$passed"; fi
+  done
+  skips=()
+  while IFS= read -r id; do
+    if [ -n "$id" ]; then skips+=(--skip "^$(printf '%s' "$id" | sed 's/[][\\.*^$(){}?+|]/\\&/g')(/|\$)"); fi   # the id may be followed by its source location
+  done < <(sort -u "$passed")
+  runs=$((runs + 1))
+  echo "test.sh: run $runs of at most $RUNS, without the $(( ${#skips[@]} / 2 )) tests that already passed."
+  log="$scratch/resume-$runs.log"
+  rc=0; run "$@" ${skips[@]+"${skips[@]}"} || rc=$?
+done
+if unfinished; then
+  echo "test.sh: the run did not finish after $runs runs."
+  rc=1
 fi
 exit "$rc"
