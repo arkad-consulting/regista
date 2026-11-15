@@ -69,7 +69,10 @@ final class MouseRig {
     }
 
     func close() {
-        if let sheet = window.attachedSheet { window.endSheet(sheet) }
+        if let sheet = window.attachedSheet {
+            window.endSheet(sheet)
+            hold()
+        }
         window.orderOut(nil)
         window.contentView = nil
     }
@@ -85,6 +88,13 @@ final class MouseRig {
     /// the test runner's own loop and end the process.
     func drain() {
         for _ in 0..<3 { CFRunLoopRunInMode(.defaultMode, 0.005, false) }
+    }
+
+    /// Turns the main run loop for `seconds` in nested loops of ours: an alert sheet's opening or closing animation stops
+    /// the running loop when it ends, which must be one of these, never the test runner's (#40).
+    func hold(_ seconds: Double = 0.6) {
+        let end = Date().addingTimeInterval(seconds)
+        while Date() < end { CFRunLoopRunInMode(.defaultMode, 0.01, false) }
     }
 
     /// Lets the main run loop turn (SwiftUI updates, main-queue work).
@@ -130,6 +140,8 @@ final class MouseRig {
     /// through the event queue as from a real mouse; anywhere else both are sent to the window one after the other
     /// (SwiftUI's gestures see them there). Settings' system form is only partly driven this way (see WindowsClickTests).
     func click(_ p: CGPoint, clicks: Int = 1, modifiers: NSEvent.ModifierFlags = []) {
+        let sheet = window.attachedSheet
+        defer { if window.attachedSheet !== sheet { hold() } }
         let target = viewAt(p)
         takeKey()
         if target is NSText || target is NSControl, let up = event(.leftMouseUp, p, clicks: clicks, modifiers: modifiers),
@@ -151,6 +163,38 @@ final class MouseRig {
             send(.leftMouseUp, p, clicks: clicks, modifiers: modifiers)
         }
         pump()
+    }
+
+    /// The buttons of the alert attached to the window as a sheet (a confirmation dialog, an alert), left to right;
+    /// empty when none is shown or the sheet is not an alert.
+    func sheetButtons() -> [NSButton] {
+        // Only an alert (a SwiftUI sheet is a screen of its own).
+        guard let sheet = window.attachedSheet, String(describing: Swift.type(of: sheet)).contains("Alert"), let content = sheet.contentView else { return [] }
+        func buttons(_ v: NSView) -> [NSButton] { v.subviews.flatMap { s in (s as? NSButton).map { [$0] } ?? buttons(s) } }
+        return buttons(content).filter { !$0.isHidden && !$0.title.isEmpty && $0.isEnabled }.sorted { $0.frame.minX < $1.frame.minX }
+    }
+
+    /// A click on a button of the attached alert sheet, as `click` sends one to an AppKit control: the press to the sheet,
+    /// the release through the event queue.
+    func click(_ button: NSButton) {
+        guard let sheet = button.window else { return }
+        let p = button.convert(CGPoint(x: button.bounds.midX, y: button.bounds.midY), to: nil)
+        func e(_ type: NSEvent.EventType) -> NSEvent? {
+            NSEvent.mouseEvent(with: type, location: p, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                               windowNumber: sheet.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: type == .leftMouseUp ? 0 : 1)
+        }
+        guard let down = e(.leftMouseDown), let up = e(.leftMouseUp) else { return }
+        // Posting stops the running run loop: a nested one of ours (see `click`).
+        CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue) {
+            NSApp.postEvent(up, atStart: false)
+            sheet.sendEvent(down)
+        }
+        CFRunLoopRunInMode(.defaultMode, 0.3, false)
+        if let pending = NSApp.nextEvent(matching: .leftMouseUp, until: .distantPast, inMode: .default, dequeue: true) {
+            sheet.sendEvent(pending)
+        }
+        drain()
+        hold()
     }
 
     /// Two clicks at a point, the second with a click count of 2 (what a double-click sends).
@@ -383,7 +427,9 @@ struct RigElement: CustomStringConvertible {
 /// answers), a URL or a Finder window opened, another window put on screen, a context menu, a quit. The guard answers
 /// the modal ones itself (Cancel, unless told otherwise), never opens a URL, never quits, moves every other window the
 /// code shows far outside the displays (so nothing appears on the screen of the person running the tests), and
-/// records each. It also mutes every player: nothing is heard.
+/// records each. It also mutes every player: nothing is heard. Under the rig's stand-ins (RigIsolation.swift) it is the
+/// net (#35): every process the code starts is checked against RigProcesses' allow-list (a refused one does not start,
+/// fails its caller and is a test failure), and an item sent to the Trash goes to a scratch folder instead.
 @MainActor
 enum RigGuard {
     struct Event: Equatable, CustomStringConvertible {
@@ -412,6 +458,12 @@ enum RigGuard {
         swap(NSWindow.self, #selector(NSWindow.orderFrontRegardless), #selector(NSWindow.rig_orderFrontRegardless))
         swap(NSWindow.self, #selector(NSWindow.makeKeyAndOrderFront(_:)), #selector(NSWindow.rig_makeKeyAndOrderFront(_:)))
         swap(NSWindow.self, #selector(NSWindow.orderFront(_:)), #selector(NSWindow.rig_orderFront(_:)))
+        // A sheet's opening and closing animations stop the running run loop when they end (#40): whoever opens or
+        // closes one (an alert of a failed command, a confirmation), a loop of ours turns until they are over.
+        swap(NSWindow.self, #selector(NSWindow.beginSheet(_:completionHandler:)), #selector(NSWindow.rig_beginSheet(_:completionHandler:)))
+        swap(NSWindow.self, #selector(NSWindow.beginCriticalSheet(_:completionHandler:)), #selector(NSWindow.rig_beginCriticalSheet(_:completionHandler:)))
+        swap(NSWindow.self, #selector(NSWindow.endSheet(_:)), #selector(NSWindow.rig_endSheet(_:)))
+        swap(NSWindow.self, #selector(NSWindow.endSheet(_:returnCode:)), #selector(NSWindow.rig_endSheet(_:returnCode:)))
         swap(NSMenu.self, #selector(NSMenu.popUp(positioning:at:in:)), #selector(NSMenu.rig_popUp(positioning:at:in:)))
         // Nothing is heard on the machine running the tests: every player the code starts is muted first (it still
         // plays, so the playhead and the "playing" states move as in the app).
@@ -425,6 +477,9 @@ enum RigGuard {
         // awaits ends it (`drain` absorbs most of them). scripts/test.sh sees a run without its summary and runs the
         // suite once more; it is never counted as green.
         swap(NSApplication.self, #selector(NSApplication.terminate(_:)), #selector(NSApplication.rig_terminate(_:)))
+        guardProcesses()
+        guardTrash()
+        guardPasteboard()
         atexit {
             let stack = Thread.callStackSymbols
             guard !stack.contains(where: { $0.contains("RunnerV4main") }) else { return }
@@ -448,9 +503,93 @@ enum RigGuard {
         }
     }
 
+    /// Every Process (NSTask) the code runs goes through `-launchAndReturnError:` (Process.run): checked there.
+    private static func guardProcesses() {
+        typealias Launch = @convention(c) (AnyObject, Selector, AutoreleasingUnsafeMutablePointer<NSError?>?) -> ObjCBool
+        let sel = NSSelectorFromString("launchAndReturnError:")
+        // The concrete class the instances have, and the public one (each keeps its own original).
+        let concrete: AnyClass = object_getClass(Process()) ?? Process.self
+        for cls in concrete === Process.self ? [concrete] : [concrete, Process.self] {
+            guard let m = class_getInstanceMethod(cls, sel) else { continue }
+            let original = unsafeBitCast(method_getImplementation(m), to: Launch.self)
+            let block: @convention(block) (AnyObject, AutoreleasingUnsafeMutablePointer<NSError?>?) -> ObjCBool = { task, error in
+                let p = task as? Process
+                let exe = p?.executableURL?.path ?? p?.launchPath ?? "?"
+                if let why = RigProcesses.check(exe, p?.arguments ?? []) {
+                    error?.pointee = NSError(domain: "RigGuard", code: 1, userInfo: [NSLocalizedDescriptionKey: "the test rig refused to start \(exe): \(why)"])
+                    return false
+                }
+                return original(task, sel, error)
+            }
+            let imp = imp_implementationWithBlock(block)
+            // A class that only inherits the method gets its own copy; one that defines it is changed in place.
+            if !class_addMethod(cls, sel, imp, method_getTypeEncoding(m)) { method_setImplementation(m, imp) }
+        }
+    }
+
+    /// The Trash of the person running the tests is never written: an item sent there goes to RigTrash.folder.
+    private static func guardTrash() {
+        typealias Trash = @convention(c) (AnyObject, Selector, NSURL, AutoreleasingUnsafeMutablePointer<NSURL?>?, AutoreleasingUnsafeMutablePointer<NSError?>?) -> ObjCBool
+        let sel = NSSelectorFromString("trashItemAtURL:resultingItemURL:error:")
+        guard let m = class_getInstanceMethod(FileManager.self, sel) else { return }
+        let block: @convention(block) (AnyObject, NSURL, AutoreleasingUnsafeMutablePointer<NSURL?>?, AutoreleasingUnsafeMutablePointer<NSError?>?) -> ObjCBool = { _, url, out, error in
+            do {
+                let moved = try RigTrash.take(url as URL)
+                out?.pointee = moved as NSURL
+                return true
+            } catch let e as NSError {
+                error?.pointee = e
+                return false
+            }
+        }
+        method_setImplementation(m, imp_implementationWithBlock(block))
+    }
+
+    /// The general pasteboard (the clipboard of the person running the tests) is never written: a write is recorded in
+    /// RigPasteboard.generalWrites and refused.
+    private static func guardPasteboard() {
+        func refuse<Block>(_ name: String, _ make: (@escaping (AnyObject) -> Bool, IMP) -> Block) {
+            let sel = NSSelectorFromString(name)
+            guard let m = class_getInstanceMethod(NSPasteboard.self, sel) else { return }
+            let original = method_getImplementation(m)
+            let isGeneral: (AnyObject) -> Bool = { board in
+                guard (board as? NSPasteboard)?.name == .general else {
+                    RigPasteboard.recordWrite()
+                    return false
+                }
+                RigPasteboard.recordGeneralWrite(name)
+                return true
+            }
+            method_setImplementation(m, imp_implementationWithBlock(make(isGeneral, original)))
+        }
+        typealias Clear = @convention(c) (AnyObject, Selector) -> Int
+        refuse("clearContents") { general, imp -> @convention(block) (AnyObject) -> Int in
+            { board in general(board) ? 0 : unsafeBitCast(imp, to: Clear.self)(board, NSSelectorFromString("clearContents")) }
+        }
+        typealias Set = @convention(c) (AnyObject, Selector, AnyObject, AnyObject) -> ObjCBool
+        for name in ["setString:forType:", "setData:forType:", "setPropertyList:forType:"] {
+            refuse(name) { general, imp -> @convention(block) (AnyObject, AnyObject, AnyObject) -> ObjCBool in
+                { board, value, type in general(board) ? false : unsafeBitCast(imp, to: Set.self)(board, NSSelectorFromString(name), value, type) }
+            }
+        }
+        typealias Write = @convention(c) (AnyObject, Selector, AnyObject) -> ObjCBool
+        refuse("writeObjects:") { general, imp -> @convention(block) (AnyObject, AnyObject) -> ObjCBool in
+            { board, objects in general(board) ? false : unsafeBitCast(imp, to: Write.self)(board, NSSelectorFromString("writeObjects:"), objects) }
+        }
+    }
+
     private static func swap(_ cls: AnyClass, _ a: Selector, _ b: Selector) {
         guard let real = class_getInstanceMethod(cls, a), let fake = class_getInstanceMethod(cls, b) else { return }
         method_exchangeImplementations(real, fake)
+    }
+
+    /// Queues a nested loop of ours on the main run loop for the length of a sheet animation.
+    static func holdForAnimation() {
+        CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue) {
+            let end = Date().addingTimeInterval(0.6)
+            while Date() < end { CFRunLoopRunInMode(.defaultMode, 0.01, false) }
+        }
+        CFRunLoopWakeUp(CFRunLoopGetMain())
     }
 
     /// A window the code under test shows: kept off every display.
@@ -526,6 +665,26 @@ extension NSWindow {
     @objc fileprivate func rig_makeKeyAndOrderFront(_ sender: Any?) {
         MainActor.assumeIsolated { RigGuard.offscreen(self) }
         rig_makeKeyAndOrderFront(sender)
+    }
+
+    @objc fileprivate func rig_beginSheet(_ sheet: NSWindow, completionHandler: ((NSApplication.ModalResponse) -> Void)?) {
+        rig_beginSheet(sheet, completionHandler: completionHandler)
+        MainActor.assumeIsolated { RigGuard.holdForAnimation() }
+    }
+
+    @objc fileprivate func rig_beginCriticalSheet(_ sheet: NSWindow, completionHandler: ((NSApplication.ModalResponse) -> Void)?) {
+        rig_beginCriticalSheet(sheet, completionHandler: completionHandler)
+        MainActor.assumeIsolated { RigGuard.holdForAnimation() }
+    }
+
+    @objc fileprivate func rig_endSheet(_ sheet: NSWindow) {
+        rig_endSheet(sheet)
+        MainActor.assumeIsolated { RigGuard.holdForAnimation() }
+    }
+
+    @objc fileprivate func rig_endSheet(_ sheet: NSWindow, returnCode: NSApplication.ModalResponse) {
+        rig_endSheet(sheet, returnCode: returnCode)
+        MainActor.assumeIsolated { RigGuard.holdForAnimation() }
     }
 
     @objc fileprivate func rig_orderFront(_ sender: Any?) {

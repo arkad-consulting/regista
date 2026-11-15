@@ -7,7 +7,9 @@ import Testing
 
 // The whole editor window under a MouseRig (#29): a store of its own (scratch defaults, a socket nobody listens to,
 // the test process's scratch brand-kit folder), a project with real synthetic media, and EditorRoot hosted with the
-// environment the app gives it. Clicks change the store's navigation, selection and project as in the app.
+// environment the app gives it. Clicks change the store's navigation, selection and project as in the app. Nothing a
+// click does reaches outside the test (#35, RigIsolation.swift): the store's services (every tab's), the recorder's
+// hardware, the pasteboard and everything outside Regista's folder are the rig's stand-ins.
 
 /// Scratch folders of this test file.
 func rigTempDir(_ tag: String = "rig") -> URL {
@@ -62,7 +64,7 @@ private func fixtureWords() -> [RegistaCore.Word] {
     }
 }
 
-private struct FixtureTranscriber: RegistaCore.Transcriber {
+struct FixtureTranscriber: RegistaCore.Transcriber {
     var id = WhisperCppTranscriber.engineID
     var model = "test"
     func unavailableReason() -> String? { nil }
@@ -121,12 +123,8 @@ enum RigProject {
         get throws {
             if let cached { return cached }
             let media = try Self.media.get()
-            var s = EngineServices.live()
-            s.config.cacheDirectory = rigTempDir("cache").path
+            var s = RigServices.make(in: rigTempDir("built-services"))
             s.tier = .base
-            s.transcribers = [WhisperCppTranscriber.engineID: FixtureTranscriber()]
-            s.profiles = ProfileStore(directory: rigTempDir("profiles"))
-            s.generationState = rigTempDir("generation")
             let e = Engine(services: s)
             let dir = rigTempDir("built")
             _ = try e.execute("project.new", params: ["name": "clicks", "directory": .string(dir.path)])
@@ -162,6 +160,8 @@ enum RigProject {
 final class AppRig {
     let store: EditorStore
     let recorder: Recorder
+    /// The recorder's hardware: what it asked (no device is opened).
+    let capture: RigCapture
     let meter: LoudnessMeter
     let reset = RigReset()
     private(set) var rig: MouseRig!
@@ -175,12 +175,18 @@ final class AppRig {
         _ = NSApplication.shared
         _ = rigKitsDirectory
         _ = rigFolder
+        _ = rigOutside
+        RigGuard.install()
         // A socket nobody listens to, with a path short enough for a Unix socket.
         setenv("REGISTA_ENGINE_SOCKET", FileManager.default.temporaryDirectory.appendingPathComponent("rg-\(UUID().uuidString.prefix(8)).sock").path, 1)
         defaultsName = "regista-rig-\(UUID().uuidString)"
         defaults = UserDefaults(suiteName: defaultsName)!
-        store = EditorStore(defaults: defaults, seedFolders: [])
-        recorder = Recorder(defaults: defaults)
+        store = EditorStore(defaults: defaults, seedFolders: [], services: RigServices.factory())
+        capture = RigCapture()
+        recorder = Recorder(defaults: defaults, hardware: capture)
+        store.bench.recorder = recorder
+        // The app gives the teleprompter its recorder at launch: "Ascolta e segui" listens through the capture stand-in.
+        TeleprompterController.shared.recorder = recorder
         meter = LoudnessMeter()
         switch project {
         case "rich":
@@ -218,7 +224,7 @@ final class AppRig {
     }
 
     private func mount<V: View>(_ root: V, size: CGSize) {
-        rig = MouseRig(Resettable(reset: reset, content: root), size: size)
+        rig = MouseRig(Resettable(reset: reset, content: root.environment(\.pasteboard, rigPasteboard)), size: size)
         // The editor's window, as the live window sets it (the keyboard monitor and the panels look for it).
         store.ui.window = rig.window
         rig.pump(0.3)
@@ -227,6 +233,8 @@ final class AppRig {
     func close() {
         rig?.close()
         store.ui.window = nil
+        if recorder.isRecording { recorder.stop() }
+        if TeleprompterController.shared.recorder === recorder { TeleprompterController.shared.recorder = nil }
         if store.preview.isPlaying { store.preview.togglePlay() }
         defaults.removePersistentDomain(forName: defaultsName)
     }
