@@ -76,7 +76,8 @@ extension MouseSuites {
             "Avvia / Ferma registrazione": "the Record button starts a capture of the screen, camera and microphone of the machine running the tests",
         ], noOps: [
             "Solo volto": "the preset already chosen (the recorder's default sources: the camera alone)",
-        ])
+            "Nuovo progetto": "where the take goes, already chosen (the default for a project with an edit, #39)",
+        ], restore: { app in app.store.recordingChoice = nil })
     }
 
     @Test(arguments: Navigation.TextsTab.allCases)

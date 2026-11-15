@@ -83,6 +83,7 @@
 "Apre Esporta con il formato Reel 9:16: voce a −15 LUFS e i controlli prima di salvare" = "Opens Export with the Reel 9:16 format: voice at −15 LUFS and the checks before saving";
 "Apri l'allenamento di questa voce" = "Open this voice's training";
 "Bassa" = "Low";
+"Chiudi l'avviso" = "Close the notice";
 "Circa %@. Tieni il Mac acceso e collegato alla corrente: l'allenamento continua anche se chiudi questa finestra." = "About %@. Keep the Mac on and plugged in: training goes on even if you close this window.";
 "Clona la tua voce" = "Clone your voice";
 "Clona la tua voce in %@" = "Clone your voice in %@";
@@ -90,6 +91,8 @@
 "COLORE" = "COLOUR";
 "Come funziona" = "How it works";
 "Controllo la tua voce…" = "Checking your voice…";
+"Diventa un nuovo progetto in questa scheda" = "Becomes a new project in this tab";
+"Diventa un nuovo progetto in una nuova scheda" = "Becomes a new project in a new tab";
 "E risale nelle pause." = "And comes back up in the pauses.";
 "EFFETTI SONORI" = "SOUND EFFECTS";
 "Effetti sonori sui tagli" = "Sound effects on the cuts";
@@ -113,6 +116,8 @@
 "Inizia" = "Start";
 "Inizia a clonare la tua voce" = "Start cloning your voice";
 "Installazione e motori" = "Installation and engines";
+"La registrazione diventa un progetto nuovo, salvato in Progetti" = "The recording becomes a new project, saved in Projects";
+"La registrazione va nei Media del progetto di questa scheda" = "The recording goes into the Media of this tab's project";
 "La voce non è ancora allenata: dopo è più fedele." = "The voice is not trained yet: training makes it more faithful.";
 "Le tue voci" = "Your voices";
 "Le tue voci: lingue, toni e allenamento" = "Your voices: languages, tones and training";
@@ -129,6 +134,7 @@
 "Leggero, al massimo sei, a qualche secondo l'uno dall'altro." = "Soft, six at most, a few seconds apart.";
 "Livello semplice: sei passi guidati, un'anteprima e Fai tutto" = "Simple level: six guided steps, one preview and Do everything";
 "Luce leggera" = "Light grade";
+"Mostra il file della registrazione nel Finder" = "Show the recording's file in Finder";
 "MUSICA" = "MUSIC";
 "Manca il motore che pulisce la voce: si installa da Impostazioni › Motori." = "The engine that cleans the voice is missing: install it from Settings › Engines.";
 "Manca il motore che trascrive il parlato: si installa da Impostazioni › Motori." = "The engine that transcribes speech is missing: install it from Settings › Engines.";
@@ -160,9 +166,11 @@
 "Questa guida manca da questa installazione: reinstalla l'app." = "This guide is missing from this installation: reinstall the app.";
 "Queste frasi le hai dette più volte. È scelta la ripresa migliore: provane un'altra se preferisci." = "You said these sentences more than once. The best take is chosen: try another if you prefer.";
 "Questo Mac è al livello %@." = "This Mac is %@ tier.";
+"Questo progetto" = "This project";
 "Registra un altro tono di questa voce" = "Record another tone of this voice";
 "Registra · ~%@" = "Record · ~%@";
 "Registrare la tua voce" = "Recording your voice";
+"Registrazione salvata in «%@»" = "Recording saved in “%@”";
 "RIPRESE" = "TAKES";
 "Reel 9:16 a −15 LUFS, con i controlli prima di salvare." = "Reel 9:16 at −15 LUFS, with the checks before saving.";
 "Resta un respiro prima e dopo ogni frase." = "A breath stays before and after each sentence.";
@@ -203,6 +211,7 @@
 "Una luce più viva e, se vuoi, un colore per tutto il video." = "A brighter light and, if you like, one colour for the whole video.";
 "Una musica sotto la voce e qualche suono sui tagli." = "Music under the voice and a few sounds on the cuts.";
 "Una voce pulita, al volume giusto per i social." = "A clean voice, at the right level for social media.";
+"Va nei Media di «%@»" = "Goes into the Media of “%@”";
 "VOCE FUORI CAMPO" = "VOICE-OVER";
 "a pagamento" = "paid";
 "Abbassa la musica sotto la voce" = "Duck the music under the voice";

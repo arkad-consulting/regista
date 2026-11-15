@@ -83,6 +83,7 @@
 "Apre Esporta con il formato Reel 9:16: voce a −15 LUFS e i controlli prima di salvare" = "Abre Exportar com o formato Reel 9:16: voz a −15 LUFS e as verificações antes de salvar";
 "Apri l'allenamento di questa voce" = "Abrir o treinamento desta voz";
 "Bassa" = "Baixa";
+"Chiudi l'avviso" = "Fechar o aviso";
 "Circa %@. Tieni il Mac acceso e collegato alla corrente: l'allenamento continua anche se chiudi questa finestra." = "Cerca de %@. Mantenha o Mac ligado e na tomada: o treinamento continua mesmo se você fechar esta janela.";
 "Clona la tua voce" = "Clone sua voz";
 "Clona la tua voce in %@" = "Clone sua voz em %@";
@@ -90,6 +91,8 @@
 "COLORE" = "COR";
 "Come funziona" = "Como funciona";
 "Controllo la tua voce…" = "Verificando sua voz…";
+"Diventa un nuovo progetto in questa scheda" = "Vira um novo projeto nesta aba";
+"Diventa un nuovo progetto in una nuova scheda" = "Vira um novo projeto em uma nova aba";
 "E risale nelle pause." = "E volta a subir nas pausas.";
 "EFFETTI SONORI" = "EFEITOS SONOROS";
 "Effetti sonori sui tagli" = "Efeitos sonoros nos cortes";
@@ -113,6 +116,8 @@
 "Inizia" = "Começar";
 "Inizia a clonare la tua voce" = "Começar a clonar sua voz";
 "Installazione e motori" = "Instalação e motores";
+"La registrazione diventa un progetto nuovo, salvato in Progetti" = "A gravação vira um novo projeto, salvo em Projetos";
+"La registrazione va nei Media del progetto di questa scheda" = "A gravação vai para a mídia do projeto desta aba";
 "La voce non è ancora allenata: dopo è più fedele." = "A voz ainda não foi treinada: depois fica mais fiel.";
 "Le tue voci" = "Suas vozes";
 "Le tue voci: lingue, toni e allenamento" = "Suas vozes: idiomas, tons e treinamento";
@@ -129,6 +134,7 @@
 "Leggero, al massimo sei, a qualche secondo l'uno dall'altro." = "Suave, no máximo seis, a alguns segundos um do outro.";
 "Livello semplice: sei passi guidati, un'anteprima e Fai tutto" = "Nível simples: seis passos guiados, uma prévia e Fazer tudo";
 "Luce leggera" = "Luz leve";
+"Mostra il file della registrazione nel Finder" = "Mostrar o arquivo da gravação no Finder";
 "MUSICA" = "MÚSICA";
 "Manca il motore che pulisce la voce: si installa da Impostazioni › Motori." = "Falta o motor que limpa a voz: instale-o em Ajustes › Motores.";
 "Manca il motore che trascrive il parlato: si installa da Impostazioni › Motori." = "Falta o motor que transcreve a fala: instale-o em Ajustes › Motores.";
@@ -160,9 +166,11 @@
 "Questa guida manca da questa installazione: reinstalla l'app." = "Este guia não está nesta instalação: reinstale o app.";
 "Queste frasi le hai dette più volte. È scelta la ripresa migliore: provane un'altra se preferisci." = "Você disse estas frases mais de uma vez. A melhor tomada está escolhida: experimente outra se preferir.";
 "Questo Mac è al livello %@." = "Este Mac está no nível %@.";
+"Questo progetto" = "Este projeto";
 "Registra un altro tono di questa voce" = "Gravar outro tom desta voz";
 "Registra · ~%@" = "Gravar · ~%@";
 "Registrare la tua voce" = "Gravar sua voz";
+"Registrazione salvata in «%@»" = "Gravação salva em “%@”";
 "RIPRESE" = "TOMADAS";
 "Reel 9:16 a −15 LUFS, con i controlli prima di salvare." = "Reel 9:16 a −15 LUFS, com as verificações antes de salvar.";
 "Resta un respiro prima e dopo ogni frase." = "Fica uma respiração antes e depois de cada frase.";
@@ -203,6 +211,7 @@
 "Una luce più viva e, se vuoi, un colore per tutto il video." = "Uma luz mais viva e, se quiser, uma cor para o vídeo inteiro.";
 "Una musica sotto la voce e qualche suono sui tagli." = "Uma música sob a voz e alguns sons nos cortes.";
 "Una voce pulita, al volume giusto per i social." = "Uma voz limpa, no volume certo para as redes sociais.";
+"Va nei Media di «%@»" = "Vai para a mídia de “%@”";
 "VOCE FUORI CAMPO" = "NARRAÇÃO";
 "a pagamento" = "pago";
 "Abbassa la musica sotto la voce" = "Abaixar a música sob a voz";

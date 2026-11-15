@@ -25,6 +25,15 @@ let rigKitsDirectory: URL = {
     return url
 }()
 
+/// The test process's Regista folder (projects, recordings, exports): a project a click or a finished recording saves
+/// never lands in the folder of the person running the suite (#39).
+let rigFolder: URL = {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tests-folder-\(ProcessInfo.processInfo.processIdentifier)")
+    try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    setenv("REGISTA_FOLDER", url.path, 1)
+    return url
+}()
+
 /// Rebuilds the hosted tree from scratch (every view's local state) when its token changes.
 @MainActor
 final class RigReset: ObservableObject {
@@ -165,6 +174,7 @@ final class AppRig {
     init(project: String? = "rich") async throws {
         _ = NSApplication.shared
         _ = rigKitsDirectory
+        _ = rigFolder
         // A socket nobody listens to, with a path short enough for a Unix socket.
         setenv("REGISTA_ENGINE_SOCKET", FileManager.default.temporaryDirectory.appendingPathComponent("rg-\(UUID().uuidString.prefix(8)).sock").path, 1)
         defaultsName = "regista-rig-\(UUID().uuidString)"
@@ -244,6 +254,14 @@ final class AppRig {
         _ = try? await store.silent("project.state")
         await idle(0.05)
         rig.drain()
+    }
+
+    /// The hosted window as a PNG (with REGISTA_UI_SNAPSHOTS: a look at a state a test drove with the mouse).
+    func snapshot(to url: URL) throws {
+        let v = rig.host
+        guard let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) else { return }
+        v.cacheDisplay(in: v.bounds, to: rep)
+        try rep.representation(using: .png, properties: [:])?.write(to: url)
     }
 
     /// The commands logged since `count` entries.

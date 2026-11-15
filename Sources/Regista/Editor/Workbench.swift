@@ -54,6 +54,11 @@ final class Workbench: ObservableObject {
     let jobsHub = JobsHub()
     /// The tab the last recording belonged to, until its file is imported.
     private var finishedRecordingTabID: String?
+    /// Where the running recording goes and where the last one goes, as Registra showed it when it started (#39).
+    private var startedDestination: RecordingDestination?
+    private var finishedDestination: RecordingDestination?
+    /// The one-line notice over the main area: where the last recording went, with its file (#39).
+    @Published var notice: Notice?
 
     let defaults: UserDefaults
     /// The main window (set by the live EditorRoot); every tab's UI host renders and captures it.
@@ -256,13 +261,19 @@ final class Workbench: ObservableObject {
 
     /// The recorder started: the take belongs to the tab on screen.
     func recordingStarted() {
-        if recordingTabID == nil { recordingTabID = activeID }
+        if recordingTabID == nil {
+            recordingTabID = activeID
+            startedDestination = active.recordingDestination
+        }
+        notice = nil
     }
 
     /// The recorder stopped: its file goes to that tab when it is imported.
     func recordingStopped() {
         finishedRecordingTabID = recordingTabID
+        finishedDestination = startedDestination
         recordingTabID = nil
+        startedDestination = nil
     }
 
     /// Why `store` cannot start a recording now (nil: it can): the recorder belongs to another tab.
@@ -272,16 +283,40 @@ final class Workbench: ObservableObject {
         return String(format: loc("Sta già registrando in «%@»: una registrazione alla volta. Fermala da quella scheda."), name)
     }
 
-    /// Where a finished recording is imported: the tab it was started from — a camera or voice take joins its project,
-    /// a screen session (`newProject`, it starts a project of its own) only an empty tab — otherwise a new tab, selected
-    /// only when the user is not working in another tab (the recording's tab is on screen, or gone).
-    func recordingTarget(newProject: Bool) -> EditorStore {
+    /// Where a finished recording goes (#39), a camera / voice take and a screen session alike: into the project of the
+    /// tab it was started from when Registra said "Questo progetto" there as the recording started; otherwise into a new
+    /// project, in that tab when it is empty, else in a new tab (also when the tab was closed while recording). The tab is
+    /// selected.
+    func recordingTarget() -> (tab: EditorStore, newProject: Bool) {
         let owner = finishedRecordingTabID.flatMap(tab)
+        let wanted = finishedDestination ?? owner?.recordingDestination
         finishedRecordingTabID = nil
-        if let owner, owner.isEmpty || (!newProject && owner.project != nil) { return owner }
-        let t = newTab()
-        if owner == nil || owner?.tabID == activeID { select(t.tabID) }
-        return t
+        finishedDestination = nil
+        let target: (tab: EditorStore, newProject: Bool)
+        if let owner, owner.project != nil, wanted == .thisProject {
+            target = (owner, false)
+        } else if let owner, owner.isEmpty {
+            target = (owner, true)
+        } else {
+            target = (newTab(), true)
+        }
+        select(target.tab.tabID)
+        return target
+    }
+
+    /// The recorder's file is written (`session`: a screen session's session.json): it goes where `recordingTarget`
+    /// says; the notice tells where. Returns the tab it went to.
+    @discardableResult
+    func recordingFinished(_ url: URL, session: Bool) -> EditorStore {
+        let (tab, newProject) = recordingTarget()
+        tab.importRecording(url, session: session, newProject: newProject)
+        return tab
+    }
+
+    /// What a notice says, and the file "Mostra nel Finder" shows.
+    struct Notice: Equatable {
+        var text: String
+        var file: URL?
     }
 
     // MARK: Unsaved work

@@ -195,15 +195,25 @@ private func agent(_ b: Workbench, _ id: String, _ params: JSONValue = [:]) asyn
     let list = try await agent(b, "project.list")
     let rows = list["tabs"]?.arrayValue ?? []
     #expect(rows.count == 2 && rows[0]["recording"] == true && rows[1]["recording"] == false)
-    // Stopped: the take goes to its own tab (still empty), not to the one on screen.
+    // Stopped: the take goes to its own tab (still empty: a new project there), not to the one on screen; that tab is
+    // selected (#39).
     b.recordingStopped()
     #expect(b.recordingRefusal(for: two) == nil)
-    #expect(b.recordingTarget(newProject: true) === one && b.activeID == two.tabID)
-    // A screen session started from a tab with a project opens in a new tab (the project is not replaced).
+    let first = b.recordingTarget()
+    #expect(first.tab === one && first.newProject && b.activeID == one.tabID)
+    // From a tab whose project is still empty: into that project by default; "Nuovo progetto" there: a new tab (the
+    // project is not replaced).
+    try await settle { two.project != nil }
+    b.select(two.tabID)
     b.recordingStarted()
     b.recordingStopped()
-    let target = b.recordingTarget(newProject: true)
-    #expect(target !== two && target.isEmpty && b.tabs.count == 3)
+    let same = b.recordingTarget()
+    #expect(same.tab === two && !same.newProject)
+    two.recordingChoice = .newProject
+    b.recordingStarted()
+    b.recordingStopped()
+    let target = b.recordingTarget()
+    #expect(target.tab !== two && target.newProject && target.tab.isEmpty && b.tabs.count == 3 && b.activeID == target.tab.tabID)
 }
 
 @MainActor

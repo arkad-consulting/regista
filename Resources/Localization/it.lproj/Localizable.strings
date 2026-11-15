@@ -83,6 +83,7 @@
 "Apre Esporta con il formato Reel 9:16: voce a −15 LUFS e i controlli prima di salvare" = "Apre Esporta con il formato Reel 9:16: voce a −15 LUFS e i controlli prima di salvare";
 "Apri l'allenamento di questa voce" = "Apri l'allenamento di questa voce";
 "Bassa" = "Bassa";
+"Chiudi l'avviso" = "Chiudi l'avviso";
 "Circa %@. Tieni il Mac acceso e collegato alla corrente: l'allenamento continua anche se chiudi questa finestra." = "Circa %@. Tieni il Mac acceso e collegato alla corrente: l'allenamento continua anche se chiudi questa finestra.";
 "Clona la tua voce" = "Clona la tua voce";
 "Clona la tua voce in %@" = "Clona la tua voce in %@";
@@ -90,6 +91,8 @@
 "COLORE" = "COLORE";
 "Come funziona" = "Come funziona";
 "Controllo la tua voce…" = "Controllo la tua voce…";
+"Diventa un nuovo progetto in questa scheda" = "Diventa un nuovo progetto in questa scheda";
+"Diventa un nuovo progetto in una nuova scheda" = "Diventa un nuovo progetto in una nuova scheda";
 "E risale nelle pause." = "E risale nelle pause.";
 "EFFETTI SONORI" = "EFFETTI SONORI";
 "Effetti sonori sui tagli" = "Effetti sonori sui tagli";
@@ -113,6 +116,8 @@
 "Inizia" = "Inizia";
 "Inizia a clonare la tua voce" = "Inizia a clonare la tua voce";
 "Installazione e motori" = "Installazione e motori";
+"La registrazione diventa un progetto nuovo, salvato in Progetti" = "La registrazione diventa un progetto nuovo, salvato in Progetti";
+"La registrazione va nei Media del progetto di questa scheda" = "La registrazione va nei Media del progetto di questa scheda";
 "La voce non è ancora allenata: dopo è più fedele." = "La voce non è ancora allenata: dopo è più fedele.";
 "Le tue voci" = "Le tue voci";
 "Le tue voci: lingue, toni e allenamento" = "Le tue voci: lingue, toni e allenamento";
@@ -129,6 +134,7 @@
 "Leggero, al massimo sei, a qualche secondo l'uno dall'altro." = "Leggero, al massimo sei, a qualche secondo l'uno dall'altro.";
 "Livello semplice: sei passi guidati, un'anteprima e Fai tutto" = "Livello semplice: sei passi guidati, un'anteprima e Fai tutto";
 "Luce leggera" = "Luce leggera";
+"Mostra il file della registrazione nel Finder" = "Mostra il file della registrazione nel Finder";
 "MUSICA" = "MUSICA";
 "Manca il motore che pulisce la voce: si installa da Impostazioni › Motori." = "Manca il motore che pulisce la voce: si installa da Impostazioni › Motori.";
 "Manca il motore che trascrive il parlato: si installa da Impostazioni › Motori." = "Manca il motore che trascrive il parlato: si installa da Impostazioni › Motori.";
@@ -160,9 +166,11 @@
 "Questa guida manca da questa installazione: reinstalla l'app." = "Questa guida manca da questa installazione: reinstalla l'app.";
 "Queste frasi le hai dette più volte. È scelta la ripresa migliore: provane un'altra se preferisci." = "Queste frasi le hai dette più volte. È scelta la ripresa migliore: provane un'altra se preferisci.";
 "Questo Mac è al livello %@." = "Questo Mac è al livello %@.";
+"Questo progetto" = "Questo progetto";
 "Registra un altro tono di questa voce" = "Registra un altro tono di questa voce";
 "Registra · ~%@" = "Registra · ~%@";
 "Registrare la tua voce" = "Registrare la tua voce";
+"Registrazione salvata in «%@»" = "Registrazione salvata in «%@»";
 "RIPRESE" = "RIPRESE";
 "Reel 9:16 a −15 LUFS, con i controlli prima di salvare." = "Reel 9:16 a −15 LUFS, con i controlli prima di salvare.";
 "Resta un respiro prima e dopo ogni frase." = "Resta un respiro prima e dopo ogni frase.";
@@ -203,6 +211,7 @@
 "Una luce più viva e, se vuoi, un colore per tutto il video." = "Una luce più viva e, se vuoi, un colore per tutto il video.";
 "Una musica sotto la voce e qualche suono sui tagli." = "Una musica sotto la voce e qualche suono sui tagli.";
 "Una voce pulita, al volume giusto per i social." = "Una voce pulita, al volume giusto per i social.";
+"Va nei Media di «%@»" = "Va nei Media di «%@»";
 "VOCE FUORI CAMPO" = "VOCE FUORI CAMPO";
 "a pagamento" = "a pagamento";
 "Abbassa la musica sotto la voce" = "Abbassa la musica sotto la voce";

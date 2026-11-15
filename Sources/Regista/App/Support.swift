@@ -28,8 +28,10 @@ enum Prefs {
 // MARK: - Cartelle
 
 enum Paths {
-    /// Regista's folder (projects, recordings, exports): Impostazioni › Generale, default ~/Movies/Regista.
+    /// Regista's folder (projects, recordings, exports): Impostazioni › Generale, default ~/Movies/Regista. REGISTA_FOLDER
+    /// replaces it (the tests: what they record or save never lands in the user's folder).
     static var root: URL {
+        if let p = ProcessInfo.processInfo.environment["REGISTA_FOLDER"], !p.isEmpty { return URL(fileURLWithPath: p, isDirectory: true) }
         if let p = UserDefaults.standard.string(forKey: GeneralPrefs.folderKey), !p.isEmpty { return URL(fileURLWithPath: p, isDirectory: true) }
         return defaultRoot
     }

@@ -47,6 +47,7 @@ Read by the app, `regista-mcp` and `regista-engine` (developers and tests; nobod
 | `REGISTA_ENGINES` | Path of the engines.json to read instead of the default one. |
 | `REGISTA_ENGINE_SOCKET` | Path of the app's engine socket (default ~/Library/Application Support/Regista/engine.sock). |
 | `REGISTA_FFPROBE` | ffprobe to use for reading media, before the usual Homebrew locations. |
+| `REGISTA_FOLDER` | Regista's folder (projects, recordings, exports) instead of the one set in Settings › General (default ~/Movies/Regista); the tests point it at a scratch folder. |
 | `REGISTA_INSTALLER` | Folder of the installer scripts Settings › Engines runs (default: the copy inside the app). |
 | `REGISTA_MCP_PROGRESS_INTERVAL` | Seconds between two progress notifications of a long MCP tool call (default 10, at least 0.2). |
 | `REGISTA_MEDIA_ROOT` | Extra folders media.list may read, separated by `:` (as regista-mcp's --media-root). |

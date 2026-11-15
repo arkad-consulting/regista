@@ -83,6 +83,7 @@
 "Apre Esporta con il formato Reel 9:16: voce a −15 LUFS e i controlli prima di salvare" = "Ouvre Exporter au format Reel 9:16 : voix à −15 LUFS et les contrôles avant d'enregistrer";
 "Apri l'allenamento di questa voce" = "Ouvrir l'entraînement de cette voix";
 "Bassa" = "Faible";
+"Chiudi l'avviso" = "Fermer l'avis";
 "Circa %@. Tieni il Mac acceso e collegato alla corrente: l'allenamento continua anche se chiudi questa finestra." = "Environ %@. Gardez le Mac allumé et branché sur secteur : l'entraînement continue même si vous fermez cette fenêtre.";
 "Clona la tua voce" = "Clonez votre voix";
 "Clona la tua voce in %@" = "Clonez votre voix en %@";
@@ -90,6 +91,8 @@
 "COLORE" = "COULEUR";
 "Come funziona" = "Comment ça marche";
 "Controllo la tua voce…" = "Vérification de votre voix…";
+"Diventa un nuovo progetto in questa scheda" = "Devient un nouveau projet dans cet onglet";
+"Diventa un nuovo progetto in una nuova scheda" = "Devient un nouveau projet dans un nouvel onglet";
 "E risale nelle pause." = "Et remonte dans les pauses.";
 "EFFETTI SONORI" = "EFFETS SONORES";
 "Effetti sonori sui tagli" = "Effets sonores sur les coupes";
@@ -113,6 +116,8 @@
 "Inizia" = "Commencer";
 "Inizia a clonare la tua voce" = "Commencer à cloner votre voix";
 "Installazione e motori" = "Installation et moteurs";
+"La registrazione diventa un progetto nuovo, salvato in Progetti" = "L'enregistrement devient un nouveau projet, rangé dans Projets";
+"La registrazione va nei Media del progetto di questa scheda" = "L'enregistrement va dans les médias du projet de cet onglet";
 "La voce non è ancora allenata: dopo è più fedele." = "La voix n'est pas encore entraînée : ensuite, elle sera plus fidèle.";
 "Le tue voci" = "Vos voix";
 "Le tue voci: lingue, toni e allenamento" = "Vos voix : langues, tons et entraînement";
@@ -129,6 +134,7 @@
 "Leggero, al massimo sei, a qualche secondo l'uno dall'altro." = "Discret, six au maximum, à quelques secondes d'intervalle.";
 "Livello semplice: sei passi guidati, un'anteprima e Fai tutto" = "Niveau simple : six étapes guidées, un aperçu et Tout faire";
 "Luce leggera" = "Lumière douce";
+"Mostra il file della registrazione nel Finder" = "Afficher le fichier de l'enregistrement dans le Finder";
 "MUSICA" = "MUSIQUE";
 "Manca il motore che pulisce la voce: si installa da Impostazioni › Motori." = "Le moteur qui nettoie la voix manque : installez-le depuis Réglages › Moteurs.";
 "Manca il motore che trascrive il parlato: si installa da Impostazioni › Motori." = "Le moteur qui transcrit la parole manque : installez-le depuis Réglages › Moteurs.";
@@ -160,9 +166,11 @@
 "Questa guida manca da questa installazione: reinstalla l'app." = "Ce guide manque dans cette installation : réinstallez l'app.";
 "Queste frasi le hai dette più volte. È scelta la ripresa migliore: provane un'altra se preferisci." = "Vous avez dit ces phrases plusieurs fois. La meilleure prise est choisie : essayez-en une autre si vous préférez.";
 "Questo Mac è al livello %@." = "Ce Mac est au niveau %@.";
+"Questo progetto" = "Ce projet";
 "Registra un altro tono di questa voce" = "Enregistrer un autre ton de cette voix";
 "Registra · ~%@" = "Enregistrer · ~%@";
 "Registrare la tua voce" = "Enregistrer votre voix";
+"Registrazione salvata in «%@»" = "Enregistrement rangé dans « %@ »";
 "RIPRESE" = "PRISES";
 "Reel 9:16 a −15 LUFS, con i controlli prima di salvare." = "Reel 9:16 à −15 LUFS, avec les contrôles avant d'enregistrer.";
 "Resta un respiro prima e dopo ogni frase." = "Une respiration reste avant et après chaque phrase.";
@@ -203,6 +211,7 @@
 "Una luce più viva e, se vuoi, un colore per tutto il video." = "Une lumière plus vive et, si vous voulez, une couleur pour toute la vidéo.";
 "Una musica sotto la voce e qualche suono sui tagli." = "Une musique sous la voix et quelques sons sur les coupes.";
 "Una voce pulita, al volume giusto per i social." = "Une voix propre, au bon niveau pour les réseaux sociaux.";
+"Va nei Media di «%@»" = "Va dans les médias de « %@ »";
 "VOCE FUORI CAMPO" = "VOIX OFF";
 "a pagamento" = "payant";
 "Abbassa la musica sotto la voce" = "Baisser la musique sous la voix";

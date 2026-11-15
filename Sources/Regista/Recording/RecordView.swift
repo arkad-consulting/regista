@@ -281,6 +281,7 @@ struct RecordView: View {
                 Text(verbatim: why).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
             }
             if elsewhere == nil {
+            destination
             HStack(spacing: Ed.Space.s) {
                 if recorder.isRecording {
                     EdButton(title: recorder.isPaused ? loc("Riprendi") : loc("Pausa"), symbol: recorder.isPaused ? "play.fill" : "pause.fill",
@@ -296,6 +297,25 @@ struct RecordView: View {
         }
         .padding(Ed.Space.l)
         .overlay(alignment: .top) { Ed.rule2.frame(height: 1) }
+    }
+
+    /// Where the take will go (#39), right above the Record button: "Nuovo progetto" / "Questo progetto" when the tab has
+    /// a project (remembered per tab), and one line naming the place.
+    private var destination: some View {
+        let goes = store.recordingDestination
+        let line = goes == .thisProject ? String(format: loc("Va nei Media di «%@»"), store.project?.name ?? "")
+            : store.project == nil ? loc("Diventa un nuovo progetto in questa scheda") : loc("Diventa un nuovo progetto in una nuova scheda")
+        return VStack(alignment: .leading, spacing: Ed.Space.xs) {
+            if store.project != nil {
+                RSegmented(items: [(RecordingDestination.newProject, "Nuovo progetto"), (.thisProject, "Questo progetto")],
+                           selection: Binding(get: { goes }, set: { if !recorder.isRecording { store.recordingChoice = $0 } }),
+                           tips: [.newProject: "La registrazione diventa un progetto nuovo, salvato in Progetti",
+                                  .thisProject: "La registrazione va nei Media del progetto di questa scheda"])
+                    .disabled(recorder.isRecording)
+            }
+            Label { Text(verbatim: line).lineLimit(1).truncationMode(.middle) } icon: { Image(systemName: goes == .thisProject ? "film" : "plus.rectangle.on.folder") }
+                .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
+        }
     }
 }
 

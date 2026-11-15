@@ -131,6 +131,7 @@ struct MainArea: View {
     var body: some View {
         VStack(spacing: 0) {
             ProjectTabStrip()
+            NoticeBar(bench: store.bench)
             Group {
                 switch nav.activity {
                 case .home: HomeWorkspace()
@@ -150,6 +151,38 @@ struct MainArea: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(Ed.main)
+    }
+}
+
+/// One line under the project tabs saying where a finished recording went, with "Mostra nel Finder" for its file and a
+/// close button (#39). It stays until closed or the next recording starts.
+struct NoticeBar: View {
+    @ObservedObject var bench: Workbench
+
+    var body: some View {
+        if let n = bench.notice {
+            HStack(spacing: Ed.Space.s) {
+                Image(systemName: "checkmark.circle.fill").font(Ed.icon(Ed.TypeSize.body, .semibold)).foregroundStyle(Ed.ok)
+                Text(verbatim: n.text).font(Ed.ui(Ed.TypeSize.body, .medium)).foregroundStyle(Ed.text)
+                    .lineLimit(1).truncationMode(.middle)
+                Spacer(minLength: Ed.Space.s)
+                if let file = n.file {
+                    EdButton(title: "Mostra nel Finder", symbol: "folder") { NSWorkspace.shared.activateFileViewerSelecting([file]) }
+                        .tip("Mostra il file della registrazione nel Finder")
+                        .fixedSize()
+                }
+                Button { bench.notice = nil } label: {
+                    Image(systemName: "xmark").font(Ed.icon(Ed.TypeSize.micro, .bold)).foregroundStyle(Ed.text3)
+                        .frame(width: 22, height: 22).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .tip("Chiudi l'avviso")
+            }
+            .padding(.leading, Ed.Space.m).padding(.trailing, Ed.Space.s)
+            .frame(height: 36)
+            .background(Ed.toolbar)
+            .overlay(alignment: .bottom) { Ed.rule2.frame(height: 1) }
+        }
     }
 }
 

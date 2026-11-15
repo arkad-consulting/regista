@@ -120,6 +120,8 @@ final class EditorStore: ObservableObject {
     var clipboard: [String] = []
     /// Asset shown in the Source monitor.
     @Published var sourceAssetID: String?
+    /// Where a recording started from this tab goes, as chosen on Registra (nil: the default), kept while the tab is open.
+    @Published var recordingChoice: RecordingDestination?
     /// Instagram UI guides on the Program monitor: off until asked for (they are guides, not a crop).
     @Published var safeZones = false
     /// The Marca picker (the toolbar's "Marca: <kit>" popover, ⇧⌘B): the one place the project's kit is picked (E4 #3).
@@ -612,31 +614,83 @@ final class EditorStore: ObservableObject {
         }
     }
 
-    /// A finished camera / voice recording: imported in this tab (the one the recording belonged to, `recordingTarget`).
-    func importRecording(_ url: URL) {
-        if isActive { workspace = .pro }
-        importMedia([url])
+    /// Where a recording started from this tab goes (#39): a new project when the tab has none; otherwise the choice made
+    /// on Registra, by default this project while it is still empty (no media, nothing on the timeline), else a new one.
+    var recordingDestination: RecordingDestination {
+        guard let p = project else { return .newProject }
+        return recordingChoice ?? (p.assets.isEmpty && p.duration == .zero ? .thisProject : .newProject)
     }
 
-    /// A finished screen recording (Registra with the screen on): a new 16:9 project where the session becomes the
-    /// timeline — screen, camera with the layout chosen while recording, mic (recording.import). In this tab (the one the
-    /// recording belonged to, `recordingTarget`).
-    func importSession(_ sessionFile: URL) {
-        if isActive { workspace = .pro }
+    /// A finished recording in this tab (`Workbench.recordingTarget` chose it): a camera / voice take (a movie file) or a
+    /// screen session (`session`: its session.json). `newProject`: a new project named like the recording, saved in the
+    /// projects folder, the take on its timeline (a take: in the take's own format; a session: 16:9, screen, camera with
+    /// the layout chosen while recording, mic — recording.import). Otherwise into this project: the take joins Media,
+    /// selected there, and goes on the timeline when the timeline is empty. Then the editor on Media and a notice saying
+    /// where it went, with "Mostra nel Finder".
+    func importRecording(_ url: URL, session: Bool, newProject: Bool) {
+        workspace = .pro
+        select(.media)
         Task {
             do {
-                let name = sessionFile.deletingLastPathComponent().lastPathComponent
-                try await perform("project.new", ["name": .string(name), "directory": .string(Self.projectsFolder.path), "width": 1920, "height": 1080])
-                try await perform("recording.import", ["path": .string(sessionFile.path)])
-                try await perform("project.save")
+                let file = session ? url.deletingLastPathComponent() : url
+                let before = Set(project?.assets.map(\.id) ?? [])
+                if newProject {
+                    let name = Self.freeName(Self.recordingProjectName(file, session: session), in: Self.projectsFolder)
+                    if session {
+                        try await perform("project.new", ["name": .string(name), "directory": .string(Self.projectsFolder.path), "width": 1920, "height": 1080])
+                        try await perform("recording.import", ["path": .string(url.path)])
+                    } else {
+                        try await perform("project.new", GeneralPrefs.newProject(name: name, directory: Self.projectsFolder))
+                        let id = try await perform("media.import", ["path": .string(url.path)]).value(at: "asset.id")?.stringValue ?? ""
+                        if let v = project?.asset(id)?.video, let s = project?.settings, (v.width, v.height) != (s.width, s.height) {
+                            try await perform("project.format", ["width": .number(Double(v.width)), "height": .number(Double(v.height))])
+                        }
+                        try await placeOnTimeline(id)
+                    }
+                    try await perform("project.save")
+                } else if session, (project?.duration ?? .zero) == .zero {
+                    try await perform("recording.import", ["path": .string(url.path)])
+                } else {
+                    // A session into a project already edited: its files join Media, the timeline stays as it is.
+                    let files = session ? try Self.sessionFiles(url) : [url]
+                    for f in files {
+                        let id = try await perform("media.import", ["path": .string(f.path)]).value(at: "asset.id")?.stringValue ?? ""
+                        if !session, (project?.duration ?? .zero) == .zero, project?.asset(id)?.video != nil { try await placeOnTimeline(id) }
+                    }
+                }
+                let added = project?.assets.filter { !before.contains($0.id) } ?? []
+                if let shown = added.first(where: { $0.video != nil }) ?? added.first { sourceAssetID = shown.id }
+                bench.notice = Workbench.Notice(text: String(format: loc("Registrazione salvata in «%@»"), project?.name ?? tabTitle), file: file)
             } catch {
                 show(error)
             }
         }
     }
 
+    /// A new project's name for a recording: the take's own ("Registrazione <date>"), or for a screen session (its folder
+    /// is "Sessione <date>") "Registrazione" with the session's date, in the interface language.
+    nonisolated static func recordingProjectName(_ file: URL, session: Bool) -> String {
+        guard session else { return file.deletingPathExtension().lastPathComponent }
+        let date = (try? file.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date()
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd HH.mm.ss"
+        return loc("Registrazione %@", f.string(from: date))
+    }
+
+    /// The media files of a screen session (screen, camera, microphone, the Mac's sound).
+    nonisolated static func sessionFiles(_ sessionFile: URL) throws -> [URL] {
+        let s = try RecordingSession.load(sessionFile)
+        let folder = sessionFile.deletingLastPathComponent()
+        return s.sources.map { URL(fileURLWithPath: s.path(of: $0, sessionFolder: folder)) }
+    }
+
     static var projectsFolder: URL { Paths.ensure(Paths.root.appendingPathComponent("Progetti", isDirectory: true)) }
     static var exportsFolder: URL { Paths.ensure(Paths.root.appendingPathComponent("Export", isDirectory: true)) }
+}
+
+/// Where a finished recording goes (#39): a new project of its own, or the project of the tab it was started from.
+enum RecordingDestination: String, Hashable {
+    case newProject, thisProject
 }
 
 /// Short human strings for the activity list.
