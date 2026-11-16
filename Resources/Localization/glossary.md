@@ -53,6 +53,8 @@ Keep these the same everywhere in `*.lproj/Localizable.strings` (scheme and chec
 | Ripeti (`menu.redo`) | Redo | Rétablir | Refazer |
 | Fine (a sheet, `button.done`) | Done | Terminé | OK |
 | loudness, LUFS, dBTP | loudness | loudness | loudness |
+| tipo di video (the rule sheet a project follows) | kind of video | type de vidéo | tipo de vídeo |
+| Segui il formato del progetto (no kind of its own: the kind comes from the format) | Follow the project's format | Suivre le format du projet | Seguir o formato do projeto |
 
 Names never translated: Regista, Claude, Claude Code, Claude Desktop, MCP, ComfyUI, Higgsfield, WhisperX, VoxCPM2,
 HyperFrames, Blender, Shotcut, FFmpeg, macOS, Arkad, WeSites, the shortcut glyphs (⌘ ⌥ ⇧ ⌃).

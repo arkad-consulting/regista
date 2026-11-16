@@ -23,6 +23,8 @@ struct RulesReport: Equatable {
     var kind: String
     /// The kind's name as the person reads it.
     var kindTitle: String
+    /// The project has no kind of its own: the kind follows its format.
+    var followsFormat: Bool
     var violations: [Violation]
     /// The English titles of the checks that ran and passed.
     var passed: [String]
@@ -32,9 +34,11 @@ struct RulesReport: Equatable {
     var failures: [Violation] { violations.filter(\.blocking) }
     var fixable: Bool { failures.contains { $0.fix != nil } }
 
-    init(kind: String, kindTitle: String, violations: [Violation], passed: [String], problems: [String], kinds: [RulesModel.Sheet]) {
+    init(kind: String, kindTitle: String, followsFormat: Bool = true, violations: [Violation], passed: [String], problems: [String],
+         kinds: [RulesModel.Sheet]) {
         self.kind = kind
         self.kindTitle = kindTitle
+        self.followsFormat = followsFormat
         self.violations = violations
         self.passed = passed
         self.problems = problems
@@ -55,7 +59,8 @@ struct RulesReport: Equatable {
         let passed = checks.filter { $0["ran"]?.boolValue == true && ($0["violations"]?.doubleValue ?? 0) == 0 }.compactMap { $0["title"]?.stringValue }
         let problems = (c["sheetProblems"]?.arrayValue ?? []).map { loc(message: $0) } + (c["note"].flatMap { $0 == .null ? nil : [loc(message: $0)] } ?? [])
         let shown = kinds.first { $0.kind == kind }?.shownTitle ?? loc(c["kindTitle"]?.stringValue ?? kind)
-        self.init(kind: kind, kindTitle: shown, violations: violations, passed: passed, problems: problems, kinds: kinds)
+        self.init(kind: kind, kindTitle: shown, followsFormat: c["kindSource"]?.stringValue != "project", violations: violations, passed: passed,
+                  problems: problems, kinds: kinds)
     }
 
     /// Sample reports for the renders (ui.screenshot export-rules, export-rules-pass): a reel with two rules broken, and one that passes.
@@ -69,10 +74,10 @@ struct RulesReport: Equatable {
         // l10n-ignore-begin — sample data: the engine's own message keys and values
         let violations = [
             Violation(id: 0, check: "title-captions", title: RuleCheckSpec.all[0].title,
-                      message: loc("Captions show while the opening title is on screen (%1$@–%2$@ s).", "0.00", "2.00"), time: 0.3, blocking: true,
+                      message: loc("Captions show while the opening title is on screen (%1$@–%2$@ s).", Words.number(0), Words.number(2)), time: 0.3, blocking: true,
                       fix: StepCall(id: "captions.clear", params: ["from": 0, "to": 2])),
             Violation(id: 1, check: "logo-pause", title: RuleCheckSpec.all[2].title,
-                      message: loc("The logo enters %1$@ s before the last spoken word ends: the pause must be at least %2$@ s.", "0.30", "0.30"),
+                      message: loc("The logo enters %1$@ s before the last spoken word ends: the pause must be at least %2$@ s.", Words.number(0.3), Words.number(0.3)),
                       time: 41.5, blocking: true, fix: StepCall(id: "timeline.move", params: ["clipId": "logo", "start": 42.2])),
         ]
         // l10n-ignore-end
@@ -221,12 +226,23 @@ struct ExportRulesCard: View {
         .padding(.horizontal, Ed.Space.m).padding(.vertical, 10)
     }
 
+    /// The kinds, under a first entry that leaves the kind to the project's format (project.setKind without a kind, #47),
+    /// chosen while the project has no kind of its own; its line names the kind the format gives.
     private var kinds: some View {
-        RChoiceList(items: report.kinds.map { .init(id: $0.kind, title: $0.shownTitle, symbol: RulesSettings.symbol($0.kind)) },
-                    selection: report.kind) { k in
+        let format = store.project.map { RuleBook.kind(width: $0.settings.width, height: $0.settings.height) }
+        let formatTitle = format.flatMap { f in report.kinds.first { $0.kind == f }?.shownTitle }
+        let follow = RChoiceList<String>.Item(id: "", title: loc("Segui il formato del progetto"), subtitle: formatTitle, symbol: "aspectratio")
+        return RChoiceList(items: [follow] + report.kinds.map { .init(id: $0.kind, title: $0.shownTitle, symbol: RulesSettings.symbol($0.kind)) },
+                           selection: report.followsFormat ? "" : report.kind) { k in
             model.choosing = false
-            guard !demo, k != report.kind else { return }
-            store.run("project.setKind", ["kind": .string(k)])
+            guard !demo else { return }
+            if k.isEmpty {
+                guard !report.followsFormat else { return }
+                store.run("project.setKind")
+            } else {
+                guard k != report.kind || report.followsFormat else { return }
+                store.run("project.setKind", ["kind": .string(k)])
+            }
         }
         .padding(.horizontal, Ed.Space.xs).padding(.bottom, Ed.Space.xs)
     }

@@ -9,7 +9,7 @@
   {"command": "title.add", "params": {"text": "small print", "start": 1, "duration": 2, "size": 20}, "capture": {"title": "result.clip.id"}},
   {"command": "rules.check",
    "expect": {"result.pass": false, "result.failures": 1, "result.violations.0.check": "text-size", "result.violations.0.time": 1,
-              "result.violations.0.messageArgs": ["small print", "20", "28"], "result.violations.0.fix": null}},
+              "result.violations.0.messageArgs": ["small print", 20, 28], "result.violations.0.fix": null}},
   {"command": "export.render", "params": {"path": "${WORK}/blocked.mp4"}, "expectError": "text-size"},
   {"command": "clip.place", "params": {"clipId": "${title}", "scale": 1.5}},
   {"command": "rules.check", "expect": {"result.pass": true}},

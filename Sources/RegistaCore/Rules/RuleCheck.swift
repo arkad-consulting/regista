@@ -41,7 +41,7 @@ public struct RuleViolation: Hashable, Sendable {
 
     /// One line for an agent: "logo-pause at 12.40 s: … — fix: timeline.move {…}".
     public var line: String {
-        "\(check) at \(RuleText.s(time)) s: \(text.english)" + (fix.map { " — fix: \($0.command) \($0.params.text())" } ?? " — no automatic fix")
+        "\(check) at \(RuleText.s(time).english) s: \(text.english)" + (fix.map { " — fix: \($0.command) \($0.params.text())" } ?? " — no automatic fix")
     }
 }
 
@@ -298,7 +298,7 @@ enum RuleCheck {
                     let isLogo = logos.contains { $0.clip.id == item.clip.id }
                     let text = isLogo
                         ? RuleText(rulePhrase("The logo covers the speaker's face at %1$@ s."), RuleText.s(t))
-                        : RuleText(rulePhrase("The title «%1$@» covers the speaker's face at %2$@ s."), name(item), RuleText.s(t))
+                        : RuleText(rulePhrase("The title «%1$@» covers the speaker's face at %2$@ s."), .text(name(item)), RuleText.s(t))
                     out.append(RuleViolation(check: "face-clear", severity: .fail, text: text, time: t, clipID: item.clip.id, fix: nil))
                     break
                 }
@@ -309,7 +309,7 @@ enum RuleCheck {
         func textSize(_ minimum: Double) -> [RuleViolation] {
             let W = Double(project.settings.width), H = Double(project.settings.height)
             let floor = minimum * min(W, H) / SafeZones.referenceWidth
-            func px(_ v: Double) -> String { String(Int(v.rounded())) }
+            func px(_ v: Double) -> RuleText.Arg { RuleText.n(v) }
             var out: [RuleViolation] = []
             for item in titles + logos {
                 guard let title = item.clip.title else { continue }
@@ -317,7 +317,7 @@ enum RuleCheck {
                 let drawn = title.size * scale * W / SafeZones.referenceWidth
                 guard drawn + 0.05 < floor else { continue }
                 out.append(RuleViolation(check: "text-size", severity: .fail,
-                                         text: RuleText(rulePhrase("The title «%1$@» is %2$@ px on this frame: at least %3$@ px."), name(item), px(drawn), px(floor)),
+                                         text: RuleText(rulePhrase("The title «%1$@» is %2$@ px on this frame: at least %3$@ px."), .text(name(item)), px(drawn), px(floor)),
                                          time: item.clip.start, clipID: item.clip.id, fix: nil))
             }
             for (_, c) in captions {

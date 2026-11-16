@@ -30,6 +30,31 @@ enum Words {
         guard let o = override, Thread.isMainThread, applies?() ?? true else { return .main }
         return o
     }
+
+    /// The language the words are in ("it", "en", "fr", "pt"): the table's.
+    static var language: String {
+        let t = table
+        if t.bundlePath.hasSuffix(".lproj") { return t.bundleURL.deletingPathExtension().lastPathComponent }
+        return t.preferredLocalizations.first ?? "en"
+    }
+
+    /// How numbers are written in that language (the Mac's own formats when its language is the same): a decimal comma
+    /// in Italian, French and Portuguese, a point in English.
+    static var locale: Locale {
+        let language = language
+        return Locale.current.language.languageCode?.identifier == language ? Locale.current : Locale(identifier: language)
+    }
+
+    /// "0,3", "1,25", "28": a number the engine gives as a value (#47), at most two decimals, in the words' language.
+    static func number(_ v: Double) -> String {
+        let f = NumberFormatter()
+        f.locale = locale
+        f.numberStyle = .decimal
+        f.usesGroupingSeparator = false
+        f.minimumFractionDigits = 0
+        f.maximumFractionDigits = 2
+        return f.string(from: NSNumber(value: v)) ?? "\(v)"
+    }
 }
 
 /// A format key filled with `args` (`%@` placeholders take strings: format numbers before, `shortTime`, `"\(n)"`).

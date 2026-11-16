@@ -11,24 +11,51 @@ import Foundation
 @inline(__always) func rulePhrase(_ english: String) -> String { english }
 
 /// A text for the person: the English sentence (what an agent reads), its lookup key and the values that fill it.
+/// Numbers stay numbers (#47): the engine's English sentence writes them with a point, the interface in its own language.
 public struct RuleText: Hashable, Sendable {
-    public var key: String
-    public var args: [String]
+    /// A value that fills a placeholder.
+    public enum Arg: Hashable, Sendable {
+        /// Words (a check's id, a title's text, a kind).
+        case text(String)
+        /// A number, with the decimals the English sentence shows ("0.30": 2; nil: as few as it needs).
+        case number(Double, decimals: Int?)
 
-    init(_ key: String, _ args: String...) {
+        var english: String {
+            switch self {
+            case .text(let s): s
+            case .number(let v, let d?): String(format: "%.\(d)f", v)
+            case .number(let v, nil): RuleSheetText.format(v)
+            }
+        }
+
+        var json: JSONValue {
+            switch self {
+            case .text(let s): .string(s)
+            case .number(let v, _): .number(v)
+            }
+        }
+    }
+
+    public var key: String
+    public var args: [Arg]
+
+    init(_ key: String, _ args: Arg...) {
         self.key = key
         self.args = args
     }
 
-    public var english: String { args.isEmpty ? key : String(format: key, arguments: args.map { $0 as CVarArg }) }
+    public var english: String { args.isEmpty ? key : String(format: key, arguments: args.map { $0.english as CVarArg }) }
 
     public var json: JSONValue {
-        ["message": .string(english), "messageKey": .string(key), "messageArgs": .array(args.map { .string($0) })]
+        ["message": .string(english), "messageKey": .string(key), "messageArgs": .array(args.map(\.json))]
     }
 
-    /// Seconds as the messages show them ("1.25").
-    static func s(_ t: MediaTime) -> String { String(format: "%.2f", t.seconds) }
-    static func s(_ v: Double) -> String { String(format: "%.2f", v) }
+    /// Seconds as the messages give them: rounded to the hundredth ("1.25" in the English sentence).
+    static func s(_ t: MediaTime) -> Arg { s(t.seconds) }
+    static func s(_ v: Double) -> Arg { .number((v * 100).rounded() / 100, decimals: 2) }
+    /// A whole number (a line of a sheet, pixels).
+    static func n(_ v: Double) -> Arg { .number(v.rounded(), decimals: 0) }
+    static func n(_ v: Int) -> Arg { .number(Double(v), decimals: 0) }
 }
 
 /// A check a sheet can switch: id, title, and its number when it has one.
@@ -108,12 +135,12 @@ public struct RuleSheetText: Sendable {
             let n = k + 2
             let line = raw.trimmingCharacters(in: .whitespaces)
             if line.isEmpty || line.hasPrefix("#") { continue }
-            let malformed = Problem(line: n, text: RuleText(rulePhrase("Line %1$@: write «id: on» or «id: off», then the number when the check has one."), "\(n)"))
+            let malformed = Problem(line: n, text: RuleText(rulePhrase("Line %1$@: write «id: on» or «id: off», then the number when the check has one."), RuleText.n(n)))
             guard let colon = line.firstIndex(of: ":") else { sheet.problems.append(malformed); continue }
             let id = line[..<colon].trimmingCharacters(in: .whitespaces)
             let words = line[line.index(after: colon)...].split(whereSeparator: \.isWhitespace).map(String.init)
             guard let spec = RuleCheckSpec.named(id) else {
-                sheet.problems.append(Problem(line: n, text: RuleText(rulePhrase("Line %1$@: unknown check «%2$@»."), "\(n)", id)))
+                sheet.problems.append(Problem(line: n, text: RuleText(rulePhrase("Line %1$@: unknown check «%2$@»."), RuleText.n(n), .text(id))))
                 continue
             }
             guard let state = words.first?.lowercased(), state == "on" || state == "off", words.count <= 2 else {
@@ -123,24 +150,25 @@ public struct RuleSheetText: Sendable {
             var value: Double?
             if words.count == 2 {
                 guard let number = spec.number else {
-                    sheet.problems.append(Problem(line: n, text: RuleText(rulePhrase("Line %1$@: %2$@ takes no number."), "\(n)", id)))
+                    sheet.problems.append(Problem(line: n, text: RuleText(rulePhrase("Line %1$@: %2$@ takes no number."), RuleText.n(n), .text(id))))
                     continue
                 }
                 var w = words[1].replacingOccurrences(of: ",", with: ".")
                 if w.hasSuffix(number.unit) { w.removeLast(number.unit.count) }
                 guard let v = Double(w), v.isFinite else {
-                    sheet.problems.append(Problem(line: n, text: RuleText(rulePhrase("Line %1$@: «%2$@» is not a number."), "\(n)", words[1])))
+                    sheet.problems.append(Problem(line: n, text: RuleText(rulePhrase("Line %1$@: «%2$@» is not a number."), RuleText.n(n), .text(words[1]))))
                     continue
                 }
                 guard number.range.contains(v) else {
-                    sheet.problems.append(Problem(line: n, text: RuleText(rulePhrase("Line %1$@: %2$@ must be between %3$@ and %4$@."), "\(n)", id,
-                                                                          format(number.range.lowerBound), format(number.range.upperBound))))
+                    sheet.problems.append(Problem(line: n, text: RuleText(rulePhrase("Line %1$@: %2$@ must be between %3$@ and %4$@."), RuleText.n(n), .text(id),
+                                                                          .number(number.range.lowerBound, decimals: nil),
+                                                                          .number(number.range.upperBound, decimals: nil))))
                     continue
                 }
                 value = v
             }
             guard !seen.contains(id) else {
-                sheet.problems.append(Problem(line: n, text: RuleText(rulePhrase("Line %1$@: %2$@ is listed twice; the first line counts."), "\(n)", id)))
+                sheet.problems.append(Problem(line: n, text: RuleText(rulePhrase("Line %1$@: %2$@ is listed twice; the first line counts."), RuleText.n(n), .text(id))))
                 continue
             }
             seen.insert(id)
@@ -296,13 +324,17 @@ public struct RuleBook: Sendable {
         }
     }
 
+    /// The kind a frame of this size gets when the project has none of its own: landscape frames screen-tutorial, the
+    /// rest talking-head-reel.
+    public static func kind(width: Int, height: Int) -> String { width > height ? "screen-tutorial" : "talking-head-reel" }
+
     /// A project's kind: the stored one when it still exists, else from its format (16:9 and other landscape frames:
     /// screen-tutorial; the rest: talking-head-reel). `note` says why a stored kind was not used.
     public func kind(of project: Project) -> (kind: String, source: String, note: RuleText?) {
-        let fromFormat = project.settings.width > project.settings.height ? "screen-tutorial" : "talking-head-reel"
+        let fromFormat = Self.kind(width: project.settings.width, height: project.settings.height)
         guard let stored = project.kind else { return (fromFormat, "format", nil) }
         guard exists(stored), stored != Self.everyVideo else {
-            return (fromFormat, "format", RuleText(rulePhrase("The project's kind «%1$@» no longer exists: the rules of «%2$@» apply."), stored, fromFormat))
+            return (fromFormat, "format", RuleText(rulePhrase("The project's kind «%1$@» no longer exists: the rules of «%2$@» apply."), .text(stored), .text(fromFormat)))
         }
         return (stored, "project", nil)
     }

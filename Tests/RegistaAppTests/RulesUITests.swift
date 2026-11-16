@@ -3,6 +3,7 @@ import RegistaCore
 import SwiftUI
 import Testing
 @testable import Regista
+@testable import RegistaCore
 
 // Editing rules (#31), the interface: Impostazioni › Regole and the Export card, driven with real mouse and key events
 // (MouseRig) on the live views over the rig's scratch rules folder (RigIsolation.swift): every switch, number, editor,
@@ -266,6 +267,53 @@ extension MouseSuites {
         #expect(control(app, containing: "Esporta lo stesso") == nil && control(app, containing: "Esporta video…") != nil)
     }
 
+    /// #47: the kind menu's first entry leaves the kind to the project's format: chosen while the project has no kind of
+    /// its own; a click on it runs project.setKind without a kind, once, and the card checks again with the format's kind.
+    @Test func theKindMenuFollowsTheProjectsFormat() async throws {
+        let app = try await AppRig()
+        defer { app.close() }
+        try await app.store.perform("project.setKind", ["kind": "voice-over-video"])
+        app.hostEditor(Navigation(activity: .export, rightTab: .inspector))
+        await app.settle()
+        _ = await until(app, 4) { control(app, containing: "Voice-over video") != nil }
+        app.rig.click(try #require(control(app, containing: "Voice-over video"), "the card does not show the project's kind").centre)
+        await app.settle()
+        let follow = try #require(control(app, containing: "Segui il formato del progetto"), "no entry for the format in the kinds")
+        #expect(!follow.selected, "the format's entry is chosen while the project has a kind of its own")
+        // Its line names the kind the format gives (a 9:16 reel: the talking-head reel).
+        #expect(follow.name.contains("Talking-head reel"), "the entry does not name the format's kind: \(follow.name)")
+        let n = app.store.activity.count
+        app.rig.click(follow.centre)
+        await app.settle()
+        #expect(app.commands(since: n) == ["project.setKind"] && app.store.project?.kind == nil, "the entry ran \(app.commands(since: n))")
+        // The card checks again: the kind is the format's; the menu closed, and opened again it has the format's entry chosen.
+        #expect(await until(app, 4) { control(app, containing: "Talking-head reel") != nil }, "the card does not show the format's kind")
+        #expect(control(app, containing: "Voice-over video") == nil && control(app, containing: "Segui il formato del progetto") == nil,
+                "the kinds did not close after the choice")
+        app.rig.click(try #require(control(app, containing: "Talking-head reel")).centre)
+        await app.settle()
+        #expect(control(app, containing: "Segui il formato del progetto")?.selected == true, "the format's entry is not chosen")
+        // Choosing it again runs nothing.
+        let m = app.store.activity.count
+        app.rig.click(try #require(control(app, containing: "Segui il formato del progetto")).centre)
+        await app.settle()
+        #expect(app.commands(since: m).isEmpty, "choosing the entry already chosen ran \(app.commands(since: m))")
+        #expect(control(app, containing: "Talking-head reel") != nil, "the kind button is gone")
+        // With REGISTA_UI_SNAPSHOTS: the menu open, in Italian and French, to look at.
+        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+            for language in ["it", "fr"] {
+                app.hostEditor(Navigation(activity: .export, rightTab: .inspector), language: language)
+                await app.settle()
+                _ = await until(app, 4) { app.rig.elements().contains { $0.isControl && $0.label.hasPrefix(language == "it" ? "Reel parlato" : "Reel face caméra") } }
+                if let kind = app.rig.elements().first(where: { $0.isControl && $0.label.hasPrefix(language == "it" ? "Reel parlato" : "Reel face caméra") }) {
+                    app.rig.click(kind.centre)
+                    await app.settle()
+                }
+                try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("kind-menu-\(language).png"))
+            }
+        }
+    }
+
     /// «Esporta lo stesso» is always there while a rule fails, even when no fix exists; it asks where, then exports with
     /// the override (the save panel is answered Cancel by the rig; the call is the one the button builds).
     @Test func exportAnywayIsAlwaysOffered() async throws {
@@ -314,6 +362,29 @@ extension MouseSuites {
     #expect(report.passed == ["The logo only at the end"], "a check that did not run is not counted as passed")
     #expect(report.problems == ["Line 2: unknown check «x»."])
     #expect(ExportRulesCard.time(41.8) == "0:41" && ExportRulesCard.time(0.3) == "0:00")
+}
+
+/// #47: the rule messages give their numbers as values; the interface writes them as its language does (a decimal comma
+/// in Italian, French and Portuguese, a point in English), the engine's English sentence keeps the point. One message
+/// with a time range, one with a pause, in each language.
+@MainActor
+@Test(arguments: [("it", ","), ("en", "."), ("fr", ","), ("pt", ",")])
+func ruleMessagesWriteNumbersInTheInterfaceLanguage(_ language: String, _ point: String) {
+    let range = RuleText(rulePhrase("Captions show while the opening title is on screen (%1$@–%2$@ s)."), RuleText.s(1.25), RuleText.s(3.5))
+    let pause = RuleText(rulePhrase("The logo enters %1$@ s after the last spoken word: the pause must be at least %2$@ s."),
+                         RuleText.s(0.16), RuleText.s(0.3))
+    #expect(range.json["messageArgs"] == [1.25, 3.5] && pause.json["messageArgs"] == [0.16, 0.3], "the values are not numbers")
+    #expect(range.english.contains("(1.25–3.50 s)") && pause.english.contains("0.16 s after") && pause.english.contains("at least 0.30 s"))
+    // The window's words in `language`, read here on the main thread only (MouseRig's way, without a window).
+    Words.override = MouseRig.table(language)
+    Words.applies = { true }
+    defer { Words.override = nil; Words.applies = nil }
+    let shownRange = loc(message: range.json), shownPause = loc(message: pause.json)
+    #expect(shownRange.contains("1\(point)25") && shownRange.contains("3\(point)5 s"), "\(language): \(shownRange)")
+    #expect(shownPause.contains("0\(point)16") && shownPause.contains("0\(point)3 s"), "\(language): \(shownPause)")
+    #expect(shownRange != range.english || language == "en", "\(language): the message is not translated: \(shownRange)")
+    let other = point == "," ? "." : ","
+    #expect(!shownRange.contains("1\(other)25") && !shownPause.contains("0\(other)3"), "\(language): \(shownRange) / \(shownPause)")
 }
 
 /// Esporta opens on the project's own format; a format chosen for a project holds until its format changes (a 16:9

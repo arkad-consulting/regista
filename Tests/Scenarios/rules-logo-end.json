@@ -15,7 +15,7 @@
               "result.violations.0.fix": null}},
   {"command": "logo.add", "params": {"path": "${SCENARIO_DIR}/../Fixtures/overlay-card.png", "replace": true}},
   {"command": "rules.check",
-   "expect": {"result.failures": 1, "result.violations.0.check": "logo-end", "result.violations.0.messageArgs": ["0.00", "6.00"],
+   "expect": {"result.failures": 1, "result.violations.0.check": "logo-end", "result.violations.0.messageArgs": [0, 6],
               "result.violations.0.messageKey": "A logo across the video (%1$@–%2$@ s): the logo goes only at the end.", "result.violations.0.fix": null}},
   {"command": "rules.fix", "params": {"all": true}, "expect": {"result.applied": {"count": 0}, "result.check.pass": false}},
   {"command": "export.render", "params": {"path": "${WORK}/blocked.mp4"}, "expectError": "logo-end at 0.00 s"},
