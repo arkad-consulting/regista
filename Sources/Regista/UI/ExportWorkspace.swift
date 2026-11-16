@@ -12,6 +12,28 @@ final class ExportOptions: ObservableObject {
     @Published var bitrate = 14.0
     /// The last file written (Mostra nel Finder).
     @Published var lastFile: URL?
+    /// The project (tab and format) the format was last set for: another project, or a new format, starts from its own.
+    var presetFor: String?
+
+    /// The format chip a project of `width`×`height` is (nil: none of the four).
+    static func preset(width: Int, height: Int) -> String? {
+        switch Double(width) / Double(max(height, 1)) {
+        case 0.55...0.58: "9:16"
+        case 0.79...0.81: "4:5"
+        case 0.99...1.01: "1:1"
+        case 1.76...1.79: "16:9"
+        default: nil
+        }
+    }
+
+    /// Esporta opens on the project's own format (a 16:9 screen recording used to export as a 9:16 reel); a format the
+    /// person chooses holds for that project until its format changes.
+    func follow(tab: String, width: Int, height: Int) {
+        let key = "\(tab) \(width)×\(height)"
+        guard key != presetFor else { return }
+        presetFor = key
+        if let p = Self.preset(width: width, height: height) { preset = p }
+    }
 }
 
 /// The commands behind Esporta's buttons (the same calls a test replays).
@@ -104,6 +126,10 @@ struct ExportSettingsPanel: View {
             }
             .padding(Ed.Space.l)
         }
+        .onChange(of: formatKey, initial: true) {
+            guard rulesDemo == nil, let s = store.project?.settings else { return }
+            o.follow(tab: store.tabID, width: s.width, height: s.height)
+        }
         .task(id: "\(store.projectVersion)-\(revision.value)") {
             guard rulesDemo == nil else { return }
             rules.store = store
@@ -113,6 +139,8 @@ struct ExportSettingsPanel: View {
             await rules.refresh()
         }
     }
+
+    private var formatKey: String { store.project.map { "\(store.tabID) \($0.settings.width)×\($0.settings.height)" } ?? "" }
 
     private var exportBusy: Bool { store.project == nil || store.jobs.latest("export")?.isRunning == true }
 

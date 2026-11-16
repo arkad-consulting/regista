@@ -315,3 +315,23 @@ extension MouseSuites {
     #expect(report.problems == ["Line 2: unknown check «x»."])
     #expect(ExportRulesCard.time(41.8) == "0:41" && ExportRulesCard.time(0.3) == "0:00")
 }
+
+/// Esporta opens on the project's own format; a format chosen for a project holds until its format changes (a 16:9
+/// screen recording exported as a 9:16 reel by default, found by the journeys).
+@MainActor
+@Test func theExportFormatFollowsTheProject() {
+    #expect(ExportOptions.preset(width: 1920, height: 1080) == "16:9" && ExportOptions.preset(width: 540, height: 960) == "9:16")
+    #expect(ExportOptions.preset(width: 1080, height: 1350) == "4:5" && ExportOptions.preset(width: 1080, height: 1080) == "1:1")
+    #expect(ExportOptions.preset(width: 1000, height: 700) == nil)
+    let o = ExportOptions()
+    o.follow(tab: "t1", width: 1920, height: 1080)
+    #expect(o.preset == "16:9")
+    o.preset = "1:1"
+    o.follow(tab: "t1", width: 1920, height: 1080)
+    #expect(o.preset == "1:1", "the person's choice did not hold for the same project")
+    o.follow(tab: "t2", width: 1080, height: 1920)
+    #expect(o.preset == "9:16", "another project did not start from its own format")
+    o.preset = "16:9"
+    o.follow(tab: "t2", width: 1000, height: 700)
+    #expect(o.preset == "16:9", "a format with no chip changed the choice")
+}
