@@ -216,13 +216,18 @@ struct GraphicsPanel: View {
             .padding(Ed.Space.m)
             Ed.rule2.frame(height: 1)
             if store.project?.duration ?? .zero > .zero {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: Ed.Space.l) {
-                        if !state.query.trimmingCharacters(in: .whitespaces).isEmpty { SearchResults(query: state.query) }
-                        else { content }
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: Ed.Space.l) {
+                            if !state.query.trimmingCharacters(in: .whitespaces).isEmpty { SearchResults(query: state.query) }
+                            else { content }
+                        }
+                        .padding(Ed.Space.m)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .padding(Ed.Space.m)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    // A form opened under a row low in the list comes into view whole, its Aggiungi button included.
+                    .onChange(of: state.textItem) { _, id in Self.reveal(id, proxy) }
+                    .onChange(of: state.motionItem) { _, id in Self.reveal(id, proxy) }
                 }
                 Text(verbatim: loc("Clic: si applica alla clip selezionata o alla testina. Si può anche trascinare sulla timeline."))
                     .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
@@ -236,6 +241,15 @@ struct GraphicsPanel: View {
         .onAppear { store.previews.refresh(at: playhead.time) }
         .onChange(of: playhead.time) { store.previews.refresh(at: playhead.time) }
         .onChange(of: store.project) { store.previews.refresh(at: playhead.time) }
+    }
+
+    /// The id of the form opened under the row of `item`.
+    static func formID(_ item: String) -> String { "graphics-form-" + item }
+
+    private static func reveal(_ item: String?, _ proxy: ScrollViewProxy) {
+        guard let item else { return }
+        // After the form is laid out (the next turn of the run loop can be too early for it).
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { proxy.scrollTo(formID(item), anchor: .bottom) }
     }
 
     @ViewBuilder private var content: some View {
@@ -528,8 +542,8 @@ struct CatalogRowItem: View {
             }
             .onAppear { if item.command != "look.apply", item.engine == nil, reason == nil { store.previews.requestTile(item, time: playhead.time) } }
             .onDrag { NSItemProvider(object: item.id as NSString) }
-            if open, action == .motionForm, let spec = MotionRegistry.spec(item.id) { MotionForm(spec: spec) }
-            if open, action == .titleForm { TitleForm(item: item) }
+            if open, action == .motionForm, let spec = MotionRegistry.spec(item.id) { MotionForm(spec: spec).id(GraphicsPanel.formID(item.id)) }
+            if open, action == .titleForm { TitleForm(item: item).id(GraphicsPanel.formID(item.id)) }
         }
     }
 
