@@ -60,6 +60,9 @@ struct ExportSettingsPanel: View {
                 }
                 if let report = rulesDemo ?? rules.report {
                     ExportRulesCard(report: report, model: rules, demo: rulesDemo != nil)
+                    // A rule fails: the way to export sits right under what fails, never below the fold of Controlli and
+                    // File (at the default window size a card with three failures pushed it out of sight).
+                    if !report.failures.isEmpty { rulesActions(report) }
                 }
                 section("Controlli") {
                     check("Durata", store.project.map { shortTime($0.duration.seconds) } ?? "–", ok: (store.project?.duration ?? .zero) > .zero)
@@ -72,9 +75,7 @@ struct ExportSettingsPanel: View {
                 section("File") {
                     // Standard Save As: a proposed name, the user picks the name and the folder.
                     ExportJob(jobs: store.jobs)
-                    if let report = rulesDemo ?? rules.report, !report.failures.isEmpty {
-                        rulesActions(report)
-                    } else {
+                    if (rulesDemo ?? rules.report)?.failures.isEmpty ?? true {
                         EdButton(title: "Esporta video…", symbol: "square.and.arrow.up", prominent: true, fill: true, disabled: exportBusy) {
                             exportVideo(anyway: false)
                         }
