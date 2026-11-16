@@ -163,10 +163,13 @@ extension MouseSuites {
         await v.app.settle()
         #expect(v.app.commands(since: n).filter { $0 == "voice.enroll.add" }.count == 1, "voice.enroll.add ran \(v.app.commands(since: n))")
 
-        // Back on the overview: Allena la voce (the Pro tier: 32 GB or more).
-        v.model.setup.pendingTone = nil
-        v.model.setup.check = nil
-        await v.model.refresh()
+        // The take's check, then back to the overview with its own button: Allena la voce (the Pro tier: 32 GB or more).
+        #expect(await v.until(10) { v.model.setup.check != nil }, "no check of the take")
+        await v.app.settle()
+        let next = try #require(v.app.rig.controls().first { $0.name == "Continua" || $0.name == "Continua comunque" },
+                                "no way on from the check: \(v.app.rig.controls().map(\.description))")
+        v.app.rig.click(next.centre)
+        #expect(await v.until(10) { v.model.setup.check == nil && v.model.windowPage == .overview }, "the check did not go back to the overview (\(v.model.windowPage))")
         await v.app.settle()
         guard v.services.tier >= .pro else {
             withKnownIssue("this Mac is below the Pro tier: «Allena la voce» is disabled with its reason", isIntermittent: true) { Issue.record("not Pro") }

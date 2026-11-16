@@ -115,5 +115,34 @@ extension MouseSuites {
         await app.idle(0.3)
         #expect(UserDefaults.standard.bool(forKey: GeneralPrefs.autoSaveKey) && UserDefaults.standard.string(forKey: GeneralPrefs.formatKey) == "4:5")
     }
+
+    /// A scroll-wheel event scrolls a SwiftUI scroll view by its delta (#50): with the main display awake `scrollContent`
+    /// turns the wheel, it does not move the clip view itself. The rig's window is back where it was (off every display)
+    /// afterwards.
+    @Test func aWheelEventScrollsASwiftUIScrollView() async throws {
+        let app = try await AppRig(project: nil)
+        defer { app.close() }
+        app.host(ScrollView { VStack(spacing: 0) { ForEach(0..<60, id: \.self) { i in Text(verbatim: "row \(i)").frame(height: 30) } } }
+            .frame(width: 300, height: 300), size: CGSize(width: 300, height: 300))
+        await app.settle()
+        let p = CGPoint(x: 150, y: 150)
+        var v = app.rig.viewAt(p)
+        while let x = v, !(x is NSScrollView) { v = x.superview }
+        let sv = try #require(v as? NSScrollView, "no scroll view")
+        let origin = app.rig.window.frame.origin, misses = MouseRig.wheelMisses
+        #expect(app.rig.scrollContent(at: p, by: 60))
+        #expect(abs(sv.contentView.bounds.origin.y - 60) < 1, "a 60 pt wheel turn scrolled to \(sv.contentView.bounds.origin.y)")
+        #expect(app.rig.scrollContent(at: p, by: -30))
+        #expect(abs(sv.contentView.bounds.origin.y - 30) < 1, "a turn back scrolled to \(sv.contentView.bounds.origin.y)")
+        if CGDisplayIsAsleep(CGMainDisplayID()) != 0 {
+            withKnownIssue("#50: the main display is asleep, so SwiftUI would apply a wheel event only when it wakes: the rig moved the clip view") {
+                #expect(MouseRig.wheelMisses == misses)
+            }
+        } else {
+            #expect(MouseRig.wheelMisses == misses, "the wheel event did not scroll: the clip view was moved instead")
+        }
+        #expect(app.rig.window.frame.origin == origin && app.rig.window.alphaValue == 1, "the rig's window was not put back")
+        #expect(!NSScreen.screens.contains { $0.frame.intersects(app.rig.window.frame) }, "the rig's window stayed on a display")
+    }
 }
 }

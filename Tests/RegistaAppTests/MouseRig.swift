@@ -281,37 +281,80 @@ final class MouseRig {
         pump()
     }
 
-    /// A scroll-wheel turn at a point (positive `dy` scrolls the content down, as a trackpad swipe up does).
-    /// Scrolls the scroll view under `p` by `dy` points (positive: towards its end), as the wheel would, and says whether
-    /// it moved. A synthetic wheel event does not move a SwiftUI scroll view in this window, which lies outside every
-    /// display (tried: pixel, line and phased events, sent through the window and to the scroll view itself), so the
-    /// scroll view's own clip view is moved, within its content (#50).
+    /// Scrolls the scroll view under `p` by `dy` points (positive: towards its end) with a scroll-wheel event, and says
+    /// whether it moved (#50). A SwiftUI scroll view takes a wheel event only while its window lies on a display: off
+    /// every display the events were accepted and applied all at once later. So for the length of the event the rig's
+    /// window is put on the main display's coordinates, fully transparent and deaf to the mouse of the person at the
+    /// Mac (nothing shows, their clicks go through), and then back where it was. The event is given to the window
+    /// (`NSWindow.sendEvent`), never posted to the session or the HID event tap. With the main display asleep, or if the
+    /// wheel moves nothing, the clip view is moved as before and the miss is counted (`wheelMisses`).
     @discardableResult
     func scrollContent(at p: CGPoint, by dy: CGFloat) -> Bool {
         var v = viewAt(p)
         while let x = v, !(x is NSScrollView) { v = x.superview }
-        guard let sv = v as? NSScrollView, let doc = sv.documentView else { return false }
+        guard let sv = v as? NSScrollView else { return false }
+        let from = sv.contentView.bounds.origin.y
+        // SwiftUI applies a wheel event on the display's refresh: with the main display asleep (the screen locked, the
+        // push hook running unattended) it is held and applied whenever the display wakes, in some later step. Then the
+        // clip view is moved, as before #50, and no event is left waiting.
+        guard CGDisplayIsAsleep(CGMainDisplayID()) == 0 else {
+            scrolledWithoutWheel(sv, from: from, by: dy)
+            return abs(sv.contentView.bounds.origin.y - from) > 0.5
+        }
+        let (origin, alpha, ignores) = (window.frame.origin, window.alphaValue, window.ignoresMouseEvents)
+        window.alphaValue = 0
+        window.ignoresMouseEvents = true
+        if let screen = NSScreen.screens.first { window.setFrameOrigin(CGPoint(x: screen.frame.minX, y: screen.frame.minY)) }
+        defer {
+            window.setFrameOrigin(origin)
+            window.alphaValue = alpha
+            window.ignoresMouseEvents = ignores
+        }
+        pump(0.05)
+        scroll(at: p, dy: Int32(dy.rounded()))
+        pump(0.25)
+        if abs(sv.contentView.bounds.origin.y - from) <= 0.5 { scrolledWithoutWheel(sv, from: from, by: dy) }
+        return abs(sv.contentView.bounds.origin.y - from) > 0.5
+    }
+
+    /// How many times `scrollContent` moved the clip view instead of scrolling with a wheel event (the main display
+    /// asleep, or a wheel event that moved nothing).
+    static var wheelMisses = 0
+
+    /// The way `scrollContent` scrolled before #50: the scroll view's clip view moved within its content, as the wheel
+    /// would. Only when the wheel event did not move it, and said on the test's output.
+    private func scrolledWithoutWheel(_ sv: NSScrollView, from: CGFloat, by dy: CGFloat) {
+        guard let doc = sv.documentView else { return }
         let clip = sv.contentView
-        let maxY = max(0, doc.frame.height - clip.bounds.height)
-        let from = clip.bounds.origin.y
-        let to = min(max(from + (doc.isFlipped ? dy : -dy), 0), maxY)
-        guard abs(to - from) > 0.5 else { return false }
+        let to = min(max(from + (doc.isFlipped ? dy : -dy), 0), max(0, doc.frame.height - clip.bounds.height))
+        guard abs(to - from) > 0.5 else { return }
+        Self.wheelMisses += 1
+        FileHandle.standardError.write(Data("MouseRig: no wheel event scrolled \(Swift.type(of: sv)) (main display asleep: \(CGDisplayIsAsleep(CGMainDisplayID()) != 0)); its clip view was moved instead (#50)\n".utf8))
         clip.scroll(to: NSPoint(x: clip.bounds.origin.x, y: to))
         sv.reflectScrolledClipView(clip)
         pump(0.05)
-        return true
     }
 
+    /// A scroll-wheel event at a point (positive `dy` scrolls the content down, as a trackpad swipe up does), given to
+    /// the window. Off every display a SwiftUI scroll view does not apply it: `scrollContent` places the window first.
     func scroll(at p: CGPoint, dx: Int32 = 0, dy: Int32, modifiers: NSEvent.ModifierFlags = []) {
-        guard let cg = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2, wheel1: -dy, wheel2: -dx, wheel3: 0) else { return }
+        guard let e = wheelEvent(at: p, dx: dx, dy: dy, modifiers: modifiers) else { return }
+        takeKey()
+        window.sendEvent(e)
+        pump(0.05)
+    }
+
+    /// The scroll-wheel event `scroll` gives the window.
+    func wheelEvent(at p: CGPoint, dx: Int32 = 0, dy: Int32, modifiers: NSEvent.ModifierFlags = []) -> NSEvent? {
+        guard let cg = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2, wheel1: -dy, wheel2: -dx, wheel3: 0) else { return nil }
         let screen = window.convertPoint(toScreen: CGPoint(x: p.x, y: size.height - p.y))
         // CGEvent locations are top-left based on the main display.
         let mainHeight = NSScreen.screens.first?.frame.height ?? 0
         cg.location = CGPoint(x: screen.x, y: mainHeight - screen.y)
         cg.flags = CGEventFlags(rawValue: UInt64(modifiers.rawValue))
-        guard let e = NSEvent(cgEvent: cg) else { return }
-        window.sendEvent(e)
-        pump(0.05)
+        // The window under the pointer, as the window server fills it for a real wheel event.
+        for field in [91, 92] { if let f = CGEventField(rawValue: UInt32(field)) { cg.setIntegerValueField(f, value: Int64(window.windowNumber)) } }
+        return NSEvent(cgEvent: cg)
     }
 
     // MARK: Keyboard
