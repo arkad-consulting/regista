@@ -474,7 +474,11 @@ extension MouseSuites.ClickAudits {
         let small = pictures().first { $0.id == footage.id }
         let shrunk = j.drawn.first { $0.clipID == footage.id }?.scale ?? 1
         #expect(shrunk < 0.95, "the corner did not make the picture smaller (scale \(shrunk))")
-        j.step("Clicks the video on the picture, drags its corner in", sees: "the video smaller, the frame showing around it")
+        // The Inspector follows the picture placed by hand (#53: it read Scala 100 % beside a video drawn at 60 %).
+        let shownScale = inspectorValue(j, "Scala")
+        #expect(inspectorNumber(shownScale).map { abs($0 - shrunk * 100) <= 1 } == true,
+                "the Inspector's Scala reads \(shownScale ?? "nothing") for a video drawn at \(Int((shrunk * 100).rounded())) %")
+        j.step("Clicks the video on the picture, drags its corner in", sees: "the video smaller, the frame showing around it, the Inspector's Scala \(shownScale ?? "?")")
 
         // Undo twice, redo twice (the toolbar's arrows).
         try await j.tap("Annulla l'ultima modifica")
@@ -486,6 +490,10 @@ extension MouseSuites.ClickAudits {
         try await j.tap("Ripeti l'ultima modifica")
         #expect(titleClip()?.placement == moved?.placement && pictures().first { $0.id == footage.id } == small,
                 "two redos did not put them back")
+        // The picture is drawn small again: just outside its edge the monitor is black.
+        if let e = j.drawn.first(where: { $0.clipID == footage.id }), let outside = j.onPicture(e.center[0] + e.size[0] / 2 + 40, e.center[1]) {
+            #expect(await j.until(3) { brightness(j, at: outside) < 0.1 }, "the redone size is not drawn (\(brightness(j, at: outside)) beside its edge)")
+        }
         j.step("Clicks Ripeti twice", sees: "the title moved and the video smaller again")
 
         // Save: the tab's menu (a native menu: its item is run as the menu would).

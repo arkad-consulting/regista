@@ -798,6 +798,8 @@ struct InspectorValueField: View {
         .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(editing ? Ed.gold.opacity(0.7) : .clear))
         .onHover { hover = $0 }
         .tip("Clicca per scrivere il valore")
+        // The tooltip is its name; what it shows is its value (VoiceOver reads both).
+        .accessibilityValue(Text(verbatim: editing ? draft : text))
     }
 }
 

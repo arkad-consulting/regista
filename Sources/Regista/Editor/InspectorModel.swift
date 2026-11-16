@@ -113,8 +113,9 @@ struct InspectorCommand: Equatable {
 }
 
 enum InspectorEdits {
-    /// The clip is placed by hand on the frame (titles, stickers, logos, native-size overlays): position, size and
-    /// rotation go through clip.place (pixels of the frame), as a drag on the monitor does.
+    /// The clip is placed on the frame (titles, stickers, logos, native-size overlays, a picture once moved by hand):
+    /// position, size and rotation are a view of its placement and go through clip.place (pixels of the frame), as a
+    /// drag on the monitor does (#53).
     static func isPlaced(_ c: Clip) -> Bool {
         guard let pl = c.placement else { return false }
         return pl.fit != .fill && c.shape == nil
@@ -130,7 +131,12 @@ enum InspectorEdits {
         case .duration: return c.duration.seconds
         case .x: return isPlaced(c) ? ((c.placement!.x + tr.x) * W).rounded() : (tr.x * W).rounded()
         case .y: return isPlaced(c) ? ((c.placement!.y + tr.y) * H).rounded() : (tr.y * H).rounded()
-        case .scale: return tr.scale
+        case .scale:
+            // One size per picture (#53): a clip placed by hand shows the size its handles and the bar set — a box against
+            // its size before the first move (a full-frame picture: the whole frame), else the rest scale clip.place
+            // writes. A transform scale left on a box by an older Inspector still draws, but is not this value.
+            if isPlaced(c), let base = c.boxBase, let w = c.placement?.width { return w / max(base.width, 1e-9) }
+            return tr.scale
         case .rotation: return tr.rotation
         case .opacity: return tr.opacity
         case .cropLeft: return tr.cropLeft
