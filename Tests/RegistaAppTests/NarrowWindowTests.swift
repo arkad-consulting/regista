@@ -176,6 +176,113 @@ extension MouseSuites {
         #expect(app.store.nav.activity == .export, "\(window) \(language): «\(export)» did not open Esporta")
     }
 
+    /// #49: the Pro level's stages come from the views' minimums: the Source monitor gives way first, then the meters.
+    @Test func theProLevelGivesWayInOrder() {
+        let L = ProLayout.self
+        let both = L.minSource + L.gutter + L.minProgram
+        let meters = L.railWidth + L.minTimeline + L.meterWidth + 2 * L.lowerSpacing
+        #expect(meters < both, "the meters would give way before the Source monitor")
+        #expect(L.showsSource(width: both) && !L.showsSource(width: both - 1))
+        #expect(L.showsMeters(width: meters) && !L.showsMeters(width: meters - 1))
+        #expect(L.showsSource(width: RenderParts.main(RigWindowSize.standard.size).width))
+        #expect(!L.showsMeters(width: RenderParts.main(RigWindowSize.minimum.size).width))
+    }
+
+    /// The default size, two between (Source and meters; meters without Source) and the minimum (one monitor, no meters).
+    static let proSizes = [RigWindowSize.standard, RigWindowSize(width: 1200, height: 700), RigWindowSize(width: 1110, height: 700), .minimum]
+
+    /// #49: at every size the Pro level draws nothing across the main area's edges; the Program's transport, its
+    /// safe-zones button and the timeline's tools are inside and act once; in a narrow main area the switch in the
+    /// monitor's header shows the Source monitor and brings the Program back; widening the window brings the Source
+    /// monitor and the meters back.
+    @Test(arguments: proSizes, languages)
+    func theProLevelStaysInsideTheMainArea(_ window: RigWindowSize, _ language: String) async throws {
+        let app = try await AppRig()
+        defer { app.close() }
+        app.hostEditor(Navigation(activity: .media, rightTab: .inspector), size: window.size, language: language)
+        await app.settle()
+        #expect(app.store.nav.level == .pro)
+        let main = RenderParts.main(window.size)
+        let tag = "\(window) \(language)"
+        let both = ProLayout.showsSource(width: main.width), meters = ProLayout.showsMeters(width: main.width)
+        func crossing() -> [RigElement] {
+            app.rig.elements().filter { e in
+                e.visible && !["Divisore", word("Divisore", language)].contains(e.name) && e.frame.width > 0
+                    && e.frame.maxX > main.minX + 1.5 && e.frame.minX < main.maxX - 1.5
+                    && e.frame.midY > main.minY && e.frame.midY < main.maxY
+                    && (e.frame.minX < main.minX - 1.5 || e.frame.maxX > main.maxX + 1.5)
+            }
+        }
+        #expect(crossing().isEmpty, "\(tag): drawn across the main area's edge \(main): \(crossing().prefix(4).map { "\($0) \($0.frame)" })")
+        let sourceWord = word("Sorgente", language), programWord = word("Programma", language)
+        func header(_ text: String) -> Bool { app.rig.elements().contains { $0.role == "AXStaticText" && $0.value == text && $0.visible && main.contains($0.centre) } }
+        func segment(_ text: String) -> RigElement? { app.rig.elements().first { $0.role == "AXButton" && $0.name == text && $0.visible && main.contains($0.centre) } }
+        var showsMeters: Bool { app.rig.elements().contains { $0.role == "AXStaticText" && $0.value == "LUFS" && $0.visible && main.contains($0.centre) } }
+        #expect(header(sourceWord) == both && (segment(sourceWord) != nil) == !both, "\(tag): the Source monitor (\(both ? "beside" : "behind a switch")) is not as expected")
+        #expect(showsMeters == meters, "\(tag): the meters are \(showsMeters ? "shown" : "hidden"), expected \(meters ? "shown" : "hidden")")
+
+        // The Program's transport (the rightmost of its kind), inside, each acting once.
+        func program(_ key: String) -> RigElement? {
+            app.rig.elements().filter { $0.isControl && $0.visible && $0.name == word(key, language) && main.contains($0.centre) }.max { $0.frame.minX < $1.frame.minX }
+        }
+        let duration = app.store.project?.duration.seconds ?? 0
+        for (key, expected) in [("Vai alla fine", duration), ("Vai all'inizio", 0.0)] {
+            let b = try #require(program(key), "\(tag): no «\(word(key, language))»")
+            #expect(inside(b.frame, main), "\(tag): «\(b.name)» at \(b.frame)")
+            app.rig.click(b.centre)
+            await app.settle()
+            #expect(abs(app.store.preview.playhead.time - expected) < 0.05, "\(tag): «\(b.name)» left the playhead at \(app.store.preview.playhead.time)")
+        }
+        let next = try #require(program("Fotogramma successivo"))
+        app.rig.click(next.centre)
+        await app.settle()
+        #expect(abs(app.store.preview.playhead.time - 1.0 / 30) < 0.01, "\(tag): one frame on is \(app.store.preview.playhead.time)")
+        let play = try #require(program("Riproduci"))
+        #expect(inside(play.frame, main))
+        app.rig.click(play.centre)
+        await app.settle()
+        #expect(app.store.preview.isPlaying, "\(tag): «\(play.name)» did not play")
+        app.store.preview.togglePlay()
+        await app.settle()
+
+        // The safe-zones button, whole in the header, toggles the guides once.
+        let zonesKey = "Guide: dove Instagram copre il video con i suoi pulsanti. Solo una guida, l'export resta intero."
+        let zones = try #require(program(zonesKey), "\(tag): the safe-zones button is not on screen")
+        #expect(inside(zones.frame, main), "\(tag): the safe-zones button at \(zones.frame)")
+        let guides = app.store.safeZones
+        app.rig.click(zones.centre)
+        await app.settle()
+        #expect(app.store.safeZones == !guides, "\(tag): the safe-zones button did not toggle the guides")
+
+        // The timeline's tools.
+        for (key, tool) in [("Lama", EditorStore.Tool.razor), ("Selezione", .select)] {
+            let b = try #require(program(key), "\(tag): no «\(word(key, language))»")
+            #expect(inside(b.frame, main))
+            app.rig.click(b.centre)
+            await app.settle()
+            #expect(app.store.tool == tool, "\(tag): «\(b.name)» did not choose its tool")
+        }
+
+        if !both {
+            // One monitor: the switch shows the Source monitor, then brings the Program back.
+            app.rig.click(try #require(segment(sourceWord)).centre)
+            await app.settle()
+            #expect(program(zonesKey) == nil && segment(sourceWord)?.selected == true, "\(tag): «\(sourceWord)» did not show the Source monitor")
+            #expect(crossing().isEmpty, "\(tag): the Source monitor draws across the edge: \(crossing().prefix(3).map { "\($0) \($0.frame)" })")
+            app.rig.click(try #require(segment(programWord), "\(tag): no «\(programWord)» in the Source monitor's header").centre)
+            await app.settle()
+            #expect(program(zonesKey) != nil, "\(tag): «\(programWord)» did not bring the Program monitor back")
+        }
+        if !both || !meters {
+            // Widening the window brings the Source monitor and the meters back.
+            app.hostEditor(Navigation(activity: .media, rightTab: .inspector), size: RigWindowSize.standard.size, language: language)
+            await app.settle()
+            let wide = RenderParts.main(RigWindowSize.standard.size)
+            #expect(app.rig.elements().contains { $0.role == "AXStaticText" && $0.value == sourceWord && wide.contains($0.centre) }, "\(tag): widening did not bring the Source monitor back")
+            #expect(app.rig.elements().contains { $0.role == "AXStaticText" && $0.value == "LUFS" && wide.contains($0.centre) }, "\(tag): widening did not bring the meters back")
+        }
+    }
+
     /// #41: at the default and the minimum size, on every tab (the Ispettore with a clip too), the right panel's tab bar is
     /// at its top, under the title row, nothing of the panel is above it, and each tab answers.
     @Test(arguments: [RigWindowSize.standard, .minimum], languages)

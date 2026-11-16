@@ -9,6 +9,10 @@ struct ProWorkspace: View {
     /// Sizes the user dragged (0 = automatic, see `ProLayout`).
     @AppStorage("layout.pro.program") private var program = SplitSize.automatic
     @AppStorage("layout.pro.lower") private var lower = SplitSize.automatic
+    /// The monitor shown when only one fits (#49).
+    @State private var alone = ProWorkspace.Monitor.program
+
+    enum Monitor: Hashable { case source, program }
 
     var body: some View {
         GeometryReader { geo in layout(geo.size) }
@@ -16,23 +20,38 @@ struct ProWorkspace: View {
 
     private func layout(_ size: CGSize) -> some View {
         let l = ProLayout.compute(size, program: program, lower: lower, aspect: MonitorFit.aspect(store.project))
+        let both = ProLayout.showsSource(width: size.width)
         return VStack(spacing: 0) {
             HStack(spacing: 0) {
-                // Takes exactly what the splitter leaves (its transport adapts, see sourceTransport).
-                SourceMonitor().frame(minWidth: 0, maxWidth: .infinity).clipped()
-                Splitter(orientation: .vertical, stored: $program, current: l.program, range: l.programRange, direction: -1)
-                ProgramMonitor().frame(width: l.program)
+                if both {
+                    // Takes exactly what the splitter leaves (its transport adapts, see sourceTransport).
+                    SourceMonitor().frame(minWidth: 0, maxWidth: .infinity).clipped()
+                    Splitter(orientation: .vertical, stored: $program, current: l.program, range: l.programRange, direction: -1)
+                    ProgramMonitor().frame(width: l.program)
+                } else if alone == .source {
+                    SourceMonitor(switcher: AnyView(switcher)).frame(minWidth: 0, maxWidth: .infinity).clipped()
+                } else {
+                    ProgramMonitor(switcher: AnyView(switcher)).frame(minWidth: 0, maxWidth: .infinity).clipped()
+                }
             }
             .frame(height: size.height - l.lower - ProLayout.gutter)
             Splitter(orientation: .horizontal, stored: $lower, current: l.lower, range: l.lowerRange, direction: -1)
-            HStack(spacing: Ed.Space.xxs) {
-                ToolRail().frame(width: 38)
-                TimelinePanel()
-                MeterPanel().frame(width: 96)
+            HStack(spacing: ProLayout.lowerSpacing) {
+                ToolRail().frame(width: ProLayout.railWidth)
+                // The lanes scroll inside the timeline's own area, never under the right panel.
+                TimelinePanel().frame(minWidth: 0, maxWidth: .infinity).clipped()
+                if ProLayout.showsMeters(width: size.width) { MeterPanel().frame(width: ProLayout.meterWidth) }
             }
             .frame(height: l.lower)
         }
         .background(Ed.bg)
+    }
+
+    /// One monitor in a narrow main area: «Sorgente | Programma» in its header, the other one click away.
+    private var switcher: some View {
+        RSegmented(items: [(Monitor.source, "Sorgente"), (Monitor.program, "Programma")], selection: $alone, height: 22, fill: false,
+                   tips: [.source: "Il monitor Sorgente: il file scelto in Media", .program: "Il monitor Programma: il montaggio"])
+            .fixedSize()
     }
 }
 
@@ -41,13 +60,18 @@ struct ProWorkspace: View {
 struct SourceMonitor: View {
     @EnvironmentObject private var store: EditorStore
     @ObservedObject private var source: FrameSourceTime
+    /// One monitor in a narrow main area (#49): the switch to the Program monitor, in place of the title.
+    var switcher: AnyView?
 
-    init() { _source = ObservedObject(wrappedValue: FrameSourceTime.shared) }
+    init(switcher: AnyView? = nil) {
+        _source = ObservedObject(wrappedValue: FrameSourceTime.shared)
+        self.switcher = switcher
+    }
 
     var body: some View {
         let asset = store.sourceAssetID.flatMap { store.project?.asset($0) }
         VStack(spacing: 0) {
-            PanelHeader(title: "Sorgente", subtitle: asset?.name)
+            PanelHeader(title: "Sorgente", subtitle: asset?.name, lead: switcher)
             ZStack {
                 Ed.well
                 if asset != nil {
@@ -104,12 +128,15 @@ struct ProgramMonitor: View {
     @EnvironmentObject private var store: EditorStore
     /// Two-row transport for the narrow monitor of the Pro workspace.
     var compactTransport = true
+    /// One monitor in a narrow main area (#49): the switch to the Source monitor, in place of the title.
+    var switcher: AnyView? = nil
 
     var body: some View {
         let s = store.project?.settings ?? ProjectSettings()
         let vertical = MonitorFit.showsInstagramZones(width: s.width, height: s.height)
         VStack(spacing: 0) {
-            PanelHeader(title: "Programma", subtitle: MonitorFit.label(width: s.width, height: s.height)) {
+            // The format shortens before the safe-zones button leaves (#49).
+            PanelHeader(title: "Programma", subtitle: MonitorFit.label(width: s.width, height: s.height), lead: switcher) {
                 IconButton(symbol: "rectangle.dashed",
                            help: vertical ? "Guide: dove Instagram copre il video con i suoi pulsanti. Solo una guida, l'export resta intero."
                                           : "Le guide di Instagram valgono solo per il formato 9:16.",

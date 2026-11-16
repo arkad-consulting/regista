@@ -688,23 +688,33 @@ struct ZoomBar: View {
     @EnvironmentObject private var store: EditorStore
 
     var body: some View {
-        HStack(spacing: Ed.Space.s) {
-            if let p = store.project {
-                let clips = p.tracks.filter { $0.kind == .video }.flatMap(\.clips).count
-                Text(verbatim: clips == 1 ? loc("1 clip · %@", shortTime(p.duration.seconds))
-                     : loc("%@ clip · %@", String(clips), shortTime(p.duration.seconds))).font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
-            }
-            Spacer()
-            IconButton(symbol: "minus.magnifyingglass", help: "Riduci", shortcut: "−", size: 20) { store.zoom(by: 1 / 1.5) }
-            RSlider(value: Binding(get: { log(store.pxPerSec) }, set: { store.pxPerSec = exp($0); store.autoFit = false }),
-                    range: log(2.0)...log(400.0), format: { String(Int(exp($0).rounded())) + " px/s" })
-                .frame(width: 120)
-            IconButton(symbol: "plus.magnifyingglass", help: "Ingrandisci", shortcut: "+", size: 20) { store.zoom(by: 1.5) }
-            EdButton(title: "Adatta") { store.zoomToFit() }.tip("Adatta tutta la timeline", shortcut: "\\")
+        // A narrow timeline (#49): the count gives way first, then the slider shortens; the zoom controls stay whole.
+        ViewThatFits(in: .horizontal) {
+            row(count: true, slider: 120)
+            row(count: false, slider: 120)
+            row(count: false, slider: 56)
         }
         .padding(.horizontal, 10)
         .frame(height: 28)
         .background(Ed.header)
         .overlay(alignment: .top) { Ed.line.frame(height: 1) }
+    }
+
+    private func row(count: Bool, slider: CGFloat) -> some View {
+        HStack(spacing: Ed.Space.s) {
+            if count, let p = store.project {
+                let clips = p.tracks.filter { $0.kind == .video }.flatMap(\.clips).count
+                Text(verbatim: clips == 1 ? loc("1 clip · %@", shortTime(p.duration.seconds))
+                     : loc("%@ clip · %@", String(clips), shortTime(p.duration.seconds))).font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
+                    .fixedSize()
+            }
+            Spacer(minLength: 0)
+            IconButton(symbol: "minus.magnifyingglass", help: "Riduci", shortcut: "−", size: 20) { store.zoom(by: 1 / 1.5) }
+            RSlider(value: Binding(get: { log(store.pxPerSec) }, set: { store.pxPerSec = exp($0); store.autoFit = false }),
+                    range: log(2.0)...log(400.0), format: { String(Int(exp($0).rounded())) + " px/s" })
+                .frame(width: slider)
+            IconButton(symbol: "plus.magnifyingglass", help: "Ingrandisci", shortcut: "+", size: 20) { store.zoom(by: 1.5) }
+            EdButton(title: "Adatta") { store.zoomToFit() }.tip("Adatta tutta la timeline", shortcut: "\\").fixedSize()
+        }
     }
 }

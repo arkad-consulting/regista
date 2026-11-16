@@ -1225,11 +1225,16 @@ struct RadioMark: View {
 struct PanelHeader<Trailing: View>: View {
     let title: String
     var subtitle: String? = nil
+    /// Shown in place of the title (a monitor's Sorgente / Programma switch, #49).
+    var lead: AnyView? = nil
     @ViewBuilder var trailing: Trailing
 
     var body: some View {
         HStack(spacing: Ed.Space.s) {
-            Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.small, .semibold)).foregroundStyle(Ed.text)
+            // The title and the trailing controls stay whole; the subtitle shortens first.
+            if let lead { lead } else {
+                Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.small, .semibold)).foregroundStyle(Ed.text).lineLimit(1).fixedSize()
+            }
             if let subtitle {
                 Text(verbatim: loc(subtitle)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).lineLimit(1).truncationMode(.middle)
             }
@@ -1244,8 +1249,8 @@ struct PanelHeader<Trailing: View>: View {
 }
 
 extension PanelHeader where Trailing == EmptyView {
-    init(title: String, subtitle: String? = nil) {
-        self.init(title: title, subtitle: subtitle) { EmptyView() }
+    init(title: String, subtitle: String? = nil, lead: AnyView? = nil) {
+        self.init(title: title, subtitle: subtitle, lead: lead) { EmptyView() }
     }
 }
 

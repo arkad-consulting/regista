@@ -32,6 +32,21 @@ struct ProLayout: Equatable {
     static let gutter: CGFloat = 2
     static let minSource: CGFloat = 250
     static let minUpper: CGFloat = 260
+    /// The Program monitor's narrowest width beside the Source monitor (its header and its two-row transport).
+    static let minProgram: CGFloat = 190
+    /// The lower row's fixed columns: the tool rail and the loudness meters, and the gaps between the three columns.
+    static let railWidth: CGFloat = 38
+    static let meterWidth: CGFloat = 96
+    static let lowerSpacing: CGFloat = 2
+    /// The timeline's narrowest useful width: its track headers and room for the lanes (they scroll inside it).
+    static let minTimeline: CGFloat = 172 + 120
+
+    /// #49, in the spirit of #34 (what the person works on stays, what is beside it gives way), by the main area's
+    /// width: below the width at which Source and Program fit side by side, the Source monitor gives way (one monitor,
+    /// with a switch in its header); below the width at which the timeline fits beside the meters, the meter column
+    /// gives way too (its values stay in Esporta's checks).
+    static func showsSource(width: CGFloat) -> Bool { width >= minSource + gutter + minProgram }
+    static func showsMeters(width: CGFloat) -> Bool { width >= railWidth + minTimeline + meterWidth + 2 * lowerSpacing }
 
     /// `aspect`: width / height of the project's frame (the Program picture's format).
     static func compute(_ size: CGSize, program: Double = 0, lower: Double = 0, aspect: CGFloat = 9.0 / 16) -> ProLayout {
@@ -40,7 +55,7 @@ struct ProLayout: Equatable {
         let lowerH = SplitSize.resolve(lower, automatic: min(max(size.height * 0.41, 290), 400), in: lowerRange)
         let upper = size.height - lowerH - g
         // Automatic: the picture in the project's format fills the monitor's height (header 28 + transport 58 + padding 20).
-        let programRange = SplitSize.range(190, size.width - g - minSource)
+        let programRange = SplitSize.range(minProgram, size.width - g - minSource)
         let programW = SplitSize.resolve(program, automatic: max((upper - 28 - 58 - 20) * aspect + 20, 230), in: programRange)
         return ProLayout(program: programW, lower: lowerH, programRange: programRange, lowerRange: lowerRange)
     }
