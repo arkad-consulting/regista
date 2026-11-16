@@ -5,7 +5,8 @@ import ScreenCaptureKit
 
 /// Everything the recorder asks of macOS and of the capture devices (#35): permissions and their prompts, the devices,
 /// the capture session that opens them, the movie file, the screen's shareable content and on-device speech for the
-/// teleprompter. The app's recorder uses the Mac's (`MacCapture`); a test gives one that opens nothing.
+/// teleprompter, and the screen recording session. The app's recorder uses the Mac's (`MacCapture`); a test gives one
+/// that opens nothing.
 @MainActor
 protocol CaptureHardware: AnyObject {
     /// macOS's decision for the camera or the microphone, without asking.
@@ -25,7 +26,9 @@ protocol CaptureHardware: AnyObject {
     /// Ends the movie-file take (its delegate is told).
     func stopMovie(_ output: AVCaptureMovieFileOutput)
     /// The displays and windows that can be recorded.
-    func shareableContent() async throws -> (displays: [SCDisplay], windows: [SCWindow])
+    func shareableContent() async throws -> (displays: [CGDirectDisplayID], windows: [SCWindow])
+    /// The session that records the screen (and the camera and microphone beside it) into `folder`.
+    func screenSession(folder: URL, layout: LayoutSpec, systemAudio: Bool, cursorInVideo: Bool) -> ScreenRecording
     /// Starts on-device speech recognition for the teleprompter (it hears the microphone buffers the recorder gives it).
     func listen(locale: Locale, contextualStrings: [String], emit: @escaping @Sendable (SpeechHypothesis) -> Void) async throws -> LiveSpeechSession
 }
@@ -67,9 +70,13 @@ final class MacCapture: CaptureHardware {
 
     func stopMovie(_ output: AVCaptureMovieFileOutput) { queue.async { output.stopRecording() } }
 
-    func shareableContent() async throws -> (displays: [SCDisplay], windows: [SCWindow]) {
+    func shareableContent() async throws -> (displays: [CGDirectDisplayID], windows: [SCWindow]) {
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
-        return (content.displays, content.windows)
+        return (content.displays.map(\.displayID), content.windows)
+    }
+
+    func screenSession(folder: URL, layout: LayoutSpec, systemAudio: Bool, cursorInVideo: Bool) -> ScreenRecording {
+        ScreenSession(folder: folder, layout: layout, systemAudio: systemAudio, cursorInVideo: cursorInVideo)
     }
 
     func listen(locale: Locale, contextualStrings: [String], emit: @escaping @Sendable (SpeechHypothesis) -> Void) async throws -> LiveSpeechSession {
@@ -78,3 +85,29 @@ final class MacCapture: CaptureHardware {
         return s
     }
 }
+
+/// A screen recording session as the recorder drives it (`ScreenSession` on the Mac): the preview stream, the take with
+/// its pauses, the clicks, keys and cursor on the session clock, the camera and microphone buffers, and session.json at
+/// the end.
+protocol ScreenRecording: AnyObject, Sendable {
+    var folder: URL { get }
+    var cameraName: String? { get set }
+    var micName: String? { get set }
+    var onPreviewFrame: ((IOSurface) -> Void)? { get set }
+    var onStreamError: ((String) -> Void)? { get set }
+    func start(target: ScreenTarget) async throws
+    func stopStream() async
+    func beginRecording()
+    func pause()
+    func resume()
+    func click(kind: String, at p: CGPoint, host: Double)
+    func mouseUp(at p: CGPoint, host: Double)
+    func key(_ text: String, host: Double)
+    func cursorMoved(to p: CGPoint, kind: CursorKind, down: Bool, host: Double)
+    func setLayout(_ spec: LayoutSpec)
+    func capture(_ buffer: CMSampleBuffer, camera: Bool, clock: CMClock?)
+    /// Stops recording, finishes the files and writes session.json; returns its URL.
+    func finish() async throws -> URL
+}
+
+extension ScreenSession: ScreenRecording {}

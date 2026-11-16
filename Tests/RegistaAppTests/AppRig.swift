@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import RegistaCore
 import RegistaEngines
 import SwiftUI
@@ -169,6 +170,8 @@ final class AppRig {
     private let defaultsName: String
     /// The project opened at the start (reopened when a click closed it).
     private(set) var projectPath: URL?
+    /// The recorder's ends, wired to the workbench (`followRecorder`).
+    private var recorderLink: AnyCancellable?
 
     /// `project`: nil = no project (Inizio's world), "empty" = a new empty project, "rich" = the fixture project.
     init(project: String? = "rich") async throws {
@@ -232,7 +235,14 @@ final class AppRig {
         rig.pump(0.3)
     }
 
+    /// A finished take goes where the app sends it: the recorder's ends wired to the workbench as the app wires them at
+    /// launch (Workbench.follow). The click audits leave them unwired (a take there writes nothing).
+    func followRecorder() { recorderLink = store.bench.follow(recorder) }
+
     func close() {
+        recorderLink = nil
+        recorder.onFinished = nil
+        recorder.onSessionFinished = nil
         rig?.close()
         store.ui.window = nil
         if recorder.isRecording { recorder.stop() }

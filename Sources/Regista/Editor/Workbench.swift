@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import Foundation
 import RegistaCore
 import RegistaMCP
@@ -270,6 +271,30 @@ final class Workbench: ObservableObject {
     }
 
     // MARK: Recording
+
+    /// The recorder's ends, as the app wires them at launch (a test's rig wires its own recorder the same way). A
+    /// recording belongs to the tab it was started from (the one on screen then). The teleprompter's live take markers
+    /// are written next to the recording before it is imported; a camera take and a screen session go where that tab
+    /// chose on Registra (`recordingFinished`, #39), a camera take then edited automatically when Registra says so.
+    func follow(_ recorder: Recorder) -> AnyCancellable {
+        recorder.onSessionFinished = { [weak self] url in
+            Task { @MainActor in
+                await TeleprompterController.shared.saveTakes(for: url.deletingLastPathComponent())
+                self?.recordingFinished(url, session: true)
+            }
+        }
+        recorder.onFinished = { [weak self] url in
+            Task { @MainActor in
+                await TeleprompterController.shared.saveTakes(for: url)
+                guard let self else { return }
+                let tab = self.recordingFinished(url, session: false)
+                if Prefs.autoEdit { tab.autoEdit(script: TeleprompterController.shared.text) }
+            }
+        }
+        return recorder.$isRecording.removeDuplicates().dropFirst().sink { [weak self] on in
+            DispatchQueue.main.async { if on { self?.recordingStarted() } else { self?.recordingStopped() } }
+        }
+    }
 
     /// The recorder started: the take belongs to the tab on screen.
     func recordingStarted() {

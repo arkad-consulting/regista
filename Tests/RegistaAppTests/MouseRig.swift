@@ -81,6 +81,17 @@ final class MouseRig {
         pump(0.1)
     }
 
+    /// Whether the window is one the code under test opened (`adopting`): closing the rig leaves it alone.
+    private var adopted = false
+
+    /// Drives a window the code under test opened (a popover's, a panel's): its events and its accessibility tree, as
+    /// for the rig's own window.
+    init(adopting window: NSWindow) {
+        self.window = window
+        size = window.contentView?.bounds.size ?? window.frame.size
+        adopted = true
+    }
+
     /// The app's words in `language`: Resources/Localization/<language>.lproj.
     nonisolated static func table(_ language: String) -> Bundle {
         let dir = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
@@ -90,6 +101,7 @@ final class MouseRig {
     }
 
     func close() {
+        if adopted { return }
         if let sheet = window.attachedSheet {
             window.endSheet(sheet)
             hold()
@@ -490,6 +502,9 @@ enum RigGuard {
     static var alertAnswer: NSApplication.ModalResponse = .alertSecondButtonReturn
     /// The last context menu that would have opened (its items can be run with `NSMenu.performActionForItem(at:)`).
     static var lastMenu: NSMenu?
+    /// What the next open or save panel answers: these files, as if the person had picked them and clicked Open or Save.
+    /// One panel only; then (and by default) a panel is answered Cancel.
+    static var panelAnswer: [URL]?
 
     static func record(_ kind: Event.Kind, _ detail: String) { events.append(Event(kind: kind, detail: detail)) }
 
@@ -498,6 +513,7 @@ enum RigGuard {
         guard !installed else { return }
         installed = true
         swap(NSSavePanel.self, #selector(NSSavePanel.runModal), #selector(NSSavePanel.rig_runModal))
+        guardPanelAnswers()
         swap(NSAlert.self, #selector(NSAlert.runModal), #selector(NSAlert.rig_runModal))
         swap(NSWorkspace.self, #selector(NSWorkspace.open(_:) as (NSWorkspace) -> (URL) -> Bool), #selector(NSWorkspace.rig_open(_:)))
         swap(NSWorkspace.self, #selector(NSWorkspace.activateFileViewerSelecting(_:)), #selector(NSWorkspace.rig_activateFileViewerSelecting(_:)))
@@ -548,6 +564,26 @@ enum RigGuard {
                 }
             }
             method_setImplementation(m, imp_implementationWithBlock(block))
+        }
+    }
+
+    /// A panel answered with `panelAnswer` gives those files to whoever reads its `url` or `urls` (an open or save panel
+    /// never shown has none of its own).
+    private static func guardPanelAnswers() {
+        typealias Get = @convention(c) (AnyObject, Selector) -> AnyObject?
+        for (cls, name) in [(NSSavePanel.self, "URL"), (NSOpenPanel.self, "URL"), (NSOpenPanel.self, "URLs")] as [(AnyClass, String)] {
+            let sel = NSSelectorFromString(name)
+            guard let m = class_getInstanceMethod(cls, sel) else { continue }
+            let original = unsafeBitCast(method_getImplementation(m), to: Get.self)
+            let block: @convention(block) (AnyObject) -> AnyObject? = { panel in
+                if let answer = objc_getAssociatedObject(panel, &panelAnswerKey) as? [URL] {
+                    return name == "URLs" ? answer as NSArray : answer.first as NSURL?
+                }
+                return original(panel, sel)
+            }
+            let imp = imp_implementationWithBlock(block)
+            // A class that only inherits the getter gets its own copy; one that defines it is changed in place.
+            if !class_addMethod(cls, sel, imp, method_getTypeEncoding(m)) { method_setImplementation(m, imp) }
         }
     }
 
@@ -655,10 +691,17 @@ enum RigGuard {
     }
 }
 
+nonisolated(unsafe) private var panelAnswerKey = 0
+
 extension NSSavePanel {
     @objc fileprivate func rig_runModal() -> NSApplication.ModalResponse {
-        MainActor.assumeIsolated { RigGuard.record(.panel, "\(type(of: self)) \(message.isEmpty ? title : message)") }
-        return .cancel
+        MainActor.assumeIsolated {
+            RigGuard.record(.panel, "\(type(of: self)) \(message.isEmpty ? title : message)")
+            guard let answer = RigGuard.panelAnswer else { return .cancel }
+            RigGuard.panelAnswer = nil
+            objc_setAssociatedObject(self, &panelAnswerKey, answer, .OBJC_ASSOCIATION_RETAIN)
+            return .OK
+        }
     }
 }
 

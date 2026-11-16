@@ -49,7 +49,7 @@ final class Recorder: NSObject, ObservableObject {
     @Published private(set) var elapsed: TimeInterval = 0
     @Published var errorMessage: String?
 
-    @Published private(set) var displays: [SCDisplay] = []
+    @Published private(set) var displays: [CGDirectDisplayID] = []
     @Published private(set) var windows: [SCWindow] = []
     /// Latest screen frame for the live preview.
     @Published private(set) var screenFrame: IOSurface?
@@ -64,7 +64,7 @@ final class Recorder: NSObject, ObservableObject {
     private var pausedSeconds: TimeInterval = 0
     private var pauseDate: Date?
     private var clock: Timer?
-    private var screen: ScreenSession?
+    private var screen: ScreenRecording?
     /// The take in progress records the screen (a session folder) rather than one movie file.
     private var recordingScreen = false
     private var monitors: [Any] = []
@@ -308,7 +308,7 @@ final class Recorder: NSObject, ObservableObject {
             }
             screenPermission = .granted
             errorMessage = nil
-            let target = RecordingSources.resolve(sources.target, displays: displays.map(\.displayID), windows: windows.map(\.windowID),
+            let target = RecordingSources.resolve(sources.target, displays: displays, windows: windows.map(\.windowID),
                                                   main: CGMainDisplayID())
             if target != sources.target { sources.target = target } else { await restartPreview() }
         } catch {
@@ -354,7 +354,7 @@ final class Recorder: NSObject, ObservableObject {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd HH.mm.ss"
         let folder = Paths.recordings.appendingPathComponent(loc("Sessione %@", f.string(from: Date())), isDirectory: true)
-        let s = ScreenSession(folder: folder, layout: effectiveLayout, systemAudio: sources.recordsSystemAudio, cursorInVideo: !sources.hideCursor)
+        let s = hardware.screenSession(folder: folder, layout: effectiveLayout, systemAudio: sources.recordsSystemAudio, cursorInVideo: !sources.hideCursor)
         s.onPreviewFrame = { [weak self] surface in
             Task { @MainActor in self?.screenFrame = surface }
         }
@@ -477,7 +477,7 @@ final class Recorder: NSObject, ObservableObject {
 
     // MARK: Clicks, keys, cursor
 
-    private func startEventMonitors(_ s: ScreenSession) {
+    private func startEventMonitors(_ s: ScreenRecording) {
         let offset = ScreenSession.hostNow - ProcessInfo.processInfo.systemUptime
         let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
         /// Cocoa global point (bottom-left origin) → global point with a top-left origin, like the capture region.

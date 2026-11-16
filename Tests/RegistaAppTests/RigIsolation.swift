@@ -172,12 +172,23 @@ struct RigGenerator: GeneratorProvider {
 // MARK: - Capture
 
 /// The recorder's hardware in the rig: every permission reads as allowed (nothing is asked), the devices are the
-/// connected ones as listed (none is opened), the session's setup never runs, a take is a "recording" state that writes
-/// nothing, the screen is never offered, and the teleprompter gets no speech recognition. What the recorder asked is in
-/// `log`.
+/// connected ones as listed (none is opened), the session's setup never runs, and the teleprompter gets no speech
+/// recognition. A take is a "recording" state that writes nothing, unless the test gives `take`: then Stop hands the
+/// recorder a copy of that movie as the take it recorded. The screen is never offered, unless the test sets `screen`:
+/// then the main display is the one target and a screen take is `RigScreenSession`, which writes a synthetic session
+/// (recording.synthesize) on Stop. No device is opened and nothing is captured either way. What the recorder asked is
+/// in `log`.
 @MainActor
 final class RigCapture: CaptureHardware {
     private(set) var log: [String] = []
+    /// The movie a camera or voice take hands over on Stop, and the camera stretch of a screen session (nil: a take
+    /// writes nothing and ends with an error, as before).
+    var take: URL?
+    /// Screen recording reads as allowed, the main display as its one target, and a screen take writes a synthetic session.
+    var screen = false
+    /// The screen sessions the recorder made (the last one is the take in progress or just finished).
+    private(set) var sessions: [RigScreenSession] = []
+
     struct Refused: LocalizedError {
         let errorDescription: String?
         init(_ what: String) { errorDescription = "the test rig's capture stand-in: \(what)" }
@@ -185,7 +196,7 @@ final class RigCapture: CaptureHardware {
 
     func permission(_ type: AVMediaType) -> CapturePermission { .granted }
     func requestAccess(_ type: AVMediaType) async { log.append("requestAccess \(type.rawValue)") }
-    func screenAllowed() -> Bool { false }
+    func screenAllowed() -> Bool { screen }
     func requestScreen() { log.append("requestScreen") }
     func devices(_ type: AVMediaType) -> [AVCaptureDevice] {
         // Listing the devices opens none of them and asks nothing.
@@ -195,26 +206,107 @@ final class RigCapture: CaptureHardware {
     func openDevices(_ setup: @escaping @Sendable () -> Void) { log.append("openDevices") }
     func startMovie(_ output: AVCaptureMovieFileOutput, to url: URL, delegate: AVCaptureFileOutputRecordingDelegate) {
         log.append("startMovie \(url.lastPathComponent)")
-        take = (url, delegate)
+        running = (url, delegate)
     }
     func stopMovie(_ output: AVCaptureMovieFileOutput) {
         log.append("stopMovie")
-        guard let (url, delegate) = take else { return }
-        take = nil
+        guard let (url, delegate) = running else { return }
+        running = nil
+        if let take {
+            // The take "recorded": the fixture movie where the recorder asked for it, delivered as AVFoundation does.
+            do {
+                try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try FileManager.default.copyItem(at: take, to: url)
+                delegate.fileOutput(output, didFinishRecordingTo: url, from: [], error: nil)
+                return
+            } catch {
+                log.append("take not copied: \(error.localizedDescription)")
+            }
+        }
         let error = NSError(domain: "RigCapture", code: 1, userInfo: [NSLocalizedDescriptionKey: "nothing was recorded (test rig)",
                                                                        AVErrorRecordingSuccessfullyFinishedKey: false])
         delegate.fileOutput(output, didFinishRecordingTo: url, from: [], error: error)
     }
-    func shareableContent() async throws -> (displays: [SCDisplay], windows: [SCWindow]) {
+    func shareableContent() async throws -> (displays: [CGDirectDisplayID], windows: [SCWindow]) {
         log.append("shareableContent")
-        throw Refused("no screen")
+        guard screen else { throw Refused("no screen") }
+        return ([CGMainDisplayID()], [])
+    }
+    func screenSession(folder: URL, layout: LayoutSpec, systemAudio: Bool, cursorInVideo: Bool) -> ScreenRecording {
+        log.append("screenSession \(folder.lastPathComponent)")
+        let s = RigScreenSession(folder: folder, layout: layout, camera: take, cursorInVideo: cursorInVideo)
+        sessions.append(s)
+        return s
     }
     func listen(locale: Locale, contextualStrings: [String], emit: @escaping @Sendable (SpeechHypothesis) -> Void) async throws -> LiveSpeechSession {
         log.append("listen \(locale.identifier)")
         throw Refused("no speech recognition")
     }
 
-    private var take: (URL, AVCaptureFileOutputRecordingDelegate)?
+    private var running: (URL, AVCaptureFileOutputRecordingDelegate)?
+}
+
+/// A screen take in the rig: no stream, no capture. Stop writes a synthetic session into the recorder's folder
+/// (recording.synthesize: screen, and camera and microphone from `camera` when the recorder named a camera), with the
+/// layout the recorder chose (the last one set before the take), and returns its session.json as a real take does.
+final class RigScreenSession: ScreenRecording, @unchecked Sendable {
+    let folder: URL
+    private let lock = NSLock()
+    private var layout: LayoutSpec
+    private let camera: URL?
+    private let cursorInVideo: Bool
+    private var _calls: [String] = []
+    var cameraName: String?
+    var micName: String?
+    var onPreviewFrame: ((IOSurface) -> Void)?
+    var onStreamError: ((String) -> Void)?
+    /// Seconds of synthetic screen recording a take writes.
+    static let seconds = 4.0
+
+    init(folder: URL, layout: LayoutSpec, camera: URL?, cursorInVideo: Bool) {
+        self.folder = folder
+        self.layout = layout
+        self.camera = camera
+        self.cursorInVideo = cursorInVideo
+    }
+
+    /// What the recorder asked of the session, in order.
+    var calls: [String] { lock.withLock { _calls } }
+    private func note(_ s: String) { lock.withLock { _calls.append(s) } }
+
+    func start(target: ScreenTarget) async throws { note("start") }
+    func stopStream() async { note("stopStream") }
+    func beginRecording() { note("beginRecording") }
+    func pause() { note("pause") }
+    func resume() { note("resume") }
+    func click(kind: String, at p: CGPoint, host: Double) {}
+    func mouseUp(at p: CGPoint, host: Double) {}
+    func key(_ text: String, host: Double) {}
+    func cursorMoved(to p: CGPoint, kind: CursorKind, down: Bool, host: Double) {}
+    func setLayout(_ spec: LayoutSpec) { lock.withLock { layout = spec } }
+    func capture(_ buffer: CMSampleBuffer, camera: Bool, clock: CMClock?) {}
+
+    func finish() async throws -> URL {
+        note("finish")
+        let withCamera = cameraName != nil && camera != nil
+        var params: [String: JSONValue] = ["directory": .string(folder.path), "duration": .number(Self.seconds), "screenSize": [1920, 1080],
+                                           "fps": 30, "cursor": .bool(cursorInVideo)]
+        if withCamera, let camera {
+            params["camera"] = .string(camera.path)
+            params["cameraIn"] = 0.5
+            params["sources"] = ["screen", "camera", "mic"]
+        } else {
+            params["sources"] = ["screen"]
+        }
+        let services = await MainActor.run { RigServices.make(in: rigTempDir("screen-take")) }
+        let request = JSONValue.object(params)
+        try await Task.detached { _ = try Engine(services: services).execute("recording.synthesize", params: request) }.value
+        let file = folder.appendingPathComponent(RecordingSession.fileName)
+        var session = try RecordingSession.load(file)
+        session.layout = lock.withLock { layout }
+        try session.write(to: file)
+        return file
+    }
 }
 
 /// Copies made in the rig land here, never on the general pasteboard.

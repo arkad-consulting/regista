@@ -222,27 +222,7 @@ final class AppState: ObservableObject {
         startPrompterDemoIfRequested()
         DebugSnapshots.startIfRequested()
         AutoSave.start(bench)
-        // A recording belongs to the tab it was started from (the one on screen then).
-        recorder.$isRecording.removeDuplicates().dropFirst().sink { [unowned self] on in
-            DispatchQueue.main.async { if on { self.bench.recordingStarted() } else { self.bench.recordingStopped() } }
-        }
-        .store(in: &bag)
-        // The teleprompter's live take markers are written next to the recording before it is imported. A camera take and
-        // a screen session go where the tab they were started from chose on Registra (Workbench.recordingFinished, #39).
-        recorder.onSessionFinished = { [weak self] url in
-            Task { @MainActor in
-                await TeleprompterController.shared.saveTakes(for: url.deletingLastPathComponent())
-                self?.bench.recordingFinished(url, session: true)
-            }
-        }
-        recorder.onFinished = { [weak self] url in
-            Task { @MainActor in
-                await TeleprompterController.shared.saveTakes(for: url)
-                guard let self else { return }
-                let tab = self.bench.recordingFinished(url, session: false)
-                if Prefs.autoEdit { tab.autoEdit(script: TeleprompterController.shared.text) }
-            }
-        }
+        bench.follow(recorder).store(in: &bag)
     }
 
     /// The loudness meter and the teleprompter follow the tab on screen.
