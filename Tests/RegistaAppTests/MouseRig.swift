@@ -58,6 +58,7 @@ final class MouseRig {
     /// (`Test.current` tells them apart: SwiftUI's work runs outside every test's task).
     init<V: View>(_ view: V, size: CGSize, language: String? = nil) {
         Self.reportActive()
+        RigTrace.note("MouseRig.init \(Int(size.width))×\(Int(size.height))")
         self.size = size
         if let language {
             let test = Test.current?.id
@@ -101,6 +102,7 @@ final class MouseRig {
     }
 
     func close() {
+        RigTrace.note("MouseRig.close")
         if adopted { return }
         if let sheet = window.attachedSheet {
             window.endSheet(sheet)
@@ -125,14 +127,14 @@ final class MouseRig {
     /// event or asking for one can queue a block that stops the running loop: run while the test awaits, it would stop
     /// the test runner's own loop and end the process.
     func drain() {
-        for _ in 0..<3 { CFRunLoopRunInMode(.defaultMode, 0.005, false) }
+        for _ in 0..<3 { RigTrace.run("drain", 0.005) }
     }
 
     /// Turns the main run loop for `seconds` in nested loops of ours: an alert sheet's opening or closing animation stops
     /// the running loop when it ends, which must be one of these, never the test runner's (#40).
     func hold(_ seconds: Double = 0.6) {
         let end = Date().addingTimeInterval(seconds)
-        while Date() < end { CFRunLoopRunInMode(.defaultMode, 0.01, false) }
+        while Date() < end { RigTrace.run("hold", 0.01) }
     }
 
     /// Lets the main run loop turn (SwiftUI updates, main-queue work).
@@ -162,6 +164,7 @@ final class MouseRig {
     /// One mouse event at a point of the view (top-left origin).
     func send(_ type: NSEvent.EventType, _ p: CGPoint, clicks: Int = 1, modifiers: NSEvent.ModifierFlags = []) {
         guard let e = event(type, p, clicks: clicks, modifiers: modifiers) else { return }
+        RigTrace.note("MouseRig.send \(type.rawValue) at \(Int(p.x)),\(Int(p.y))")
         takeKey()
         deliver(e, to: window)
         pump(0.02)
@@ -188,6 +191,7 @@ final class MouseRig {
     /// through the event queue as from a real mouse; anywhere else both are sent to the window one after the other
     /// (SwiftUI's gestures see them there). Settings' system form is only partly driven this way (see WindowsClickTests).
     func click(_ p: CGPoint, clicks: Int = 1, modifiers: NSEvent.ModifierFlags = []) {
+        RigTrace.note("MouseRig.click at \(Int(p.x)),\(Int(p.y))")
         let sheet = window.attachedSheet
         defer { if window.attachedSheet !== sheet { hold() } }
         let target = viewAt(p)
@@ -254,6 +258,7 @@ final class MouseRig {
     /// A right click as AppKit delivers it: through the event queue, so the views that read `NSApp.currentEvent` see it
     /// (a context menu area does); the menu that opens is recorded by RigGuard instead of tracked.
     func rightClick(_ p: CGPoint, modifiers: NSEvent.ModifierFlags = []) {
+        RigTrace.note("MouseRig.rightClick at \(Int(p.x)),\(Int(p.y))")
         guard let down = event(.rightMouseDown, p, modifiers: modifiers), let up = event(.rightMouseUp, p, modifiers: modifiers) else { return }
         takeKey()
         // Posting stops the running run loop: a nested one of ours (see `click`).
@@ -361,6 +366,7 @@ final class MouseRig {
 
     /// A key press through the application (local event monitors see it, then the key window's first responder).
     func key(_ characters: String, keyCode: UInt16, modifiers: NSEvent.ModifierFlags = []) {
+        RigTrace.note("MouseRig.key \(keyCode)")
         takeKey()
         for type in [NSEvent.EventType.keyDown, .keyUp] {
             guard let e = NSEvent.keyEvent(with: type, location: .zero, modifierFlags: modifiers, timestamp: ProcessInfo.processInfo.systemUptime,
@@ -420,6 +426,7 @@ final class MouseRig {
 
     /// Every element of the hosted view's accessibility tree, depth first, with its frame in view coordinates.
     func elements() -> [RigElement] {
+        RigTrace.note("MouseRig.elements")
         var out: [RigElement] = []
         let bounds = CGRect(origin: .zero, size: size)
         func walk(_ node: AnyObject, clip: CGRect, depth: Int, parent: String) {
@@ -489,7 +496,9 @@ final class MouseRig {
 
     /// Whether `e` is one of AppKit's own controls (the Settings form's pop-ups, check boxes, bordered buttons, text
     /// fields): their element is the control or its cell, not a node of SwiftUI's.
-    func isNative(_ e: RigElement) -> Bool { e.ref is NSView || e.ref is NSCell }
+    /// A SwiftUI button the system form draws with an AppKit button under it («Nuovo kit», «Importa…» in Settings)
+    /// counts too: synthetic clicks reached it in one run and not in the next.
+    func isNative(_ e: RigElement) -> Bool { e.ref is NSView || e.ref is NSCell || viewAt(e.centre) is NSControl }
 
     /// Drives a native control the way an assistive client does (#36): a pop-up picks its next item (what choosing it in
     /// its menu does, without AppKit's modal menu tracking), a text field takes the focus and `text` is typed into it,
@@ -525,13 +534,17 @@ final class MouseRig {
             type(text)
             return "accessibility action: focus, type «\(text)»"
         default:
-            if let v = o as? NSView { _ = v.accessibilityPerformPress() } else { _ = (o as? NSCell)?.accessibilityPerformPress() }
+            if let v = o as? NSView { _ = v.accessibilityPerformPress() }
+            else if let c = o as? NSCell { _ = c.accessibilityPerformPress() }
+            else if o.responds(to: NSSelectorFromString("accessibilityPerformPress")) { _ = o.perform(NSSelectorFromString("accessibilityPerformPress")) }
+            else { return nil }
             return "accessibility action: press"
         }
     }
 
     /// The deepest accessibility element at a point of the view (what an assistive client finds there).
     func elementAt(_ p: CGPoint) -> AnyObject? {
+        RigTrace.note("MouseRig.elementAt \(Int(p.x)),\(Int(p.y))")
         let screen = window.convertPoint(toScreen: CGPoint(x: p.x, y: size.height - p.y))
         let hit = host.accessibilityHitTest(screen) as AnyObject?
         drain()
@@ -650,13 +663,16 @@ enum RigGuard {
         // awaits ends it (`drain` absorbs most of them). scripts/test.sh sees a run without its summary and runs the
         // suite once more; it is never counted as green.
         swap(NSApplication.self, #selector(NSApplication.terminate(_:)), #selector(NSApplication.rig_terminate(_:)))
+        // #40: a stop asked through NSApp is written down with its caller (RigTrace).
+        swap(NSApplication.self, #selector(NSApplication.stop(_:)), #selector(NSApplication.rig_stop(_:)))
         guardProcesses()
         guardTrash()
         guardPasteboard()
         atexit {
             let stack = Thread.callStackSymbols
             guard !stack.contains(where: { $0.contains("RunnerV4main") }) else { return }
-            FileHandle.standardError.write(Data(("MouseRig: the test process is exiting from inside a test:\n" + stack.joined(separator: "\n") + "\n").utf8))
+            FileHandle.standardError.write(Data(("MouseRig: the test process is exiting from inside a test:\n" + stack.joined(separator: "\n") + "\n"
+                + "MouseRig: the rig's last operations before the exit, oldest first (#40):\n" + RigTrace.last.joined(separator: "\n") + "\n").utf8))
         }
         if let real = class_getClassMethod(NSMenu.self, #selector(NSMenu.popUpContextMenu(_:with:for:))),
            let fake = class_getClassMethod(NSMenu.self, #selector(NSMenu.rig_popUpContextMenu(_:with:for:))) {
@@ -776,11 +792,11 @@ enum RigGuard {
         method_exchangeImplementations(real, fake)
     }
 
-    /// Queues a nested loop of ours on the main run loop for the length of a sheet animation.
-    static func holdForAnimation() {
+    /// Queues a nested loop of ours on the main run loop for the length of a sheet animation (or of a window's showing).
+    static func holdForAnimation(_ what: String = "sheet animation") {
         CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue) {
             let end = Date().addingTimeInterval(0.6)
-            while Date() < end { CFRunLoopRunInMode(.defaultMode, 0.01, false) }
+            while Date() < end { RigTrace.run(what, 0.01) }
         }
         CFRunLoopWakeUp(CFRunLoopGetMain())
     }
@@ -797,6 +813,12 @@ enum RigGuard {
             w.setFrameOrigin(CGPoint(x: -30000, y: -30000))
         }
         record(.window, String(describing: type(of: w)) + (w.title.isEmpty ? "" : " «\(w.title)»"))
+        // A window put on screen stops the running run loop about 0.15 s later (not through NSApp.stop, not its ordering
+        // animation: switching that off changed nothing; where the stop comes from was not traced further). Showing the Gobbo's panel («Mostra il gobbo») was the operation before
+        // every early end traced on 2026-11-16 (#40): the stop landed in a nested loop of the rig's in about half the
+        // runs and in the test runner's own loop (which then returns and ends the process) in the others. A nested
+        // loop of ours turns for that time, so the stop lands there.
+        holdForAnimation("window shown")
     }
 }
 

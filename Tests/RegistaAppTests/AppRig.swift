@@ -195,9 +195,11 @@ final class AppRig {
         case "rich":
             let url = try RigProject.rich()
             projectPath = url
+            RigTrace.note("AppRig.init: project.open")
             try await store.perform("project.open", ["path": .string(url.path)])
             for _ in 0..<200 where store.project?.tracks.isEmpty != false { try await Task.sleep(for: .milliseconds(50)) }
         case "empty":
+            RigTrace.note("AppRig.init: project.new")
             try await store.perform("project.new", ["name": "vuoto"])
             for _ in 0..<200 where store.project == nil { try await Task.sleep(for: .milliseconds(50)) }
         default: break
@@ -229,6 +231,7 @@ final class AppRig {
     }
 
     private func mount<V: View>(_ root: V, size: CGSize, language: String? = nil) {
+        RigTrace.note("AppRig.mount \(V.self)".prefix(120).description)
         rig = MouseRig(Resettable(reset: reset, content: root.environment(\.pasteboard, rigPasteboard)), size: size, language: language)
         // The editor's window, as the live window sets it (the keyboard monitor and the panels look for it).
         store.ui.window = rig.window
@@ -255,10 +258,11 @@ final class AppRig {
     /// main queue) land, and a stop that some framework queues on the running loop meanwhile stops this nested one, never
     /// the test runner's loop (which would end the test process).
     func idle(_ seconds: Double) async {
+        RigTrace.note("AppRig.idle(\(seconds))")
         await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
             CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue) {
                 let end = Date().addingTimeInterval(seconds)
-                while Date() < end { CFRunLoopRunInMode(.defaultMode, 0.01, false) }
+                while Date() < end { RigTrace.run("idle", 0.01) }
                 c.resume()
             }
             CFRunLoopWakeUp(CFRunLoopGetMain())
@@ -268,9 +272,11 @@ final class AppRig {
     /// Waits for the commands started by a click to finish: a read on the engine's serial queue returns after every
     /// command queued before it, then a short wait lets their results land.
     func settle() async {
+        RigTrace.note("AppRig.settle")
         rig.pump(0.03)
         rig.drain()
         await idle(0.02)
+        RigTrace.note("AppRig.settle: project.state")
         _ = try? await store.silent("project.state")
         await idle(0.05)
         rig.drain()
