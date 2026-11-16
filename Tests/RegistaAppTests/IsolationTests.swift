@@ -60,12 +60,20 @@ import Testing
     #expect(RigScratch.seams().count == 16)   // with the rule sheets (#31): the rig's and the support folder's
 }
 
-/// A difference in the owner-side listing fails the proof only when the owner's app is not running.
+/// A difference in the owner-side listing fails the proof only when no other Regista (the owner's app, an agent's
+/// server or engine) was at work.
 @Test func anOwnerSideDifferenceFailsOnlyWithoutTheOwnersApp() {
-    #expect(OwnerSideVerdict.decide(changes: [], ownersAppRunning: false) == .same)
-    #expect(OwnerSideVerdict.decide(changes: [], ownersAppRunning: true) == .same)
-    #expect(OwnerSideVerdict.decide(changes: ["/a 1 2"], ownersAppRunning: false) == .failure(["/a 1 2"]))
-    #expect(OwnerSideVerdict.decide(changes: ["/a 1 2"], ownersAppRunning: true) == .ownersAppMayHaveWritten(["/a 1 2"]))
+    #expect(OwnerSideVerdict.decide(changes: [], ownerAtWork: false) == .same)
+    #expect(OwnerSideVerdict.decide(changes: [], ownerAtWork: true) == .same)
+    #expect(OwnerSideVerdict.decide(changes: ["/a 1 2"], ownerAtWork: false) == .failure(["/a 1 2"]))
+    #expect(OwnerSideVerdict.decide(changes: ["/a 1 2"], ownerAtWork: true) == .ownersAppMayHaveWritten(["/a 1 2"]))
+    // Another session's Regista at work (an agent driving it with the app closed): a server that used CPU time or
+    // started or ended during the audits; an idle one is not at work.
+    #expect(OtherRegista.worked(before: [10: 1.0, 11: 4.0, 12: 2.0], after: [10: 1.01, 11: 9.5, 13: 0.2])
+        == ["process 11 used 5.50 s of CPU", "process 12 ended", "process 13 started"])
+    #expect(OtherRegista.worked(before: [:], after: [:]).isEmpty)
+    // The reading itself: never this process, only Regista's own executables, each with a time.
+    #expect(OtherRegista.cpu().allSatisfy { $0.key != getpid() && $0.value >= 0 })
 }
 
 /// A generation in the rig: the free one fails with the stand-in's message, the paid one is priced without its CLI and,

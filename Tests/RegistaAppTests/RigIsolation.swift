@@ -571,22 +571,69 @@ enum RigScratch {
 }
 
 /// What a difference in the owner-side listing means. The owner may use Regista while the audits run (the push hook
-/// runs them on his Mac): his app autosaves projects and writes brand kits there. With it running, a difference is
-/// reported as a known issue naming the paths, never a failure; with it closed, it fails.
+/// runs them on his Mac): his app autosaves projects and writes brand kits there, and an agent of his can drive Regista
+/// with the app closed (an MCP server that edits and exports). With his Regista at work, a difference is reported as a
+/// known issue naming the paths, never a failure; with nothing of his at work, it fails.
 enum OwnerSideVerdict: Equatable {
     case same
     case failure([String])
     case ownersAppMayHaveWritten([String])
 
-    static func decide(changes: [String], ownersAppRunning: Bool) -> OwnerSideVerdict {
+    static func decide(changes: [String], ownerAtWork: Bool) -> OwnerSideVerdict {
         if changes.isEmpty { return .same }
-        return ownersAppRunning ? .ownersAppMayHaveWritten(changes) : .failure(changes)
+        return ownerAtWork ? .ownersAppMayHaveWritten(changes) : .failure(changes)
     }
 
     /// A process named Regista whose executable is inside an app bundle (the test process is not one).
     @MainActor static var ownersAppRunning: Bool {
         NSWorkspace.shared.runningApplications.contains { app in
             app.executableURL?.lastPathComponent == "Regista" && app.bundleURL?.pathExtension == "app"
+        }
+    }
+}
+
+/// The other Regista processes on this Mac that this test process did not start: the app, and the MCP servers and
+/// engines of other sessions. A server left open by a session is idle and uses no CPU time; one that used some during
+/// the audits, or that started or ended during them, was working or may have been, and what changed on the owner's
+/// side may be its work. (Seen: the owner's app opened, driven by an agent to an export and closed while the push
+/// hook ran; the server that passed the commands on used almost no CPU time itself.)
+enum OtherRegista {
+    static let names: Set<String> = ["Regista", "regista-mcp", "regista-engine"]
+
+    /// Each such process with the CPU time it has used so far, in seconds.
+    static func cpu() -> [pid_t: Double] {
+        var pids = [pid_t](repeating: 0, count: 8192)
+        let count = Int(proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size)))
+        var timebase = mach_timebase_info_data_t()
+        mach_timebase_info(&timebase)
+        let me = getpid()
+        var out: [pid_t: Double] = [:]
+        for pid in pids.prefix(max(0, count)) where pid > 0 && pid != me {
+            var path = [CChar](repeating: 0, count: 4096)
+            guard proc_pidpath(pid, &path, UInt32(path.count)) > 0 else { continue }
+            guard names.contains(URL(fileURLWithPath: String(cString: path)).lastPathComponent) else { continue }
+            var bsd = proc_bsdinfo()
+            let size = Int32(MemoryLayout<proc_bsdinfo>.size)
+            if proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &bsd, size) == size, pid_t(bsd.pbi_ppid) == me { continue }
+            var usage = rusage_info_v2()
+            let read = withUnsafeMutablePointer(to: &usage) {
+                $0.withMemoryRebound(to: rusage_info_t?.self, capacity: 1) { proc_pid_rusage(pid, RUSAGE_INFO_V2, $0) }
+            }
+            guard read == 0 else { continue }
+            // The times are in the Mac's own clock units.
+            out[pid] = Double(usage.ri_user_time + usage.ri_system_time) * Double(timebase.numer) / Double(timebase.denom) / 1e9
+        }
+        return out
+    }
+
+    /// The processes that worked, or may have, between two readings: started or ended in between (what one that ended
+    /// did before it left cannot be read: the owner's app opened, used and closed during the audits), or with CPU time
+    /// used.
+    static func worked(before: [pid_t: Double], after: [pid_t: Double], idle: Double = 0.05) -> [String] {
+        Set(before.keys).union(after.keys).sorted().compactMap { pid in
+            guard let was = before[pid] else { return "process \(pid) started" }
+            guard let now = after[pid] else { return "process \(pid) ended" }
+            return now - was > idle ? "process \(pid) used \(String(format: "%.2f", now - was)) s of CPU" : nil
         }
     }
 }
@@ -601,6 +648,8 @@ struct OwnerSideUntouched: SuiteTrait, TestScoping {
         let outsideBefore = await MainActor.run { RigScratch.outside() }
         #expect(outsideBefore.isEmpty, "rig seams outside the scratch root: \(outsideBefore)")
         let before = OwnerSide.listing()
+        let othersBefore = OtherRegista.cpu()
+        let appBefore = await OwnerSideVerdict.ownersAppRunning
         let refused = RigProcesses.refused.count, writes = RigPasteboard.generalWrites.count
         try await function()
         let outsideAfter = await MainActor.run { RigScratch.outside() }
@@ -609,15 +658,18 @@ struct OwnerSideUntouched: SuiteTrait, TestScoping {
         #expect(RigPasteboard.generalWrites.count == writes, "writes to the general pasteboard: \(RigPasteboard.generalWrites.dropFirst(writes))")
         let after = OwnerSide.listing()
         let changes = Set(before).symmetricDifference(after).sorted()
-        switch OwnerSideVerdict.decide(changes: changes, ownersAppRunning: await OwnerSideVerdict.ownersAppRunning) {
+        let others = OtherRegista.worked(before: othersBefore, after: OtherRegista.cpu())
+        let appRunning = await OwnerSideVerdict.ownersAppRunning || appBefore
+        switch OwnerSideVerdict.decide(changes: changes, ownerAtWork: appRunning || !others.isEmpty) {
         case .same: break
         case .failure(let paths):
-            Issue.record("the owner's side changed during the click audits (the owner's app is not running): \(paths.prefix(20))")
+            Issue.record("the owner's side changed during the click audits (no other Regista was at work): \(paths.prefix(20))")
         case .ownersAppMayHaveWritten(let paths):
-            withKnownIssue("the owner's app is running: these may be its own writes", isIntermittent: true) {
+            withKnownIssue("another Regista was at work (the app running: \(appRunning); \(others.prefix(6))): these may be its own writes", isIntermittent: true) {
                 Issue.record("the owner's side changed during the click audits: \(paths.prefix(20))")
             }
         }
+        FileHandle.standardError.write(Data("RigGuard: \(othersBefore.count) other Regista processes on this Mac before the audits; at work during them: \(others)\n".utf8))
         let started = RigProcesses.started
         FileHandle.standardError.write(Data(("RigGuard: \(started.count) processes started in this test process; by executable: "
             + Dictionary(grouping: started) { String($0.prefix { $0 != " " }) }.map { "\($0.key) ×\($0.value.count)" }.sorted().joined(separator: ", ")
