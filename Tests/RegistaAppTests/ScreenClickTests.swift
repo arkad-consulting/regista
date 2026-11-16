@@ -118,11 +118,9 @@ extension MouseSuites.ClickAudits {
     func graphics(_ section: Navigation.GraphicsSection) async throws {
         var nav = Navigation(activity: .graphics, rightTab: .inspector)
         nav.showGraphics(section)
-        let tips: [Navigation.GraphicsSection: String] = [
-            .filters: "Un look di colore", .adjust: "Luce, colore e nitidezza", .effects: "Zoom, movimento, testi",
-            .styles: "Tanti passi in un clic", .motion: "Schede animate", .logo: "Il logo della marca"]
+        // The section chips read as their titles; their tooltips are hints (#32).
         _ = try await audit("graphics-\(section.rawValue)", nav, area: WindowPart.side, noOps: [
-            tips[section]!: "the section already shown (the section chips are named by their tooltips, #32)", "Tutto il video": alreadyCurrent,
+            GraphicsCatalog.title(section): "the section already shown", "Tutto il video": alreadyCurrent,
         ])
     }
 

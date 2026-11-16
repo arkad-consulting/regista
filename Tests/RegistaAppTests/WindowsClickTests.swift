@@ -163,7 +163,7 @@ extension MouseSuites.ClickAudits {
         await app.settle()
         let bench = app.store.bench
         let first = bench.activeID
-        // The tabs' × buttons, left to right, in the strip above the main area (their names are the tabs' tooltips).
+        // The tabs' × buttons, left to right, in the strip above the main area (each reads «Chiudi la scheda», #32).
         func closes() -> [RigElement] {
             app.rig.elements().filter { $0.role == "AXButton" && $0.frame.minY < 80 && $0.frame.width <= 20 && $0.frame.minX > 352 && $0.visible }
                 .sorted { $0.frame.minX < $1.frame.minX }

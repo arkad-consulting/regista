@@ -768,7 +768,7 @@ struct Filmstrip: View {
         .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(on ? Color.white : .clear, lineWidth: 1.5))
         .offset(x: x)
         .onTapGesture { studio.appliedSelection = it.id; store.preview.seek(it.start) }
-        .tip("\(loc(it.label)) · \(shortTime(it.start))–\(shortTime(it.end))")
+        .groupTip("\(loc(it.label)) · \(shortTime(it.start))–\(shortTime(it.end))")
     }
 
     private func frames(_ p: Project?, duration: Double, width W: CGFloat, height H: CGFloat) -> some View {

@@ -107,7 +107,7 @@ struct MediaTab: View {
             }
             Button("Mostra nel Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: a.path)]) }
         }
-        .tip(a.origin.map { loc("Generato (%@) da %@", $0.process, $0.assetID) } ?? a.path)
+        .groupTip(a.origin.map { loc("Generato (%@) da %@", $0.process, $0.assetID) } ?? a.path)
     }
 }
 

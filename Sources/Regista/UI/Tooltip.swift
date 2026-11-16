@@ -43,21 +43,36 @@ extension View {
     /// A fast, styled tooltip (≈350 ms after the pointer rests, instant when moving between controls), drawn in
     /// its own window so panels never clip it. Hides on exit, click, scroll and key press. The text is also the
     /// accessibility label; the system `.help` tooltip is not used, it would appear a second time on top.
+    /// For a **single** control (an icon button relies on it for its name). On a group of controls use `groupTip`: as a
+    /// label it would rename every control inside (#32).
     func tip(_ text: String, shortcut: String? = nil) -> some View {
-        modifier(TipModifier(content: TipContent(text, shortcut: shortcut).localized()))
+        modifier(TipModifier(content: TipContent(text, shortcut: shortcut).localized(), names: true))
+    }
+
+    /// The same tooltip on a **group** (a row, a badge, a tab with its close button, a set of chips that each show their
+    /// own title): help text only. It shows on hover and is the group's accessibility hint; the controls and texts inside
+    /// keep their own names (#32).
+    func groupTip(_ text: String, shortcut: String? = nil) -> some View {
+        modifier(TipModifier(content: TipContent(text, shortcut: shortcut).localized(), names: false))
     }
 }
 
 private struct TipModifier: ViewModifier {
     let content: TipContent
+    /// The text is the view's accessibility label (a single control) or its hint (a group).
+    let names: Bool
 
     func body(content view: Content) -> some View {
         if content.isEmpty {
             view
-        } else {
+        } else if names {
             view
                 .background(TipAnchor(content: content))
                 .accessibilityLabel(content.spoken)
+        } else {
+            view
+                .background(TipAnchor(content: content))
+                .accessibilityHint(content.spoken)
         }
     }
 }

@@ -336,7 +336,7 @@ extension MouseSuites.ClickAudits {
         j.step("Grafica › Effetti › Titolo, types REGISTA, Aggiungi", sees: "the title at 0:00 on the timeline and the picture")
 
         // The closing logo from Grafica › Logo.
-        try await j.tap("Il logo della marca nel video e le sue animazioni")
+        try await j.tap("Logo")   // the section chip, by its title (its tooltip is a hint, #32)
         let stingFound = await j.reveal("Sting finale", at: CGPoint(x: 200, y: 600))
         guard let sting = stingFound else { Issue.record("no Sting finale: \(j.screen())"); return }
         #expect(sting.enabled, "Sting finale is disabled with a kit that has a logo: \(sting.label)")
@@ -498,7 +498,7 @@ extension MouseSuites.ClickAudits {
 
         // Save: the tab's menu (a native menu: its item is run as the menu would).
         let timeline = j.store.project?.tracks.map { $0.clips.map { [$0.id, "\($0.start.seconds)", "\($0.end.seconds)"] } }
-        let tab = try #require(j.rig.elements().first { $0.isControl && $0.label.hasPrefix("Montaggio") && $0.frame.minY < 90 }, "no tab: \(j.screen())")
+        let tab = try #require(j.rig.elements().first { $0.role == "AXStaticText" && $0.name == "Montaggio" && $0.frame.minY < 90 }, "no tab: \(j.screen())")
         j.rig.rightClick(tab.centre)
         let menu = try #require(RigGuard.lastMenu, "the tab has no menu")
         let save = try #require(menu.items.firstIndex { $0.title == "Salva" }, "no Salva in \(menu.items.map(\.title))")
@@ -520,7 +520,7 @@ extension MouseSuites.ClickAudits {
         j.step("Esporta › Esporta video…, Salva", sees: "the file \(movie.width)×\(movie.height), \(String(format: "%.1f", movie.seconds)) s")
 
         // Close the tab (its menu's Chiudi, as its ×), then reopen the project from Inizio's recent projects.
-        let tab2 = try #require(j.rig.elements().first { $0.isControl && $0.label.hasPrefix("Montaggio") && $0.frame.minY < 90 }, "no tab: \(j.screen())")
+        let tab2 = try #require(j.rig.elements().first { $0.role == "AXStaticText" && $0.name == "Montaggio" && $0.frame.minY < 90 }, "no tab: \(j.screen())")
         j.rig.rightClick(tab2.centre)
         let menu2 = try #require(RigGuard.lastMenu, "the tab has no menu")
         let close = try #require(menu2.items.firstIndex { $0.title == "Chiudi" }, "no Chiudi in \(menu2.items.map(\.title))")

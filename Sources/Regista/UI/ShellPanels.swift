@@ -406,7 +406,7 @@ struct TabLabel: View {
         .overlay(MiddleClickArea { onClose?() })
         .onHover { hover = $0 }
         // The full name (a narrow tab truncates it) and where the project is.
-        .tip(info.hasProject ? info.name + "\n" + (info.path ?? loc("Non ancora salvato")) : loc("Scheda vuota: scegli un progetto o registra"))
+        .groupTip(info.hasProject ? info.name + "\n" + (info.path ?? loc("Non ancora salvato")) : loc("Scheda vuota: scegli un progetto o registra"))
         .draggable(info.id)
         .dropDestination(for: String.self) { ids, _ in
             guard let id = ids.first, let onDrop else { return false }

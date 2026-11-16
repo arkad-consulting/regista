@@ -573,7 +573,7 @@ struct RChips<T: Hashable>: View {
 
     private func chip(_ item: Item) -> some View {
         Chip(item: item, on: item.id == selection, height: stacked ? 50 : height, stacked: stacked, flow: flow) { onSelect(item.id) }
-            .tip(item.tip ?? "")
+            .groupTip(item.tip ?? "")
     }
 
     private struct Chip: View {

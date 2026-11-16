@@ -368,8 +368,8 @@ extension MouseSuites {
         app.rig.click(try #require(app.rig.element("Nuova scheda"), "no + in the tab strip").centre)
         await app.settle()
         #expect(app.store.bench.active !== app.store, "+ did not open another tab")
-        // A tab's texts read as its tooltip (the name, then where it is saved).
-        let tab = try #require(app.rig.elements().filter { $0.role == "AXStaticText" && $0.value.hasPrefix("clicks\n") && $0.visible && $0.frame.minY < 90 }
+        // A tab's name reads as itself (#32).
+        let tab = try #require(app.rig.elements().filter { $0.role == "AXStaticText" && $0.name == "clicks" && $0.visible && $0.frame.minY < 90 }
             .min { $0.frame.minX < $1.frame.minX }, "no tab of the project")
         app.rig.click(tab.centre)
         await app.settle()

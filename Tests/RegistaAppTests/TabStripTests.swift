@@ -48,9 +48,9 @@ extension MouseSuites {
         let room = main.width - PlusTab.width
         let scrolls = CGFloat(n) * TabsLayout.minWidth > room
         func plus() throws -> RigElement { try #require(app.rig.element("Nuova scheda"), "no + on screen") }
-        // A tab's texts read as its tooltip (the full name, then where it is saved): the leftmost one is the name.
+        // A tab's name reads as itself (its tooltip is the tab's hint, #32).
         func name(_ s: String) -> RigElement? {
-            app.rig.elements().filter { $0.role == "AXStaticText" && $0.value.hasPrefix(s + "\n") && $0.visible && main.contains($0.centre) }
+            app.rig.elements().filter { $0.role == "AXStaticText" && $0.name == s && $0.visible && main.contains($0.centre) }
                 .min { $0.frame.minX < $1.frame.minX }
         }
         /// The × of the tab whose name is `text`: the first small button right of the name.
@@ -120,8 +120,8 @@ extension MouseSuites {
             app.host(HStack(spacing: 0) { TabLabel(info: info).frame(width: width); Spacer(minLength: 0) }.background(Ed.bar),
                      size: CGSize(width: 400, height: Chrome.tabsHeight))
             await app.settle()
-            // The tab's texts (they read as its tooltip): the name, then the duration when it shows.
-            let texts = app.rig.elements().filter { $0.role == "AXStaticText" && $0.visible && $0.value.hasPrefix(info.name + "\n") }
+            // The tab's texts (each reads as itself, #32): the name, then the duration when it shows.
+            let texts = app.rig.elements().filter { $0.role == "AXStaticText" && $0.visible && ($0.name == info.name || $0.name == clockTime(228)) }
                 .sorted { $0.frame.minX < $1.frame.minX }
             #expect(texts.count == (durationShown ? 2 : 1), "at \(width) pt: \(texts.map(\.frame))")
             let title = try #require(texts.first, "at \(width) pt the name is gone")

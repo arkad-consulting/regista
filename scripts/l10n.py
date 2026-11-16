@@ -42,7 +42,7 @@ PLACEHOLDER = re.compile(r'%(?:\d+\$)?[-+ #0]*\d*(?:\.\d+)?(?:ll|l|h)?[@dDuUxXfF
 # A lookup, a SwiftUI initialiser that looks its literal up, or a control parameter that takes a key.
 CALL = re.compile(r'(?<![A-Za-z_])(Text|Button|Label|Toggle|Picker|Section|Menu|TextField|LabeledContent|help|navigationTitle|'
                   r'DisclosureGroup|Stepper|ProgressView|alert|confirmationDialog|CommandMenu|SecureField|Link|GroupBox|'
-                  r'ContentUnavailableView|accessibilityLabel|Tab|CommandGroup|loc|lookup|tip|SectionLabel|LocalizedStringKey)'
+                  r'ContentUnavailableView|accessibilityLabel|Tab|CommandGroup|loc|lookup|tip|groupTip|SectionLabel|LocalizedStringKey)'
                   r'\(\s*"((?:[^"\\]|\\.)*)"')
 PARAM = re.compile(r'(?<![A-Za-z_])(title|subtitle|label|detail|help|tip|placeholder|empty|text|caption|low|high|line|hint|'
                    r'reason|note|message|action|summary)\s*:\s*"((?:[^"\\]|\\.)*)"')

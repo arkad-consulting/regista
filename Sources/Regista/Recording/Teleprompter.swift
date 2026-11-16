@@ -635,7 +635,7 @@ struct PrompterStatusPill: View {
         .background(Ed.Prompter.noirColor.opacity(0.9), in: Capsule())
         .overlay(Capsule().stroke(color.opacity(0.35), lineWidth: 1))
         .onAppear { pulse = true }
-        .tip(controller.follower.errorMessage ?? "")
+        .groupTip(controller.follower.errorMessage ?? "")
     }
 
     private var status: (String, Color) {
@@ -680,7 +680,7 @@ struct PaceBadge: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
         .background(Ed.Prompter.surface.opacity(0.8), in: Capsule())
-        .tip(loc("Ritmo ideale: %@–%@ parole al minuto", String(Int(PaceMeter.target.lowerBound)), String(Int(PaceMeter.target.upperBound))))
+        .groupTip(loc("Ritmo ideale: %@–%@ parole al minuto", String(Int(PaceMeter.target.lowerBound)), String(Int(PaceMeter.target.upperBound))))
     }
 
     private var color: Color {
@@ -833,7 +833,7 @@ struct PrompterEditorView: View {
                             field(loc("Rifaccio"), text: $p.redoWords)
                             field(loc("Stop"), text: $p.stopWords).frame(maxWidth: 120)
                         }
-                        .tip("Comandi vocali: «rifaccio» scarta la ripresa e torna all'inizio della frase, «stop» ferma la registrazione. Più frasi separate da virgole; ogni lingua ha i suoi (FR «je recommence», EN «let me redo», PT «vou refazer»).")
+                        .groupTip("Comandi vocali: «rifaccio» scarta la ripresa e torna all'inizio della frase, «stop» ferma la registrazione. Più frasi separate da virgole; ogni lingua ha i suoi (FR «je recommence», EN «let me redo», PT «vou refazer»).")
                     }
                 }
 
@@ -871,7 +871,8 @@ struct PrompterEditorView: View {
     private func field(_ label: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: Ed.Space.xs) {
             Text(verbatim: loc(label)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2)
-            RTextField(text: text)
+            // Named by the word above it (the group's tooltip is its hint, #32).
+            RTextField(text: text).accessibilityLabel(loc(label))
         }
     }
 }
