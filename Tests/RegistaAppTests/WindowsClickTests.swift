@@ -19,7 +19,13 @@ extension MouseSuites.ClickAudits {
     @Test(arguments: SettingsTab.allCases)
     func settings(_ tab: SettingsTab) async throws {
         let saved = settingsKeys.map { ($0, UserDefaults.standard.object(forKey: $0)) }
-        defer { for (k, v) in saved { UserDefaults.standard.set(v, forKey: k) } }
+        // Lingua dell'interfaccia writes AppleLanguages in the test process's own domain: put back as it was there.
+        let domain = Bundle.main.bundleIdentifier ?? ProcessInfo.processInfo.processName
+        let languages = UserDefaults.standard.persistentDomain(forName: domain)?["AppleLanguages"]
+        func restoreLanguages() {
+            if let languages { UserDefaults.standard.set(languages, forKey: "AppleLanguages") } else { UserDefaults.standard.removeObject(forKey: "AppleLanguages") }
+        }
+        defer { for (k, v) in saved { UserDefaults.standard.set(v, forKey: k) }; restoreLanguages() }
         UserDefaults.standard.set(tab.rawValue, forKey: SettingsRoute.tabKey)
         let app = try await AppRig()
         defer { app.close() }
@@ -42,22 +48,20 @@ extension MouseSuites.ClickAudits {
         await app.settle()
         await app.idle(0.5)   // the live tabs read engines.status and the profiles
         await app.settle()
-        let notDriven = "NOT VERIFIED: a native AppKit control of the system form, which the rig's synthetic events do not drive reliably"
+        // The system form's own AppKit controls (pop-ups, check boxes, bordered buttons, text fields) are driven through
+        // their accessibility actions (#36): press, pick an item, set a value. Synthetic events did not drive them
+        // reliably (the same control answered in one run and not in the next).
         let rows = await ClickAudit(app: app, screen: "settings-\(tab.rawValue)", noOps: [
             SettingsTab.allCases.first { $0 == tab }!.title: "the tab already shown",
             "For every video": "Regole: the sheet already shown (the tab opens on it)",
-            // NOT VERIFIED by a click: the system form's own AppKit controls (bordered buttons, check boxes, fields) do not
-            // take the rig's synthetic events reliably — the same control answered in one run and not in the next.
-            "Nuovo kit": notDriven, "Importa…": notDriven, "Nome del kit": notDriven, "0": notDriven, "1": notDriven,
         ], restore: {
             for (k, v) in saved where k != SettingsRoute.tabKey { UserDefaults.standard.set(v, forKey: k) }
             UserDefaults.standard.set(tab.rawValue, forKey: SettingsRoute.tabKey)
+            restoreLanguages()
             restoreOutside()
         }, skipRoles: [
-            "AXTextField": "NOT VERIFIED: a native text field of the system form, which the rig's synthetic events do not drive reliably",
             "AXColorWell": "a native colour well (the kit form keeps the system ColorPicker): a press starts AppKit's colour drag, tracked in a loop until the real mouse moves; the design system's ColorSwatch is clicked in ControlMouseTests",
-            "AXPopUpButton": "a native pop-up (Settings keeps the system form): AppKit tracks its menu in a modal loop until a real click picks an item; its menu opening was seen with a click, a choice in it is not driven",
-        ]).run()
+        ], nativeByAccessibility: true).run()
         ClickAudit.check(rows, screen: "settings-\(tab.rawValue)")
         if tab == .claude {
             // The copy landed on the rig's pasteboard (the general one is refused by RigGuard and checked by the proof).

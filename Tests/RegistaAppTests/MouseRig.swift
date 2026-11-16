@@ -443,6 +443,50 @@ final class MouseRig {
         return true
     }
 
+
+    /// Whether `e` is one of AppKit's own controls (the Settings form's pop-ups, check boxes, bordered buttons, text
+    /// fields): their element is the control or its cell, not a node of SwiftUI's.
+    func isNative(_ e: RigElement) -> Bool { e.ref is NSView || e.ref is NSCell }
+
+    /// Drives a native control the way an assistive client does (#36): a pop-up picks its next item (what choosing it in
+    /// its menu does, without AppKit's modal menu tracking), a text field takes the focus and `text` is typed into it,
+    /// anything else is pressed. Returns what was done, for the audit's table; nil when `e` is not a native control.
+    @discardableResult
+    func performAccessibility(_ e: RigElement, text: String = "Regista") -> String? {
+        guard isNative(e), e.enabled, let o = e.ref as? NSObject else { return nil }
+        defer { drain(); pump() }
+        switch e.role {
+        case "AXPopUpButton":
+            guard let cell = (o as? NSPopUpButtonCell) ?? ((o as? NSPopUpButton)?.cell as? NSPopUpButtonCell), let menu = cell.menu else { return nil }
+            // SwiftUI fills a pop-up's menu when it is about to show it (its cell's delegate is asked, as AppKit asks it
+            // before the menu opens).
+            if let d = menu.delegate as AnyObject?, d.responds(to: NSSelectorFromString("popUpButtonCell:willShowMenu:")) {
+                _ = d.perform(NSSelectorFromString("popUpButtonCell:willShowMenu:"), with: cell, with: menu)
+            }
+            menu.update()
+            let choices = menu.items.indices.filter { !menu.items[$0].isSeparatorItem && menu.items[$0].isEnabled && !menu.items[$0].isHidden }
+            let current = cell.indexOfSelectedItem
+            guard let next = choices.first(where: { $0 > current }) ?? choices.first, next != current else { return "accessibility action: nothing else to pick (\(menu.items.count) items)" }
+            menu.performActionForItem(at: next)
+            return "accessibility action: pick «\(menu.items[next].title)»"
+        case "AXTextField", "AXTextArea", "AXSearchField", "AXComboBox":
+            // Focused through accessibility, then typed into: a value set directly would change the field and not
+            // what it is bound to (seen on the Scorciatoie search, whose list did not filter).
+            takeKey()
+            if let v = o as? NSView { v.setAccessibilityFocused(true) } else { (o as? NSCell)?.setAccessibilityFocused(true) }
+            pump()
+            // A field that ignores the accessibility focus (seen on two of the three in Settings) is made the window's
+            // first responder, which is what the focus asks for.
+            if !isTyping, let v = (o as? NSView) ?? (o as? NSCell)?.controlView { window.makeFirstResponder(v); pump() }
+            guard isTyping else { return "accessibility action: the field did not take the focus" }
+            type(text)
+            return "accessibility action: focus, type «\(text)»"
+        default:
+            if let v = o as? NSView { _ = v.accessibilityPerformPress() } else { _ = (o as? NSCell)?.accessibilityPerformPress() }
+            return "accessibility action: press"
+        }
+    }
+
     /// The deepest accessibility element at a point of the view (what an assistive client finds there).
     func elementAt(_ p: CGPoint) -> AnyObject? {
         let screen = window.convertPoint(toScreen: CGPoint(x: p.x, y: size.height - p.y))

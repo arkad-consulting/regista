@@ -69,5 +69,51 @@ extension MouseSuites {
         #expect(app.store.wordSelection == nil, "a plain click kept a selection")
         #expect(abs(app.store.preview.playhead.time - app.store.words[il].start.seconds) < 0.05, "a plain click did not go to «il»")
     }
+
+    /// Impostazioni › Generale keeps the Mac's own form controls: driven through their accessibility actions (#36), each
+    /// changes its setting once — the format of new projects (a pop-up's pick), the spoken language (another pop-up),
+    /// autosave (a check box's press).
+    @Test func theSettingsFormIsDrivenThroughAccessibility() async throws {
+        let keys = [GeneralPrefs.formatKey, GeneralPrefs.spokenLanguageKey, GeneralPrefs.autoSaveKey]
+        let saved = keys.map { ($0, UserDefaults.standard.object(forKey: $0)) }
+        defer { for (k, v) in saved { UserDefaults.standard.set(v, forKey: k) } }
+        UserDefaults.standard.set("9:16", forKey: GeneralPrefs.formatKey)
+        UserDefaults.standard.set("fr", forKey: GeneralPrefs.spokenLanguageKey)
+        UserDefaults.standard.set(false, forKey: GeneralPrefs.autoSaveKey)
+        let app = try await AppRig()
+        defer { app.close() }
+        let status = try await app.store.silent("engines.status")
+        app.host(SettingsView(engines: EnginesDemo(status: status, tier: nil), voiceProfiles: VoiceDemo.profiles).environment(\.colorScheme, .dark),
+                 size: SettingsView.size)
+        await app.settle()
+        func control(_ role: String, _ name: String) throws -> RigElement {
+            try #require(app.rig.controls().first { $0.role == role && $0.name == name }, "no \(role) «\(name)»: \(app.rig.controls().map(\.description))")
+        }
+        var changes = 0
+        let watch = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: nil) { _ in changes += 1 }
+        defer { NotificationCenter.default.removeObserver(watch) }
+
+        let format = try control("AXPopUpButton", GeneralPrefs.formatName("9:16"))
+        #expect(app.rig.performAccessibility(format) == "accessibility action: pick «\(GeneralPrefs.formatName("4:5"))»")
+        await app.settle()
+        #expect(UserDefaults.standard.string(forKey: GeneralPrefs.formatKey) == "4:5", "the format is \(UserDefaults.standard.string(forKey: GeneralPrefs.formatKey) ?? "unset")")
+        #expect(app.rig.controls().contains { $0.role == "AXPopUpButton" && $0.name == GeneralPrefs.formatName("4:5") }, "the pop-up does not show the new format")
+
+        let spoken = try control("AXPopUpButton", StepSettings.languageName("fr"))
+        #expect(app.rig.performAccessibility(spoken)?.hasPrefix("accessibility action: pick «") == true)
+        await app.settle()
+        let language = UserDefaults.standard.string(forKey: GeneralPrefs.spokenLanguageKey)
+        #expect(language != nil && language != "fr", "the spoken language is still \(language ?? "unset")")
+
+        let autosave = try #require(app.rig.controls().filter { $0.role == "AXCheckBox" }.min { $0.frame.minY < $1.frame.minY }, "no check box")
+        let before = changes
+        #expect(app.rig.performAccessibility(autosave) == "accessibility action: press")
+        await app.settle()
+        #expect(UserDefaults.standard.bool(forKey: GeneralPrefs.autoSaveKey), "autosave did not turn on")
+        #expect(changes >= before + 1, "the press changed no setting")
+        // Once: a second look changes nothing more.
+        await app.idle(0.3)
+        #expect(UserDefaults.standard.bool(forKey: GeneralPrefs.autoSaveKey) && UserDefaults.standard.string(forKey: GeneralPrefs.formatKey) == "4:5")
+    }
 }
 }

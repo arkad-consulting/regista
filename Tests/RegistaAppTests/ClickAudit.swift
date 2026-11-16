@@ -132,6 +132,10 @@ struct ClickAudit {
     var skipRoles: [String: String] = [:]
     /// Only the controls inside this rect of the window (nil: all).
     var area: CGRect? = nil
+    /// AppKit's own controls (the Settings form's pop-ups, check boxes, bordered buttons, text fields) are driven through
+    /// their accessibility actions instead of a click (#36): synthetic events do not drive them reliably, an assistive
+    /// client's actions do. The table says which action.
+    var nativeByAccessibility = false
     /// Targets the accessibility tree does not expose (a tile with a tap gesture, a clip drawn on a canvas): a name and
     /// the point to click, clicked after the controls the tree lists.
     var extra: [(name: String, at: CGPoint)] = []
@@ -208,7 +212,8 @@ struct ClickAudit {
             }
             let before = AuditState(app)
             let refused = RigProcesses.refused.count
-            rig.click(p)
+            let action = nativeByAccessibility ? rig.performAccessibility(e) : nil
+            if action == nil { rig.click(p) }
             await app.settle()
             // An alert the click's command opened (its error) animates in: its stop lands in a loop of ours (#40).
             if before.ui["sheet"] == "", rig.window.attachedSheet != nil { rig.hold() }
@@ -223,7 +228,8 @@ struct ClickAudit {
             let still = controlsInArea().contains { $0.key == e.key || ($0.role == e.role && abs($0.centre.x - e.centre.x) < 2 && abs($0.centre.y - e.centre.y) < 2) }
                 || changes.contains { $0.hasPrefix("navigation") || $0.hasPrefix("command") }
             if !still, !changes.isEmpty { changes.append("the control left the screen") }
-            var row = Row(control: e.description + (e.enabled ? "" : " [disabled]"), at: p, effect: changes.isEmpty ? "NOTHING" : changes.joined(separator: "; "))
+            var row = Row(control: e.description + (e.enabled ? "" : " [disabled]") + (action.map { " (\($0))" } ?? ""), at: p,
+                          effect: changes.isEmpty ? "NOTHING" : changes.joined(separator: "; "))
             dirty = !changes.isEmpty
             if !e.enabled {
                 if !changes.isEmpty, changes.contains(where: { $0.hasPrefix("command") || $0.hasPrefix("navigation") }) {
