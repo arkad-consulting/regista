@@ -146,6 +146,9 @@ extension MouseSuites.ClickAudits {
             g.startAsset = nil
             g.upscaleAsset = nil
             g.problem = nil
+            // A paid estimate «Genera…» asked for stays on its card while the request is the same (#43): declined, so
+            // the next screen starts without the card.
+            g.decline()
         }, setup: { app in
             app.store.generation.prompts = [.still: prompt]
         })
@@ -178,14 +181,16 @@ extension MouseSuites.ClickAudits {
             "ComfyUI": "the free generator: choosing it declines the estimate and rewrites its row's line, so it is not found again by name on a fresh screen",
         ], noOps: [
             "Immagine": alreadyCurrent, "9:16": "the format already chosen (the project's)",
+            "Higgsfield": "the generator already chosen: the request is the same, so the waiting estimate stays (#43)",
         ], restore: { app in
             form(app.store.generation)
         }, setup: { app in
-            await app.idle(0.5)   // the panel's own first reading (it declines a waiting estimate)
+            await app.idle(0.5)   // the panel's own first reading
             await price(app)
             #expect(app.store.generation.pending != nil, "no approval card: \(app.store.generation.problem ?? "")")
         }, afterReset: { app in
-            // The rebuilt panel reads its providers again, which declines a waiting estimate: a new one is asked for.
+            // The rebuilt panel reads its providers again; a waiting estimate stays (#43), one declined by a click is
+            // asked for again.
             await app.idle(0.5)
             await price(app)
         })

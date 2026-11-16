@@ -5,6 +5,9 @@ import RegistaCore
 struct GenPending: Equatable {
     var request: GenRequest
     var estimate: GenEstimate
+    /// The panel's request when the price was asked (before the monitor's frame became a file): while the panel asks
+    /// for the same thing, the estimate stands (#43).
+    var asked: GenRequest?
 }
 
 /// The Generate panel of one tab: what is being asked for (kind, words, provider, format, length, start frame or clip),
@@ -103,9 +106,10 @@ final class GenerateState: ObservableObject {
         recent = GenRecent.parse(l)
     }
 
-    /// The request changed: a waiting paid estimate no longer matches (declined), the local time is read again.
+    /// The request may have changed: a waiting paid estimate made for another request is declined (the same request —
+    /// the panel appearing again, a tab switch and back — keeps it, #43), the local time is read again.
     func changed() {
-        if pending != nil { decline() }
+        if let p = pending, p.asked == nil || p.asked != request() { decline() }
         problem = nil
         estimateTask?.cancel()
         guard let store, !isDemo, store.project != nil, var r = request(), let p = provider(kind), !p.paid else { estimate = nil; return }
@@ -149,7 +153,7 @@ final class GenerateState: ObservableObject {
                 store.bench.panelEstimates.insert(e.id)
                 store.bench.panelPricing -= 1
                 store.refreshApprovals()
-                if e.needsApproval { pending = GenPending(request: r, estimate: e) } else { start(r, estimate: e, approved: false) }
+                if e.needsApproval { pending = GenPending(request: r, estimate: e, asked: request) } else { start(r, estimate: e, approved: false) }
             } catch {
                 problem = GenWords.readable(error)
             }

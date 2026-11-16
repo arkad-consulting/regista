@@ -262,3 +262,143 @@ private struct Fixture {
     #expect(GenerateState.demo("recent", store: store).recent.count == 4)
     d.removePersistentDomain(forName: name)
 }
+
+/// #43: a waiting paid estimate stands while the panel asks for the request it was made for (the panel reading its
+/// providers again calls changed() too), and goes when the prompt, the generator or a parameter changes.
+@MainActor
+@Test func aWaitingEstimateStaysForTheSameRequestOnly() throws {
+    let f = try Fixture()
+    func waiting() throws -> GenerateState {
+        let panel = try f.panel()
+        panel.kind = .clip
+        panel.prompts[.clip] = "La camera si avvicina piano"
+        panel.chosen[.clip] = "higgsfield"
+        let r = try #require(panel.request())
+        #expect(r.provider == "higgsfield")
+        panel.pendingForDemo(GenPending(request: r, estimate: GenEstimate(id: "e-test", provider: "higgsfield", model: "m", credits: 2.4, paid: true,
+                                                                          budgetRemaining: 2), asked: r))
+        return panel
+    }
+    let same = try waiting()
+    same.changed()
+    #expect(same.pending != nil, "the same request declined the estimate")
+    let prompt = try waiting()
+    prompt.prompts[.clip] = "Un leggero zoom indietro"
+    prompt.changed()
+    #expect(prompt.pending == nil, "a new prompt kept the estimate")
+    let model = try waiting()
+    model.chosen[.clip] = "local-test"
+    #expect(model.request()?.provider == "local-test")
+    model.changed()
+    #expect(model.pending == nil, "another generator kept the estimate")
+    let length = try waiting()
+    length.durations[.clip] = try #require(length.durationOptions(.clip).last { $0 != length.duration(.clip) })
+    length.changed()
+    #expect(length.pending == nil, "another length kept the estimate")
+    let kind = try waiting()
+    kind.kind = .still
+    kind.changed()
+    #expect(kind.pending == nil, "another kind kept the estimate")
+}
+
+// #43: a paid estimate waiting on the approval card stands while the panel asks for the same thing — the panel going
+// away and coming back, a tab switch and back — and is declined as soon as the request changes (the prompt, the
+// generator, a parameter). Real clicks on the whole window; the rig's paid stand-in prices at a fixed cost and can
+// start no job.
+extension MouseSuites {
+@Suite(.serialized) @MainActor struct GenerateApprovalMouseTests {
+    @Test func aWaitingPaidEstimateSurvivesThePanelComingBackAndGoesWhenTheRequestChanges() async throws {
+        let app = try await AppRig()
+        defer { app.close() }
+        // A taller window: the card sits under the form, past the bottom of a 900 pt window.
+        app.hostEditor(Navigation(activity: .generate, rightTab: .inspector), size: CGSize(width: 1440, height: 1300))
+        await app.idle(0.5)   // the panel's first reading
+        let g = app.store.generation
+        func until(_ seconds: Double = 4, _ condition: () -> Bool) async -> Bool {
+            let end = Date().addingTimeInterval(seconds)
+            while !condition() {
+                if Date() > end { return false }
+                await app.idle(0.05)
+            }
+            return true
+        }
+        func control(_ name: String) -> RigElement? {
+            app.rig.elements().first { $0.isControl && $0.visible && ($0.label == name || $0.label.hasPrefix(name + ",") || $0.title == name) }
+        }
+        func activity(_ name: String) throws -> RigElement {
+            try #require(app.rig.elements().first { $0.isControl && $0.label == name && $0.frame.maxX < 60 }, "no «\(name)» in the activity bar")
+        }
+        var card: Bool { app.rig.elements().contains { $0.isControl && $0.visible && $0.name.hasPrefix("Approva e spendi") } }
+        /// Asks the paid stand-in for a price with the panel's «Genera…»: the approval card comes up.
+        func price() async throws -> GenPending {
+            g.kind = .still
+            g.prompts = [.still: "Una sedia rossa in una stanza bianca"]
+            g.chosen = [.still: "higgsfield"]
+            g.formats = [:]
+            g.durations = [:]
+            await app.settle()
+            // The paid generator's «Genera…», named by its tooltip.
+            app.rig.click(try #require(control("Prima vedi il costo, poi decidi"), "no «Genera…» for the paid generator").centre)
+            #expect(await until { g.pending != nil }, "no estimate: \(g.problem ?? "")")
+            await app.settle()
+            #expect(card, "no approval card")
+            return try #require(g.pending)
+        }
+        func declined(since n: Int) -> Bool { app.commands(since: n).contains("generate.approve") }
+
+        // The panel goes away (another activity) and comes back.
+        let estimate = try await price()
+        var n = app.store.activity.count
+        app.rig.click(try activity("Media").centre)
+        await app.settle()
+        #expect(app.store.nav.activity == .media)
+        app.rig.click(try activity("Genera").centre)
+        await app.settle()
+        await app.idle(0.5)   // the panel reads its providers again
+        #expect(app.store.nav.activity == .generate)
+        #expect(g.pending == estimate && card && !declined(since: n), "the estimate did not survive the panel coming back (\(app.commands(since: n)))")
+
+        // The panel rebuilt from scratch (every view's own state).
+        app.reset.bump()
+        await app.settle()
+        await app.idle(0.5)
+        #expect(g.pending == estimate && card && !declined(since: n), "the estimate did not survive the panel being rebuilt")
+
+        // Another tab and back.
+        app.rig.click(try #require(app.rig.element("Nuova scheda"), "no + in the tab strip").centre)
+        await app.settle()
+        #expect(app.store.bench.active !== app.store, "+ did not open another tab")
+        // A tab's texts read as its tooltip (the name, then where it is saved).
+        let tab = try #require(app.rig.elements().filter { $0.role == "AXStaticText" && $0.value.hasPrefix("clicks\n") && $0.visible && $0.frame.minY < 90 }
+            .min { $0.frame.minX < $1.frame.minX }, "no tab of the project")
+        app.rig.click(tab.centre)
+        await app.settle()
+        await app.idle(0.5)
+        #expect(app.store.bench.active === app.store && app.store.nav.activity == .generate, "the project's tab did not come back on Genera")
+        #expect(g.pending == estimate && card && !declined(since: n), "the estimate did not survive a tab switch and back (\(app.commands(since: n)))")
+
+        // The prompt changes (one of the ideas under it): declined.
+        n = app.store.activity.count
+        app.rig.click(try #require(control("Usa questa idea: poi la puoi cambiare"), "no idea under the prompt").centre)
+        #expect(await until { g.pending == nil && declined(since: n) }, "a new prompt did not decline the estimate (\(app.commands(since: n)))")
+        await app.settle()
+        #expect(!card, "the card stayed after the prompt changed")
+
+        // A click on a generator that cannot run here (ComfyUI is not ready in the rig) leaves the request as it was: the
+        // estimate stays. (The rig offers no second generator that can run: another generator declining it is proven
+        // in aWaitingEstimateStaysForTheSameRequestOnly.)
+        let again = try await price()
+        n = app.store.activity.count
+        app.rig.click(try #require(control("ComfyUI"), "no ComfyUI row").centre)
+        await app.settle()
+        #expect(g.request()?.provider == "higgsfield" && g.pending == again && !declined(since: n), "a generator that cannot run changed the request")
+
+        // A parameter changes (the format): declined.
+        n = app.store.activity.count
+        let other = try #require(["1:1", "16:9", "4:5"].lazy.compactMap { control($0) }.first { !$0.selected }, "no other format chip")
+        app.rig.click(other.centre)
+        #expect(await until { g.pending == nil && declined(since: n) }, "another format did not decline the estimate (\(app.commands(since: n)))")
+        #expect(g.formats[.still] != nil, "the format chip did not change the format")
+    }
+}
+}
