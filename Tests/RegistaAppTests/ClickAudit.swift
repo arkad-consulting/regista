@@ -92,7 +92,8 @@ struct AuditState {
 let clickAuditEnabled = ProcessInfo.processInfo.environment["REGISTA_SKIP_CLICK_AUDIT"] == nil
 
 extension MouseSuites {
-    /// Every click audit of whole screens and windows (ScreenClickTests, MoreScreenClickTests, WindowsClickTests), inside
+    /// Every click audit of whole screens and windows (ScreenClickTests, MoreScreenClickTests, WindowsClickTests) and the
+    /// whole journeys (JourneyTests), inside
     /// the proof of #35: the owner's side is the same after them as before, no process was refused, the clipboard was
     /// not written.
     @Suite(.serialized, .ownerSideUntouched, .enabled(if: clickAuditEnabled, "skipped in the commit hook, run by the push hook"))
