@@ -53,7 +53,7 @@ struct AuditState {
             "popover": NSApp.windows.filter { $0.isVisible && $0 !== app.rig.window && String(describing: type(of: $0)).contains("Popover") }.count.description,
         ]
         events = RigGuard.events
-        tree = app.rig.elements().filter(\.visible).map { "\($0.role)|\($0.name)|\($0.value)|\($0.selected)|\($0.enabled)" }
+        tree = app.rig.elements().filter(\.visible).map { "\($0.role)|\($0.name)|\($0.value)|\($0.valueDescription)|\($0.selected)|\($0.enabled)" }
         responder = app.rig.window.firstResponder.map { String(describing: type(of: $0)) } ?? ""
         undo = s.undoNames.count
     }

@@ -195,10 +195,12 @@ extension MouseSuites.ClickAudits {
     }
 
     @Test func export() async throws {
+        // The bit rate slider reads its value as an assistive client does (#36): its click shows in the table.
+        let bitrate = ExportOptions.shared.bitrate
+        defer { ExportOptions.shared.bitrate = bitrate }
         _ = try await audit("export", Navigation(activity: .export, rightTab: .inspector), area: WindowPart.content, noOps: [
             "Reel 9:16": "the export format already chosen (the project's own)",
-            "Bit rate": "a slider of the export form's own state, which the audit does not read (its accessibility value reads empty); RSlider's click, drag and single commit are proven in ControlMouseTests",
-        ])
+        ], restore: { _ in ExportOptions.shared.bitrate = bitrate })
     }
 
     /// Esporta on a reel that breaks the editing rules (#31): the card's «go to» and «fix» links, the kind button, the link
@@ -206,14 +208,15 @@ extension MouseSuites.ClickAudits {
     @Test func exportRules() async throws {
         // The link writes the sheet Settings › Regole opens on: put back after each click and at the end.
         let sheet = UserDefaults.standard.object(forKey: SettingsRoute.rulesKey)
-        defer { UserDefaults.standard.set(sheet, forKey: SettingsRoute.rulesKey) }
+        let bitrate = ExportOptions.shared.bitrate
+        defer { UserDefaults.standard.set(sheet, forKey: SettingsRoute.rulesKey); ExportOptions.shared.bitrate = bitrate }
         // A taller window: the panel's export buttons sit under the card, past the bottom of a 900 pt window.
         _ = try await audit("export-rules", Navigation(activity: .export, rightTab: .inspector), size: CGSize(width: 1440, height: 1300),
                             area: CGRect(x: 52, y: 40, width: 1068, height: 1236), noOps: [
             "Reel 9:16": "the export format already chosen (the project's own)",
-            "Bit rate": "a slider of the export form's own state, which the audit does not read (its accessibility value reads empty); RSlider's click, drag and single commit are proven in ControlMouseTests",
         ], restore: { _ in
             UserDefaults.standard.set(sheet, forKey: SettingsRoute.rulesKey)
+            ExportOptions.shared.bitrate = bitrate
         }, setup: { app in
             try await breakTheRules(app)
             await app.idle(0.8)   // the card checks the project
