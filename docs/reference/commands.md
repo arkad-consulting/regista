@@ -1111,11 +1111,11 @@ Returns: pass (caption band clear), per-clip extents and the violations.
 
 **Animated graphics** · MCP tool: `graphics_hyperframes` · undo: yes — one undo step · takes `project`
 
-Render a HyperFrames composition (HTML/GSAP cards, kinetic type, UI mock-ups) to a transparent PNG sequence with the pinned CLI (hyperframes 0.8.150 installed from a lockfile in the engines folder, npm scripts disabled; separate process, Medium tier+) and place it as an overlay: native size in a band, or fullFrame. The composition must have a transparent background. Cached by project content. Returns the overlay clip and render time.
+Render a HyperFrames composition (HTML/GSAP cards, kinetic type, UI mock-ups) to a transparent PNG sequence with the pinned CLI (hyperframes 0.8.150 installed from a lockfile in the engines folder, npm scripts disabled; separate process, Medium tier+) and place it as an overlay: native size in a band, or fullFrame. The composition must have a transparent background. Cached by the folder's content. Returns the overlay clip and render time.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `project` | string | yes | – | HyperFrames project folder (with index.html). |
+| `folder` | string | yes | – | The HyperFrames project folder (with index.html). |
 | `composition` | string | no | index.html | Composition file inside it (default index.html). |
 | `start` | seconds | yes | – | Timeline start. |
 | `duration` | seconds | no | the whole render | Seconds to use (default: the whole render). |

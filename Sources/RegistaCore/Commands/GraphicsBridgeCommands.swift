@@ -133,10 +133,10 @@ enum GraphicsBlenderTitle: Command {
 
 enum GraphicsHyperframes: Command {
     static let id = "graphics.hyperframes"
-    static let summary = "Render a HyperFrames composition (HTML/GSAP cards, kinetic type, UI mock-ups) to a transparent PNG sequence with the pinned CLI (hyperframes \(EngineConfig.hyperframesVersion) installed from a lockfile in the engines folder, npm scripts disabled; separate process, Medium tier+) and place it as an overlay: native size in a band, or fullFrame. The composition must have a transparent background. Cached by project content. Returns the overlay clip and render time."
+    static let summary = "Render a HyperFrames composition (HTML/GSAP cards, kinetic type, UI mock-ups) to a transparent PNG sequence with the pinned CLI (hyperframes \(EngineConfig.hyperframesVersion) installed from a lockfile in the engines folder, npm scripts disabled; separate process, Medium tier+) and place it as an overlay: native size in a band, or fullFrame. The composition must have a transparent background. Cached by the folder's content. Returns the overlay clip and render time."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
-        .required("project", .string, "HyperFrames project folder (with index.html)."),
+        .required("folder", .string, "The HyperFrames project folder (with index.html)."),
         .optional("composition", .string, "Composition file inside it (default index.html)."),
         .required("start", .time, "Timeline start."),
         .optional("duration", .time, "Seconds to use (default: the whole render)."),
@@ -150,11 +150,11 @@ enum GraphicsHyperframes: Command {
         if let why = GraphicsEngines.unavailable(ctx, engine: "HyperFrames (Node.js)", id: "hyperframes", path: runner?.executable) {
             throw CommandError(.io, "\(id): \(why) — install it in Settings › Motori (HyperFrames) or with scripts/install.sh --only hyperframes")
         }
-        let projectDir = URL(fileURLWithPath: EngineConfig.expand(p.requiredString("project"))).standardizedFileURL
+        let projectDir = URL(fileURLWithPath: EngineConfig.expand(p.requiredString("folder"))).standardizedFileURL
         let composition = p.string("composition")
         let entry = projectDir.appendingPathComponent(composition ?? "index.html")
         guard FileManager.default.fileExists(atPath: entry.path) else { throw CommandError.notFound("\(id): no \(entry.path)") }
-        // Cache key: the CLI version, the params and the content of the project's text files.
+        // Cache key: the CLI version, the params and the content of the folder's text files.
         var key = "hf\(EngineConfig.hyperframesVersion)|\(projectDir.path)|\(composition ?? "")|\(p.json("variables").map { String(decoding: $0.data(), as: UTF8.self) } ?? "")"
         let walker = FileManager.default.enumerator(at: projectDir, includingPropertiesForKeys: [.contentModificationDateKey, .fileSizeKey])
         while let f = walker?.nextObject() as? URL {

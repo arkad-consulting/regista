@@ -356,7 +356,7 @@
   {
    "command": "graphics.hyperframes",
    "params": {
-    "project": "${SCENARIO_DIR}/../Fixtures/hyperframes-kicker",
+    "folder": "${SCENARIO_DIR}/../Fixtures/hyperframes-kicker",
     "start": "${m.times.32}",
     "position": [
      540,

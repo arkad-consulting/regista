@@ -180,8 +180,8 @@ extension Recipes {
            passes in front of it, behindSubject: true}; graphics_checkBehindSubject {clipId} must pass. Not on cards,
            not on captions, not over an insert (there is no person there: the text is simply drawn).
         4. Cards: title_add with presets (kicker = mono label, card = text block, stat = one big number, chips =
-           ✓ / ✕ states) or graphics_hyperframes for anything that needs layout or UI motion (HTML/GSAP, transparent,
-           pinned CLI). One idea per card, ≤ 7 words, on screen 2–4 s, pop in (default) and fade out.
+           ✓ / ✕ states) or graphics_hyperframes {folder: the HyperFrames project folder, start} for anything that
+           needs layout or UI motion (HTML/GSAP, transparent, pinned CLI). One idea per card, ≤ 7 words, on screen 2–4 s, pop in (default) and fade out.
         5. Inserts: overlay_add {path, start, duration, fullFrame: true} for AI B-roll that illustrates a line (a
            restaurant, a salon). 0.8–1.6 s each, on the words they illustrate; clip_set grade (contrast 1.04,
            saturation 1.05) and effect_add sharpen 0.5 for 464-px shots scaled up by the compositor (not needed after

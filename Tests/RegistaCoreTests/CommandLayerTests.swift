@@ -31,6 +31,16 @@ import Testing
     }
 }
 
+/// #44: `project` is the tab target every project-scoped command takes at the routing layer (ProjectTarget), taken out
+/// of the params before the command runs: a command that declared a parameter of that name would never see it.
+@Test func noProjectScopedCommandDeclaresAParameterNamedProject() {
+    let all = Engine(prober: FakeProber()).descriptors
+    #expect(all.contains { $0.id == "graphics.hyperframes" })
+    for d in all where ProjectTarget.accepts(d.id) {
+        #expect(!d.params.contains { $0.name == ProjectTarget.param }, "\(d.id) declares '\(ProjectTarget.param)', which is the tab target")
+    }
+}
+
 @Test func validationErrorsAreClear() throws {
     let e = try editingEngine()
     func message(_ id: String, _ params: JSONValue) -> String {
