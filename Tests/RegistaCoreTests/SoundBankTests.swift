@@ -107,3 +107,51 @@ private let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().d
     try e.checkUndoRedo("sfx.onCuts", ["remove": true])
     #expect(e.project!.tracks.filter { $0.role == "sfx" }.flatMap(\.clips).isEmpty)
 }
+
+/// #23: energico's "whoosh on cuts" lands: the step is under `applied`, and the whooshes sit with their loudest moment on
+/// the cuts (≥ 3 s apart), as sfx.onCuts places them.
+@Test func energicoPutsItsWhooshOnTheCuts() throws {
+    var services = EngineServices.standard()
+    services.config.sfxLibrary = tempDir().path
+    let e = Engine(prober: FakeProber(), services: services)
+    try e.execute("project.new", params: ["name": "energico"])
+    try e.execute("media.import", params: ["path": .string(fakeMedia())])
+    try e.execute("track.add", params: ["kind": "video"])
+    for (start, a) in [(0.0, 0.0), (4.0, 10.0), (5.0, 20.0), (9.0, 30.0)] {   // cuts at 4, 5 (too close) and 9 s
+        try e.execute("timeline.place", params: ["assetId": "a1", "trackId": "t1", "start": .number(start), "sourceIn": .number(a), "sourceOut": .number(a + 1)])
+    }
+    let r = try e.execute("style.apply", params: ["style": "energico"])
+    let applied = r["applied"]?.arrayValue?.compactMap(\.stringValue) ?? []
+    let skipped = r["skipped"]?.arrayValue?.compactMap(\.stringValue) ?? []
+    #expect(applied.contains("whoosh on cuts"), "skipped: \(skipped)")
+    #expect(!skipped.contains { $0.hasPrefix("whoosh") })
+    let peak = try #require(SoundLibrary.bank().first { $0.name == "whoosh_fast/crisp" }?.peak)
+    let clips = e.project!.tracks.filter { $0.role == "sfx" }.flatMap(\.clips)
+    #expect(clips.map { (($0.start.seconds + peak) * 100).rounded() / 100 } == [4, 9])
+}
+
+/// #23: every sound name a style, a recipe or a command's default names (`group/variant` of a bank group) is in the
+/// shipped bank, so no step that places a sound can fail on a name that does not exist.
+@Test func everySoundNameTheStylesAndRecipesUseIsInTheBank() throws {
+    let bank = Set(SoundLibrary.bank().map(\.name))
+    let groups = Set(bank.compactMap { $0.split(separator: "/").first.map(String.init) })
+    let roots = ["Sources/RegistaCore", "Sources/RegistaEngines", "Sources/Regista", "handoff"].map { repo.appendingPathComponent($0) }
+    let pattern = try NSRegularExpression(pattern: #"(?<![\w/.-])([a-z][a-z_]*)/([a-z][a-z_0-9]*)(?![\w/.-])"#)
+    var used: [String: String] = [:]
+    for root in roots {
+        guard let files = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil) else { continue }
+        for case let f as URL in files where ["swift", "md", "json"].contains(f.pathExtension) {
+            let text = try String(contentsOf: f, encoding: .utf8)
+            for m in pattern.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
+                let ns = text as NSString
+                let group = ns.substring(with: m.range(at: 1))
+                if groups.contains(group) { used[ns.substring(with: m.range), default: f.lastPathComponent] = f.lastPathComponent }
+            }
+        }
+    }
+    #expect(used["whoosh_fast/crisp"] != nil, "sfx.onCuts' default is no longer found by this scan")
+    let missing = used.filter { !bank.contains($0.key) }.map { "\($0.key) (\($0.value))" }.sorted()
+    #expect(missing.isEmpty, "not in the shipped bank: \(missing.joined(separator: ", "))")
+    // energico's whoosh is sfx.onCuts' default sound.
+    #expect(bank.contains("whoosh_fast/crisp"))
+}

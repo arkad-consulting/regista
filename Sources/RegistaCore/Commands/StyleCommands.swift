@@ -483,15 +483,8 @@ enum StyleApply: Command {
                 }
                 ctx.project = pr
             }
-            step("whoosh on cuts") { ctx in
-                let cuts = main.clips.dropFirst().map(\.start)
-                var last = -10.0, n = 0
-                for at in cuts where at.seconds - last >= 3 && n < 6 {
-                    try Nested.run(SFXAdd.self, ["at": .number(max(at.seconds - 0.12, 0)), "name": "whoosh-short", "volume": .number(0.12 + 0.12 * i)], &ctx)
-                    last = at.seconds; n += 1
-                }
-                if n == 0 { throw CommandError.conflict("no cuts 3 s apart") }
-            }
+            // sfx.onCuts places the bank's whoosh with its loudest moment on each cut (≥ 3 s apart, max 6).
+            step("whoosh on cuts") { try Nested.run(SFXOnCuts.self, ["volume": .number(0.12 + 0.12 * i)], &$0) }
             if hasCaptions { step("pop captions (word by word)") { try Nested.run(CaptionsSetStyle.self, ["overrides": ["reveal": "word"]], &$0) } }
             else { skipped.append("pop captions: no captions yet (captions.generate, then style.apply again)") }
         case "pulito":
