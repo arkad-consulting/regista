@@ -147,6 +147,11 @@ struct ClickAudit {
 
     private let sourcesBox = Box<RecordingSources>()
 
+    /// The controls on screen inside `area` (all of them without one), in the tree's order.
+    private func controlsInArea() -> [RigElement] {
+        app.rig.controls().filter { area == nil || area!.contains($0.centre) }
+    }
+
     private func match(_ name: String, _ table: [String: String]) -> String? {
         table.first { !$0.key.isEmpty && name.hasPrefix($0.key) }?.value
     }
@@ -161,7 +166,7 @@ struct ClickAudit {
         sourcesBox.value = app.recorder.sources
         let base = AuditState(app)
         let baseNav = app.store.nav
-        let targets = rig.controls().filter { area == nil || area!.contains($0.centre) }
+        let targets = controlsInArea()
         var seen: [String: Int] = [:]
         var rows: [Row] = []
         // The screen is rebuilt only after a click that changed something (a click that changed nothing left it as it was).
@@ -175,11 +180,13 @@ struct ClickAudit {
             }
             if dirty { await back(to: base, nav: baseNav) }
             dirty = true
+            // Found again among the controls of the audited area, by name and index there (#48): a control of the same
+            // name outside the area (the activity bar's «Voce» beside the Gobbo's) is not the one to click.
             // A list that loads after the screen is rebuilt (the sound bank): wait for the control a moment.
-            var found = rig.controls().filter({ $0.key == t.key })[safe: n]
+            var found = controlsInArea().filter({ $0.key == t.key })[safe: n]
             for _ in 0..<10 where found == nil {
                 await app.idle(0.1)
-                found = rig.controls().filter({ $0.key == t.key })[safe: n]
+                found = controlsInArea().filter({ $0.key == t.key })[safe: n]
             }
             guard let e = found else {
                 rows.append(Row(control: t.description, at: t.centre, effect: "not found again on a fresh screen", problem: "unstable"))
@@ -213,7 +220,7 @@ struct ClickAudit {
                 changes = AuditState(app).changes(since: before)
             }
             // Still there: the same control (by name) or a control of its role where it was (a switch named by its value).
-            let still = rig.controls().contains { $0.key == e.key || ($0.role == e.role && abs($0.centre.x - e.centre.x) < 2 && abs($0.centre.y - e.centre.y) < 2) }
+            let still = controlsInArea().contains { $0.key == e.key || ($0.role == e.role && abs($0.centre.x - e.centre.x) < 2 && abs($0.centre.y - e.centre.y) < 2) }
                 || changes.contains { $0.hasPrefix("navigation") || $0.hasPrefix("command") }
             if !still, !changes.isEmpty { changes.append("the control left the screen") }
             var row = Row(control: e.description + (e.enabled ? "" : " [disabled]"), at: p, effect: changes.isEmpty ? "NOTHING" : changes.joined(separator: "; "))

@@ -244,6 +244,9 @@ extension MouseSuites.ClickAudits {
         let name = "right-\(tab.rawValue)" + (window.width == RigWindowSize.standard.width ? "" : "-\(window.testDescription)")
         _ = try await audit(name, Navigation(activity: .media, rightTab: tab), size: window.size, area: RenderParts.right(window.size), noOps: [
             "Gobbo": alreadyCurrent, "Claude": alreadyCurrent, "Ispettore": alreadyCurrent, "Français": alreadyCurrent,
+            // The Gobbo's scrolling mode, clicked since the audit finds controls again inside its area (#48): Voce is the
+            // teleprompter's default mode.
+            "Voce": alreadyCurrent,
             "Ricomincia": "scrolls the teleprompter's own window back to the top: that window is hidden here (Mostra il gobbo is clicked on its own)",
         ])
     }
