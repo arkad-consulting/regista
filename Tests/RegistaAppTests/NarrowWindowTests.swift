@@ -236,7 +236,9 @@ extension MouseSuites {
             await app.settle()
             let panels = app.rig.elements().filter { $0.visible && ($0.centre.x < content.maxX ? $0.centre.x > Chrome.activityWidth : right.contains(CGPoint(x: $0.centre.x, y: right.midY))) }
             let top = panels.filter { $0.frame.minY < right.minY - 0.5 && $0.frame.maxY > right.minY + 0.5 }
-            let bottom = panels.filter { $0.frame.minY < right.maxY - 0.5 && $0.frame.maxY > right.maxY + 0.5 && $0.frame.height < size.height / 2 }
+            // A row a scroll area cuts at its bottom edge, above the status bar, is not drawn across it.
+            let bottom = panels.filter { $0.frame.minY < right.maxY - 0.5 && $0.frame.maxY > right.maxY + 0.5 && $0.frame.height < size.height / 2
+                && $0.clip.maxY > right.maxY + 0.5 }
             #expect(top.isEmpty, "\(name) \(language): drawn across the panels' top: \(top.prefix(3).map { "\($0) \($0.frame)" })")
             #expect(bottom.isEmpty, "\(name) \(language): drawn across the status bar's top: \(bottom.prefix(3).map { "\($0) \($0.frame)" })")
             let tab = app.rig.elements().first { $0.role == "AXButton" && right.contains($0.centre) && $0.name == word("Gobbo", language) }

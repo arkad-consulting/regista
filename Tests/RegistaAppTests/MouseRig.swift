@@ -393,7 +393,7 @@ final class MouseRig {
                 let e = RigElement(ref: o, role: role, label: (o.accessibilityLabel?() ?? nil) ?? "", value: value,
                                    title: (o.accessibilityTitle?() ?? nil) ?? "", frame: frame, enabled: o.isAccessibilityEnabled?() ?? true,
                                    selected: o.isAccessibilitySelected?() ?? false, visible: !shown.isNull && shown.width >= 2 && shown.height >= 2 && clip.contains(CGPoint(x: frame.midX, y: frame.midY)),
-                                   depth: depth, actions: actions, parentRole: parent)
+                                   depth: depth, actions: actions, parentRole: parent, clip: clip)
                 out.append(e)
                 // A scroll area clips its content: what lies outside it is not on screen.
                 walk(o, clip: role == NSAccessibility.Role.scrollArea.rawValue ? clip.intersection(frame) : clip, depth: depth + 1, parent: role)
@@ -452,6 +452,8 @@ struct RigElement: CustomStringConvertible {
     var actions: [String] = []
     /// The role of the element it belongs to.
     var parentRole = ""
+    /// What of the window can show it: the window, or the scroll areas around it (they clip what lies past their edges).
+    var clip: CGRect = .infinite
 
     var centre: CGPoint { CGPoint(x: frame.midX, y: frame.midY) }
     /// What a person reads on it.
