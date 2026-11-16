@@ -29,7 +29,12 @@ python3 -I scripts/l10n.py >"$log" 2>&1 || fail "scripts/l10n.py"
 # is still clicked before anything is published. REGISTA_FULL_HOOK=1 runs them here too.
 [ "${REGISTA_FULL_HOOK:-}" = 1 ] || export REGISTA_SKIP_CLICK_AUDIT=1
 echo "pre-commit: unit tests…"
-scripts/test.sh >"$log" 2>&1 || fail "scripts/test.sh"
+if ! scripts/test.sh >"$log" 2>&1; then
+  # The failures themselves, not the log's last lines (a failed test can be hundreds of lines above the summary).
+  echo "pre-commit: scripts/test.sh failed:" >&2
+  grep -E "✘|recorded an issue|error:|test\.sh:" "$log" | tail -40 >&2 || tail -40 "$log" >&2
+  exit 1
+fi
 grep -E "Test run with" "$log" | tail -1
 
 swift build --product regista-engine >"$log" 2>&1 || fail "swift build regista-engine"

@@ -116,10 +116,14 @@ fi
 # missing. Never green by itself: the run is taken up again, without the tests that already passed, up to
 # REGISTA_TEST_RUNS runs in all (default 4); if the last one does not reach its summary either, the run fails. A test
 # is left out only when every test of that name passed in one same run (two suites can share a function name).
+# A test that failed before the early end runs again with the rest, but its failure stands (#55): a pass in a later run
+# does not undo it, the run fails and the failures are printed again next to the verdict.
 RUNS="${REGISTA_TEST_RUNS:-4}"
 unfinished() { [ "$rc" = 0 ] && ! grep -qE "Test run with [0-9]+ tests? .*passed" "$log"; }
 runs=1; ids=""; passed="$scratch/passed-ids"; : > "$passed"; skips=()
+failed="$scratch/failed"; : > "$failed"
 while unfinished && [ "$runs" -lt "$RUNS" ]; do
+  grep -E "✘ Test .+ failed" "$log" >> "$failed" || true
   echo
   echo "test.sh: the test process ended before the run's summary: the run did not finish (the last tests started are above)."
   [ -n "$ids" ] || ids="$("$SWIFT" test list ${args[@]+"${args[@]}"} 2>/dev/null || true)"
@@ -139,6 +143,11 @@ while unfinished && [ "$runs" -lt "$RUNS" ]; do
 done
 if unfinished; then
   echo "test.sh: the run did not finish after $runs runs."
+  rc=1
+fi
+if [ -s "$failed" ]; then
+  echo "test.sh: a run that ended early had these failures; a later run does not undo them:"
+  sort -u "$failed"
   rc=1
 fi
 exit "$rc"

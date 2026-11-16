@@ -4,7 +4,7 @@ import Testing
 // #19: scripts/test.sh on a crashed test process (signal 11). A fake `swift` plays the cases: a crash in a run that
 // compiled (maybe a stale build: one clean rebuild and one retry), a crash with nothing compiled (the code's: no
 // retry), an ordinary failure (no retry, no crash talk), a process that ends with 0 before the run's summary (the run
-// did not finish: taken up again without what passed, never green by itself) and a test that hangs (stopped after the time limit). The crashed thread of the crash
+// did not finish: taken up again without what passed, never green by itself, a failure before the early end stands) and a test that hangs (stopped after the time limit). The crashed thread of the crash
 // report is printed. Also what test.sh sets for every run: the parallelism cap (#80).
 
 private let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
@@ -31,6 +31,8 @@ case "$FAKE_MODE:$n" in
   quitonce:*) echo "✔ Test run with 1 test passed"; exit 0 ;;
   resume:1) echo "✔ Test first() passed after 0.1 seconds."; echo "✔ Test second(_:) with 2 test cases passed after 0.1 seconds."; echo "◇ Test third() started."; exit 0 ;;
   resume:*) echo "args=$*"; echo "✔ Test run with 2 tests passed"; exit 0 ;;
+  failquit:1) echo "✘ Test first() failed after 0.1 seconds with 1 issue."; echo "◇ Test third() started."; exit 0 ;;
+  failquit:*) echo "✔ Test run with 3 tests passed"; exit 0 ;;
   hang:*) echo "◇ Test aTest() started."; sleep 60 ;;
 esac
 """#
@@ -102,6 +104,11 @@ private func runTestScript(_ mode: String) throws -> (status: Int32, output: Str
     #expect(resume.status == 0 && resume.calls == 2, "\(resume.output)")
     let resumed = resume.output.split(separator: "\n").first { $0.hasPrefix("args=") }.map(String.init) ?? ""
     #expect(resumed.contains(#"--skip ^Mod\.Suite/first\(\)(/|$)"#) && !resumed.contains("second"), "\(resume.output)")
+
+    // A failure recorded before the early end stands, whatever the run that takes it up again says (#55).
+    let failquit = try runTestScript("failquit")
+    #expect(failquit.status != 0 && failquit.calls == 2, "\(failquit.output)")
+    #expect(failquit.output.contains("a later run does not undo them") && failquit.output.hasSuffix("✘ Test first() failed after 0.1 seconds with 1 issue.\n"), "\(failquit.output)")
 
     // A test that hangs: the run is stopped after the time limit and fails, it does not block for ever.
     let started = Date()
