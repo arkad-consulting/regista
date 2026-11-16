@@ -30,7 +30,8 @@ import Testing
     #expect(EnvironmentValues().pasteboard == NSPasteboard.general)
 }
 
-/// The rig's services: scratch folders, stand-in providers, no ComfyUI server, heavy engines not found.
+/// The rig's services: scratch folders, stand-in providers, no ComfyUI server, heavy engines not found; the voice is
+/// the real VoxCPM provider on the rig's environment, whose uv is the stub (RigVoice, #36).
 @MainActor
 @Test func theRigServicesStayInScratchFolders() throws {
     _ = rigOutside
@@ -38,11 +39,17 @@ import Testing
     let tmp = FileManager.default.temporaryDirectory.path
     #expect(s.generationState.path.hasPrefix(tmp) && s.profiles.directory.path.hasPrefix(tmp) && s.config.cacheDirectory.hasPrefix(tmp))
     #expect(s.rules.directory.path.hasPrefix(tmp) && RuleBook.defaultDirectory.path.hasPrefix(tmp))
-    #expect(Set(s.generators.keys) == ["comfyui", "higgsfield", "voxcpm"] && s.generators.values.allSatisfy { $0 is RigGenerator })
+    #expect(Set(s.generators.keys) == ["comfyui", "higgsfield", "voxcpm"])
+    #expect(s.generators["comfyui"] is RigGenerator && s.generators["higgsfield"] is RigGenerator && s.generators["voxcpm"] is VoxCPMProvider)
     #expect(s.comfyServer() == nil)
-    for path in [s.config.uv, s.config.comfyGen, s.config.higgsfield ?? "", s.config.voxcpmProject, s.config.blender, s.config.node, s.config.whisperXProject] {
+    for path in [s.config.comfyGen, s.config.higgsfield ?? "", s.config.blender, s.config.node, s.config.whisperXProject] {
         #expect(path.hasPrefix(tmp) && !FileManager.default.fileExists(atPath: path))
     }
+    // The voice's environment: in the scratch folder, its uv the rig's stub (a script there, never the real uv).
+    for path in [s.config.uv, s.config.voxcpmProject, s.config.voxcpmScript, s.config.voxcpmModel] { #expect(path.hasPrefix(tmp)) }
+    let uv = try String(contentsOfFile: s.config.uv, encoding: .utf8)
+    #expect(uv.contains("The test rig's uv") && FileManager.default.isExecutableFile(atPath: s.config.uv))
+    #expect(s.generators["voxcpm"]?.unavailableReason(.voice) == nil)
 }
 
 /// Every seam the rig writes through resolves under the scratch root of the test process (the hard part of the proof of
@@ -207,7 +214,8 @@ extension MouseSuites {
         await app.settle()
         let tab = try #require(bench.tabs.first { $0 !== app.store }, "+ opened no tab")
         let s = tab.engine.context.services
-        #expect(s.generators.values.allSatisfy { $0 is RigGenerator } && !s.generators.isEmpty)
+        #expect(s.generators["comfyui"] is RigGenerator && s.generators["higgsfield"] is RigGenerator)
+        #expect(s.config.uv == app.store.engine.context.services.config.uv, "the tab's voice is not the rig's environment")
         #expect(tab.generationState == app.store.generationState)
         #expect(s.profiles.directory == app.store.engine.context.services.profiles.directory)
         #expect(s.generationState.path.hasPrefix(FileManager.default.temporaryDirectory.path))

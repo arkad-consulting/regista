@@ -11,7 +11,8 @@ import Testing
 // whoever runs the suite, so the rig is isolated by construction rather than by a list of labels:
 // - its stores get their services from `RigServices` through the workbench's one seam (every tab, also a tab a click
 //   opens): scratch folders for voice profiles, budget and approvals, generation providers whose job cannot start,
-//   the fixture transcription, no ComfyUI server, heavy engines pointed at paths that do not exist;
+//   a VoxCPM2 environment whose uv is a stub (RigVoice: a synthetic tone, a placeholder checkpoint), the fixture
+//   transcription, no ComfyUI server, the other heavy engines pointed at paths that do not exist;
 // - everything else that leaves the process points at a scratch target of this test process (`RigOutside`):
 //   engines.json, the engines folder, the installer (a stub that writes down its arguments), the Claude clients'
 //   home folder (a stub `claude` command and a stub regista-mcp);
@@ -112,10 +113,13 @@ enum RigServices {
         s.config.cacheDirectory = folder.appendingPathComponent("cache").path
         // The heavy engines a click could start outside Regista's own work: nothing is found there, nothing runs.
         let none = folder.appendingPathComponent("not-installed", isDirectory: true)
-        s.config.uv = none.appendingPathComponent("uv").path
-        s.config.voxcpmProject = none.appendingPathComponent("voxcpm").path
-        s.config.voxcpmScript = none.appendingPathComponent("voxcpm/vox_say.py").path
-        s.config.voxcpmModel = none.appendingPathComponent("voxcpm/VoxCPM2").path
+        // The voice: the rig's VoxCPM2 environment, whose uv is a stub (RigVoice): a click on «Ascolta», «Metti in
+        // timeline» or «Allena la voce» runs its command through the real provider, nothing is synthesised or trained.
+        let vox = RigVoice.install(in: folder)
+        s.config.uv = vox.appendingPathComponent("uv").path
+        s.config.voxcpmProject = vox.path
+        s.config.voxcpmScript = vox.appendingPathComponent("vox_say.py").path
+        s.config.voxcpmModel = vox.appendingPathComponent("VoxCPM2").path
         s.config.comfyGen = none.appendingPathComponent("comfy-gen").path
         s.config.comfyRun = none.appendingPathComponent("comfy_run.py").path
         s.config.higgsfield = none.appendingPathComponent("higgsfield").path
@@ -134,10 +138,11 @@ enum RigServices {
         s.generationState = folder.appendingPathComponent("generation", isDirectory: true)
         s.rules = RuleBook(directory: folder.appendingPathComponent("rules", isDirectory: true))
         s.generators = [:]
-        for g in [ComfyUIProvider(config: s.config), HiggsfieldProvider(config: s.config),
-                  VoxCPMProvider(config: s.config, profiles: s.profiles)] as [GeneratorProvider] {
+        for g in [ComfyUIProvider(config: s.config), HiggsfieldProvider(config: s.config)] as [GeneratorProvider] {
             s.generators[g.id] = RigGenerator(real: g)
         }
+        // VoxCPM2 is the real provider on the rig's environment: its process is the stub uv.
+        s.generators["voxcpm"] = VoxCPMProvider(config: s.config, profiles: s.profiles)
         s.comfyServer = { nil }
         return s
     }
@@ -167,6 +172,71 @@ struct RigGenerator: GeneratorProvider {
     func finish(keepRunning: Bool) {}
     func seconds(_ request: GenerationRequest, sourceSeconds: Double?) -> Double? { real.seconds(request, sourceSeconds: sourceSeconds) }
     func formats(_ kind: GenerationKind) -> [GenerationFormat] { real.formats(kind) }
+}
+
+// MARK: - Voice
+
+/// The rig's VoxCPM2 environment (#36): what the real VoxCPM provider and the trainer look for — pyproject.toml, the
+/// recording scripts (the repository's own), vox_say.py, the trainer, the model's config.json — in a scratch folder,
+/// and a `uv` that is a stub: asked for vox_say.py it writes a short synthetic tone where the request says (nothing is
+/// synthesised by an engine), asked for the trainer it writes a LoRA checkpoint of placeholder files. What it was asked
+/// is in `log`. Nothing is played (RigGuard mutes every player) and nothing is recorded (the capture stand-in).
+enum RigVoice {
+    /// The stub's record of its calls, one line each ("say <out>", "train <config>").
+    static func log(_ folder: URL) -> URL { folder.appendingPathComponent("uv.log") }
+
+    static func install(in folder: URL) -> URL {
+        let fm = FileManager.default
+        let vox = folder.appendingPathComponent("voxcpm", isDirectory: true)
+        if fm.fileExists(atPath: vox.appendingPathComponent("uv").path) { return vox }
+        let repo = RigOutside.repository.appendingPathComponent("engines/voxcpm")
+        try? fm.createDirectory(at: vox.appendingPathComponent("VoxCPM2"), withIntermediateDirectories: true)
+        try? fm.copyItem(at: repo.appendingPathComponent("pyproject.toml"), to: vox.appendingPathComponent("pyproject.toml"))
+        try? fm.copyItem(at: repo.appendingPathComponent("scripts"), to: vox.appendingPathComponent("scripts"))
+        for placeholder in ["vox_say.py", "train_voxcpm_finetune.py"] {
+            try? "# the test rig's placeholder: the stub uv never runs it\n".write(to: vox.appendingPathComponent(placeholder), atomically: true, encoding: .utf8)
+        }
+        try? "{}".write(to: vox.appendingPathComponent("VoxCPM2/config.json"), atomically: true, encoding: .utf8)
+        let uv = vox.appendingPathComponent("uv")
+        try? stub(log: log(vox)).write(to: uv, atomically: true, encoding: .utf8)
+        try? fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: uv.path)
+        return vox
+    }
+
+    /// `uv run --frozen --project <p> python -I <script> <args…>`, as VoxCPM's provider and the trainer call it.
+    private static func stub(log: URL) -> String {
+        """
+        #!/usr/bin/python3 -I
+        # The test rig's uv (#36): no engine runs. vox_say.py writes a 1.2 s synthetic tone where the request says;
+        # the trainer writes a LoRA checkpoint of placeholder files next to its config.
+        import json, math, os, struct, sys, wave
+        args = sys.argv[1:]
+        script = next((a for a in args if a.endswith(".py")), "")
+        rest = args[args.index(script) + 1:] if script else []
+        with open(\(log.path.debugDescription), "a") as f:
+            f.write(os.path.basename(script) + " " + " ".join(a[:80] for a in rest) + "\\n")
+        if script.endswith("vox_say.py"):
+            request = json.loads(rest[0])
+            files = []
+            for item in request["items"]:
+                rate = 24000
+                with wave.open(item["out"], "wb") as w:
+                    w.setnchannels(1); w.setsampwidth(2); w.setframerate(rate)
+                    w.writeframes(b"".join(struct.pack("<h", int(6000 * math.sin(2 * math.pi * 220 * i / rate))) for i in range(int(rate * 1.2))))
+                files.append(item["out"])
+            print(json.dumps({"files": files, "wall_seconds": 0.1}))
+        elif script.endswith("train_voxcpm_finetune.py"):
+            config = rest[rest.index("--config_path") + 1]
+            step = os.path.join(os.path.dirname(config), "step_0000300")
+            os.makedirs(step, exist_ok=True)
+            for name in ("lora_weights.safetensors", "lora_config.json"):
+                with open(os.path.join(step, name), "w") as f:
+                    f.write("{}")
+            print("[train] step 299: loss 0.1, log interval: 1.0s")
+        else:
+            sys.exit("the test rig's uv runs vox_say.py and the trainer only")
+        """
+    }
 }
 
 // MARK: - Capture
