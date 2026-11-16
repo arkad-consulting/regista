@@ -39,7 +39,8 @@
   {"command": "history.undo", "expect": {"result.undone": "clip.place"}},
   {"command": "history.redo"},
   {"command": "frame.elements", "params": {"time": 3},
-   "expect": {"result.elements": {"count": 3}, "result.elements.2.kind": "caption"}},
+   "expect": {"result.elements": {"count": 4, "includes": [{"clipId": "${title}"}, {"clipId": "${sticker}"}]},
+              "result.elements.0.kind": "picture", "result.elements.3.kind": "caption"}},
 
   {"command": "export.render", "params": {"path": "${WORK}/caption-place.mp4", "preset": "9:16"}, "expect": {"result.frames": 360}},
   {"command": "project.save"},
