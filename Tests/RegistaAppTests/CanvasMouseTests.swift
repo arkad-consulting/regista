@@ -243,6 +243,23 @@ extension MouseSuites {
         #expect(c.clip.placement!.y > 0.52)
     }
 
+    /// A drag snaps the box to the frame's centre lines; with ⌘ held on the drag's own events it does not (#36: the
+    /// gesture reads the click's modifiers, not the keyboard's).
+    @Test func aCommandDragDoesNotSnap() async throws {
+        let c = try await CanvasRig(scale: 0.5)
+        defer { c.close() }
+        c.select()
+        // 4 pt to the right: past the drag's start (3 pt), inside the snapping distance (6 pt).
+        try await c.drag(from: c.viewPoint((540, 960)), by: CGSize(width: 4, height: 0))
+        let snapped = c.clip.placement?.x ?? 0.5
+        #expect(abs(snapped - 0.5) < 0.001, "a plain drag did not snap back to the centre line (x \(snapped))")
+        let before = c.store.projectVersion
+        c.rig.drag(from: c.viewPoint((540, 960)), by: CGSize(width: 4, height: 0), modifiers: .command)
+        try await c.settle(since: before)
+        let free = c.clip.placement?.x ?? 0.5
+        #expect(free > 0.5 + 2 / (c.pointsPerPixel * 1080), "a ⌘-drag snapped (x \(free))")
+    }
+
     /// Once selected (handles and bar on screen) it still moves, and a click on the empty picture deselects it.
     @Test func aSelectedOverlayStillMovesAndDeselects() async throws {
         let c = try await CanvasRig(scale: 0.5)

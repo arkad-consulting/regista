@@ -531,7 +531,7 @@ struct CanvasOverlay: View {
                 press = pr
                 var g = CanvasGesture(key: key, dx: t.width / m.scale, dy: t.height / m.scale)
                 // Snap the moved box to the frame's centre lines and thirds and to the other elements (⌘ = no snapping).
-                if !NSEvent.modifierFlags.contains(.command) {
+                if !NSEvent.clickModifiers.contains(.command) {
                     let others = model.elements.filter { canvasKey($0) != key }.map(\.box)
                     let guides = Snapper.targets(width: frameSize.0, height: frameSize.1, others: others)
                     let snapped = Snapper.snap(moved(e, g).box, to: guides, threshold: 6 / m.scale)

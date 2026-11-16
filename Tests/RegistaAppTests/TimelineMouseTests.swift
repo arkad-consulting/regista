@@ -166,5 +166,58 @@ extension MouseSuites {
         await t.app.settle()
         #expect(!t.store.preview.isPlaying, "Space did not pause")
     }
+
+    /// ⇧-click and ⌘-click read the click's own modifiers (#36), as a real mouse event carries them: ⇧ adds a clip to the
+    /// selection and takes it out again, ⌘ (no meaning on the timeline) selects the clip alone like a plain click.
+    @Test func aShiftClickAddsAClipAndACommandClickSelectsItAlone() async throws {
+        let t = try await TimelineRig()
+        defer { t.close() }
+        let sound = try #require(t.store.project!.tracks.first { $0.kind == .audio }?.clips.first)
+        t.rig.click(CGPoint(x: t.x(2), y: t.laneY("V1")))
+        await t.app.settle()
+        #expect(t.store.selection == [t.footage.id])
+        t.rig.click(CGPoint(x: t.x(2), y: t.laneY("A1")), modifiers: .shift)
+        await t.app.settle()
+        #expect(t.store.selection == [t.footage.id, sound.id], "⇧-click did not add the sound to the selection: \(t.store.selection)")
+        t.rig.click(CGPoint(x: t.x(2), y: t.laneY("A1")), modifiers: .shift)
+        await t.app.settle()
+        #expect(t.store.selection == [t.footage.id], "a second ⇧-click did not take the sound out: \(t.store.selection)")
+        t.rig.click(CGPoint(x: t.x(2), y: t.laneY("A1")), modifiers: .command)
+        await t.app.settle()
+        #expect(t.store.selection == [sound.id], "⌘-click did not select the sound alone: \(t.store.selection)")
+    }
+
+    /// The Hand tool: press, move, release on the lanes scrolls the timeline (#36); no clip moves, the selection stays.
+    @Test func theHandToolDragsTheView() async throws {
+        let t = try await TimelineRig()
+        defer { t.close() }
+        // Zoomed in: 6 s at 200 pt per second is wider than the lanes.
+        t.store.pxPerSec = 200
+        t.rig.pump(0.2)
+        await t.app.settle()
+        #expect(t.rig.click("Mano"))
+        #expect(t.store.tool == .hand, "Mano did not pick the Hand tool")
+        let lane = CGPoint(x: t.lanesX + 300, y: t.laneY("V1"))
+        func offset() -> CGFloat? {
+            var v = t.rig.viewAt(lane)
+            while let x = v, !(x is NSScrollView) { v = x.superview }
+            return (v as? NSScrollView)?.contentView.bounds.origin.x
+        }
+        let start = try #require(offset(), "no scroll view under the lanes")
+        let n = t.store.activity.count, before = t.footage, selection = t.store.selection
+        t.rig.drag(from: lane, by: CGSize(width: -120, height: 0))
+        await t.app.settle()
+        let end = try #require(offset())
+        #expect(end > start + 20, "the view did not scroll with the drag (from \(start) to \(end))")
+        withKnownIssue("#56: the Hand tool scrolls the view by half the drag") {
+            #expect(abs(end - start - 120) < 2, "the view scrolled from \(start) to \(end), not by the drag's 120 pt")
+        }
+        #expect(t.app.commands(since: n).isEmpty, "the Hand tool ran \(t.app.commands(since: n))")
+        #expect(t.footage == before && t.store.selection == selection, "the Hand tool moved or selected a clip")
+        // And back.
+        t.rig.drag(from: lane, by: CGSize(width: 120, height: 0))
+        await t.app.settle()
+        #expect(abs((offset() ?? -1) - start) < 2, "a drag back did not scroll back")
+    }
 }
 }

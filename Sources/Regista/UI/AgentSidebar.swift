@@ -310,9 +310,10 @@ struct TranscriptView: View {
             .background(RoundedRectangle(cornerRadius: Ed.Radius.xs).fill(selected ? Ed.gold.opacity(0.9) : .clear))
             .contentShape(Rectangle())
             .onTapGesture {
-                if NSEvent.modifierFlags.contains(.shift), let a = anchor ?? store.wordSelection?.lowerBound {
+                let keys = NSEvent.clickModifiers
+                if keys.contains(.shift), let a = anchor ?? store.wordSelection?.lowerBound {
                     store.wordSelection = min(a, i)...max(a, i)
-                } else if NSEvent.modifierFlags.contains(.command) || NSEvent.modifierFlags.contains(.option) {
+                } else if keys.contains(.command) || keys.contains(.option) {
                     anchor = i
                     store.wordSelection = i...i
                 } else {

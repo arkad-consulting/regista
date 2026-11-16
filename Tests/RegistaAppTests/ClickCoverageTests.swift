@@ -39,5 +39,35 @@ extension MouseSuites {
         await app.idle(0.3)
         #expect(options.bitrate == 25 && slider()?.valueDescription == "25 Mbps")
     }
+
+    /// Testi e sottotitoli › Trascrizione: a word's click reads its own modifiers (#36). ⌘-click selects a word, ⇧-click
+    /// extends the selection to another, ⌥-click starts again from a word, a plain click goes to the word.
+    @Test func theTranscriptWordsReadTheClicksModifiers() async throws {
+        let app = try await AppRig()
+        defer { app.close() }
+        var nav = Navigation(activity: .texts, rightTab: .inspector)
+        nav.textsTab = .transcript
+        app.hostEditor(nav)
+        await app.settle()
+        func word(_ w: String) throws -> CGPoint {
+            try #require(app.rig.elements().first { $0.role == "AXStaticText" && $0.name.trimmingCharacters(in: .whitespaces) == w && WindowPart.side.contains($0.centre) },
+                         "no word «\(w)» in the transcript").centre
+        }
+        let words = app.store.words.map(\.text)
+        let regista = try #require(words.firstIndex(of: "Regista")), il = try #require(words.firstIndex(of: "il")), oggi = try #require(words.firstIndex(of: "Oggi"))
+        app.rig.click(try word("Regista"), modifiers: .command)
+        await app.settle()
+        #expect(app.store.wordSelection == regista...regista, "⌘-click did not select «Regista»: \(String(describing: app.store.wordSelection))")
+        app.rig.click(try word("il"), modifiers: .shift)
+        await app.settle()
+        #expect(app.store.wordSelection == regista...il, "⇧-click did not extend to «il»: \(String(describing: app.store.wordSelection))")
+        app.rig.click(try word("Oggi"), modifiers: .option)
+        await app.settle()
+        #expect(app.store.wordSelection == oggi...oggi, "⌥-click did not start again from «Oggi»: \(String(describing: app.store.wordSelection))")
+        app.rig.click(try word("il"))
+        await app.settle()
+        #expect(app.store.wordSelection == nil, "a plain click kept a selection")
+        #expect(abs(app.store.preview.playhead.time - app.store.words[il].start.seconds) < 0.05, "a plain click did not go to «il»")
+    }
 }
 }

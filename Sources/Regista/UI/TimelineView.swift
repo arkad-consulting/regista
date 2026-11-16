@@ -439,7 +439,7 @@ struct TimelinePanel: View {
             return DragState(kind: .empty, start: p)
         }
         if store.tool == .razor { return DragState(kind: .razor(clip.id), start: p) }
-        let shift = NSEvent.modifierFlags.contains(.shift)
+        let shift = NSEvent.clickModifiers.contains(.shift)
         if shift { if store.selection.contains(clip.id) { store.selection.remove(clip.id) } else { store.selection.insert(clip.id) } }
         else if !store.selection.contains(clip.id) { store.selection = [clip.id] }
         let x0 = Self.originX + clip.start.seconds * pps, x1 = Self.originX + clip.end.seconds * pps

@@ -163,8 +163,18 @@ final class MouseRig {
     func send(_ type: NSEvent.EventType, _ p: CGPoint, clicks: Int = 1, modifiers: NSEvent.ModifierFlags = []) {
         guard let e = event(type, p, clicks: clicks, modifiers: modifiers) else { return }
         takeKey()
-        window.sendEvent(e)
+        deliver(e, to: window)
         pump(0.02)
+    }
+
+    /// Gives `e` to `w` as AppKit's own loop does: while it is handled it is the application's current event, so code
+    /// that reads the click's own modifier keys (NSEvent.clickModifiers) finds the ones this event carries, never the
+    /// keyboard of the person running the tests (#36). The current event is put back afterwards.
+    func deliver(_ e: NSEvent, to w: NSWindow) {
+        let previous = NSApp.currentEvent
+        NSApp.setValue(e, forKey: "currentEvent")
+        w.sendEvent(e)
+        NSApp.setValue(previous, forKey: "currentEvent")
     }
 
     /// The AppKit view a mouse event at `p` goes to.
@@ -187,13 +197,13 @@ final class MouseRig {
             // The release waits in the event queue, where a control that tracks the mouse in a loop of its own until the
             // button goes up takes it, as from a real mouse; if nothing took it, it is sent after the press. Posting
             // stops the running run loop: a nested one of ours, never the test runner's loop (it would end the process).
-            CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue) { [window] in
+            CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue) { [self, window] in
                 NSApp.postEvent(up, atStart: false)
-                window.sendEvent(down)
+                deliver(down, to: window)
             }
             CFRunLoopRunInMode(.defaultMode, 0.3, false)
             if let pending = NSApp.nextEvent(matching: .leftMouseUp, until: .distantPast, inMode: .default, dequeue: true) {
-                window.sendEvent(pending)
+                deliver(pending, to: window)
             }
             drain()
         } else {
