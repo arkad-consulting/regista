@@ -27,6 +27,10 @@ protocol CaptureHardware: AnyObject {
     func stopMovie(_ output: AVCaptureMovieFileOutput)
     /// The displays and windows that can be recorded.
     func shareableContent() async throws -> (displays: [CGDirectDisplayID], windows: [SCWindow])
+    /// The connected displays as macOS arranges them (no permission needed): the map of Registra's Schermo row.
+    func connectedDisplays() -> [DisplayInfo]
+    /// Outlines a display on its own screen for a moment, so the person sees which one a tile is (#50).
+    func outline(_ display: DisplayInfo)
     /// The session that records the screen (and the camera and microphone beside it) into `folder`.
     func screenSession(folder: URL, layout: LayoutSpec, systemAudio: Bool, cursorInVideo: Bool) -> ScreenRecording
     /// Starts on-device speech recognition for the teleprompter (it hears the microphone buffers the recorder gives it).
@@ -53,6 +57,10 @@ final class MacCapture: CaptureHardware {
     func requestAccess(_ type: AVMediaType) async { _ = await AVCaptureDevice.requestAccess(for: type) }
 
     func screenAllowed() -> Bool { CGPreflightScreenCaptureAccess() }
+
+    func connectedDisplays() -> [DisplayInfo] { DisplayInfo.connected() }
+
+    func outline(_ display: DisplayInfo) { ScreenOutline.flash(display) }
 
     func requestScreen() { CGRequestScreenCaptureAccess() }
 

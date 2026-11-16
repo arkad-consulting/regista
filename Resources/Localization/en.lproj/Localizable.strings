@@ -1224,7 +1224,6 @@
 "Pausa minima da togliere" = "Shortest pause to remove";
 "Pausa o riprendi" = "Pause or resume";
 "Pellicola" = "Film";
-"Per camera e voce. Una registrazione dello schermo si apre in Monta da montare" = "For camera and voice. A screen recording opens in Edit, ready to cut";
 "Per catturare nei primi secondi." = "To hook viewers in the first seconds.";
 "Per crearlo dal parlato serve prima la trascrizione." = "To create it from the speech, transcribe first.";
 "Per il vetro di un teleprompter" = "For a teleprompter glass";
@@ -2183,3 +2182,4 @@
 "Esporta lo stesso" = "Export anyway";
 "Sistema tutto ed esporta" = "Fix all and export";
 "Segui il formato del progetto" = "Follow the project's format";
+"Solo per camera e voce" = "Camera and voice only";

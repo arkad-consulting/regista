@@ -1224,7 +1224,6 @@
 "Pausa minima da togliere" = "Pause minimale à supprimer";
 "Pausa o riprendi" = "Mettre en pause ou reprendre";
 "Pellicola" = "Pellicule";
-"Per camera e voce. Una registrazione dello schermo si apre in Monta da montare" = "Pour la caméra et la voix. Un enregistrement d'écran s'ouvre dans Montage, prêt à couper";
 "Per catturare nei primi secondi." = "Pour accrocher dès les premières secondes.";
 "Per crearlo dal parlato serve prima la trascrizione." = "Pour le créer à partir de la parole, transcrivez d'abord.";
 "Per il vetro di un teleprompter" = "Pour la vitre d'un téléprompteur";
@@ -2183,3 +2182,4 @@
 "Esporta lo stesso" = "Exporter quand même";
 "Sistema tutto ed esporta" = "Tout corriger et exporter";
 "Segui il formato del progetto" = "Suivre le format du projet";
+"Solo per camera e voce" = "Caméra et voix uniquement";

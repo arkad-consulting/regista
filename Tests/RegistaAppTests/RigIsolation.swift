@@ -175,7 +175,7 @@ struct RigGenerator: GeneratorProvider {
 /// connected ones as listed (none is opened), the session's setup never runs, and the teleprompter gets no speech
 /// recognition. A take is a "recording" state that writes nothing, unless the test gives `take`: then Stop hands the
 /// recorder a copy of that movie as the take it recorded. The screen is never offered, unless the test sets `screen`:
-/// then the main display is the one target and a screen take is `RigScreenSession`, which writes a synthetic session
+/// then the rig's displays are the targets and a screen take is `RigScreenSession`, which writes a synthetic session
 /// (recording.synthesize) on Stop. No device is opened and nothing is captured either way. What the recorder asked is
 /// in `log`.
 @MainActor
@@ -184,8 +184,11 @@ final class RigCapture: CaptureHardware {
     /// The movie a camera or voice take hands over on Stop, and the camera stretch of a screen session (nil: a take
     /// writes nothing and ends with an error, as before).
     var take: URL?
-    /// Screen recording reads as allowed, the main display as its one target, and a screen take writes a synthetic session.
+    /// Screen recording reads as allowed, the displays (`displays`) as its targets, and a screen take writes a synthetic session.
     var screen = false
+    /// The displays the rig says are connected (nil: the main display alone, as macOS lists it). A test gives 1 or 4
+    /// (DisplayInfo.samples); a display is never outlined on the screen (`log` says it was asked).
+    var displays: [DisplayInfo]?
     /// The screen sessions the recorder made (the last one is the take in progress or just finished).
     private(set) var sessions: [RigScreenSession] = []
 
@@ -230,8 +233,14 @@ final class RigCapture: CaptureHardware {
     func shareableContent() async throws -> (displays: [CGDirectDisplayID], windows: [SCWindow]) {
         log.append("shareableContent")
         guard screen else { throw Refused("no screen") }
-        return ([CGMainDisplayID()], [])
+        return (connectedDisplays().map(\.id), [])
     }
+    func connectedDisplays() -> [DisplayInfo] {
+        if let displays { return displays }
+        let all = DisplayInfo.connected()
+        return all.filter(\.main).isEmpty ? Array(all.prefix(1)) : all.filter(\.main)
+    }
+    func outline(_ display: DisplayInfo) { log.append("outline \(display.id)") }
     func screenSession(folder: URL, layout: LayoutSpec, systemAudio: Bool, cursorInVideo: Bool) -> ScreenRecording {
         log.append("screenSession \(folder.lastPathComponent)")
         let s = RigScreenSession(folder: folder, layout: layout, camera: take, cursorInVideo: cursorInVideo)

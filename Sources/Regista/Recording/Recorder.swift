@@ -142,10 +142,18 @@ final class Recorder: NSObject, ObservableObject {
         }
     }
 
-    /// "Schermo intero 1920×1080", "Finestra: Safari — Apple", "Area 800×600".
+    /// The connected displays (the hardware's: macOS's, or the test rig's).
+    func connectedDisplays() -> [DisplayInfo] { hardware.connectedDisplays() }
+
+    /// Outlines a display on its own screen for a moment (#50).
+    func outline(_ display: DisplayInfo) { hardware.outline(display) }
+
+    /// "Built-in Retina Display · 1512×982 · schermo principale", "Finestra: Safari — Apple", "Area 800×600".
     func targetName(_ target: ScreenTarget?) -> String? {
         switch target {
         case .display(let id):
+            // The display by its name, size and role, as the row's line names it (#52).
+            if let d = hardware.connectedDisplays().first(where: { $0.id == id }) { return d.line }
             let b = CGDisplayBounds(id)
             return String(format: loc("Schermo intero %d×%d"), Int(b.width), Int(b.height))
         case .window(let id):
@@ -309,7 +317,7 @@ final class Recorder: NSObject, ObservableObject {
             screenPermission = .granted
             errorMessage = nil
             let target = RecordingSources.resolve(sources.target, displays: displays, windows: windows.map(\.windowID),
-                                                  main: CGMainDisplayID())
+                                                  main: hardware.connectedDisplays().first(where: \.main)?.id ?? CGMainDisplayID())
             if target != sources.target { sources.target = target } else { await restartPreview() }
         } catch {
             // The source stays on: its row says what to do. Never prompt again from here (issue #67).

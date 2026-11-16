@@ -555,8 +555,11 @@ extension MouseSuites.ClickAudits {
         #expect(await j.until { j.control("Avvia / Ferma registrazione")?.enabled == true && j.app.capture.sessions.last != nil },
                 "the Record button is not ready: \(j.app.recorder.blockReason ?? j.app.recorder.errorMessage ?? "") — \(j.screen())")
         #expect(j.shows("VOLTO NEL VIDEO"), "the face layout is not offered: \(j.screen())")
-        withKnownIssue("#52: at the default window size the face layout's tiles are below the fold of Registra's column", isIntermittent: true) {
-            #expect(j.control("Bolla") != nil, "the face layout's tiles are not in view")
+        // Every layout tile is in view at the default window size, without scrolling (#52: they were below the fold).
+        for (_, name) in FaceLayoutControls.names {
+            let tile = j.control(name)
+            #expect(tile.map { $0.clip.contains($0.frame) && $0.frame.maxY < Double(j.rig.size.height) } == true,
+                    "the face layout's «\(name)» is not in view: \(String(describing: tile?.frame)) in \(String(describing: tile?.clip))")
         }
         j.step("Registra › Schermo + volto", sees: "screen, camera and microphone on, the face layout, Record ready")
 

@@ -35,13 +35,27 @@ struct RecordView: View {
     @Environment(\.recordDemo) private var demo
     @AppStorage(Prefs.autoEditKey) private var autoEdit = true
     @State private var openRow: RecordingSources.Source?
+    /// The Schermo row was closed by hand while it had no valid target (it does not open by itself again until the
+    /// target changes).
+    @State private var screenShut = false
     /// Bumped when displays are connected or rearranged: the picker reads them again.
     @State private var screensChanged = 0
     @Environment(\.sidePanelWidth) private var columnWidth
 
     private var live: Bool { demo == nil }
     private var s: RecordingSources { demo?.sources ?? recorder.sources }
-    private var open: RecordingSources.Source? { demo?.open ?? openRow }
+    private var open: RecordingSources.Source? {
+        if let demo { return demo.open }
+        // The Schermo row opens by itself only when there is no valid target (#52); otherwise it is closed and names it.
+        return openRow ?? (screenNeedsTarget && !screenShut ? .screen : nil)
+    }
+
+    /// The screen is on and nothing it could record is chosen.
+    private var screenNeedsTarget: Bool {
+        guard s.screen, recorder.screenPermission == .granted else { return false }
+        guard let t = s.target else { return true }
+        return RecordingSources.resolve(t, displays: displays.map(\.id), windows: recorder.windows.map(\.windowID), main: nil) != t
+    }
 
     var body: some View {
         switch part {
@@ -52,13 +66,14 @@ struct RecordView: View {
         case .controls:
             column
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in screensChanged += 1 }
+                .onChange(of: s.target) { screenShut = false }
         }
     }
 
-    /// The displays the picker shows: the demo's samples, else the connected ones.
+    /// The displays the picker shows: the demo's samples, else the connected ones (the recorder's hardware).
     private var displays: [DisplayInfo] {
         _ = screensChanged
-        return demo?.displays ?? DisplayInfo.connected()
+        return demo?.displays ?? recorder.connectedDisplays()
     }
 
     // MARK: Model
@@ -72,9 +87,7 @@ struct RecordView: View {
         if let demo {
             e.targetName = recorder.targetName(demo.sources.target ?? .display(CGMainDisplayID()))
             // A sample display does not exist: its size comes from the sample.
-            if let d = demo.displays?.first(where: { ScreenTarget.display($0.id) == demo.sources.target }) {
-                e.targetName = String(format: loc("Schermo intero %d×%d"), Int(d.frame.width), Int(d.frame.height))
-            }
+            if let d = demo.displays?.first(where: { ScreenTarget.display($0.id) == demo.sources.target }) { e.targetName = d.line }
             if demo.grantPermissions { e.camera = .granted; e.microphone = .granted; e.screen = .granted }
         }
         return e
@@ -92,8 +105,8 @@ struct RecordView: View {
                 "microphone": .bool(s.microphone), "systemAudio": .bool(s.systemAudio), "prompter": .bool(s.prompter),
                 "faceLayout": s.showsFaceLayout ? .string(s.layout.label) : .null, "open": demo.open.map { .string($0.rawValue) } ?? .null,
                 "rows": .array(rows), "canRecord": .bool(reason == nil), "blockReason": reason.map { .string($0) } ?? .null,
-                "displays": .number(Double((demo.displays ?? DisplayInfo.connected()).count)),
-                "displayPicker": .bool(s.screen && (demo.displays ?? DisplayInfo.connected()).count > 1),
+                "displays": .number(Double((demo.displays ?? recorder.connectedDisplays()).count)),
+                "displayPicker": .bool(s.screen && demo.open == .screen && (demo.displays ?? recorder.connectedDisplays()).count > 1),
                 "permissions": .string(demo.grantPermissions ? "granted" : "actual")]
     }
 
@@ -131,7 +144,8 @@ struct RecordView: View {
                     }
                     RSection(loc("Sorgenti")) { sourceRows }
                     if s.showsFaceLayout {
-                        RSection(loc("Volto nel video")) { FaceLayoutControls(layout: layoutBinding) }
+                        // Drawings a little shorter than the Inspector's: every tile in view at the default window size (#52).
+                        RSection(loc("Volto nel video")) { FaceLayoutControls(layout: layoutBinding, drawingHeight: 28) }
                     }
                 }
                 .padding(Ed.Space.l)
@@ -149,7 +163,6 @@ struct RecordView: View {
             ForEach(Array(rows.enumerated()), id: \.element.source) { i, r in
                 if i > 0 { Ed.line.frame(height: 1) }
                 row(r)
-                if r.source == .screen, r.on, displays.count > 1 { displayPicker }
                 if r.source == .screen, r.blocked { screenGuidance }
                 if open == r.source, r.hasChoices, r.enabled {
                     choices(r.source)
@@ -169,7 +182,7 @@ struct RecordView: View {
         let (detail, warning) = rowDetail(r)
         return RSwitchRow(symbol: r.symbol, title: loc(r.title), detail: detail, isOn: binding(r.source), enabled: r.enabled, warning: warning,
                           expanded: r.hasChoices && r.enabled ? open == r.source : nil,
-                          onOpen: { withAnimation(.easeOut(duration: 0.16)) { openRow = openRow == r.source ? nil : r.source } }) {
+                          onOpen: { withAnimation(.easeOut(duration: 0.16)) { toggle(r.source) } }) {
             if r.source == .microphone, r.on, r.permission != .denied {
                 if live { MicLevelMeter(level: recorder.level).padding(.top, 3) }
                 // A render has no live sound: an empty meter, or a sample level when drawing the granted look.
@@ -224,23 +237,41 @@ struct RecordView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Several displays: the choice of screen stays in view under the Schermo row (issue #50); a click selects a display
-    /// and outlines that physical screen for a moment.
+    /// Opens or closes a row's choices (the row's chevron).
+    private func toggle(_ source: RecordingSources.Source) {
+        if open == source {
+            openRow = nil
+            if source == .screen { screenShut = true }
+        } else {
+            openRow = source
+        }
+    }
+
+    /// A choice was made in a row's choices: the row closes and names it (#52).
+    private func chosen() {
+        withAnimation(.easeOut(duration: 0.16)) { openRow = nil }
+    }
+
+    /// Several displays: their map at the top of the Schermo row's choices (issues #50, #52); a click selects a display,
+    /// outlines that physical screen for a moment and closes the row.
     private var displayPicker: some View {
-        DisplayPicker(displays: displays, target: s.target, width: columnWidth - 2 * Ed.Space.l - 2 * Ed.Space.m, select: { d in
+        DisplayPicker(displays: displays, target: s.target, width: columnWidth - 2 * Ed.Space.l - 2 * Ed.Space.s - 2 * Ed.Space.m, select: { d in
             guard live, !recorder.isRecording else { return }
             recorder.sources.target = .display(d.id)
-            ScreenOutline.flash(d)
+            recorder.outline(d)
+            chosen()
         }, hover: { d in
             guard live, !recorder.isRecording else { return }
-            ScreenOutline.flash(d)
+            recorder.outline(d)
         })
     }
 
     @ViewBuilder
     private func choices(_ source: RecordingSources.Source) -> some View {
         switch source {
-        case .screen: ScreenChoices(sources: s, grant: demo?.grantPermissions == true, listsDisplays: displays.count <= 1)
+        case .screen:
+            ScreenChoices(sources: s, grant: demo?.grantPermissions == true, displays: displays,
+                          map: displays.count > 1 ? AnyView(displayPicker) : nil, chosen: chosen)
         case .camera:
             DeviceChoices(items: recorder.cameras.map { .init(id: $0.uniqueID, title: $0.localizedName, symbol: "video") },
                           selection: s.camera ? recorder.deviceID(.camera, in: s) : nil, empty: loc("Nessuna camera trovata")) { id in
@@ -274,7 +305,8 @@ struct RecordView: View {
                     .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.warn)
             }
             RToggle(title: loc("Montaggio automatico a fine registrazione"), isOn: $autoEdit,
-                    subtitle: s.screen ? loc("Per camera e voce. Una registrazione dello schermo si apre in Monta da montare") : nil)
+                    // One line for the reason (#52: the face layout above stays in view at the default window size).
+                    subtitle: s.screen ? loc("Solo per camera e voce") : nil)
                 .disabled(s.screen)
                 .opacity(s.screen ? 0.5 : 1)
             if recorder.isRecording, let why = recorder.pauseUnavailableReason {
@@ -352,19 +384,29 @@ private struct DeviceChoices: View {
     }
 }
 
-/// What to record of the screen — a display, a window or an area — and the cursor and keys options.
+/// What to record of the screen — a display (several: their map), a window or an area — and the cursor and keys
+/// options. A choice closes the row (`chosen`).
 private struct ScreenChoices: View {
     @EnvironmentObject private var recorder: Recorder
     let sources: RecordingSources
     let grant: Bool
-    /// One display: its line stays here (several: the picker under the row shows them).
-    let listsDisplays: Bool
+    /// The connected displays (the recorder's hardware, or a render's samples).
+    let displays: [DisplayInfo]
+    /// Several displays: their map, at the top.
+    let map: AnyView?
+    let chosen: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: Ed.Space.s) {
-            if listsDisplays {
+            if let map {
                 caption(loc("Schermi"))
-                RChoiceList(items: displays, selection: display(sources.target ?? .display(CGMainDisplayID()))) { id in recorder.sources.target = .display(id) }
+                map
+            } else {
+                caption(loc("Schermi"))
+                RChoiceList(items: displayItems, selection: display(sources.target ?? .display(displays.first(where: \.main)?.id ?? CGMainDisplayID()))) { id in
+                    recorder.sources.target = .display(id)
+                    chosen()
+                }
             }
             caption(loc("Finestre"))
             if recorder.screenPermission == .granted || grant {
@@ -373,18 +415,19 @@ private struct ScreenChoices: View {
                           subtitle: w.owningApplication?.applicationName, symbol: "macwindow")
                 }, selection: { if case .window(let id) = sources.target { id } else { nil } }(), empty: loc("Nessuna finestra aperta")) { id in
                     recorder.sources.target = .window(id)
+                    chosen()
                 }
             } else {
                 Text(verbatim: loc("Le finestre compaiono quando macOS consente a Regista di registrare lo schermo."))
                     .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).padding(.horizontal, Ed.Space.s).fixedSize(horizontal: false, vertical: true)
             }
-            HStack(spacing: Ed.Space.s) {
+            // Whole words: the buttons wrap to a second line in a narrow column (French) instead of being cut.
+            FlowLayout(spacing: Ed.Space.s, lineSpacing: Ed.Space.xs) {
                 EdButton(title: loc("Scegli un'area…"), symbol: "rectangle.dashed") { pickArea() }
                 if case .area(_, let r) = sources.target {
                     Text(verbatim: String(format: loc("Area %d×%d"), Int(r.width), Int(r.height)))
                         .font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.gold)
                 }
-                Spacer()
                 EdButton(title: loc("Aggiorna"), symbol: "arrow.clockwise") { Task { await recorder.refreshScreen() } }
             }
             .padding(.horizontal, Ed.Space.xs)
@@ -409,13 +452,10 @@ private struct ScreenChoices: View {
 
     private func display(_ t: ScreenTarget) -> CGDirectDisplayID? { if case .display(let id) = t { id } else { nil } }
 
-    /// Every connected display (listed without the screen permission: NSScreen).
-    private var displays: [RChoiceList<CGDirectDisplayID>.Item] {
-        NSScreen.screens.compactMap { screen in
-            guard let id = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID else { return nil }   // l10n-ignore
-            let b = CGDisplayBounds(id)
-            return .init(id: id, title: String(format: loc("Schermo intero %d×%d"), Int(b.width), Int(b.height)),
-                         subtitle: screen.localizedName, symbol: "display")
+    /// Every connected display, as a line.
+    private var displayItems: [RChoiceList<CGDirectDisplayID>.Item] {
+        displays.map { d in
+            .init(id: d.id, title: String(format: loc("Schermo intero %d×%d"), Int(d.frame.width), Int(d.frame.height)), subtitle: d.name, symbol: "display")
         }
     }
 
@@ -426,7 +466,10 @@ private struct ScreenChoices: View {
     private func pickArea() {
         guard let screen = NSScreen.main, let id = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID else { return }   // l10n-ignore
         AreaPicker.pick(on: screen) { rect in
-            if let rect { recorder.sources.target = .area(id, rect) }
+            if let rect {
+                recorder.sources.target = .area(id, rect)
+                chosen()
+            }
         }
     }
 }
@@ -434,6 +477,13 @@ private struct ScreenChoices: View {
 // MARK: - Displays
 
 extension DisplayInfo {
+    /// "Built-in Retina Display · 1512×982 · schermo principale": the display as the Schermo row's line names it (#52).
+    /// Each part keeps its words together (a narrow column breaks the line only between the parts).
+    var line: String {
+        let parts = [name, "\(Int(frame.width))×\(Int(frame.height))"] + (main ? [loc("schermo principale")] : [])
+        return parts.map { $0.replacingOccurrences(of: " ", with: "\u{00A0}") }.joined(separator: " · ")
+    }
+
     /// The connected displays (NSScreen: no permission needed), in NSScreen order.
     @MainActor
     static func connected() -> [DisplayInfo] {
@@ -592,6 +642,8 @@ struct FaceLayoutControls: View {
     @Binding var layout: LayoutSpec
     /// The output's width / height, the aspect the tiles are drawn at.
     var aspect: Double = 16.0 / 9.0
+    /// The tallest a tile's drawing may be (nil: as tall as its width gives).
+    var drawingHeight: CGFloat? = nil
     var hint: String? = loc("Il volto si può spostare anche mentre registri: in montaggio ogni cambio diventa un tratto modificabile della timeline.")
 
     static let names: [(LayoutSpec.Kind, String)] = [
@@ -604,7 +656,7 @@ struct FaceLayoutControls: View {
                 ForEach(Self.names, id: \.0) { kind, name in
                     LayoutTile(spec: LayoutSpec(kind: kind, corner: layout.corner, shape: layout.shape, size: layout.size,
                                                side: kind == layout.kind ? layout.side : nil), title: loc(name),
-                               on: layout.kind == kind, aspect: aspect) {
+                               on: layout.kind == kind, aspect: aspect, drawingHeight: drawingHeight) {
                         var l = layout
                         l.kind = kind
                         // The cut-out stands on the bottom edge.
@@ -665,6 +717,7 @@ private struct LayoutTile: View {
     let title: String
     let on: Bool
     var aspect: Double = 16.0 / 9.0
+    var drawingHeight: CGFloat? = nil
     let action: () -> Void
     @State private var hover = false
 
@@ -681,10 +734,12 @@ private struct LayoutTile: View {
                     }
                 }
                 .aspectRatio(aspect, contentMode: .fit)
-                .frame(maxHeight: aspect < 1 ? 70 : nil)
+                .frame(maxHeight: aspect < 1 ? 70 : drawingHeight)
                 .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.s))
                 Text(verbatim: title).font(Ed.ui(Ed.TypeSize.caption, on ? .semibold : .medium)).foregroundStyle(on ? Ed.text : Ed.text2).lineLimit(1)
             }
+            // The whole cell of the grid, even when the drawing is held shorter than its width gives.
+            .frame(maxWidth: .infinity)
             .padding(6)
             .background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(on ? Ed.goldSoft : (hover ? Ed.hover : Ed.header)))
             .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m).strokeBorder(on ? Ed.gold.opacity(0.6) : Ed.line2))

@@ -17,7 +17,8 @@
 #   the full strip of #38); then the Registra states (issue #50):
 #   record-screen-only, record-screen-face, record-face, record-voice (the four presets as the permissions really are),
 #   record-open-screen, record-open-camera (screen + face with that row's choices open, as if macOS allowed everything),
-#   record-displays (screen only with the display picker drawn for four sample displays);
+#   record-displays (screen only, the Schermo row open on the map of four sample displays), record-displays-1 and
+#   record-displays-4 (screen + face with one or four sample displays, the row closed naming the display: #52);
 #   inspector-<video|audio|overlay|multi|none> (E1 #53) on a synthetic project; inspector-screen (R2 #51: the Schermo
 #   section of a synthetic screen + camera session, framed bubble, drawn cursor, key badges and zoom on, 2200 px tall so the
 #   whole section shows), inspector-screen-<split|stack|face|cutout|screen> (one project per face layout; stack in 9:16)
@@ -67,7 +68,7 @@ done
 [ ${#LIST[@]} -gt 0 ] || LIST=(home record media texts audio voice graphics generate export edit-pro edit-semplice simple-empty edit-tabs settings
                                panel-prompter panel-claude panel-inspector
                                record-screen-only record-screen-face record-face record-voice record-open-screen
-                               record-open-camera record-displays
+                               record-open-camera record-displays record-displays-1 record-displays-4
                                graphics-filters graphics-adjust graphics-effects graphics-styles graphics-motion graphics-logo
                                brand-picker teleprompter teleprompter-mirror
                                voice-engine-missing voice-no-profile voice-no-voice voice-one-tone voice-ready voice-hint voice-rendering
@@ -294,7 +295,9 @@ for name in names:
     elif name.startswith('edit-tabs-'):
         params.update(workspace='edit-pro', tabs=int(name[len('edit-tabs-'):]))
     elif name == 'record-displays':
-        params.update(workspace='record', record={'preset': 'screen-only', 'displays': 4, 'permissions': 'granted'})
+        params.update(workspace='record', record={'preset': 'screen-only', 'displays': 4, 'open': 'screen', 'permissions': 'granted'})
+    elif name.startswith('record-displays-'):
+        params.update(workspace='record', record={'preset': 'screen-face', 'displays': int(name[len('record-displays-'):]), 'permissions': 'granted'})
     elif name.startswith('record-open-'):
         params.update(workspace='record', record={'preset': 'screen-face', 'open': name[len('record-open-'):], 'permissions': 'granted'})
     elif name.startswith('record-'):

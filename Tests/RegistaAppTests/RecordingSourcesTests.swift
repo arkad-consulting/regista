@@ -1,3 +1,5 @@
+import AppKit
+import Combine
 import CoreGraphics
 import Foundation
 import RegistaCore
@@ -201,4 +203,93 @@ private func scratchDefaults() -> UserDefaults {
     #expect(DisplayInfo.selected(.area(4, CGRect(x: 0, y: 0, width: 640, height: 480)), main: 1) == 4)
     #expect(DisplayInfo.selected(.window(9), main: 1) == nil)
     #expect(DisplayInfo.selected(nil, main: 1) == 1)
+}
+
+// #52: the Schermo row behaves like its sibling rows. Once a target is chosen it is closed and its line names it; the
+// map of displays (with the window and the area) opens from the row's chevron and closes after a choice; with one
+// display there is no map. So at the default window size, with «Schermo + volto», the face layout is in view. Real
+// clicks on the whole window, the rig's capture giving 1 and 4 displays (no display is outlined on the screen), in
+// Italian and French.
+extension MouseSuites {
+@Suite(.serialized) @MainActor struct ScreenRowMouseTests {
+    @Test(arguments: ["it", "fr"], [1, 4])
+    func theFaceLayoutIsInViewAndTheDisplaysOpenFromTheRow(_ language: String, _ count: Int) async throws {
+        let app = try await AppRig(project: nil)
+        defer { app.close() }
+        app.capture.screen = true
+        app.capture.displays = Array(DisplayInfo.samples.prefix(count))
+        let table = MouseRig.table(language)
+        func w(_ key: String) -> String { table.localizedString(forKey: key, value: key, table: nil) }
+        app.hostEditor(Navigation(activity: .record, rightTab: .inspector), size: CGSize(width: 1440, height: 900), language: language)
+        await app.settle()
+        let tag = "\(language), \(count) display\(count == 1 ? "" : "s")"
+        func control(_ name: String) -> RigElement? {
+            app.rig.elements().first { $0.isControl && $0.visible && ($0.label == name || $0.title == name || $0.label.hasPrefix(name + ",")) }
+        }
+        func until(_ seconds: Double = 4, _ condition: () -> Bool) async -> Bool {
+            let end = Date().addingTimeInterval(seconds)
+            while !condition() {
+                if Date() > end { return false }
+                await app.idle(0.05)
+            }
+            return true
+        }
+        func screen() -> String { app.rig.elements().filter { $0.visible && !$0.name.isEmpty }.map(\.name).joined(separator: "; ") }
+        let tileTip = w("Registra questo schermo; lo evidenzia per un attimo")
+        var tiles: [RigElement] { app.rig.elements().filter { $0.isControl && $0.visible && $0.label == tileTip } }
+        let rowName = w("Schermo")
+        var row: RigElement? { app.rig.elements().first { $0.isControl && $0.visible && $0.label.hasPrefix(rowName + ",") } }
+
+        // «Schermo + volto»: screen, camera and microphone on, a display chosen.
+        app.rig.click(try #require(control(w("Schermo + volto")), "\(tag): no «Schermo + volto»: \(screen())").centre)
+        await app.settle()
+        #expect(await until { app.recorder.sources.screen && app.recorder.sources.camera && app.recorder.sources.target != nil },
+                "\(tag): the preset did not turn the screen and the camera on with a target")
+        await app.settle()
+        let main = try #require(DisplayInfo.samples.first)
+        #expect(app.recorder.sources.target == .display(main.id), "\(tag): the target is \(String(describing: app.recorder.sources.target))")
+
+        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+            try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("record-screen-face-\(language)-\(count).png"))
+        }
+        // Every tile of the face layout in view, without scrolling.
+        for (_, key) in FaceLayoutControls.names {
+            let tile = control(w(key))
+            #expect(tile.map { $0.clip.insetBy(dx: -1, dy: -1).contains($0.frame) } == true,
+                    "\(tag): «\(w(key))» is not in view: \(String(describing: tile?.frame)) in \(String(describing: tile?.clip))")
+        }
+        // The row is closed and names the display.
+        #expect(tiles.isEmpty, "\(tag): the map of displays is open while a display is chosen")
+        let line = "\(main.name) · 1512×982 · \(w("schermo principale"))".replacingOccurrences(of: " ", with: "\u{00A0}")
+            .replacingOccurrences(of: "\u{00A0}·\u{00A0}", with: " · ")
+        #expect(row?.label.contains(line) == true, "\(tag): the row does not name the display: \(row?.label ?? "no row")")
+
+        // The chevron opens the row.
+        app.rig.click(try #require(row, "\(tag): no Schermo row: \(screen())").centre)
+        await app.settle()
+        #expect(control(w("Scegli un'area…")) != nil, "\(tag): the row's choices did not open")
+        if count == 1 {
+            #expect(tiles.isEmpty, "\(tag): a map for one display")
+            app.rig.click(try #require(row).centre)
+            await app.settle()
+            #expect(control(w("Scegli un'area…")) == nil, "\(tag): the chevron did not close the row")
+            return
+        }
+        #expect(tiles.count == count, "\(tag): \(tiles.count) display tiles in the map")
+        // A click on another display chooses it, once; the row closes and names it.
+        var changes = 0
+        let watch = app.recorder.$sources.map(\.target).removeDuplicates().dropFirst().sink { _ in changes += 1 }
+        defer { watch.cancel() }
+        let other = try #require(tiles.first { !$0.selected }, "\(tag): every tile reads as chosen")
+        app.rig.click(other.centre)
+        await app.settle()
+        let target = app.recorder.sources.target
+        let chosen = DisplayInfo.samples.first { ScreenTarget.display($0.id) == target }
+        #expect(chosen != nil && chosen?.id != main.id && changes == 1, "\(tag): the target is \(String(describing: target)) after \(changes) changes")
+        #expect(app.capture.log.contains("outline \(chosen?.id ?? 0)"), "\(tag): the chosen display was not outlined (stand-in)")
+        #expect(await until { tiles.isEmpty }, "\(tag): the row did not close after the choice")
+        #expect(row?.label.contains((chosen?.name ?? "?").replacingOccurrences(of: " ", with: "\u{00A0}")) == true && row?.label.contains(w("schermo principale")) == false,
+                "\(tag): the row does not name the new display: \(row?.label ?? "no row")")
+    }
+}
 }
