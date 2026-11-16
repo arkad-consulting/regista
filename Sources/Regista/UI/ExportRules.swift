@@ -179,29 +179,44 @@ struct ExportRulesCard: View {
             .fixedSize()
     }
 
-    /// Everything passes: one line.
+    /// Everything passes: one line, the kind beside it; under it when a long kind's name leaves the line no room (the
+    /// words were broken letter by letter beside «Tutorial dello schermo»).
     private var compact: some View {
-        HStack(spacing: Ed.Space.s) {
-            Image(systemName: "checkmark.circle.fill").font(Ed.icon(Ed.TypeSize.body)).foregroundStyle(Ed.ok)
-            Text(verbatim: report.passed.count == 1 ? loc("1 controllo rispettato") : loc("%@ controlli rispettati", "\(report.passed.count)"))
-                .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: Ed.Space.xs)
-            kindButton
+        let words = Text(verbatim: report.passed.count == 1 ? loc("1 controllo rispettato") : loc("%@ controlli rispettati", "\(report.passed.count)"))
+            .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2)
+        let check = Image(systemName: "checkmark.circle.fill").font(Ed.icon(Ed.TypeSize.body)).foregroundStyle(Ed.ok)
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: Ed.Space.s) {
+                check
+                words.fixedSize()
+                Spacer(minLength: Ed.Space.xs)
+                kindButton
+            }
+            VStack(alignment: .leading, spacing: Ed.Space.s) {
+                HStack(alignment: .firstTextBaseline, spacing: Ed.Space.s) { check; words.fixedSize(horizontal: false, vertical: true) }
+                kindButton
+            }
         }
         .padding(.horizontal, Ed.Space.m).padding(.vertical, Ed.Space.s)
     }
 
     private var header: some View {
-        // The title and the count wrap in a narrow panel; the kind stays whole beside them.
-        HStack(alignment: .top, spacing: Ed.Space.s) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(verbatim: loc("Regole di montaggio")).font(Ed.ui(Ed.TypeSize.control, .bold)).foregroundStyle(Ed.text)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(verbatim: loc("%1$@ da sistemare · %2$@ rispettate", "\(report.failures.count)", "\(report.passed.count)"))
-                    .font(Ed.ui(Ed.TypeSize.small, .semibold)).foregroundStyle(Ed.danger).fixedSize(horizontal: false, vertical: true)
+        // The title and the count on their lines, the kind whole beside them; under them when there is no room.
+        let title = VStack(alignment: .leading, spacing: 1) {
+            Text(verbatim: loc("Regole di montaggio")).font(Ed.ui(Ed.TypeSize.control, .bold)).foregroundStyle(Ed.text)
+            Text(verbatim: loc("%1$@ da sistemare · %2$@ rispettate", "\(report.failures.count)", "\(report.passed.count)"))
+                .font(Ed.ui(Ed.TypeSize.small, .semibold)).foregroundStyle(Ed.danger)
+        }
+        return ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: Ed.Space.s) {
+                title.fixedSize()
+                Spacer(minLength: Ed.Space.xs)
+                kindButton
             }
-            Spacer(minLength: Ed.Space.xs)
-            kindButton
+            VStack(alignment: .leading, spacing: Ed.Space.s) {
+                title.fixedSize(horizontal: false, vertical: true)
+                kindButton
+            }
         }
         .padding(.horizontal, Ed.Space.m).padding(.vertical, 10)
     }
