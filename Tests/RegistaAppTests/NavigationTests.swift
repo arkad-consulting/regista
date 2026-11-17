@@ -150,6 +150,20 @@ private func scratchDefaults() -> UserDefaults {
     #expect(RecentProjects(defaults: defaults, seedFolders: []).paths == recents.paths)
 }
 
+/// #24: the private render copy of scripts/ui-shots.sh starts with REGISTA_NO_RECENT_SEED=1: its first launch seeds the
+/// recent list from no folder, so a render never shows the person's projects.
+@MainActor
+@Test func theRenderCopySeedsNoRecentProject() throws {
+    let root = appTempDir()
+    _ = try makeProject("sample", in: root, date: Date())
+    let defaults = scratchDefaults()
+    #expect(RecentProjects(defaults: defaults, seedFolders: [root], environment: ["REGISTA_NO_RECENT_SEED": "1"]).paths.isEmpty)
+    #expect(RecentProjects(defaults: scratchDefaults(), seedFolders: [root], environment: [:]).paths.count == 1)
+    let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    let shots = try String(contentsOf: repo.appendingPathComponent("scripts/ui-shots.sh"), encoding: .utf8)
+    #expect(shots.contains("REGISTA_NO_RECENT_SEED=1 REGISTA_ENGINE_SOCKET=\"$SOCK\" \"$PRIV/Regista.app/Contents/MacOS/Regista\""))
+}
+
 @Test func recentRowsReadNameDateAndDuration() async throws {
     let dir = appTempDir()
     let date = Date(timeIntervalSince1970: 1_800_000_000)

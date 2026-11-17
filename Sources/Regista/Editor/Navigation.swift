@@ -205,11 +205,15 @@ final class RecentProjects: ObservableObject {
     static let key = "recentProjects", seededKey = "recentProjects.seeded"
 
     /// `seedFolders`: where to look for existing projects the first time (the media root and its Progetti folder).
-    init(defaults: UserDefaults = .standard, seedFolders: [URL]? = nil) {
+    /// `REGISTA_NO_RECENT_SEED=1` (set by scripts/ui-shots.sh for its private render copy, #24) seeds from no folder, so a
+    /// render never lists the person's own projects.
+    init(defaults: UserDefaults = .standard, seedFolders: [URL]? = nil,
+         environment: [String: String] = ProcessInfo.processInfo.environment) {
         self.defaults = defaults
         var list = defaults.stringArray(forKey: Self.key) ?? []
         if !defaults.bool(forKey: Self.seededKey) {
-            let folders = seedFolders ?? [Paths.root, Paths.root.appendingPathComponent("Progetti", isDirectory: true)]
+            let folders = environment["REGISTA_NO_RECENT_SEED"] == "1" ? []
+                : seedFolders ?? [Paths.root, Paths.root.appendingPathComponent("Progetti", isDirectory: true)]
             list = RecentList.seeded(list, with: RecentList.projectFolders(in: folders))
             defaults.set(true, forKey: Self.seededKey)
         }

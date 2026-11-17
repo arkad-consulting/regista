@@ -244,6 +244,7 @@ enum ReferenceDocs {
         "REGISTA_INSTALLER": "Folder of the installer scripts Settings › Engines runs (default: the copy inside the app).",
         "REGISTA_MCP_PROGRESS_INTERVAL": "Seconds between two progress notifications of a long MCP tool call (default 10, at least 0.2).",
         "REGISTA_MEDIA_ROOT": "Extra folders media.list may read, separated by `:` (as regista-mcp's --media-root).",
+        "REGISTA_NO_RECENT_SEED": "1: the first launch does not seed the recent projects from the default project folders (scripts/ui-shots.sh sets it for its private render copy, so renders never show the person's projects).",
         "REGISTA_OUTPUT_DIR": "Where projects and exports go when Claude does not say (as regista-mcp's --output-dir).",
         "REGISTA_SUPPORT_DIR": "Regista's support folder for the engines and the user's editing-rule sheets (`rules/`) (default ~/Library/Application Support/Regista), as in scripts/lib.sh.",
         "REGISTA_TIER": "Force a tier (base, medium, pro) for this process, before engines.json and the RAM.",

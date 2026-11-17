@@ -8,7 +8,8 @@
 #   <outdir>/real-window.png, and prints its geometry (window and title-row height, traffic lights, content top).
 #   --lang en relaunches the app in that language (-AppleLanguages) for the renders, then relaunches it as before.
 #   --private-lang fr never touches a running Regista: it copies build.noindex/Regista.app (or $REGISTA_PRIVATE_APP) to a temporary
-#   folder under its own bundle id (its own user defaults: no restored tabs, no recent projects of the owner's), signs the
+#   folder under its own bundle id (its own user defaults: no restored tabs; no recent projects of the owner's, nor any
+#   seeded from the default project folders: REGISTA_NO_RECENT_SEED), signs the
 #   copy ad hoc, starts it in that language on a private engine socket, renders, and stops that process only (by its pid).
 #   Workspaces default to every screen of the window shell (S1 #75): each activity (home, record, media, texts, audio,
 #   voice, graphics, generate, export), the editor at both levels (edit-pro, edit-semplice), the right panel's three tabs
@@ -156,7 +157,8 @@ if [ -n "$PRIVATE_LANG" ]; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $PRIV_ID" "$PRIV/Regista.app/Contents/Info.plist"
   codesign --force --deep --sign - "$PRIV/Regista.app" >/dev/null 2>&1
   SOCK="$PRIV/engine.sock"
-  REGISTA_ENGINE_SOCKET="$SOCK" "$PRIV/Regista.app/Contents/MacOS/Regista" -AppleLanguages "($PRIVATE_LANG)" >"$PRIV/app.log" 2>&1 &
+  # REGISTA_NO_RECENT_SEED: its first launch does not seed the recent list from the default project folders (#24).
+  REGISTA_NO_RECENT_SEED=1 REGISTA_ENGINE_SOCKET="$SOCK" "$PRIV/Regista.app/Contents/MacOS/Regista" -AppleLanguages "($PRIVATE_LANG)" >"$PRIV/app.log" 2>&1 &
   PRIV_PID=$!
   stop_private() {   # stops the copy this script started (that pid, and only if it still is that copy), then cleans up
     if ps -p "$PRIV_PID" -o command= 2>/dev/null | grep -qF "$PRIV/Regista.app"; then
