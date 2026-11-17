@@ -129,15 +129,15 @@ struct TimelinePanel: View {
     }
 
     /// Where a drop at `loc` lands: the track row under it, the empty slot of a standard track, or the space below.
-    private func dropTarget(at loc: CGPoint, rows: [LaneRow]) -> MediaDrop.Target {
-        guard let row = rowAt(loc.y, rows) else { return .below }
+    static func dropTarget(at loc: CGPoint, rows: [LaneRow]) -> MediaDrop.Target {
+        guard let row = row(at: loc.y, rows) else { return .below }
         if let t = row.track { return .track(t.id) }
         return .slot(row.kind)
     }
 
     /// Media dragged from the Media panel (`regista-asset:<id>`) or files from the Finder: placed at the drop time,
     /// snapped to the playhead and the clip edges.
-    private func dropMedia(_ providers: [NSItemProvider], at loc: CGPoint, rows: [LaneRow]) -> Bool {
+    private static func dropMedia(_ providers: [NSItemProvider], at loc: CGPoint, rows: [LaneRow], store: EditorStore, pps: CGFloat) -> Bool {
         guard let project = store.project else { return false }
         let raw = max(Double((loc.x - Self.originX) / pps), 0)
         let time = MediaDrop.snap(raw, project: project, playhead: store.preview.time, tolerance: Double(8 / pps))
@@ -160,8 +160,11 @@ struct TimelinePanel: View {
         return false
     }
 
-    private func dropEffect(_ providers: [NSItemProvider], at loc: CGPoint, rows: [LaneRow]) -> Bool {
-        if dropMedia(providers, at: loc, rows: rows) { return true }
+    /// What the timeline's drop delegate does with a drop at `loc` (content coordinates): Finder files and Media tiles
+    /// placed on the track under the pointer, a sound of the Audio panel, a Graphics row on a clip or a moment. The drop
+    /// tests call it with an item provider of their own (#36: a drag session is never started in a test).
+    static func drop(_ providers: [NSItemProvider], at loc: CGPoint, rows: [LaneRow], store: EditorStore, pps: CGFloat) -> Bool {
+        if dropMedia(providers, at: loc, rows: rows, store: store, pps: pps) { return true }
         guard let p = providers.first else { return false }
         let time = max(Double((loc.x - Self.originX) / pps), 0)
         var y = Self.rulerHeight, clip: String?
@@ -221,7 +224,7 @@ struct TimelinePanel: View {
                         .simultaneousGesture(handGesture)
                         // A Graphics panel row dropped on a clip or a moment (issue #16, E4 #3).
                         // A Media tile or a Finder file: placed on the track under the pointer (E1 #53).
-                        .onDrop(of: [.text, .fileURL], isTargeted: nil) { providers, loc in dropEffect(providers, at: loc, rows: rows) }
+                        .onDrop(of: [.text, .fileURL], isTargeted: nil) { providers, loc in Self.drop(providers, at: loc, rows: rows, store: store, pps: pps) }
                         // Right click on a clip: its actions (E1 #53).
                         .overlay(ContextMenuArea { point in clipMenu(at: point, rows: rows) })
                     }
@@ -399,8 +402,11 @@ struct TimelinePanel: View {
 
     // MARK: Interaction
 
-    private func rowAt(_ y: CGFloat, _ rows: [LaneRow]) -> LaneRow? {
-        var top = Self.rulerHeight
+    private func rowAt(_ y: CGFloat, _ rows: [LaneRow]) -> LaneRow? { Self.row(at: y, rows) }
+
+    /// The lane under `y` (content coordinates: the ruler on top).
+    static func row(at y: CGFloat, _ rows: [LaneRow]) -> LaneRow? {
+        var top = rulerHeight
         for r in rows {
             if y >= top && y < top + r.height { return r }
             top += r.height

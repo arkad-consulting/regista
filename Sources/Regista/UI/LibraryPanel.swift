@@ -103,9 +103,7 @@ struct MediaTab: View {
         }
         .contextMenu {
             Button("Mostra in Sorgente") { store.sourceAssetID = a.id }
-            Button("Metti in timeline al cursore") {
-                if let p = store.project { store.dropMedia(assets: [a.id], files: [], at: MediaDrop.snap(store.preview.time, project: p, playhead: store.preview.time, tolerance: 0), on: .auto) }
-            }
+            Button("Metti in timeline al cursore") { store.placeAtPlayhead(asset: a.id) }
             Button("Mostra nel Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: a.path)]) }
         }
         .groupTip(a.origin.map { loc("Generato (%@) da %@", $0.process, $0.assetID) } ?? a.path)

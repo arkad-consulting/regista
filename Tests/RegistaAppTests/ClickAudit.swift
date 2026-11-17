@@ -213,11 +213,22 @@ struct ClickAudit {
             let before = AuditState(app)
             let refused = RigProcesses.refused.count
             let action = nativeByAccessibility ? rig.performAccessibility(e) : nil
-            if action == nil { rig.click(p) }
+            // A slider that says its value (#36: Export's bit rate) is dragged along its track, from 30 % to 70 %, and its
+            // value read before and after as an assistive client reads it.
+            let slider = action == nil && e.role == "AXUnknown" && e.frame.width > e.frame.height * 2 && !e.valueDescription.isEmpty
+            var moved: String?
+            if slider {
+                let from = CGPoint(x: e.frame.minX + e.frame.width * 0.3, y: p.y)
+                rig.drag(from: from, by: CGSize(width: e.frame.width * 0.4, height: 0))
+                await app.settle()
+                let after = controlsInArea().first { $0.key == e.key }?.valueDescription ?? "?"
+                if after != e.valueDescription { moved = "value «\(e.valueDescription)» → «\(after)» (dragged)" }
+            } else if action == nil { rig.click(p) }
             await app.settle()
             // An alert the click's command opened (its error) animates in: its stop lands in a loop of ours (#40).
             if before.ui["sheet"] == "", rig.window.attachedSheet != nil { rig.hold() }
             var changes = AuditState(app).changes(since: before)
+            if let moved { changes.insert(moved, at: 0) }
             if changes.isEmpty {
                 // A tap that also answers a double tap, a popover: they come after the double-click interval.
                 await app.idle(NSEvent.doubleClickInterval + 0.1)

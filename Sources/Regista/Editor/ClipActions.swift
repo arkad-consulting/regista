@@ -144,6 +144,12 @@ extension EditorStore {
         }
     }
 
+    /// A Media tile's «Metti in timeline al cursore»: the asset at the playhead, on the first free track of its kind.
+    func placeAtPlayhead(asset: String) {
+        guard let p = project else { return }
+        dropMedia(assets: [asset], files: [], at: MediaDrop.snap(preview.time, project: p, playhead: preview.time, tolerance: 0), on: .auto)
+    }
+
     /// Media dropped on the timeline: asset ids from the Media panel, or files from the Finder (imported first).
     func dropMedia(assets: [String], files: [URL], at time: Double, on target: MediaDrop.Target) {
         Task {

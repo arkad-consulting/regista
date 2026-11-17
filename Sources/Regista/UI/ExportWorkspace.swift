@@ -78,7 +78,7 @@ struct ExportSettingsPanel: View {
                                    .init(id: "1:1", title: loc("Quadrato"), symbol: "square"), .init(id: "16:9", title: loc("Orizzontale"), symbol: "rectangle")],
                            selection: o.preset, columns: 2) { o.preset = $0 }
                     RToggle(title: "Sottotitoli impressi", isOn: $o.captions)
-                    RSlider(value: $o.bitrate, range: 6...30, step: 1, label: "Bit rate", format: { String(Int($0)) + " Mbps" })
+                    RSlider(value: $o.bitrate, range: 6...30, step: 1, label: "Bit rate", format: { String(format: loc("%d Mbps"), Int($0)) })
                 }
                 if let report = rulesDemo ?? rules.report {
                     ExportRulesCard(report: report, model: rules, demo: rulesDemo != nil)

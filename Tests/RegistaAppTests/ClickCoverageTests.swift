@@ -38,6 +38,12 @@ extension MouseSuites {
         // Released, it stays: a second look changes nothing.
         await app.idle(0.3)
         #expect(options.bitrate == 25 && slider()?.valueDescription == "25 Mbps")
+        // In the interface language: the number and its unit.
+        app.hostEditor(Navigation(activity: .export, rightTab: .inspector), language: "fr")
+        await app.settle()
+        let fr = MouseRig.table("fr").localizedString(forKey: "Bit rate", value: "Bit rate", table: nil)
+        let french = app.rig.elements().first { $0.label == fr && $0.visible }
+        #expect(french?.valueDescription == "25 Mbit/s", "in French the slider reads «\(french?.valueDescription ?? "nothing")»")
     }
 
     /// Testi e sottotitoli › Trascrizione: a word's click reads its own modifiers (#36). ⌘-click selects a word, ⇧-click

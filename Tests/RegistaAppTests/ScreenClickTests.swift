@@ -53,7 +53,9 @@ extension MouseSuites.ClickAudits {
     /// The whole window on the Pro editor: title row, activity bar, project tab, toolbar, both monitors and their
     /// transports, tool rail, timeline headers and zoom bar, right panel tabs, status bar; the Media panel's tiles.
     @Test func shell() async throws {
-        _ = try await audit("shell", Navigation(activity: .media, rightTab: .inspector), noOps: [
+        _ = try await audit("shell", Navigation(activity: .media, rightTab: .inspector), skip: [
+            "Media tile dragged to the timeline": "not driven: a drag session would use the session's pasteboard and draw on the screen; the drop is tested at TimelinePanel.drop (TimelineDropTests), which also checks that «Metti in timeline al cursore» gives the same clip",
+        ], noOps: [
             "Divisore": "a splitter: a click without a drag moves nothing (its drag is tested in ControlMouseTests)",
             "Ispettore": alreadyCurrent, "Media": alreadyCurrent, "Pro": alreadyCurrent, "Selezione": alreadyCurrent,
             "Impostazioni": "opens the Settings scene with SwiftUI's openSettings, which a hosted view has no scene for (Settings is clicked through in SettingsClickTests)",
@@ -62,6 +64,7 @@ extension MouseSuites.ClickAudits {
             // The Media tiles: a tap gesture, not a button (the tree shows their picture and two lines).
             app.rig.elements().filter { $0.role == "AXImage" && WindowPart.side.contains($0.centre) && $0.frame.minY < 200 }
                 .enumerated().map { (name: "Media tile \($0.offset + 1)", at: $0.element.centre) }
+                + [(name: "Media tile dragged to the timeline", at: .zero)]
         })
     }
 
