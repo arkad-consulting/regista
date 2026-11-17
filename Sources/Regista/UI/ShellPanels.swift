@@ -194,6 +194,8 @@ struct TabInfo: Identifiable, Equatable {
     /// The edit's length (nil: empty), or how long it has been recording.
     var duration: Double?
     var state: State
+    /// The recording of this tab is paused (its clock stands still).
+    var paused = false
     var active: Bool
     var path: String?
     /// The tab has a project (or is recording): it can be saved and closed with its own ×.
@@ -211,13 +213,14 @@ struct TabInfo: Identifiable, Equatable {
 
     /// A tab as it is now; `recordingElapsed`: the recorder's time when this tab owns the recording.
     @MainActor
-    init(_ t: EditorStore, recordingElapsed: Double? = nil) {
+    init(_ t: EditorStore, recordingElapsed: Double? = nil, paused: Bool = false) {
         let recording = t.bench.recordingTabID == t.tabID
         let state: State = recording ? .recording : t.runningWork != nil ? .working
             : (t.project != nil && (t.dirty || t.projectURL == nil)) ? .unsaved : .saved
         self.init(id: t.tabID, name: t.project?.name ?? (recording ? loc("Nuova registrazione") : t.tabTitle),
                   duration: recording ? recordingElapsed : (t.project?.duration).flatMap { $0 > .zero ? $0.seconds : nil },
                   state: state, active: t.isActive, path: t.projectURL?.path, hasProject: t.project != nil || recording)
+        self.paused = recording && paused
     }
 
     /// `n` tabs for a render (1…12): `active` first, then sample projects (unsaved, recording, saved, working…).
@@ -365,7 +368,7 @@ struct ProjectTab: View {
 
         var body: some View {
             let bench = tab.bench
-            let info = TabInfo(tab, recordingElapsed: recorder.isRecording ? recorder.elapsed : nil)
+            let info = TabInfo(tab, recordingElapsed: recorder.isRecording ? recorder.elapsed : nil, paused: recorder.isPaused)
             TabLabel(info: info, onSelect: { bench.select(tab.tabID) }, onClose: { Task { await bench.close(tab) } },
                      onDrop: { bench.move($0, to: tab.tabID) })
                 .contextMenu {
@@ -423,7 +426,8 @@ struct TabLabel: View {
                 .lineLimit(1).truncationMode(.middle)
                 .frame(maxWidth: 220, alignment: .leading)
             if details, info.state == .recording {
-                Text(verbatim: loc("sta registrando") + (info.duration.map { " " + timecode($0) } ?? "")).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.danger).fixedSize()
+                // A paused take says so, as Registra's preview does: its clock stands still (#62).
+                Text(verbatim: (info.paused ? loc("in pausa") : loc("sta registrando")) + (info.duration.map { " " + timecode($0) } ?? "")).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.danger).fixedSize()
             } else if details, let d = info.duration {
                 Text(verbatim: clockTime(d)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).fixedSize()
             }
