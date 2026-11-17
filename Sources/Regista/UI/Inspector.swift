@@ -461,7 +461,9 @@ struct InspectorHeader: View {
             return "\(shortTime(a)) – \(shortTime(b))"
         default:
             guard let it = target.item else { return "" }
-            return "\(shortTime(it.clip.start.seconds)) – \(shortTime(it.clip.end.seconds)) · " + loc(it.track.name)
+            // The track as its lane names it (#75: «Titles 2» in English beside a lane reading «Titoli»).
+            let track = (it.track.kind == .overlay ? LaneRow.roleTitle(it.track) : nil) ?? it.track.name
+            return "\(shortTime(it.clip.start.seconds)) – \(shortTime(it.clip.end.seconds)) · " + loc(track)
         }
     }
 }

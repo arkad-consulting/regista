@@ -15,6 +15,10 @@ struct LaneRow: Identifiable {
     var track: Track?
     var height: CGFloat
 
+    /// An overlay track's lane title by its role (a key): the engine names a second titles track "Titles 2", which is no
+    /// key (#75).
+    static func roleTitle(_ t: Track) -> String? { ["titles": "Titoli", "logo": "Logo", "inserts": "Piani IA"][t.role ?? ""] }
+
     static func rows(_ project: Project?) -> [LaneRow] {
         let tracks = project?.tracks ?? []
         let captions = tracks.filter { $0.kind == .caption }
@@ -32,7 +36,7 @@ struct LaneRow: Identifiable {
             rows.append(LaneRow(id: "slot-V2", label: "V\(max(videos.count, 1) + 1)", title: "Grafica / IA", role: .graphics, kind: .overlay, track: nil, height: 34))
         }
         for (i, t) in overlays.enumerated().reversed() {
-            let byRole = ["titles": "Titoli", "logo": "Logo", "inserts": "Piani IA"][t.role ?? ""]
+            let byRole = t.kind == .overlay ? roleTitle(t) : nil
             rows.append(LaneRow(id: t.id, label: "V\(max(videos.count, 1) + 1 + i)", title: byRole ?? (i == 0 ? "Grafica / IA" : t.name),
                                 role: .graphics, kind: .overlay, track: t, height: 34))
         }
