@@ -87,6 +87,8 @@ struct TimelinePanel: View {
     @EnvironmentObject private var media: MediaCache
     @State private var position = ScrollPosition(edge: .leading)
     @State private var scrollX: CGFloat = 0
+    /// The scroll offset when a Hand drag began.
+    @State private var handStart: CGFloat?
     @State private var viewWidth: CGFloat = 800
     @State private var drag: DragState?
 
@@ -97,7 +99,7 @@ struct TimelinePanel: View {
 
     struct DragState {
         enum Kind {
-            case scrub, empty, hand(CGFloat), razor(String), keyword, caption
+            case scrub, empty, hand, razor(String), keyword, caption
             case move(Clip), trim(Clip, String)
         }
         var kind: Kind
@@ -216,6 +218,7 @@ struct TimelinePanel: View {
                         .frame(width: contentWidth, height: g.size.height, alignment: .topLeading)
                         .contentShape(Rectangle())
                         .gesture(gesture(rows))
+                        .simultaneousGesture(handGesture)
                         // A Graphics panel row dropped on a clip or a moment (issue #16, E4 #3).
                         // A Media tile or a Finder file: placed on the track under the pointer (E1 #53).
                         .onDrop(of: [.text, .fileURL], isTargeted: nil) { providers, loc in dropEffect(providers, at: loc, rows: rows) }
@@ -223,6 +226,7 @@ struct TimelinePanel: View {
                         .overlay(ContextMenuArea { point in clipMenu(at: point, rows: rows) })
                     }
                     .scrollPosition($position)
+                    .coordinateSpace(name: Self.viewport)
                     .onScrollGeometryChange(for: CGFloat.self) { $0.contentOffset.x } action: { _, x in scrollX = x }
                     .onAppear { viewWidth = g.size.width; autoFit() }
                     .onChange(of: g.size.width) { viewWidth = g.size.width }
@@ -414,8 +418,7 @@ struct TimelinePanel: View {
                 guard let d = drag else { return }
                 switch d.kind {
                 case .scrub: store.preview.seek(snap(Double((v.location.x - Self.originX) / pps)))
-                case .hand(let x0): position.scrollTo(x: max(0, x0 - v.translation.width))
-                default: break
+                default: break   // the Hand tool scrolls in handGesture
                 }
             }
             .onEnded { v in
@@ -424,8 +427,24 @@ struct TimelinePanel: View {
             }
     }
 
+    /// The scroll view's own space: it does not move with the content.
+    private static let viewport = "timelineViewport"
+
+    /// The Hand tool (#56): the drag is measured in the scroll view's space, which does not scroll with the content, so
+    /// the view follows the pointer one to one. (In the content's own space each scroll step also moves the pointer's
+    /// local position: the view settled at half the drag.)
+    private var handGesture: some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.viewport))
+            .onChanged { v in
+                guard store.tool == .hand else { return }
+                if handStart == nil { handStart = scrollX }
+                position.scrollTo(x: max(0, (handStart ?? 0) - v.translation.width))
+            }
+            .onEnded { _ in handStart = nil }
+    }
+
     private func begin(_ p: CGPoint, _ rows: [LaneRow]) -> DragState {
-        if store.tool == .hand { return DragState(kind: .hand(scrollX), start: p) }
+        if store.tool == .hand { return DragState(kind: .hand, start: p) }
         if p.y < Self.rulerHeight { return DragState(kind: .scrub, start: p) }
         guard let row = rowAt(p.y, rows), let track = row.track else { return DragState(kind: .empty, start: p) }
         let t = Double((p.x - Self.originX) / pps)

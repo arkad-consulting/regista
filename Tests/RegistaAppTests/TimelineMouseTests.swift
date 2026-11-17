@@ -209,9 +209,8 @@ extension MouseSuites {
         await t.app.settle()
         let end = try #require(offset())
         #expect(end > start + 20, "the view did not scroll with the drag (from \(start) to \(end))")
-        withKnownIssue("#56: the Hand tool scrolls the view by half the drag") {
-            #expect(abs(end - start - 120) < 2, "the view scrolled from \(start) to \(end), not by the drag's 120 pt")
-        }
+        // #56: the view follows the pointer one to one.
+        #expect(abs(end - start - 120) < 2, "the view scrolled from \(start) to \(end), not by the drag's 120 pt")
         #expect(t.app.commands(since: n).isEmpty, "the Hand tool ran \(t.app.commands(since: n))")
         #expect(t.footage == before && t.store.selection == selection, "the Hand tool moved or selected a clip")
         // And back.
