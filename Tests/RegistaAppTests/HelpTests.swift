@@ -126,7 +126,10 @@ private func guide(_ lang: String, _ g: HelpGuide) -> String {
 }
 
 @Test func theHelpMenuHasEveryGuideAndItsWordsInEveryLanguage() throws {
-    let app = try String(contentsOf: repoRoot.appendingPathComponent("Sources/Regista/App/RegistaApp.swift"), encoding: .utf8)
+    // The menu bar and the one table it is drawn from (#36).
+    let app = try ["RegistaApp.swift", "MenuCommands.swift"].map {
+        try String(contentsOf: repoRoot.appendingPathComponent("Sources/Regista/App/\($0)"), encoding: .utf8)
+    }.joined(separator: "\n")
     #expect(app.contains("CommandGroup(replacing: .help)"), "the standard Help menu")
     #expect(app.contains("HelpCenter.open(") && app.contains("HelpCenter.reportProblem()") && app.contains("SettingsRoute.open(.shortcuts"))
     let keys = HelpGuide.allCases.map(\.title) + ["Aiuto", "Scorciatoie da tastiera", "Segnala un problema…"]

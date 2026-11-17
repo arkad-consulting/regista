@@ -83,10 +83,14 @@ private final class BundleToken {}
     #expect(AppShortcuts.search("registrazione").flatMap(\.items).contains { $0.id == "record" })
     #expect(AppShortcuts.search("⇧⌘R").flatMap(\.items).map(\.id) == ["record"])
     #expect(AppShortcuts.search("nessuna-parola-così").isEmpty)
-    // Generated, not hand-written: every menu item of the app takes its key from the catalog.
-    let app = try String(contentsOf: sourceRoot.appendingPathComponent("Sources/Regista/App/RegistaApp.swift"), encoding: .utf8)
-    #expect(!app.contains(".keyboardShortcut("), "a menu shortcut bypasses AppShortcuts")
-    #expect(app.components(separatedBy: ".shortcut(AppShortcuts.").count - 1 >= 20)
+    // Generated, not hand-written: every menu item of the app takes its key from the catalog, through the one table the
+    // menu bar is drawn from (#36: MenuCommands.swift; MenuCommandTests runs it).
+    for file in ["Sources/Regista/App/RegistaApp.swift", "Sources/Regista/App/MenuCommands.swift"] {
+        let text = try String(contentsOf: sourceRoot.appendingPathComponent(file), encoding: .utf8)
+        #expect(!text.contains(".keyboardShortcut("), "a menu shortcut bypasses AppShortcuts in \(file)")
+    }
+    let table = try String(contentsOf: sourceRoot.appendingPathComponent("Sources/Regista/App/MenuCommands.swift"), encoding: .utf8)
+    #expect(table.components(separatedBy: "AppShortcuts.").count - 1 >= 20)
 }
 
 @Test func generalChoicesShapeNewProjects() {

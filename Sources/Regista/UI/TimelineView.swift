@@ -728,11 +728,11 @@ struct ZoomBar: View {
                     .fixedSize()
             }
             Spacer(minLength: 0)
-            IconButton(symbol: "minus.magnifyingglass", help: "Riduci", shortcut: "−", size: 20) { store.zoom(by: 1 / 1.5) }
+            IconButton(symbol: "minus.magnifyingglass", help: "Riduci", shortcut: "-", size: 20) { store.zoom(by: 1 / 1.5) }
             RSlider(value: Binding(get: { log(store.pxPerSec) }, set: { store.pxPerSec = exp($0); store.autoFit = false }),
                     range: log(2.0)...log(400.0), format: { String(Int(exp($0).rounded())) + " px/s" })
                 .frame(width: slider)
-            IconButton(symbol: "plus.magnifyingglass", help: "Ingrandisci", shortcut: "+", size: 20) { store.zoom(by: 1.5) }
+            IconButton(symbol: "plus.magnifyingglass", help: "Ingrandisci", shortcut: "=", size: 20) { store.zoom(by: 1.5) }
             EdButton(title: "Adatta") { store.zoomToFit() }.tip("Adatta tutta la timeline", shortcut: "\\").fixedSize()
         }
     }

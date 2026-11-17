@@ -35,7 +35,8 @@ private func mainWindow(_ path: String) -> Bool { !path.hasPrefix("Settings/") }
 
 /// The allow-list: rule → file → why the rule does not apply there. Keep it short.
 private let allowed: [String: [String: String]] = [
-    "native": ["UI/Controls.swift": "the one implementation of RTextField, RTextEditor and InspectorValueField wraps the native field and editor"],
+    "native": ["UI/Controls.swift": "the one implementation of RTextField, RTextEditor and InspectorValueField wraps the native field and editor",
+               "App/MenuCommands.swift": "the menu bar's items (#36): an NSMenu of the app, not the window, drawn as Button and Menu"],
     "colour": ["UI/Tokens.swift": "the token file: the only place with colour values"],
     "font": ["UI/Tokens.swift": "the token file: the only place with font literals (Ed.ui, Ed.mono, Ed.display, Ed.icon, the prompter's face)"],
     "radius": ["UI/Tokens.swift": "the token file"],

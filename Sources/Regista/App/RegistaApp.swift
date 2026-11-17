@@ -56,15 +56,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-/// Menu items: each one is a command (or a dialog that ends in one), on the tab on screen.
+/// The menu bar: the items of `MenuCommands.all` (each one a command, or a dialog that ends in one, on the tab on screen).
 struct EditorCommands: Commands {
     @ObservedObject var bench: Workbench
     @ObservedObject var recents: RecentProjects
     @ObservedObject var recorder: Recorder
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
-
-    private var store: EditorStore { bench.active }
 
     /// ⇧⌘R from any screen: starting a take switches to Registra first; stopping leaves the screen as it is. A recording
     /// belongs to the tab it was started from: another tab cannot start or stop it (it says why).
@@ -88,97 +86,25 @@ struct EditorCommands: Commands {
         NSApp.activate()
     }
 
+    /// The ways out of the main window the scene gives, and what the items act on.
+    private var context: MenuContext {
+        MenuContext(bench: bench, recents: recents, recorder: recorder,
+                    openGuide: { [openWindow] g in HelpCenter.open(g, with: openWindow) },
+                    openShortcuts: { [openSettings] in SettingsRoute.open(.shortcuts, with: openSettings) })
+    }
+
+    // Drawn from the one table of the app's commands (#36): `MenuCommands.all`, which the tests run on the live model.
     var body: some Commands {
-        CommandGroup(replacing: .appInfo) {
-            Button("Informazioni su Regista") { Self.showAbout() }
-        }
-        CommandGroup(replacing: .newItem) {
-            Button("Nuovo progetto…") { Panels.newProject(store) }.shortcut(AppShortcuts.newProject)
-            Button("Nuova scheda") { bench.openNewTab() }.shortcut(AppShortcuts.newTab)
-            Button("Apri progetto…") { Panels.openProject(store) }.shortcut(AppShortcuts.openProject)
-            Menu("Apri recente") {
-                ForEach(recents.urls, id: \.self) { url in
-                    Button(url.deletingPathExtension().lastPathComponent) { store.openProject(url) }
-                }
-                if !recents.urls.isEmpty { Divider() }
-                Button("Cancella elenco") { recents.clear() }.disabled(recents.urls.isEmpty)
-            }
-            Divider()
-            Button("Importa media…") { Panels.importMedia(store) }.shortcut(AppShortcuts.importMedia)
-        }
-        CommandGroup(replacing: .saveItem) {
-            // ⌘W closes the tab on screen; another window in front (Settings, a sheet's window) closes as usual.
-            Button("Chiudi la scheda") {
-                if let w = NSApp.keyWindow, let main = bench.window, w !== main { return w.performClose(nil) }
-                let s = store
-                Task { await bench.close(s) }
-            }
-            .shortcut(AppShortcuts.closeTab)
-            Button("Salva") { Panels.save(store) }.shortcut(AppShortcuts.save)
-            Button("Salva con nome…") { Panels.saveAs(store) }.shortcut(AppShortcuts.saveAs)
-        }
-        CommandGroup(replacing: .undoRedo) {
-            // #65: "menu.undo", not "Annulla" (Cancel in a dialog): one Italian word, two meanings elsewhere.
-            Button(loc("menu.undo")) {
-                if let t = NSApp.keyWindow?.firstResponder as? NSTextView { t.undoManager?.undo() } else { store.undo() }
-            }
-            .shortcut(AppShortcuts.undo)
-            Button(loc("menu.redo")) {
-                if let t = NSApp.keyWindow?.firstResponder as? NSTextView { t.undoManager?.redo() } else { store.redo() }
-            }
-            .shortcut(AppShortcuts.redo)
-        }
-        CommandMenu("Montaggio") {
-            Button("Taglia al cursore") { store.cutAtPlayhead() }.shortcut(AppShortcuts.cut)
-            Button("Montaggio automatico") { store.autoEdit(script: TeleprompterController.shared.text) }
-                .shortcut(AppShortcuts.autoEdit)
-            Button("Genera sottotitoli") { store.run("captions.generate", ["style": "talking-head-v1"]) }
-            Divider()
-            Button("Adatta la timeline") { store.zoomToFit() }
-        }
-        CommandMenu("Registra") {
-            Button(loc(recorder.isRecording ? "Ferma registrazione" : "Avvia registrazione")) { Self.toggleRecording(store, recorder) }
-                .shortcut(AppShortcuts.record)
-            Button(loc(recorder.isPaused ? "Riprendi" : "Pausa")) { recorder.togglePause() }
-                .shortcut(AppShortcuts.pause)
-                .disabled(!recorder.isRecording)
-        }
-        CommandMenu("Vista") {
-            // The activity bar, top to bottom: ⌘1…⌘9.
-            ForEach(Array(Navigation.Activity.allCases.enumerated()), id: \.element) { i, a in
-                Button(ActivityInfo.of(a).title) { store.select(a) }.shortcut(AppShortcuts.activity(i, title: ActivityInfo.of(a).title))
-            }
-            Divider()
-            Button("Monta — Semplice") { store.workspace = .simple }.shortcut(AppShortcuts.simple)
-            Button("Monta — Pro") { store.workspace = .pro }.shortcut(AppShortcuts.pro)
-            Divider()
-            Button("Scheda successiva") { bench.selectNext(1) }.shortcut(AppShortcuts.nextTab)
-            Button("Scheda precedente") { bench.selectNext(-1) }.shortcut(AppShortcuts.previousTab)
-            Button("Scheda successiva") { bench.selectNext(1) }.shortcut(AppShortcuts.nextTabAlt)
-            Button("Scheda precedente") { bench.selectNext(-1) }.shortcut(AppShortcuts.previousTabAlt)
-            Divider()
-            Button("Mostra o nascondi il pannello laterale") { ShellPrefs.toggle(ShellPrefs.sideShown) }
-                .shortcut(AppShortcuts.sidePanel)
-            Button("Mostra o nascondi il pannello destro") { ShellPrefs.toggle(ShellPrefs.rightShown) }
-                .shortcut(AppShortcuts.rightPanel)
-            Divider()
-            Button("Zone di sicurezza") { store.safeZones.toggle() }
-            // The Marca picker lives on the editor's toolbar: go to the editor, then open it.
-            Button("Brand kit…") {
-                if !store.nav.inEditor { store.showEditor() }
-                store.showBrandKits = true
-            }.shortcut(AppShortcuts.brandKit)
-        }
-        // The standard Help menu (Aiuto / Help / Aide / Ajuda): the guides shipped in the app, the shortcuts, the issues page.
-        CommandGroup(replacing: .help) {
-            Button(loc(HelpGuide.userGuide.title)) { HelpCenter.open(.userGuide, with: openWindow) }.shortcut(AppShortcuts.help)
-            ForEach(HelpGuide.allCases.filter { $0 != .userGuide }) { g in
-                Button(loc(g.title)) { HelpCenter.open(g, with: openWindow) }
-            }
-            Divider()
-            Button("Scorciatoie da tastiera") { SettingsRoute.open(.shortcuts, with: openSettings) }
-            Button("Segnala un problema…") { HelpCenter.reportProblem() }
-        }
+        let items = MenuCommands.all(context)
+        CommandGroup(replacing: .appInfo) { MenuItems(items, .appInfo) }
+        CommandGroup(replacing: .newItem) { MenuItems(items, .newItem) }
+        CommandGroup(replacing: .saveItem) { MenuItems(items, .saveItem) }
+        CommandGroup(replacing: .undoRedo) { MenuItems(items, .undoRedo) }
+        CommandMenu("Montaggio") { MenuItems(items, .editing) }
+        CommandMenu("Registra") { MenuItems(items, .record) }
+        CommandMenu("Vista") { MenuItems(items, .view) }
+        // The standard Help menu (Aiuto / Help / Aide / Ajuda).
+        CommandGroup(replacing: .help) { MenuItems(items, .help) }
     }
 }
 
