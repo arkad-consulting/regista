@@ -88,6 +88,15 @@ private final class VoiceRig {
     func control(_ name: String) throws -> RigElement {
         try #require(app.rig.controls().first { $0.name == name }, "no «\(name)» on screen: \(app.rig.controls().map(\.description))")
     }
+
+    /// The control once it is drawn enabled (#58): a click right after a job ends can reach a button the panel has not
+    /// drawn enabled yet, and a click on a disabled button does nothing.
+    func enabledControl(_ name: String, _ seconds: Double = 10) async throws -> RigElement {
+        _ = await until(seconds) { app.rig.controls().first { $0.name == name }?.enabled == true }
+        let c = try control(name)
+        #expect(c.enabled, "«\(name)» is still disabled after \(seconds) s")
+        return c
+    }
 }
 
 extension MouseSuites {
@@ -105,7 +114,7 @@ extension MouseSuites {
 
         // Ascolta.
         let says = v.calls("vox_say.py"), clips = v.app.clips.count
-        v.app.rig.click(try v.control("Ascolta la selezione, o il paragrafo dove sta il cursore, senza toccare il montaggio").centre)
+        v.app.rig.click(try await v.enabledControl("Ascolta la selezione, o il paragrafo dove sta il cursore, senza toccare il montaggio").centre)
         #expect(await v.until { v.store.jobs.latest("voice")?.isRunning == false }, "the listening job did not end")
         #expect(v.calls("vox_say.py") == says + 1, "Ascolta rendered \(v.calls("vox_say.py") - says) times")
         #expect(v.store.jobs.latest("voice")?.state == .done, "Ascolta did not end well: \(String(describing: v.store.jobs.latest("voice")?.state))")
@@ -113,7 +122,8 @@ extension MouseSuites {
 
         // Metti in timeline.
         var n = v.store.activity.count
-        v.app.rig.click(try v.control("Ogni paragrafo diventa una clip sulla pista Voce, con i tempi delle parole").centre)
+        // The job's end reaches the store before the panel draws the button enabled again (#58): wait for the button.
+        v.app.rig.click(try await v.enabledControl("Ogni paragrafo diventa una clip sulla pista Voce, con i tempi delle parole").centre)
         #expect(await v.until { v.app.commands(since: n).contains("voice.say") }, "Metti in timeline ran \(v.app.commands(since: n))")
         await v.app.settle()
         #expect(v.app.commands(since: n).filter { $0 == "voice.say" }.count == 1, "voice.say ran \(v.app.commands(since: n))")
