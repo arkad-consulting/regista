@@ -103,10 +103,13 @@ private func goldPixels(_ rep: NSBitmapImageRep) -> [(x: Int, y: Int)] {
     #expect(rowY > Double(normal.pixelsHigh) * 0.2 && rowY < Double(normal.pixelsHigh) * 0.6)
 }
 
-/// #63: Gobbo's line over the script says one sentence and one word in the singular.
+/// #63: Gobbo's line over the script says one take and one word in the singular. #66: it counts the script's lines,
+/// one take each, and names them so: two sentences on one line are «1 ripresa», not «1 frase».
 @MainActor
 @Test func theTeleprompterCountsSayOneInTheSingular() {
-    #expect(PrompterEditorView.counts(sentences: 1, words: 1) == "1 frase · 1 parola · circa 1 min")
-    #expect(PrompterEditorView.counts(sentences: 1, words: 10) == "1 frase · 10 parole · circa 1 min")
-    #expect(PrompterEditorView.counts(sentences: 3, words: 480) == "3 frasi · 480 parole · circa 3 min")
+    #expect(PrompterEditorView.counts(takes: 1, words: 1) == "1 ripresa · 1 parola · circa 1 min")
+    #expect(PrompterEditorView.counts(takes: 1, words: 10) == "1 ripresa · 10 parole · circa 1 min")
+    #expect(PrompterEditorView.counts(takes: 3, words: 480) == "3 riprese · 480 parole · circa 3 min")
+    let script = PromptScript("Oggi Regista monta il reel. Le pause spariscono da sole.")
+    #expect(PrompterEditorView.counts(takes: script.sentences.count, words: 10) == "1 ripresa · 10 parole · circa 1 min")
 }

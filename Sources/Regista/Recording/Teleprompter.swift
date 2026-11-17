@@ -794,9 +794,10 @@ struct PrompterEditorView: View {
     /// Whether this Mac recognizes the chosen language on device (nil while checking).
     @State private var support: LiveSpeechSession.OnDeviceSupport?
 
-    /// «1 frase · 10 parole · circa 1 min»: each count in the singular when it is one (#63).
-    static func counts(sentences: Int, words: Int) -> String {
-        [sentences == 1 ? loc("1 frase") : String(format: loc("%d frasi"), sentences),
+    /// «1 ripresa · 10 parole · circa 1 min»: each count in the singular when it is one (#63). The first is the script's
+    /// lines, and a line is a take (the help under it says so): two sentences on one line are one take (#66).
+    static func counts(takes: Int, words: Int) -> String {
+        [takes == 1 ? loc("1 ripresa") : String(format: loc("%d riprese"), takes),
          words == 1 ? loc("1 parola") : loc("%@ parole", String(words)),
          String(format: loc("circa %d min"), max(1, Int((Double(words) / 160).rounded())))].joined(separator: " · ")
     }
@@ -818,7 +819,7 @@ struct PrompterEditorView: View {
     private var content: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: Ed.Space.l) {
-                Text(verbatim: Self.counts(sentences: p.prompt.sentences.count, words: p.wordCount))
+                Text(verbatim: Self.counts(takes: p.prompt.sentences.count, words: p.wordCount))
                     .font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text2)
                 Text("In modalità **Voce** il gobbo ti ascolta: avanza mentre leggi, si ferma se parli d'altro e, se ricominci una frase, torna al suo inizio e segna una nuova ripresa. Una riga numerata = una ripresa; \" / \" = pausa, *parola* = parola chiave. La finestra non compare mai nelle registrazioni dello schermo.")
                     .font(Ed.ui(Ed.TypeSize.small))

@@ -679,8 +679,9 @@ extension MouseSuites.ClickAudits {
         j.rig.type(script)
         await j.app.settle()
         #expect(prompter.text == script, "the script typed in Gobbo is «\(prompter.text)»")
-        // One line of ten words, counted in the singular where it is one (#63: it read «1 frasi»).
-        #expect(j.shows("1 frase · 10 parole"), "Gobbo does not count the script: \(j.screen())")
+        // One line of ten words, counted in the singular where it is one (#63: it read «1 frasi»), a line being a take
+        // (#66: two sentences on one line read «1 frase»).
+        #expect(j.shows("1 ripresa · 10 parole"), "Gobbo does not count the script: \(j.screen())")
         try await j.tap("Velocità")
         #expect(prompter.mode == .speed, "Velocità is not the teleprompter's mode")
         let gobboSwitch = { j.rig.elements().first { $0.isControl && $0.visible && $0.label == "Gobbo" && $0.frame.maxX < width - 340 && ["0", "1"].contains($0.value) } }
@@ -692,7 +693,7 @@ extension MouseSuites.ClickAudits {
         #expect(j.app.recorder.sources.prompter && gobboSwitch()?.value == "1", "the teleprompter is not on for the take")
         #expect(await j.until { j.app.recorder.isReady && j.control("Avvia / Ferma registrazione")?.enabled == true },
                 "the Record button is not ready: \(j.app.recorder.blockReason ?? "") — \(j.screen())")
-        j.step("Gobbo: types the script, Velocità; Registra: the Gobbo switch on", sees: "«1 frase · 10 parole · circa 1 min», the Gobbo row on, Record ready")
+        j.step("Gobbo: types the script, Velocità; Registra: the Gobbo switch on", sees: "«1 ripresa · 10 parole · circa 1 min», the Gobbo row on, Record ready")
 
         // Record.
         /// The status bar's clock: «Registrazione 0:03», or «In pausa · 0:03» while the take is paused (#65).
