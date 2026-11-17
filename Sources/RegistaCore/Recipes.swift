@@ -63,9 +63,10 @@ public enum Recipes {
         5. takes_list: every reading of every line; the best complete take is picked per line. WRITE THE KEPT-TAKE
            LIST AS TEXT for the user (line → take, its words, in/out) before building. If a pick is wrong (a
            stumble, a cut-off ending, a weaker reading) use takes_select {line, take}.
-        6. edit_autoCut: one linked picture+sound clip per kept range (fillers and long pauses removed; ~0.2–0.3 s
-           between lines). After changing picks later: edit_autoCut {replace: true, picks: [{line, take}]} (the new picks
-           and the cut are one undo step; or takes_select, then edit_autoCut {replace: true}), then redo steps 7–10.
+        6. edit_autoCut: one linked picture+sound clip per kept range (long pauses inside a take removed; ~0.2–0.3 s
+           between lines; filler words stay: transcript_deleteWords removes them). After changing picks later:
+           edit_autoCut {replace: true, picks: [{line, take}]} (the new picks and the cut are one undo step; or
+           takes_select, then edit_autoCut {replace: true}), then redo steps 7–10.
         7. audio_clean (defaults: DeepFilterNet + voice chain, −15 LUFS, true peak ≤ −1.5 dBTP). Expect ≈ −15 LUFS
            and lag ≈ 0 in its result. audio_clean {restore: true} puts the original sound back if the user prefers it.
         8. faces_track {assetId}, then edit_punchIns {by: "line"}: a base framing alternating with a punch-in to hide

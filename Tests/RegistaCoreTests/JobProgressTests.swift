@@ -135,6 +135,22 @@ private final class Reports: @unchecked Sendable {
     #expect(e.project?.takes?.lines[1].chosen == 0)
 }
 
+/// #14: edit.autoCut says what it does: its summary and its result name the chosen takes and the pauses it cut out, never
+/// a filler removal it does not make (filler words stay; transcript.deleteWords removes them).
+@Test func autoCutSaysOnlyWhatItDid() throws {
+    #expect(!EditAutoCut.summary.lowercased().contains("fillers and"), "the summary still announces a filler removal")
+    #expect(EditAutoCut.summary.contains("filler words stay"))
+    #expect(!Recipes.all.contains { $0.text().contains("fillers and long pauses removed") })
+    let e = try takesEngine()
+    try e.execute("takes.list")
+    try e.execute("takes.select", params: ["line": 1, "take": 1])
+    let r = try e.execute("edit.autoCut")   // line 2's chosen take has a 1 s pause, cut out
+    let notes = r["segments"]?.arrayValue?.compactMap { $0["note"]?.stringValue } ?? []
+    #expect(notes.contains { $0.hasPrefix("pause ") })                               // the pause it cut out is named
+    #expect(notes.allSatisfy { $0.isEmpty || ($0.hasPrefix("pause ") && $0.hasSuffix(" removed")) }, "\(notes)")
+    #expect(!"\(r)".lowercased().contains("filler"))
+}
+
 @Test func captionsDryRunSuggestsKeywordsAndChangesNothing() throws {
     var fakes = FakeServices()
     fakes.words = spoken("Oggi Regista monta 3 reel. Le pause spariscono da sole e i sottotitoli arrivano.", at: 1.0)

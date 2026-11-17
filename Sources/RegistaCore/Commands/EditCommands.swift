@@ -210,7 +210,7 @@ enum TakesSelect: Command {
 
 enum EditAutoCut: Command {
     static let id = "edit.autoCut"
-    static let summary = "Build the rough cut from the chosen takes: one clip per kept range (fillers and long pauses removed) on a video track and the same ranges on an audio track, linked and frame-snapped so picture and sound cut together; 15 ms audio fades. replace: true rebuilds after takes.select. Expressed as ordinary track.add / timeline.delete / timeline.place commands, undone as one step. Returns the segments (line, take, source in/out, timeline start), track ids and duration."
+    static let summary = "Build the rough cut from the chosen takes: one clip per kept range (each chosen take, the pauses longer than maxPause inside it cut out; filler words stay: transcript.deleteWords removes them) on a video track and the same ranges on an audio track, linked and frame-snapped so picture and sound cut together; 15 ms audio fades. replace: true rebuilds after takes.select. Expressed as ordinary track.add / timeline.delete / timeline.place commands, undone as one step. Returns the segments (line, take, source in/out, timeline start), track ids and duration."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("videoTrackId", .string, "Video track (default: the first one, created if missing)."),
