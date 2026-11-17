@@ -425,6 +425,9 @@ struct SoundRow: View {
         .onDrag { NSItemProvider(object: (SFXDrop.prefix + sound.name) as NSString) }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
+        // The row is one element (a press plays it): its + is offered as a named action, or no assistive client could
+        // add the sound (#73).
+        .accessibilityAction(named: Text(verbatim: loc("Aggiungi al cursore (pista Effetti)"))) { if canAdd { onAdd() } }
     }
 }
 
