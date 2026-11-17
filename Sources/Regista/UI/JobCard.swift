@@ -20,7 +20,7 @@ struct JobCard: View {
                     IconButton(symbol: "xmark", help: "Togli dalla lista", size: 18, action: onDismiss)
                 }
             }
-            if job.isRunning { JobProgressBar(progress: job.progress) }
+            if job.isRunning { JobProgressBar(progress: job.progress, estimated: job.estimated) }
             if !job.steps.isEmpty { subSteps }
             if detail != nil || job.isRunning {
                 HStack(alignment: .firstTextBaseline, spacing: Ed.Space.s) {
@@ -30,9 +30,10 @@ struct JobCard: View {
                     }
                     Spacer(minLength: 0)
                     if job.isRunning {
-                        // The elapsed time always (an indeterminate bar still says the work is moving), the percent when known.
+                        // The elapsed time always (an indeterminate bar still says the work is moving), the percent when known,
+                        // and "stima" when the percent is an estimate (#13).
                         SwiftUI.TimelineView(.periodic(from: job.started, by: 1)) { t in
-                            Text(verbatim: (job.progress.map { String(Int(($0 * 100).rounded())) + " % · " } ?? "") + clockTime(t.date.timeIntervalSince(job.started)))
+                            Text(verbatim: (job.progress.map { JobProgressBar.percent($0, estimated: job.estimated) + " · " } ?? "") + clockTime(t.date.timeIntervalSince(job.started)))
                                 .font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize()
                         }
                     }
@@ -87,9 +88,16 @@ struct JobCard: View {
     }
 }
 
-/// A thin capsule filled in the accent; without a known progress, a short segment sweeps across.
+/// A thin capsule filled in the accent; without a known progress, a short segment sweeps across. An estimated progress
+/// draws the same bar; an assistive client hears "stima" with its value (#13).
 struct JobProgressBar: View {
     let progress: Double?
+    var estimated = false
+
+    /// "45 %", or "45 % · stima" for an estimate.
+    static func percent(_ p: Double, estimated: Bool) -> String {
+        String(Int((p * 100).rounded())) + " %" + (estimated ? " · " + loc("stima") : "")
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -111,5 +119,8 @@ struct JobProgressBar: View {
             }
         }
         .frame(height: 4)
+        .accessibilityElement()
+        .accessibilityLabel(loc("Avanzamento"))
+        .accessibilityValue(progress.map { Self.percent($0, estimated: estimated) } ?? loc("in corso"))
     }
 }

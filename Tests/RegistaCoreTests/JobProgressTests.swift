@@ -188,3 +188,112 @@ private final class Reports: @unchecked Sendable {
     #expect { try pro.execute("transcript.run", params: ["assetId": "a1", "language": "auto"]) }
         throws: { "\($0)".contains("cannot detect the language") }
 }
+
+// #13: WhisperX's own progress is read; DeepFilterNet (and WhisperX before its first number) get an estimate from the
+// audio's length and the engine's last speed here. Stand-in engines print what the real ones print, with pauses.
+
+/// What a job says, with whether each number is an estimate.
+private final class Said: @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [(fraction: Double, estimated: Bool)] = []
+    func add(_ f: Double?, _ e: Bool) { if let f { lock.withLock { values.append((f, e)) } } }
+    var all: [(fraction: Double, estimated: Bool)] { lock.withLock { values } }
+}
+
+@Test func whisperXProgressLinesAreRead() {
+    #expect(CommandJob.whisperXPercent("Progress: 6.25%...") == 6.25)
+    #expect(CommandJob.whisperXPercent("Progress: 100.00%...") == 100)
+    #expect(CommandJob.whisperXPercent("2026-11-17 14:06:14 - whisperx.vads.pyannote - INFO - Performing voice activity detection") == nil)
+    #expect(CommandJob.whisperXPercent(#"{"load_asr_s": 4.9, "transcribe_s": 13.79} 108 words, 0 unaligned"#) == nil)
+    #expect(CommandJob.whisperXPercent("progress =  45%") == nil)   // whisper.cpp's line is not WhisperX's
+}
+
+@Test func aWavsLengthComesFromItsHeader() throws {
+    let wav = tempDir().appendingPathComponent("speech.wav")
+    try syntheticSpeech([(1, 2)], duration: 3.5).write16(to: wav)
+    #expect(abs((WAVAudio.duration(of: wav) ?? 0) - 3.5) < 0.001)
+    #expect(WAVAudio.duration(of: tempDir().appendingPathComponent("none.wav")) == nil)
+}
+
+@Test func whisperXShowsAnEstimateUntilItsOwnProgressThenItsNumbers() throws {
+    let dir = tempDir()
+    let speech = dir.appendingPathComponent("speech16k.wav")
+    try syntheticSpeech([(0.5, 3.5)], duration: 4).write16(to: speech)
+    // The uv project wx_align.py runs in, with the pinned Italian aligner in place (a placeholder file).
+    let project = dir.appendingPathComponent("whisperx", isDirectory: true)
+    try FileManager.default.createDirectory(at: project.appendingPathComponent("models/torchaudio"), withIntermediateDirectories: true)
+    try Data().write(to: project.appendingPathComponent("pyproject.toml"))
+    try Data().write(to: project.appendingPathComponent(WhisperXTranscriber.aligners["it"]!))
+    try Data().write(to: project.appendingPathComponent("wx_align.py"))
+    // `uv run --frozen --project P python -I -u wx_align.py <audio> <out> --lang it --chunk 8`, printing what WhisperX
+    // prints: loading and voice detection (no number), one "Progress" line per batch, the timing line.
+    let uv = try script("""
+    out="${10}"
+    echo "2026-11-17 14:06:14 - whisperx.vads.pyannote - INFO - Performing voice activity detection using Pyannote..."
+    sleep 1.2
+    for p in 25.00 50.00 75.00 100.00; do echo "Progress: $p%..."; sleep 0.3; done
+    echo '{"words": [{"w": "uno", "s": 1.0, "e": 1.4, "p": 0.9}]}' > "$out"
+    sleep 0.2
+    echo '{"load_asr_s": 4.9, "transcribe_s": 13.79, "load_align_s": 0.3, "align_s": 0.76} 1 words, 0 unaligned'
+    """)
+    var config = EngineConfig()
+    config.uv = uv.path
+    config.whisperXProject = project.path
+    config.whisperXScript = project.appendingPathComponent("wx_align.py").path
+    var wx = WhisperXTranscriber(config: config)
+    let speedFile = dir.appendingPathComponent("engine-speed.json")
+    wx.speeds = EngineSpeeds(file: speedFile)
+    wx.speeds.record("whisperx", seconds: 8, audio: 4)   // the last run here: two seconds per second of audio
+    let said = Said()
+    let job = CommandJob(estimates: { f, _, e in said.add(f, e) })
+    let t = try CommandJob.$current.withValue(job) { try CommandJob.stage(0, 1) { try wx.transcribe(speech, language: "it") } }
+    #expect(t.words.map(\.text) == ["uno"])
+    let r = said.all
+    let values = r.map(\.fraction)
+    #expect(values == values.sorted() && values.last == 1 && r.last?.estimated == false)   // rises, never falls, ends at 100 %
+    let estimates = r.filter(\.estimated)
+    #expect(estimates.count >= 3 && estimates.allSatisfy { $0.fraction <= 0.95 })   // the estimate before WhisperX's first number
+    // Its own numbers after: 75 % of the transcription is 0.1 + 0.85 × 0.75 of the run; no estimate follows a number of its own.
+    #expect(r.contains { !$0.estimated && abs($0.fraction - 0.7375) < 1e-6 }, "\(r)")
+    let firstOwn = r.firstIndex { !$0.estimated && $0.fraction > 0.01 && $0.fraction < 1 }!
+    let afterOwn = r[firstOwn...].filter(\.estimated)
+    #expect(afterOwn.isEmpty)
+    // This run's speed replaces the last one (about 2.6 s of work on 4 s of audio).
+    let kept = EngineSpeeds(file: speedFile).speed("whisperx") ?? 0
+    #expect(kept > 0.6 && kept < 1.9, "\(kept)")
+}
+
+@Test func deepFilterNetIsEstimatedNeverPast95PercentAndKeepsItsSpeed() throws {
+    let dir = tempDir()
+    let input = dir.appendingPathComponent("voice.wav")
+    try syntheticSpeech([(0.5, 3.5)], duration: 4, rate: 48000).write16(to: input)
+    // `deep-filter -D -a 18 -o <dir> <input>`: what the release binary prints on a hot take, a pause, then its output.
+    let deepFilter = try script("""
+    for i in 1 2 3; do echo "[2026-11-17T13:07:20Z WARN  df::tract] Possible clipping detected (1.000)." >&2; done
+    sleep 1.6
+    mkdir -p "$5" && cp "$6" "$5/voice.wav"
+    """)
+    var config = EngineConfig()
+    config.deepFilter = deepFilter.path
+    var cleaner = DeepFilterVoiceCleaner(config: config, audio: FakeAudio())
+    let speedFile = dir.appendingPathComponent("engine-speed.json")
+    cleaner.speeds = EngineSpeeds(file: speedFile)
+    // First run here: the fallback speed (0.05 s per second: 1 s for this take, shorter than the stand-in's 1.6 s).
+    #expect(cleaner.speeds.expected(DeepFilterVoiceCleaner.engineID, audio: 4) == 1)
+    let said = Said()
+    let job = CommandJob(estimates: { f, _, e in said.add(f, e) })
+    let out = dir.appendingPathComponent("dfn")
+    let seconds = try CommandJob.$current.withValue(job) {
+        try CommandJob.stage(0, 1) { try cleaner.denoise(input, into: out, attenuation: 18) }
+    }
+    #expect(FileManager.default.fileExists(atPath: out.appendingPathComponent("voice.wav").path) && seconds >= 1.6)
+    let r = said.all
+    let values = r.map(\.fraction)
+    #expect(values == values.sorted() && values.last == 1 && r.last?.estimated == false)
+    let estimates = r.filter(\.estimated)
+    #expect(estimates.count >= 3 && estimates.allSatisfy { $0.fraction <= 0.95 })
+    #expect(estimates.last.map { abs($0.fraction - 0.95) < 1e-9 } == true)   // it waits at 95 % for the engine to end
+    // The next run's estimate uses this run's speed (about 1.6 s on 4 s of audio).
+    let next = EngineSpeeds(file: speedFile).expected(DeepFilterVoiceCleaner.engineID, audio: 4) ?? 0
+    #expect(next >= 1.6 && next < 6)
+}

@@ -16,10 +16,18 @@ public final class CommandJob: @unchecked Sendable {
     /// Seconds of media the running stage reads (ffmpeg reports its position in seconds).
     private var media: Double?
     private var last = -1.0
-    private let sink: @Sendable (_ fraction: Double?, _ detail: String?) -> Void
+    /// An estimate fills the running stage (`estimating`) and the engine has printed no number of its own yet.
+    private var estimating = false
+    private let sink: @Sendable (_ fraction: Double?, _ detail: String?, _ estimated: Bool) -> Void
 
     /// `sink` receives the progress of the whole job, 0…1 (nil: unknown), and a line of detail; any thread.
-    public init(_ sink: @escaping @Sendable (_ fraction: Double?, _ detail: String?) -> Void = { _, _ in }) {
+    public convenience init(_ sink: @escaping @Sendable (_ fraction: Double?, _ detail: String?) -> Void = { _, _ in }) {
+        self.init(estimates: { fraction, detail, _ in sink(fraction, detail) })
+    }
+
+    /// The same, and whether the fraction is an estimate (#13: an engine that prints no progress, timed from the length
+    /// of its audio and the speed it had on this Mac) rather than a number the work measured.
+    public init(estimates sink: @escaping @Sendable (_ fraction: Double?, _ detail: String?, _ estimated: Bool) -> Void) {
         self.sink = sink
     }
 
@@ -33,16 +41,19 @@ public final class CommandJob: @unchecked Sendable {
 
     /// Progress of the running stage, 0…1 (mapped into the stage's part of the job; never goes back); nil: an engine
     /// that says nothing until it ends is running (the job shows an indeterminate bar until the next number).
-    public func report(_ fraction: Double?, detail: String? = nil) {
+    public func report(_ fraction: Double?, detail: String? = nil) { report(fraction, detail: detail, estimated: false) }
+
+    private func report(_ fraction: Double?, detail: String?, estimated: Bool) {
         let mapped: Double? = lock.withLock {
             guard let f = fraction else { return nil }
+            if estimated && !estimating { return -1 }   // the engine's own numbers took over
             let v = lo + (hi - lo) * min(max(f, 0), 1)
             if v < last + 0.002, detail == nil { return -1 }   // unchanged (or a step back): nothing to say
             last = max(last, v)
             return last
         }
         if mapped == -1 { return }
-        sink(mapped, detail)
+        sink(mapped, detail, estimated)
     }
 
     /// A line an engine printed, read for its progress.
@@ -50,6 +61,9 @@ public final class CommandJob: @unchecked Sendable {
         switch kind {
         case .whisper:
             if let p = Self.whisperPercent(line) { report(p / 100) }
+        case .whisperX:
+            // Transcription is most of a WhisperX run: loading and voice detection come before it, alignment after.
+            if let p = Self.whisperXPercent(line) { measured(0.1 + 0.85 * p / 100) }
         case .installer:
             consumeInstaller(line)
         case .ffmpeg:
@@ -85,6 +99,49 @@ public final class CommandJob: @unchecked Sendable {
         lock.withLock { (lo, hi, media) = saved }
     }
 
+    // MARK: Estimates
+
+    /// Runs `body`, an engine that prints no progress (or none yet), while an estimate fills the running stage: the
+    /// seconds elapsed over the `expected` seconds, held at 95 % until `body` returns, and said to be an estimate. The
+    /// first number the engine prints itself ends the estimate (the bar waits for such a number to pass it: never back).
+    /// `expected` nil: an indeterminate bar, as before. No job: just runs.
+    public static func estimating<T>(_ expected: Double?, _ body: () throws -> T) rethrows -> T {
+        guard let job = current else { return try body() }
+        guard let expected, expected > 0 else {
+            job.report(nil)
+            return try body()
+        }
+        job.lock.withLock { job.estimating = true }
+        let stop = Flag()
+        let started = Date()
+        // A thread of its own (not a global-queue worker): the engine can run for minutes.
+        Thread.detachNewThread {
+            while !stop.isSet {
+                job.report(min(0.95, Date().timeIntervalSince(started) / expected), detail: nil, estimated: true)
+                Thread.sleep(forTimeInterval: 0.25)
+            }
+        }
+        defer {
+            stop.set()
+            job.lock.withLock { job.estimating = false }
+        }
+        return try body()
+    }
+
+    /// A number the work measured: it ends a running estimate. Behind the estimate, the bar waits for it (still an
+    /// estimate until a measured number passes it).
+    private func measured(_ fraction: Double) {
+        lock.withLock { estimating = false }
+        report(fraction)
+    }
+
+    private final class Flag: @unchecked Sendable {
+        private let lock = NSLock()
+        private var value = false
+        var isSet: Bool { lock.withLock { value } }
+        func set() { lock.withLock { value = true } }
+    }
+
     /// Throws "cancelled" when the current job was cancelled (between the steps of a command).
     public static func checkCancelled(_ command: String) throws {
         if current?.isCancelled == true { throw cancelledError(command) }
@@ -100,6 +157,8 @@ public final class CommandJob: @unchecked Sendable {
         case ffmpeg
         /// whisper-cli with `-pp`: `… progress =  45%`.
         case whisper
+        /// WhisperX's own `print_progress` (wx_align.py turns it on): `Progress: 45.00%...` per batch it transcribed.
+        case whisperX
         /// scripts/install.sh: `==> step` / `  ✓ done` / `  ↓ file (size)` lines and curl's `###  45.3%` bar. Each
         /// download starts the bar again (a step downloads several files), its line becomes the detail.
         case installer
@@ -114,7 +173,7 @@ public final class CommandJob: @unchecked Sendable {
             report(p / 100)
         } else if l.hasPrefix("==>") || l.hasPrefix("✓") || l.hasPrefix("…") || l.hasPrefix("!") {
             let text = l.drop { "=>✓…! ".contains($0) }
-            if !text.isEmpty { sink(nil, String(text)) }   // a line of detail: the installer job keeps its bar
+            if !text.isEmpty { sink(nil, String(text), false) }   // a line of detail: the installer job keeps its bar
         }
     }
 
@@ -136,6 +195,12 @@ public final class CommandJob: @unchecked Sendable {
         let parts = l.dropFirst(9).split(separator: ":").compactMap { Double($0) }
         guard parts.count == 3 else { return nil }
         return parts[0] * 3600 + parts[1] * 60 + parts[2]
+    }
+
+    /// Percent from a WhisperX progress line (`Progress: 6.25%...`).
+    public static func whisperXPercent(_ line: String) -> Double? {
+        guard let r = line.range(of: #"^\s*Progress:\s*\d+(\.\d+)?%"#, options: .regularExpression) else { return nil }
+        return Double(line[r].drop { !$0.isNumber }.dropLast()).flatMap { $0 <= 100 ? $0 : nil }
     }
 
     /// Percent from a whisper-cli progress line.

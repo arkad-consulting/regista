@@ -32,13 +32,14 @@ public enum StdioTransport {
             return
         }
         let state = ProgressState()
-        let job = CommandJob { fraction, _ in state.set(fraction) }
+        let job = CommandJob(estimates: { fraction, _, estimated in state.set(fraction, estimated: estimated) })
         let started = Date()
         let timer = DispatchSource.makeTimerSource(queue: DispatchQueue(label: "regista.mcp.progress"))
         timer.schedule(deadline: .now() + interval, repeating: interval)
         timer.setEventHandler {
             var text = "working for \(Int(Date().timeIntervalSince(started))) s"
-            if let f = state.fraction { text += " · \(Int((f * 100).rounded())) %" }
+            // The number the app's jobs list shows; an estimate (an engine that prints no progress, #13) says so.
+            if let p = state.progress { text += " · \(Int((p.0 * 100).rounded())) %" + (p.1 ? " (estimate)" : "") }
             // Sent under the state's lock: once the reply is out, no notification follows it.
             state.tick { n in
                 let note: JSONValue = ["jsonrpc": "2.0", "method": "notifications/progress",
@@ -64,9 +65,10 @@ public enum StdioTransport {
         private let lock = NSLock()
         private var count = 0
         private var latest: Double?
+        private var estimated = false
         private var done = false
-        var fraction: Double? { lock.withLock { latest } }
-        func set(_ f: Double?) { lock.withLock { latest = f } }   // nil: an engine that reports nothing runs now
+        var progress: (Double, Bool)? { lock.withLock { latest.map { ($0, estimated) } } }
+        func set(_ f: Double?, estimated e: Bool) { lock.withLock { latest = f; estimated = e } }   // nil: an engine that reports nothing runs now
         /// Calls `send` with the next progress value, unless the reply already went out.
         func tick(_ send: (Int) -> Void) {
             lock.withLock {

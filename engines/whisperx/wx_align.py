@@ -57,7 +57,8 @@ else:
     model = whisperx.load_model(a.model, "cpu", compute_type=a.compute, language=a.lang, vad_method="pyannote", threads=a.threads,
                                 asr_options={"beam_size": 5, "condition_on_previous_text": False})
     t["load_asr_s"] = round(time.time() - t0, 2); t0 = time.time()
-    res = model.transcribe(audio, batch_size=8, language=a.lang, chunk_size=a.chunk)
+    # print_progress: WhisperX's own "Progress: N%..." after each batch it transcribed (Regista's job reads it).
+    res = model.transcribe(audio, batch_size=8, language=a.lang, chunk_size=a.chunk, print_progress=True)
     segs = res["segments"]
     t["transcribe_s"] = round(time.time() - t0, 2)
     del model

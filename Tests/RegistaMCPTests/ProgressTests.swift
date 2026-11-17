@@ -45,3 +45,26 @@ private final class Lines: @unchecked Sendable {
     StdioTransport.respond(MCPServer(host: SlowHost(seconds: 0.6)), line: noToken, interval: 0.1) { plain.add($0) }
     #expect(plain.values.count == 1)
 }
+
+/// An engine that prints no progress (#13): the job estimates it from its expected seconds.
+private final class EstimatedHost: EngineHost {
+    func descriptors() throws -> [CommandDescriptor] { Engine().descriptors }
+    func execute(_ command: String, params: JSONValue) throws -> JSONValue {
+        CommandJob.estimating(0.8) { Thread.sleep(forTimeInterval: 1.2) }
+        return ["ok": true]
+    }
+}
+
+@Test func anEstimatedProgressSaysSoInTheNotification() throws {
+    let out = Lines()
+    let call = #"{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"project_state","arguments":{},"_meta":{"progressToken":"tok-2"}}}"#
+    StdioTransport.respond(MCPServer(host: EstimatedHost()), line: call, interval: 0.2) { out.add($0) }
+    let messages = try out.values.map { try JSONValue.parse($0) }
+    let texts = messages.filter { $0["method"] == "notifications/progress" }.compactMap { $0.value(at: "params.message")?.stringValue }
+    // The number the jobs list shows, said to be an estimate, and never past 95 % while the engine runs.
+    let percents = texts.filter { $0.hasSuffix("% (estimate)") }.compactMap { t in
+        t.components(separatedBy: " · ").last.flatMap { Int($0.split(separator: " ").first ?? "") }
+    }
+    #expect(percents.count >= 2 && percents == percents.sorted() && percents.allSatisfy { $0 <= 95 })
+    #expect(messages.last?["id"] == 9 && messages.last?["result"] != nil)
+}

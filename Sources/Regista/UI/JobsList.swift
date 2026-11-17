@@ -75,7 +75,8 @@ struct JobsStatusItem: View {
                             ProgressView().controlSize(.mini).scaleEffect(0.7).frame(width: 12, height: 12)
                             Text(verbatim: running.count == 1 ? loc(running[0].title) : String(format: loc("%d lavori"), running.count))
                                 .foregroundStyle(Ed.text2).lineLimit(1).frame(maxWidth: 180, alignment: .leading).fixedSize()
-                            JobProgressBar(progress: Self.overall(running)).frame(width: 54)
+                            JobProgressBar(progress: Self.overall(running), estimated: running.contains { $0.estimated && $0.progress != nil })
+                                .frame(width: 54)
                         } else {
                             Image(systemName: failed ? "exclamationmark.triangle.fill" : "checkmark.circle")
                                 .font(Ed.icon(Ed.TypeSize.caption)).foregroundStyle(failed ? Ed.warn : Ed.text3)

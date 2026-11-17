@@ -11,14 +11,14 @@ extension EditorStore {
     func startJob(kind: String, title: String, _ work: @escaping @MainActor (JobCenter.Handle, CommandJob) async throws -> Void) -> UUID {
         final class Ref: @unchecked Sendable { var id: UUID? }
         let ref = Ref()
-        let command = CommandJob { [weak jobs] fraction, _ in
+        let command = CommandJob(estimates: { [weak jobs] fraction, _, estimated in
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
                     guard let id = ref.id else { return }
-                    if let fraction { jobs?.update(id, progress: fraction, detail: nil) } else { jobs?.progressUnknown(id) }
+                    if let fraction { jobs?.update(id, progress: fraction, detail: nil, estimated: estimated) } else { jobs?.progressUnknown(id) }
                 }
             }
-        }
+        })
         let id = jobs.start(kind: kind, title: title, tab: tabTitle, onCancel: { command.cancel() }) { h in
             try await work(h, command)
         }

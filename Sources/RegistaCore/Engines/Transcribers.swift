@@ -141,6 +141,8 @@ public struct WhisperXTranscriber: Transcriber {
     public let uv: URL
     public let project: URL
     public let script: URL
+    /// Its speed on this Mac, for the estimate that fills the job until WhisperX prints its first number (#13).
+    public var speeds = EngineSpeeds()
 
     public init(config: EngineConfig) {
         uv = config.url(config.uv)
@@ -187,11 +189,17 @@ public struct WhisperXTranscriber: Transcriber {
         if let reason = alignerReason(language) { throw CommandError(.io, reason) }
         let out = FileManager.default.temporaryDirectory.appendingPathComponent("regista-wx-\(UUID().uuidString).json")
         defer { try? FileManager.default.removeItem(at: out) }
-        // --frozen: use the locked environment as is, never re-resolve. wx_align.py prints no progress: unknown until it ends.
-        CommandJob.report(nil)
-        try Subprocess.check(uv, ["run", "--frozen", "--project", project.path, "python", "-I", script.path,
-                                  speech16k.path, out.path, "--lang", language, "--chunk", "8"],
-                             currentDirectory: project)
+        // --frozen: use the locked environment as is, never re-resolve. -u: WhisperX's progress lines arrive as printed
+        // (one per batch it transcribed, #13); until the first one — loading, voice detection — and with a wx_align.py
+        // installed before it printed any, the job shows an estimate from the take's length and the last run's speed.
+        let audio = WAVAudio.duration(of: speech16k)
+        let started = Date()
+        try CommandJob.estimating(speeds.expected(Self.engineID, audio: audio)) {
+            try Subprocess.check(uv, ["run", "--frozen", "--project", project.path, "python", "-I", "-u", script.path,
+                                      speech16k.path, out.path, "--lang", language, "--chunk", "8"],
+                                 currentDirectory: project, progress: .whisperX)
+        }
+        speeds.record(Self.engineID, seconds: Date().timeIntervalSince(started), audio: audio)
         guard let data = FileManager.default.contents(atPath: out.path) else { throw CommandError(.io, "wx_align.py wrote no JSON") }
         return Transcript(engine: id, model: "large-v3-turbo+wav2vec2-voxpopuli-\(language)", language: language, words: try Self.parse(data))
     }

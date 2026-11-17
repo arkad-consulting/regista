@@ -20,6 +20,9 @@ final class JobCenter: ObservableObject {
         var detail = ""
         /// 0…1, nil while unknown.
         var progress: Double?
+        /// The progress is an estimate (#13: an engine that prints none, timed from its audio and its speed here): the
+        /// same bar, said in the detail ("stima") and to an assistive client.
+        var estimated = false
         var state: State = .running
         var cancellable: Bool
         var started = Date()
@@ -76,9 +79,12 @@ final class JobCenter: ObservableObject {
     /// The newest job of a kind (running or the last finished one).
     func latest(_ kind: String) -> Job? { jobs.last { $0.kind == kind } }
 
-    func update(_ id: UUID, progress: Double?, detail: String?) {
+    func update(_ id: UUID, progress: Double?, detail: String?, estimated: Bool = false) {
         guard let i = jobs.firstIndex(where: { $0.id == id }), jobs[i].isRunning else { return }
-        if let progress { jobs[i].progress = min(max(progress, 0), 1) }
+        if let progress {
+            jobs[i].progress = min(max(progress, 0), 1)
+            jobs[i].estimated = estimated
+        }
         if let detail { jobs[i].detail = detail }
     }
 
@@ -86,6 +92,7 @@ final class JobCenter: ObservableObject {
     func progressUnknown(_ id: UUID) {
         guard let i = jobs.firstIndex(where: { $0.id == id }), jobs[i].isRunning else { return }
         jobs[i].progress = nil
+        jobs[i].estimated = false
     }
 
     func setSteps(_ id: UUID, _ titles: [String]) {
@@ -122,7 +129,7 @@ final class JobCenter: ObservableObject {
         cancelHooks[id] = nil
         guard let i = jobs.firstIndex(where: { $0.id == id }), jobs[i].isRunning else { return }
         jobs[i].state = state
-        if state == .done { jobs[i].progress = 1 }
+        if state == .done { jobs[i].progress = 1; jobs[i].estimated = false }
     }
 
     /// A readable message for an error (the command's message without the command id prefix).

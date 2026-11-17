@@ -297,3 +297,56 @@ private func bench() -> Workbench {
     guard case .failed(let message) = tab.jobs.job(failing)?.state else { Issue.record("expected a failure"); return }
     #expect(message == loc("Il motore che serve non è installato su questo Mac: Impostazioni › Motori dice come installarlo."))
 }
+
+/// #13: an engine that prints no progress fills its job with an estimate — the same bar and percentage as any job, said
+/// to be an estimate in the card's line ("stima") and to an assistive client; the job ends at 100 %, measured.
+extension MouseSuites {
+@Suite(.serialized) @MainActor struct EstimatedJobTests {
+    @Test func anEstimatedJobShowsItsPercentageAndSaysItIsAnEstimate() async throws {
+        let tab = bench().newTab()
+        let id = tab.startJob(kind: "test-estimate", title: "Pulisci la voce") { _, job in
+            try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+                Thread.detachNewThread {
+                    let r = Result {
+                        try CommandJob.$current.withValue(job) {
+                            try CommandJob.stage(0, 1) {
+                                // An engine that prints nothing for 2 s, expected to take 2.5 s here.
+                                try CommandJob.estimating(2.5) { _ = try Subprocess.check(URL(fileURLWithPath: "/bin/sh"), ["-c", "sleep 2"]) }
+                            }
+                        }
+                    }
+                    cont.resume(with: r)
+                }
+            }
+        }
+        var seen: [Double] = []
+        for _ in 0..<100 where (tab.jobs.job(id)?.progress ?? 0) < 0.3 {
+            if let p = tab.jobs.job(id)?.progress { seen.append(p) }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        let running = try #require(tab.jobs.job(id))
+        #expect(running.isRunning && running.estimated && (running.progress ?? 0) >= 0.3 && (running.progress ?? 1) <= 0.95)
+        // The card in the jobs list: the bar's value and the line both say it is an estimate.
+        let rig = MouseRig(JobsListView(groups: [(tab: "Reel", jobs: [running])], bench: nil).frame(width: 360), size: CGSize(width: 360, height: 220))
+        defer { rig.close() }
+        let percent = String(Int(((running.progress ?? 0) * 100).rounded())) + " %"
+        let bar = try #require(rig.element("Avanzamento"))
+        #expect(bar.value == percent + " · " + loc("stima") || bar.valueDescription == percent + " · " + loc("stima"), "\(bar)")
+        #expect(!rig.elements(containing: percent + " · " + loc("stima") + " · ").isEmpty)
+        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+            let v = rig.host
+            if let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) {
+                v.cacheDisplay(in: v.bounds, to: rep)
+                try rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: dir).appendingPathComponent("job-estimated.png"))
+            }
+        }
+        for _ in 0..<200 where tab.jobs.job(id)?.isRunning == true {
+            if let p = tab.jobs.job(id)?.progress { seen.append(p) }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        let done = try #require(tab.jobs.job(id))
+        #expect(done.state == .done && done.progress == 1 && !done.estimated)
+        #expect(seen == seen.sorted())   // never back
+    }
+}
+}

@@ -19,6 +19,9 @@ public struct DeepFilterVoiceCleaner: VoiceCleaner {
     public let deepFilter: URL
     public let ffmpeg: URL
     let audio: AudioToolkit
+    /// Its speed on this Mac: DeepFilterNet prints no progress, the job estimates it (#13).
+    public var speeds = EngineSpeeds()
+    public static let engineID = "deep-filter"
 
     public init(config: EngineConfig, audio: AudioToolkit) {
         deepFilter = config.url(config.deepFilter)
@@ -44,11 +47,8 @@ public struct DeepFilterVoiceCleaner: VoiceCleaner {
         let input = dir.appendingPathComponent("voice.wav")
         try fm.copyItem(at: r.input, to: input)
         let dfnDir = dir.appendingPathComponent("dfn")
-        let t0 = Date()
-        CommandJob.report(nil)   // DeepFilterNet prints no progress: unknown until it ends
-        try Subprocess.check(deepFilter, ["-D", "-a", String(r.attenuation), "-o", dfnDir.path, input.path])
-        let denoiseSeconds = Date().timeIntervalSince(t0)
-        CommandJob.report(0.6)   // in a job: denoising is most of the time, the chain and the loudness the rest
+        // In a job: denoising is most of the time, the chain and the loudness the rest.
+        let denoiseSeconds = try CommandJob.stage(0, 0.6) { try denoise(input, into: dfnDir, attenuation: r.attenuation) }
         let denoised = dfnDir.appendingPathComponent("voice.wav")
 
         // 2. Per-range gains to −30 LUFS (a silent range keeps 0 dB).
@@ -106,5 +106,18 @@ public struct DeepFilterVoiceCleaner: VoiceCleaner {
         report.mainLevel = matched.main
         report.levelMatch = matched.segments
         return report
+    }
+
+    /// DeepFilterNet on `input` (its output is named after it, in `directory`); returns the seconds it took. It prints
+    /// no progress: the job shows an estimate from the audio's length and the speed of the last run here, kept for the next.
+    func denoise(_ input: URL, into directory: URL, attenuation: Double) throws -> Double {
+        let audio = WAVAudio.duration(of: input)
+        let t0 = Date()
+        try CommandJob.estimating(speeds.expected(Self.engineID, audio: audio)) {
+            try Subprocess.check(deepFilter, ["-D", "-a", String(attenuation), "-o", directory.path, input.path])
+        }
+        let seconds = Date().timeIntervalSince(t0)
+        speeds.record(Self.engineID, seconds: seconds, audio: audio)
+        return seconds
     }
 }
