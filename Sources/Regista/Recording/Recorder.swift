@@ -46,6 +46,8 @@ final class Recorder: NSObject, ObservableObject {
     @Published private(set) var isReady = false
     @Published private(set) var isRecording = false
     @Published private(set) var isPaused = false
+    /// Whether the teleprompter ran with the current (or last) take: only then is its text the take's script.
+    private(set) var promptedTake = false
     @Published private(set) var elapsed: TimeInterval = 0
     @Published var errorMessage: String?
 
@@ -424,6 +426,7 @@ final class Recorder: NSObject, ObservableObject {
             }
         }
 
+        promptedTake = sources.prompter
         if sources.prompter {
             let p = TeleprompterController.shared
             p.restart()

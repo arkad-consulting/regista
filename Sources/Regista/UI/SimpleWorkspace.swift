@@ -161,7 +161,7 @@ private struct SimpleRail: View {
                 EdButton(title: pending.isEmpty && snap.hasProject ? loc("Tutto fatto") : loc("Fai tutto"), symbol: "wand.and.stars",
                          prominent: snap.canDoEverything && !pending.isEmpty, large: true, fill: true,
                          disabled: !snap.canDoEverything || pending.isEmpty || snap.busy != nil, stacked: compact) {
-                    store.doEverything(script: prompter.text)
+                    store.doEverything(script: prompter.ownScript)
                 }
                 .tip("Taglia, sceglie le riprese, pulisce la voce, mette i sottotitoli e una luce più viva, in ordine", shortcut: "⇧⌘M")
                 if !compact {

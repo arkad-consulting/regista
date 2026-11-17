@@ -33,8 +33,10 @@ final class TeleprompterController: ObservableObject {
 
     private static let defaults = UserDefaults.standard
 
-    @Published var text: String = defaults.string(forKey: "prompterText")
-        ?? loc("1. Incolla qui il tuo testo, una frase per ripresa.\n2. In modalità Voce il gobbo ti ascolta: / avanza mentre leggi.\n3. Se ricominci una frase, / torna al suo inizio.") {
+    /// The sample the teleprompter shows until the person writes their own (the key, the Italian text).
+    static let sampleKey = "1. Incolla qui il tuo testo, una frase per ripresa.\n2. In modalità Voce il gobbo ti ascolta: / avanza mentre leggi.\n3. Se ricominci una frase, / torna al suo inizio."
+
+    @Published var text: String = defaults.string(forKey: "prompterText") ?? loc(sampleKey) {
         didSet {
             if persists { Self.defaults.set(text, forKey: "prompterText") }
             reload()
@@ -46,6 +48,17 @@ final class TeleprompterController: ObservableObject {
             if isPlaying { pause(); play() }
         }
     }
+    /// The person's own script, nil while the teleprompter holds nothing or its sample (in any language): what a take
+    /// read with the teleprompter is edited against (#71).
+    var ownScript: String? {
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty else { return nil }
+        let tables = ["it", "en", "fr", "pt"].compactMap { Bundle.main.path(forResource: $0, ofType: "lproj").flatMap(Bundle.init(path:)) }
+        let samples = (tables.map { $0.localizedString(forKey: Self.sampleKey, value: Self.sampleKey, table: nil) } + [Self.sampleKey, loc(Self.sampleKey)])
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        return samples.contains(t) ? nil : text
+    }
+
     /// Fixed-speed scrolling, points per second.
     @Published var speed: Double = defaults.object(forKey: "prompterSpeed") as? Double ?? 45 {
         didSet { if persists { Self.defaults.set(speed, forKey: "prompterSpeed") } }

@@ -131,7 +131,7 @@ private struct DoAllCard: View {
             if snap.allJob?.isRunning != true {
                 EdButton(title: pending.isEmpty ? loc("Tutto fatto") : loc("Fai tutto"), symbol: "wand.and.stars", prominent: ready && !pending.isEmpty,
                          large: true, fill: true, disabled: !ready || pending.isEmpty || snap.busy != nil) {
-                    store.runAll(settings: StepSettings.saved(project: store.project), script: prompter.text)
+                    store.runAll(settings: StepSettings.saved(project: store.project), script: prompter.ownScript)
                 }
                 .tip("Trascrive, sceglie le riprese, taglia le pause, pulisce la voce e mette i sottotitoli, in ordine", shortcut: "⇧⌘M")
                 Text(verbatim: caption(ready: ready, pending: pending)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)

@@ -114,3 +114,13 @@ private func goldPixels(_ rep: NSBitmapImageRep) -> [(x: Int, y: Int)] {
     let script = PromptScript("Oggi Regista monta il reel. Le pause spariscono da sole.")
     #expect(PrompterEditorView.counts(takes: script.sentences.count, words: 10) == "1 ripresa · 10 parole · circa 1 min")
 }
+
+/// #71: the teleprompter's sample text is never a take's script; the person's own text is.
+@MainActor
+@Test func theTeleprompterSampleIsNoScript() {
+    let script = { (text: String) in TeleprompterController.preview(text: text, mirror: false, fontSize: 40, mode: .voice).ownScript }
+    #expect(script(TeleprompterController.sampleKey) == nil)
+    #expect(script(loc(TeleprompterController.sampleKey) + "\n") == nil)
+    #expect(script("  \n") == nil)
+    #expect(script("Oggi Regista monta il reel.") == "Oggi Regista monta il reel.")
+}

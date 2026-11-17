@@ -79,7 +79,7 @@ enum MenuCommands {
 
         // Montaggio
         add("cut", .editing, loc("Taglia al cursore"), AppShortcuts.cut) { c.store.cutAtPlayhead() }
-        add("autoEdit", .editing, loc("Montaggio automatico"), AppShortcuts.autoEdit) { c.store.autoEdit(script: TeleprompterController.shared.text) }
+        add("autoEdit", .editing, loc("Montaggio automatico"), AppShortcuts.autoEdit) { c.store.autoEdit(script: TeleprompterController.shared.ownScript) }
         add("captions", .editing, loc("Genera sottotitoli")) { c.store.run("captions.generate", ["style": "talking-head-v1"]) }
         add("zoomToFit", .editing, loc("Adatta la timeline"), divider: true) { c.store.zoomToFit() }
 

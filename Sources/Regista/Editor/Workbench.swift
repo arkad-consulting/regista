@@ -283,12 +283,14 @@ final class Workbench: ObservableObject {
                 self?.recordingFinished(url, session: true)
             }
         }
-        recorder.onFinished = { [weak self] url in
+        recorder.onFinished = { [weak self, weak recorder] url in
             Task { @MainActor in
                 await TeleprompterController.shared.saveTakes(for: url)
                 guard let self else { return }
                 let tab = self.recordingFinished(url, session: false)
-                if Prefs.autoEdit { tab.autoEdit(script: TeleprompterController.shared.text) }
+                // The teleprompter's text is the take's script only when it ran with the take and holds the person's own
+                // words; otherwise the take is cut from what was said (#71: it was cut against the sample text).
+                if Prefs.autoEdit { tab.autoEdit(script: recorder?.promptedTake == true ? TeleprompterController.shared.ownScript : nil) }
             }
         }
         return recorder.$isRecording.removeDuplicates().dropFirst().sink { [weak self] on in
