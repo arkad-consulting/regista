@@ -288,3 +288,30 @@ private func messageKeys() throws -> [String: Set<String>] {
                                    environment: env)
     #expect(check.status == 0 && check.stdoutText.contains("non-commercial: licence shown first"))
 }
+
+/// #12: the copy of the installer inside the app (Regista.app/Contents/Resources/Installer, what Impostazioni › Motori runs)
+/// checks the sound bank of that app, Contents/Resources/SFX. A fake app layout in a temporary folder, laid out as
+/// scripts/build-app.sh lays it out; neither /Applications nor the engines folder is touched.
+@Test func theInstallerInsideTheAppFindsTheAppsSoundBank() throws {
+    let dir = tempDir()
+    let resources = dir.appendingPathComponent("Regista.app/Contents/Resources")
+    let scripts = resources.appendingPathComponent("Installer/scripts")
+    try FileManager.default.createDirectory(at: scripts, withIntermediateDirectories: true)
+    for f in ["install.sh", "lib.sh", "i18n.sh", "engines.py", "engines.lock", "engines.manifest.json"] {
+        try FileManager.default.copyItem(at: repo.appendingPathComponent("scripts/\(f)"), to: scripts.appendingPathComponent(f))
+    }
+    try FileManager.default.copyItem(at: repo.appendingPathComponent("Resources/SFX"), to: resources.appendingPathComponent("SFX"))
+    let support = dir.appendingPathComponent("support")
+    let env = ["REGISTA_SUPPORT_DIR": support.path, "REGISTA_CACHE_DIR": dir.appendingPathComponent("cache").path,
+               "REGISTA_ENGINES": support.appendingPathComponent("engines.json").path, "REGISTA_APP_DIR": dir.appendingPathComponent("apps").path,
+               "REGISTA_LANG": "en"]
+    let install = scripts.appendingPathComponent("install.sh").path
+    let r = try Subprocess.run(URL(fileURLWithPath: "/bin/bash"), [install, "--only", "sfx-bank"], environment: env)
+    let out = r.stdoutText + r.stderrText
+    #expect(r.status == 0, "\(out)")
+    #expect(out.contains("\(SoundLibrary.bank().count) sounds"), "\(out)")
+    // A bank that is not the pinned one still fails there.
+    try Data("{}".utf8).write(to: resources.appendingPathComponent("SFX/manifest.json"))
+    let bad = try Subprocess.run(URL(fileURLWithPath: "/bin/bash"), [install, "--only", "sfx-bank"], environment: env)
+    #expect(bad.status != 0 && (bad.stdoutText + bad.stderrText).contains("differs from its pin"))
+}

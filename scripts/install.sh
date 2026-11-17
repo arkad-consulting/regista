@@ -229,11 +229,13 @@ install_deepfilter() {
 }
 
 # The sound-effect bank (E3 #55) ships in the repository and inside Regista.app (Resources/SFX, copied by the app build
-# below): this step only checks it against its pin.
+# below): this step only checks it against its pin. The copy of this script inside the app (Contents/Resources/Installer,
+# what Impostazioni › Motori runs) has no Resources/SFX of its own: it checks the app's bank, Contents/Resources/SFX (#12).
 install_sfx_bank() {
-  local m="$REPO/Resources/SFX/manifest.json"
-  sha_ok "$m" "$(lock_get sfx-bank 5)" || die "Resources/SFX differs from its pin in engines.lock: restore it with git checkout"
-  found "Sound-effect bank ($(lock_get sfx-bank 2))" "$(find "$REPO/Resources/SFX" -name '*.m4a' | wc -l | tr -d ' ') sounds, installed with the app"
+  local dir="$REPO/Resources/SFX"
+  if [ ! -d "$dir" ] && [ "$(basename "$REPO")" = Installer ] && [ -d "$REPO/../SFX" ]; then dir="$(cd "$REPO/../SFX" && pwd)"; fi
+  sha_ok "$dir/manifest.json" "$(lock_get sfx-bank 5)" || die "$dir differs from its pin in engines.lock: restore it (git checkout in a clone, a new build of the app)"
+  found "Sound-effect bank ($(lock_get sfx-bank 2))" "$(find "$dir" -name '*.m4a' | wc -l | tr -d ' ') sounds, installed with the app"
 }
 
 # ---------------------------------------------------------------- engines, Medium tier
