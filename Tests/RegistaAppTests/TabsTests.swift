@@ -274,3 +274,48 @@ private func agent(_ b: Workbench, _ id: String, _ params: JSONValue = [:]) asyn
     #expect(transcript.last == "timeline_cut takes project: string")
     print(transcript.joined(separator: "\n"))
 }
+
+/// #15: an agent that closes the selected tab moves the selection to the tab on its right (else its left), as the × does;
+/// closing another tab changes no selection. The selected tab comes back after a relaunch (a scratch defaults suite).
+@MainActor
+@Test func theSelectionGoesToTheNeighbourAndTheSelectedTabComesBack() async throws {
+    let defaults = scratchDefaults(), dir = tempDir()
+    let b = bench(defaults)
+    b.select(b.newTab().tabID)
+    // The first project goes to the empty tab, each next one to a new tab after it.
+    var tabs: [EditorStore] = []
+    for name in ["a", "b", "c", "d"] {
+        _ = try await agent(b, "project.open", ["path": .string(try savedProject(name, in: dir).path)])
+        try await settle { b.tabs.contains { $0.project?.name == name } }
+        tabs.append(try #require(b.tabs.first { $0.project?.name == name }))
+    }
+    #expect(b.tabs.map { $0.project?.name } == ["a", "b", "c", "d"])
+    // The agent closes the selected «b»: «c», on its right, is selected.
+    b.select(tabs[1].tabID)
+    _ = try await agent(b, "project.close", ["project": .string(tabs[1].tabID)])
+    try await settle { b.tabs.count == 3 }
+    #expect(b.active.project?.name == "c")
+    // The selected last tab: the one on its left.
+    b.select(tabs[3].tabID)
+    _ = try await agent(b, "project.close", ["project": .string(tabs[3].tabID)])
+    try await settle { b.tabs.count == 2 }
+    #expect(b.active.project?.name == "c")
+    // Another tab: the selection stays.
+    _ = try await agent(b, "project.close", ["project": .string(tabs[0].tabID)])
+    try await settle { b.tabs.count == 1 }
+    #expect(b.active.project?.name == "c")
+
+    // Remembered: open «a» and «b» again next to «c», select «b» (the middle one), relaunch.
+    for name in ["a", "b"] {
+        _ = try await agent(b, "project.open", ["path": .string(dir.appendingPathComponent("\(name).regista").path)])
+        try await settle { b.tabs.contains { $0.project?.name == name } }
+    }
+    let middle = try #require(b.tabs.first { $0.project?.name == "a" })
+    b.select(middle.tabID)
+    let order = b.tabs.map { $0.project?.name }
+    let next = bench(defaults)
+    next.restoreTabs()
+    try await settle { next.tabs.count == 3 && next.tabs.allSatisfy { $0.project != nil } }
+    #expect(next.tabs.map { $0.project?.name } == order, "the tabs came back as \(next.tabs.map { $0.project?.name })")
+    #expect(next.active.project?.name == "a", "the selected tab came back as «\(next.active.project?.name ?? "-")»")
+}

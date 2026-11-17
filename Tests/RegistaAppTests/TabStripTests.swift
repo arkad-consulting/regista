@@ -111,6 +111,58 @@ extension MouseSuites {
         #expect(bench.tabs.count == 2 && bench.active.isEmpty, "\(tag): + did not open a tab")
     }
 
+    /// #15: closing the selected tab with its × selects the tab on its right, else the one on its left; the × of a tab that
+    /// is not selected closes it and the selection stays where it was.
+    @Test func closingATabMovesTheSelectionToItsNeighbour() async throws {
+        let app = try await AppRig(project: nil)
+        defer { app.close() }
+        let bench = app.store.bench
+        bench.saveDecision = { _ in .discard }
+        let dir = rigTempDir("tabs-close")
+        let names = ["Uno", "Due", "Tre", "Quattro"]
+        for (i, name) in names.enumerated() {
+            let t = i == 0 ? app.store : bench.newTab()
+            try await t.perform("project.new", ["name": .string(name), "directory": .string(dir.path)])
+        }
+        for _ in 0..<200 where bench.tabs.contains(where: { $0.project == nil }) { try await Task.sleep(for: .milliseconds(50)) }
+        app.hostEditor(Navigation(activity: .media, rightTab: .inspector), size: CGSize(width: 1440, height: 700))
+        await app.settle()
+        let strip = CGRect(x: 0, y: Chrome.titleHeight, width: 1440, height: Chrome.tabsHeight)
+        func name(_ s: String) -> RigElement? {
+            app.rig.elements().first { $0.role == "AXStaticText" && $0.name == s && $0.visible && strip.contains($0.centre) }
+        }
+        func closeButton(_ s: String) throws -> RigElement {
+            let text = try #require(name(s), "«\(s)» is not on the strip")
+            return try #require(app.rig.elements().filter { $0.role == "AXButton" && $0.frame.width <= 20 && $0.visible
+                && abs($0.centre.y - text.centre.y) < 6 && $0.frame.minX >= text.frame.maxX }.min { $0.frame.minX < $1.frame.minX },
+                                "«\(s)» has no ×")
+        }
+        func tab(_ s: String) -> EditorStore? { bench.tabs.first { $0.project?.name == s } }
+        func click(_ s: String) async throws {
+            app.rig.click(try #require(name(s), "«\(s)» is not on the strip").centre)
+            await app.settle()
+            #expect(bench.activeID == tab(s)?.tabID, "a click on «\(s)» did not select it")
+        }
+        func close(_ s: String) async throws {
+            let count = bench.tabs.count
+            app.rig.click(try closeButton(s).centre)
+            await app.idle(0.3)
+            await app.settle()
+            #expect(bench.tabs.count == count - 1 && tab(s) == nil, "the × of «\(s)» did not close it")
+        }
+        // The selected tab in the middle: the one on its right takes the selection.
+        try await click("Due")
+        try await close("Due")
+        #expect(bench.active.project?.name == "Tre", "closing the selected «Due» selected «\(bench.active.project?.name ?? "-")», not «Tre»")
+        // The selected tab at the end: the one on its left.
+        try await click("Quattro")
+        try await close("Quattro")
+        #expect(bench.active.project?.name == "Tre", "closing the selected last tab selected «\(bench.active.project?.name ?? "-")», not «Tre»")
+        // A tab that is not selected: it closes, the selection stays.
+        try await close("Uno")
+        #expect(bench.active.project?.name == "Tre" && bench.tabs.count == 1, "closing «Uno» moved the selection or left \(bench.tabs.count) tabs")
+    }
+
     /// A narrow tab drops its duration first and keeps its dot, its name (truncated in the middle) and its ×.
     @Test func aNarrowTabDropsTheDurationFirst() async throws {
         let app = try await AppRig(project: nil)
