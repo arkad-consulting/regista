@@ -311,6 +311,8 @@ private struct SimplePanel: View {
             }
             // A step's main button can be below a short window's fold, over the footer (#67).
             .continuesCue(Ed.panel)
+            // Each step opens at its top, its name in view (#68: it kept the scroll of the step before).
+            .id(step)
             footer
         }
         .background(Ed.panel)
