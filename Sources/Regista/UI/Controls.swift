@@ -899,7 +899,7 @@ final class ColorPanelBridge: NSObject {
 // MARK: - A column that continues
 
 /// A scrolling column of the left panel with a fixed footer or a fixed edge says that it continues (#54): while content is
-/// hidden below, a short fade of the panel's colour over the last 16 pt above the edge; gone once the column is scrolled
+/// hidden below, a short fade of the panel's colour with a small chevron over the last 16 pt above the edge; gone once the column is scrolled
 /// to its end. The fade never takes a click: a control under it still answers. (Accessible as "Altro sotto", so a test
 /// and VoiceOver can tell it is there.)
 struct ContinuesCue: ViewModifier {
@@ -912,7 +912,12 @@ struct ContinuesCue: ViewModifier {
             .onScrollGeometryChange(for: Bool.self) { g in g.visibleRect.maxY < g.contentSize.height - 1 } action: { _, now in below = now }
             .overlay(alignment: .bottom) {
                 if below {
+                    // The fade alone does not show over an empty stretch of the column: a small chevron says it in every case.
                     LinearGradient(colors: [color.opacity(0), color], startPoint: .top, endPoint: .bottom)
+                        .overlay(alignment: .bottom) {
+                            Image(systemName: "chevron.compact.down").font(Ed.icon(Ed.TypeSize.body, .semibold)).foregroundStyle(Ed.text2)
+                                .padding(.bottom, 3)
+                        }
                         .frame(height: Self.height)
                         .allowsHitTesting(false)
                         // Text to accessibility, never a control: the click audit leaves it alone, VoiceOver reads it.
