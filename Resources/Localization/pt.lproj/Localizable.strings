@@ -69,6 +69,7 @@
 "3D titles" = "títulos 3D";
 "5 secondi di silenzio all'inizio, una pausa tra le righe. Se sbagli, fermati un attimo e rileggi tutta la riga." = "5 segundos de silêncio no início, uma pausa entre as linhas. Se errar, pare um instante e leia a linha inteira de novo.";
 "A" = "Para";
+"a destra" = "à direita";
 "Aggiungi altri toni" = "Adicione outros tons";
 "Aiuto" = "Ajuda";
 "allenata · %d toni" = "treinada · %d tons";
@@ -181,6 +182,7 @@
 "SCHEDE ANIMATE" = "CARTÕES ANIMADOS";
 "Scorciatoie da tastiera" = "Atalhos de teclado";
 "Segnala un problema…" = "Relatar um problema…";
+"sotto" = "embaixo";
 "STILE" = "ESTILO";
 "Scegli i suoni uno per uno in Pro" = "Escolher os sons um por um no Pro";
 "Scegli una musica…" = "Escolher uma música…";
@@ -911,7 +913,6 @@
 "La lingua del parlato è quella da cui parte la trascrizione di un video nuovo: si cambia anche nei passi di Testi e sottotitoli. Francese e portoghese dell'interfaccia sono parziali: il resto appare in inglese." = "A transcrição de um vídeo novo começa no idioma da fala: você também pode mudá-lo nos passos de Textos e legendas. A interface em francês e em português é parcial: o resto aparece em inglês.";
 "La musica scende mentre qualcuno parla e risale nelle pause." = "A música abaixa enquanto alguém fala e volta a subir nas pausas.";
 "La nuova lingua dell'interfaccia vale dalla prossima apertura di Regista." = "O novo idioma da interface vale a partir da próxima vez que o Regista abrir.";
-"La pausa c'è quando registri lo schermo: senza schermo, ferma e registra una nuova ripresa" = "A pausa existe quando você grava a tela: sem a tela, pare e grave uma nova tomada";
 "La pista scende mentre qualcuno parla." = "A faixa abaixa enquanto alguém fala.";
 "La pista Voce è già occupata al cursore: scegli «Dopo l'ultima voce» o sposta il cursore." = "A faixa Voz já está ocupada no indicador de reprodução: escolha “Depois da última voz” ou mova o indicador.";
 "La prima pista audio mescola più file: la voce si pulisce da un file solo." = "A primeira faixa de áudio mistura vários arquivos: a voz é limpa a partir de um arquivo só.";
@@ -1820,7 +1821,9 @@
 "voice-over from text" = "narração a partir do texto";
 "voice.step.train" = "Treine a voz";
 "Volto" = "Rosto";
+"Volto a sinistra" = "Rosto à esquerda";
 "Volto nel video" = "Rosto no vídeo";
+"Volto sopra" = "Rosto em cima";
 "Volume" = "Volume";
 "VoxCPM2 voice-over" = "Narração VoxCPM2";
 "VoxCPM2 weights" = "Pesos do VoxCPM2";

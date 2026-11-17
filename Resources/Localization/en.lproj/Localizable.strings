@@ -69,6 +69,7 @@
 "3D titles" = "3D titles";
 "5 secondi di silenzio all'inizio, una pausa tra le righe. Se sbagli, fermati un attimo e rileggi tutta la riga." = "5 seconds of silence at the start, a pause between lines. If you slip, stop for a moment and read the whole line again.";
 "A" = "To";
+"a destra" = "on the right";
 "Aggiungi altri toni" = "Add more tones";
 "Aiuto" = "Help";
 "allenata · %d toni" = "trained · %d tones";
@@ -181,6 +182,7 @@
 "SCHEDE ANIMATE" = "ANIMATED CARDS";
 "Scorciatoie da tastiera" = "Keyboard shortcuts";
 "Segnala un problema…" = "Report a problem…";
+"sotto" = "at the bottom";
 "STILE" = "STYLE";
 "Scegli i suoni uno per uno in Pro" = "Pick sounds one by one in Pro";
 "Scegli una musica…" = "Choose music…";
@@ -911,7 +913,6 @@
 "La lingua del parlato è quella da cui parte la trascrizione di un video nuovo: si cambia anche nei passi di Testi e sottotitoli. Francese e portoghese dell'interfaccia sono parziali: il resto appare in inglese." = "The spoken language is the one a new video's transcription starts from: you can also change it in the steps of Texts and captions. The French and Portuguese interface are partial: the rest shows in English.";
 "La musica scende mentre qualcuno parla e risale nelle pause." = "The music goes down while someone speaks and comes back up in the pauses.";
 "La nuova lingua dell'interfaccia vale dalla prossima apertura di Regista." = "The new interface language applies the next time Regista opens.";
-"La pausa c'è quando registri lo schermo: senza schermo, ferma e registra una nuova ripresa" = "Pause is available when you record the screen: without it, stop and record a new take";
 "La pista scende mentre qualcuno parla." = "The track goes down while someone speaks.";
 "La pista Voce è già occupata al cursore: scegli «Dopo l'ultima voce» o sposta il cursore." = "The Voice track is already taken at the playhead: choose “After the last voice” or move the playhead.";
 "La prima pista audio mescola più file: la voce si pulisce da un file solo." = "The first audio track mixes several files: the voice is cleaned from one file only.";
@@ -1820,7 +1821,9 @@
 "voice-over from text" = "voice-over from text";
 "voice.step.train" = "Train the voice";
 "Volto" = "Face";
+"Volto a sinistra" = "Face on the left";
 "Volto nel video" = "Face in the video";
+"Volto sopra" = "Face on top";
 "Volume" = "Volume";
 "VoxCPM2 voice-over" = "VoxCPM2 voice-over";
 "VoxCPM2 weights" = "VoxCPM2 weights";

@@ -310,16 +310,13 @@ struct RecordView: View {
                     subtitle: s.screen ? loc("Solo per camera e voce") : nil)
                 .disabled(s.screen)
                 .opacity(s.screen ? 0.5 : 1)
-            if recorder.isRecording, let why = recorder.pauseUnavailableReason {
-                Text(verbatim: why).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
-            }
             if elsewhere == nil {
             destination
             HStack(spacing: Ed.Space.s) {
                 if recorder.isRecording {
                     EdButton(title: recorder.isPaused ? loc("Riprendi") : loc("Pausa"), symbol: recorder.isPaused ? "play.fill" : "pause.fill",
-                             large: true, disabled: !recorder.canPause) { recorder.togglePause() }
-                        .tip(recorder.pauseUnavailableReason ?? "Pausa / Riprendi", shortcut: "⇧⌘P")
+                             large: true) { recorder.togglePause() }
+                        .tip("Pausa / Riprendi", shortcut: "⇧⌘P")
                 }
                 EdButton(title: recorder.isRecording ? String(format: loc("Ferma · %@"), timecode(recorder.elapsed)) : loc("Registra"),
                          symbol: recorder.isRecording ? "stop.fill" : "record.circle", destructive: true, large: true, fill: true,
@@ -659,6 +656,8 @@ struct FaceLayoutControls: View {
                                                side: kind == layout.kind ? layout.side : nil), title: loc(name),
                                on: layout.kind == kind, aspect: aspect, drawingHeight: drawingHeight) {
                         var l = layout
+                        // The side belongs to its layout: another layout starts from its own default (#19).
+                        if kind != l.kind { l.side = nil }
                         l.kind = kind
                         // The cut-out stands on the bottom edge.
                         if kind == .cutout, l.corner?.hasPrefix("top") == true { l.corner = "bottomRight" }
@@ -676,14 +675,13 @@ struct FaceLayoutControls: View {
                 }
             }
             if layout.kind == .split || layout.kind == .stack {
-                // Which side the face is on (#66).
+                // Which side the face is on (#19): one compact row where the bubble has Angolo / Misura / Forma. The
+                // preview follows at once; while recording each change is a segment, as the other layout choices.
                 let split = layout.kind == .split
-                labeled(loc("Lato")) {
-                    RSegmented(items: split ? [("left", loc("Sinistra")), ("right", loc("Destra"))] : [("top", loc("Sopra")), ("bottom", loc("Sotto"))],
-                               selection: Binding(get: { layout.side ?? (split ? "right" : "bottom") }, set: { layout.side = $0 }),
-                               symbols: split ? ["left": "rectangle.lefthalf.filled", "right": "rectangle.righthalf.filled"]
-                                   : ["top": "rectangle.tophalf.filled", "bottom": "rectangle.bottomhalf.filled"])
-                }
+                RSegmented(items: split ? [("left", loc("Volto a sinistra")), ("right", loc("a destra"))] : [("top", loc("Volto sopra")), ("bottom", loc("sotto"))],
+                           selection: Binding(get: { layout.side ?? (split ? "right" : "bottom") }, set: { layout.side = $0 }),
+                           symbols: split ? ["left": "rectangle.lefthalf.filled", "right": "rectangle.righthalf.filled"]
+                               : ["top": "rectangle.tophalf.filled", "bottom": "rectangle.bottomhalf.filled"])
             }
             if layout.kind == .bubble {
                 labeled(loc("Forma")) {
@@ -848,6 +846,9 @@ struct RecordPreview: View {
                         else { FacePlaceholder(note: nil) }
                     }
                     .opacity(g.camera.visible ? 1 : 0)
+                    .accessibilityElement()
+                    .accessibilityLabel(loc("Volto nel video"))
+                    .accessibilityHidden(!g.camera.visible)
                 }
             }
         }

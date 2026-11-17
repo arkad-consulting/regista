@@ -310,8 +310,9 @@ extension MouseSuites {
                     let r = Result {
                         try CommandJob.$current.withValue(job) {
                             try CommandJob.stage(0, 1) {
-                                // An engine that prints nothing for 2 s, expected to take 2.5 s here.
-                                try CommandJob.estimating(2.5) { _ = try Subprocess.check(URL(fileURLWithPath: "/bin/sh"), ["-c", "sleep 2"]) }
+                                // An engine that prints nothing for 2 s, expected to take 2.5 s here (no process: a rig test
+                                // counting the processes started may run meanwhile).
+                                CommandJob.estimating(2.5) { Thread.sleep(forTimeInterval: 2) }
                             }
                         }
                     }

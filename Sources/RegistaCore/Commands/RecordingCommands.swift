@@ -392,11 +392,15 @@ enum LayoutPresets: Command {
     static let id = "layout.presets"
     static let summary = "List the face layouts for screen recordings — bubble (corner, circle or rounded square, S/M/L), split (screen 2/3 + face 1/3), stack (9:16: screen top, face bottom), face (full screen), cutout (the person without background over the screen, needs matte.track on the camera), screen (no face) — with the boxes they produce at this project's size (output pixels [x, y, w, h]); and the styled frame for screen and bubble (background gradients, padding, rounded corners, shadow) with its built-in backgrounds."
     static let kind = CommandKind.query
-    static let params: [ParamSpec] = [Recording.recordingParam]
+    static let params: [ParamSpec] = [
+        Recording.recordingParam,
+        .optional("side", .oneOf(LayoutSpec.sides), "The face's side in the split and stack boxes: split right (default) or left, stack bottom (default) or top — as layout.apply's side."),
+    ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         let project = try ctx.requireProject()
         let W = project.settings.width, H = project.settings.height
+        let side = p.string("side")
         var screen = (1920, 1080), camera = (1080, 1920)
         var face: [Double]?
         if let link = project.recordings?.last {
@@ -414,8 +418,10 @@ enum LayoutPresets: Command {
         }
         let examples: [(LayoutSpec, String)] = [
             (LayoutSpec(kind: .bubble), "Face in a circle in a corner over the full screen (corner, shape circle|rounded, size S|M|L)."),
-            (LayoutSpec(kind: .split), "Screen in two thirds (never cropped) and the face in the last third, on a dark backdrop (side left|right)."),
-            (LayoutSpec(kind: .stack), "Vertical reel: screen on top (cropped to the half; edit.autoZoom follow: true keeps the cursor in view), face below (side top|bottom)."),
+            (LayoutSpec(kind: .split, side: side == "left" || side == "right" ? side : nil),
+             "Screen in two thirds (never cropped) and the face in the last third, on a dark backdrop (side left|right)."),
+            (LayoutSpec(kind: .stack, side: side == "top" || side == "bottom" ? side : nil),
+             "Vertical reel: screen on top (cropped to the half; edit.autoZoom follow: true keeps the cursor in view), face below (side top|bottom)."),
             (LayoutSpec(kind: .face), "The face full screen (to talk to camera between demos)."),
             (LayoutSpec(kind: .cutout), "The person without background standing in a bottom corner over the screen (needs matte.track on the camera; corner, size)."),
             (LayoutSpec(kind: .screen), "The screen alone."),
@@ -423,7 +429,7 @@ enum LayoutPresets: Command {
         return ["width": .number(Double(W)), "height": .number(Double(H)),
                 "presets": .array(examples.map { spec, text in
                     let g = Layouts.geometry(spec, width: W, height: H, screen: screen, camera: camera, face: face)
-                    return ["preset": .string(spec.kind.rawValue), "description": .string(text),
+                    return ["preset": .string(spec.kind.rawValue), "description": .string(text), "side": spec.side.map { .string($0) } ?? .null,
                             "screen": box(g.screen), "camera": box(g.camera),
                             "mask": g.camera.mask.map { .string($0.cutout == true ? "cutout" : $0.shape.rawValue) } ?? "rect"]
                 }),

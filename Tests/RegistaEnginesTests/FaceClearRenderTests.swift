@@ -17,7 +17,7 @@ private func scratch() throws -> URL {
 /// A project with the synthetic head (with or without its face track) in two clips: face on the left third (0–3 s),
 /// then on the right third (3–6 s), both at the height of the top card band (output y ≈ 540).
 private func twoSides(_ dir: URL, faces: Bool = true) throws -> Engine {
-    let e = Engine(prober: FFProbe(), services: .live())
+    let e = Engine(services: .live())
     try e.execute("project.new", params: ["name": "face-sides", "directory": .string(dir.path)])
     let head = try e.execute("media.synthesize", params: ["path": .string(dir.appendingPathComponent("head.mov").path), "duration": 6, "faces": .bool(faces)])
     let asset = try #require(head.value(at: "asset.id")?.stringValue)
@@ -94,7 +94,7 @@ private func faceMeets(_ e: Engine, clip id: String) throws -> Bool {
 @Test func theSpeakersBubbleTakesTheFirstCornerThatLeavesTheFaceFree() throws {
     let dir = try scratch()
     defer { try? FileManager.default.removeItem(at: dir) }
-    let e = Engine(prober: FFProbe(), services: .live())
+    let e = Engine(services: .live())
     try e.execute("project.new", params: ["name": "bubble", "directory": .string(dir.path)])
     let head = try e.execute("media.synthesize", params: ["path": .string(dir.appendingPathComponent("head.mov").path), "duration": 4, "faces": true])
     let asset = try #require(head.value(at: "asset.id")?.stringValue)

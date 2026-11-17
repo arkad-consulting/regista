@@ -84,8 +84,13 @@ import Testing
     RigGuard.install()
     let s = RigServices.factory()()
     let e = Engine(services: s)
-    _ = try e.execute("project.new", params: ["name": "gen", "directory": .string(rigTempDir("gen").path)])
+    let projects = rigTempDir("gen")
+    _ = try e.execute("project.new", params: ["name": "gen", "directory": .string(projects.path)])
     let started = RigProcesses.started.count
+    // The processes of this generation: its providers' programs and stubs live in the services' folder, its job files
+    // in the project's; a process another test starts meanwhile names neither (#60: the record is the whole process's).
+    let mine = [s.generationState.deletingLastPathComponent().path, projects.path]
+    func ours(_ lines: ArraySlice<String>) -> [String] { lines.filter { l in mine.contains { l.contains($0) } } }
     #expect {
         try e.execute("generate.run", params: ["provider": "comfyui", "kind": "image", "prompt": "a red chair"])
     } throws: { "\($0)".contains("a stand-in of the test rig") || "\($0)".contains("ComfyUI is missing") }   // its runner is not found: gated first
@@ -96,7 +101,7 @@ import Testing
     #expect {
         try e.execute("generate.run", params: ["provider": "higgsfield", "kind": "image", "prompt": "a red chair", "approval": .string(token)])
     } throws: { "\($0)".contains("a stand-in of the test rig") }
-    #expect(RigProcesses.started.count == started, "a rig generation started a process: \(RigProcesses.started.dropFirst(started))")
+    #expect(ours(RigProcesses.started.dropFirst(started)).isEmpty, "a rig generation started a process: \(RigProcesses.started.dropFirst(started))")
     #expect(FileManager.default.fileExists(atPath: s.generationState.path))
 }
 

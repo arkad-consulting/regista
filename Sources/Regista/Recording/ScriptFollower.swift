@@ -37,6 +37,8 @@ final class ScriptFollower: ObservableObject {
     private var commands = VoiceCommandSet.italian
     /// Host-clock seconds when the recording started: markers are measured from it.
     private var recordingStart: Double?
+    /// The take's pauses, host-clock seconds (the last one open while paused): the files skip them, so do the markers.
+    private var pauses: [(start: Double, end: Double?)] = []
     private var finishing: Task<Void, Never>?
     /// The recognizer locale of the last listening session (written into the take log).
     private var localeID = "it-IT"
@@ -107,7 +109,8 @@ final class ScriptFollower: ObservableObject {
         }
         session = s
         engine = s.engine.rawValue
-        sink.begin(s)
+        // Listening again after a pause of the take: the same stream clock, so the markers before and after it agree.
+        sink.begin(s, keepOrigin: recordingStart != nil)
         recorder.speechSink = sink
         isListening = true
     }
@@ -130,6 +133,25 @@ final class ScriptFollower: ObservableObject {
     func recordingDidStart() {
         // The capture session stamps its buffers on the host clock: listening may start a moment later.
         recordingStart = CMClockGetTime(CMClockGetHostTimeClock()).seconds
+        pauses = []
+    }
+
+    func recordingPaused() {
+        guard recordingStart != nil, pauses.last.map({ $0.end != nil }) ?? true else { return }
+        pauses.append((CMClockGetTime(CMClockGetHostTimeClock()).seconds, nil))
+    }
+
+    func recordingResumed() {
+        guard let last = pauses.last, last.end == nil else { return }
+        pauses[pauses.count - 1].end = CMClockGetTime(CMClockGetHostTimeClock()).seconds
+    }
+
+    /// Seconds of the recorded file at `wall` seconds after the recording started, the pauses (seconds after the start)
+    /// taken out; an instant inside a pause is where the pause began.
+    nonisolated static func recorded(_ wall: Double, pauses: [(start: Double, end: Double)]) -> Double {
+        var t = wall
+        for p in pauses where p.start < wall { t -= min(wall, p.end) - p.start }
+        return t
     }
 
     /// The markers of the recording that just ended, in recording seconds (waits for the last words).
@@ -138,12 +160,15 @@ final class ScriptFollower: ObservableObject {
         tracker.finish()
         guard let start = recordingStart, let streamOrigin = sink.origin else { return nil }
         recordingStart = nil
-        // Stream seconds of the recording's first instant.
+        // Stream seconds of the recording's first instant; the pauses in seconds after it (one still open ends now).
         let origin = start - streamOrigin
+        let now = CMClockGetTime(CMClockGetHostTimeClock()).seconds
+        let gaps = pauses.map { (start: $0.start - start, end: ($0.end ?? now) - start) }
+        pauses = []
         let markers = tracker.markers.compactMap { m -> LiveTakeMarker? in
             var m = m
-            m.start = max(0, m.start - origin)
-            m.end -= origin
+            m.start = max(0, Self.recorded(m.start - origin, pauses: gaps))
+            m.end = Self.recorded(m.end - origin, pauses: gaps)
             return m.end > 0 ? m : nil
         }
         guard !markers.isEmpty else { return nil }
@@ -197,8 +222,12 @@ final class FollowerSink: SpeechAudioSink, @unchecked Sendable {
     private var firstPTS: Double?
     private var last: Double?
 
-    func begin(_ s: LiveSpeechSession) {
-        lock.withLock { session = s; firstPTS = nil; last = nil }
+    /// `keepOrigin`: the same take listened to again (after a pause): stream time goes on from the same first buffer.
+    func begin(_ s: LiveSpeechSession, keepOrigin: Bool = false) {
+        lock.withLock {
+            session = s
+            if !keepOrigin { firstPTS = nil; last = nil }
+        }
     }
 
     func end() {

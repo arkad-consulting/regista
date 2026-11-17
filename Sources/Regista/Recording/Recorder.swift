@@ -432,27 +432,23 @@ final class Recorder: NSObject, ObservableObject {
         }
     }
 
-    /// Pause exists for screen takes only (the session notes each pause); a movie-file take has no pause log, so the
-    /// teleprompter's take markers would drift after one.
-    var canPause: Bool { isRecording ? recordingScreen : sources.screen }
-    var pauseUnavailableReason: String? {
-        canPause ? nil : loc("La pausa c'è quando registri lo schermo: senza schermo, ferma e registra una nuova ripresa")
-    }
-
-    /// Pause / resume (screen sessions: the files stay continuous, the pause is noted in session.json).
+    /// Pause / resume, with or without the screen (#19): a screen session shifts what follows a pause back (the pause is
+    /// noted in session.json), a camera or voice take pauses its movie file; either way nothing is written meanwhile and
+    /// the files have no gap. The clock stops, the teleprompter pauses with the take and its markers skip the pause.
     func togglePause() {
-        guard isRecording, recordingScreen, let s = screen else { return }
+        guard isRecording else { return }
+        if recordingScreen, screen == nil { return }
         if isPaused {
-            s.resume()
+            if recordingScreen { screen?.resume() } else { hardware.resumeMovie(output) }
             if let d = pauseDate { pausedSeconds += Date().timeIntervalSince(d) }
             pauseDate = nil
             isPaused = false
-            TeleprompterController.shared.play()
+            TeleprompterController.shared.recordingResumed()
         } else {
-            s.pause()
+            if recordingScreen { screen?.pause() } else { hardware.pauseMovie(output) }
             pauseDate = Date()
             isPaused = true
-            TeleprompterController.shared.pause()
+            TeleprompterController.shared.recordingPaused()
         }
     }
 
@@ -546,6 +542,7 @@ extension Recorder: AVCaptureFileOutputRecordingDelegate {
         let message = error.map { loc("La registrazione non è riuscita: %@", $0.localizedDescription) }
         Task { @MainActor in
             self.isRecording = false
+            self.isPaused = false
             let claimed = self.nextTakeHandler
             self.nextTakeHandler = nil
             if ok, let claimed {

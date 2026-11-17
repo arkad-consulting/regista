@@ -280,9 +280,23 @@ final class RigCapture: CaptureHardware {
     func startMovie(_ output: AVCaptureMovieFileOutput, to url: URL, delegate: AVCaptureFileOutputRecordingDelegate) {
         log.append("startMovie \(url.lastPathComponent)")
         running = (url, delegate)
+        movieClock = MovieClock(started: ProcessInfo.processInfo.systemUptime)
+    }
+    func pauseMovie(_ output: AVCaptureMovieFileOutput) {
+        log.append("pauseMovie")
+        movieClock?.pause(at: ProcessInfo.processInfo.systemUptime)
+    }
+    func resumeMovie(_ output: AVCaptureMovieFileOutput) {
+        log.append("resumeMovie")
+        movieClock?.resume(at: ProcessInfo.processInfo.systemUptime)
     }
     func stopMovie(_ output: AVCaptureMovieFileOutput) {
         log.append("stopMovie")
+        if var clock = movieClock {
+            clock.stop(at: ProcessInfo.processInfo.systemUptime)
+            lastMovie = clock.samples()
+            movieClock = nil
+        }
         guard let (url, delegate) = running else { return }
         running = nil
         if let take {
@@ -323,6 +337,53 @@ final class RigCapture: CaptureHardware {
     }
 
     private var running: (URL, AVCaptureFileOutputRecordingDelegate)?
+    private var movieClock: MovieClock?
+    /// The samples the last movie take wrote, as AVCaptureMovieFileOutput writes them (#19).
+    private(set) var lastMovie: MovieSamples?
+
+    /// The stand-in's camera and microphone: a frame every 1/30 s and a sound buffer every 1024/48000 s on the host
+    /// clock from Record to Stop. Like AVCaptureFileOutput, a paused take writes none of them, and what comes after a
+    /// pause is stamped right after what came before it (no gap in the file's timestamps).
+    struct MovieClock {
+        let started: Double
+        private(set) var pauses: [(start: Double, end: Double)] = []
+        private var pausedAt: Double?
+        private var stopped: Double?
+
+        init(started: Double) { self.started = started }
+
+        mutating func pause(at t: Double) { if pausedAt == nil, stopped == nil { pausedAt = t } }
+        mutating func resume(at t: Double) {
+            guard let p = pausedAt else { return }
+            pauses.append((p, t))
+            pausedAt = nil
+        }
+        mutating func stop(at t: Double) {
+            resume(at: t)
+            stopped = t
+        }
+
+        /// Each stream's sample times in the file: the device's samples outside the pauses, each stamped right after the
+        /// one written before it.
+        func samples() -> MovieSamples {
+            let end = stopped ?? started
+            func stream(_ step: Double) -> [Double] {
+                let kept = stride(from: started, to: end, by: step).filter { t in !pauses.contains { t >= $0.start && t < $0.end } }.count
+                return (0..<kept).map { Double($0) * step }
+            }
+            return MovieSamples(video: stream(1.0 / 30), audio: stream(1024.0 / 48000), pauses: pauses.count,
+                                paused: pauses.reduce(0) { $0 + $1.end - $1.start })
+        }
+    }
+
+    struct MovieSamples {
+        let video: [Double]
+        let audio: [Double]
+        let pauses: Int
+        let paused: Double
+        /// The file's length: its last frame's end.
+        var duration: Double { (video.last ?? 0) + 1.0 / 30 }
+    }
 }
 
 /// A screen take in the rig: no stream, no capture. Stop writes a synthetic session into the recorder's folder

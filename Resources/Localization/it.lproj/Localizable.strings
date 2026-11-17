@@ -69,6 +69,7 @@
 "3D titles" = "titoli 3D";
 "5 secondi di silenzio all'inizio, una pausa tra le righe. Se sbagli, fermati un attimo e rileggi tutta la riga." = "5 secondi di silenzio all'inizio, una pausa tra le righe. Se sbagli, fermati un attimo e rileggi tutta la riga.";
 "A" = "A";
+"a destra" = "a destra";
 "Aggiungi altri toni" = "Aggiungi altri toni";
 "Aiuto" = "Aiuto";
 "allenata · %d toni" = "allenata · %d toni";
@@ -181,6 +182,7 @@
 "SCHEDE ANIMATE" = "SCHEDE ANIMATE";
 "Scorciatoie da tastiera" = "Scorciatoie da tastiera";
 "Segnala un problema…" = "Segnala un problema…";
+"sotto" = "sotto";
 "STILE" = "STILE";
 "Scegli i suoni uno per uno in Pro" = "Scegli i suoni uno per uno in Pro";
 "Scegli una musica…" = "Scegli una musica…";
@@ -911,7 +913,6 @@
 "La lingua del parlato è quella da cui parte la trascrizione di un video nuovo: si cambia anche nei passi di Testi e sottotitoli. Francese e portoghese dell'interfaccia sono parziali: il resto appare in inglese." = "La lingua del parlato è quella da cui parte la trascrizione di un video nuovo: si cambia anche nei passi di Testi e sottotitoli. Francese e portoghese dell'interfaccia sono parziali: il resto appare in inglese.";
 "La musica scende mentre qualcuno parla e risale nelle pause." = "La musica scende mentre qualcuno parla e risale nelle pause.";
 "La nuova lingua dell'interfaccia vale dalla prossima apertura di Regista." = "La nuova lingua dell'interfaccia vale dalla prossima apertura di Regista.";
-"La pausa c'è quando registri lo schermo: senza schermo, ferma e registra una nuova ripresa" = "La pausa c'è quando registri lo schermo: senza schermo, ferma e registra una nuova ripresa";
 "La pista scende mentre qualcuno parla." = "La pista scende mentre qualcuno parla.";
 "La pista Voce è già occupata al cursore: scegli «Dopo l'ultima voce» o sposta il cursore." = "La pista Voce è già occupata al cursore: scegli «Dopo l'ultima voce» o sposta il cursore.";
 "La prima pista audio mescola più file: la voce si pulisce da un file solo." = "La prima pista audio mescola più file: la voce si pulisce da un file solo.";
@@ -1820,7 +1821,9 @@
 "voice-over from text" = "voce fuori campo dal testo";
 "voice.step.train" = "Allena la voce";
 "Volto" = "Volto";
+"Volto a sinistra" = "Volto a sinistra";
 "Volto nel video" = "Volto nel video";
+"Volto sopra" = "Volto sopra";
 "Volume" = "Volume";
 "VoxCPM2 voice-over" = "Voce fuori campo VoxCPM2";
 "VoxCPM2 weights" = "Pesi di VoxCPM2";

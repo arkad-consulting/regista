@@ -140,7 +140,7 @@ struct EditorCommands: Commands {
                 .shortcut(AppShortcuts.record)
             Button(loc(recorder.isPaused ? "Riprendi" : "Pausa")) { recorder.togglePause() }
                 .shortcut(AppShortcuts.pause)
-                .disabled(!recorder.isRecording || !recorder.canPause)
+                .disabled(!recorder.isRecording)
         }
         CommandMenu("Vista") {
             // The activity bar, top to bottom: ⌘1…⌘9.

@@ -25,6 +25,9 @@ protocol CaptureHardware: AnyObject {
     func startMovie(_ output: AVCaptureMovieFileOutput, to url: URL, delegate: AVCaptureFileOutputRecordingDelegate)
     /// Ends the movie-file take (its delegate is told).
     func stopMovie(_ output: AVCaptureMovieFileOutput)
+    /// Pauses / resumes the movie-file take: nothing is written meanwhile, and the file goes on with no gap (#19).
+    func pauseMovie(_ output: AVCaptureMovieFileOutput)
+    func resumeMovie(_ output: AVCaptureMovieFileOutput)
     /// The displays and windows that can be recorded.
     func shareableContent() async throws -> (displays: [CGDirectDisplayID], windows: [SCWindow])
     /// The connected displays as macOS arranges them (no permission needed): the map of Registra's Schermo row.
@@ -77,6 +80,12 @@ final class MacCapture: CaptureHardware {
     }
 
     func stopMovie(_ output: AVCaptureMovieFileOutput) { queue.async { output.stopRecording() } }
+
+    // AVCaptureFileOutput's own pause: no sample is written while paused, the next ones follow the last ones with no gap
+    // in the file's timestamps (picture and sound alike, so they stay in sync).
+    func pauseMovie(_ output: AVCaptureMovieFileOutput) { queue.async { output.pauseRecording() } }
+
+    func resumeMovie(_ output: AVCaptureMovieFileOutput) { queue.async { output.resumeRecording() } }
 
     func shareableContent() async throws -> (displays: [CGDirectDisplayID], windows: [SCWindow]) {
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)

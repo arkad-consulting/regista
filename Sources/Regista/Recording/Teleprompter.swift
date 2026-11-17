@@ -161,6 +161,18 @@ final class TeleprompterController: ObservableObject {
 
     func togglePlay() { isPlaying ? pause() : play() }
 
+    /// The take paused (Pausa, #19): the teleprompter pauses with it, and its markers will skip the pause.
+    func recordingPaused() {
+        follower.recordingPaused()
+        pause()
+    }
+
+    /// The take goes on: the teleprompter too, where it was.
+    func recordingResumed() {
+        follower.recordingResumed()
+        play()
+    }
+
     func restart() {
         follower.restart()
         canvas?.scrollToTop()

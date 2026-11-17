@@ -236,3 +236,18 @@ func keyEvents(_ keys: [(Double, String)]) -> [RecordingSession.Event] {
     }
     #expect(r["frame"]?["backgrounds"]?.arrayValue?.count == Backdrop.presets.count)
 }
+
+/// #19: layout.presets takes the face's side as layout.apply does: the split face goes left, the stack face on top.
+@Test func layoutPresetsTakeTheFacesSide() throws {
+    let (e, _) = try recordingEngine(width: 1920, height: 1080)
+    func camera(_ r: JSONValue, _ preset: String) -> [Double] {
+        (r["presets"]?.arrayValue?.first { $0["preset"] == .string(preset) }?["camera"]?.arrayValue ?? []).compactMap(\.doubleValue)
+    }
+    let plain = try e.execute("layout.presets"), left = try e.execute("layout.presets", params: ["side": "left"])
+    let split = camera(plain, "split"), splitLeft = camera(left, "split")
+    #expect(split.count == 4 && splitLeft.count == 4 && splitLeft[0] < split[0], "\(split) → \(splitLeft)")
+    #expect(left["presets"]?.arrayValue?.first { $0["preset"] == "split" }?["side"] == "left")
+    let (s, _) = try recordingEngine(width: 1080, height: 1920)
+    let stack = camera(try s.execute("layout.presets"), "stack"), top = camera(try s.execute("layout.presets", params: ["side": "top"]), "stack")
+    #expect(stack.count == 4 && top.count == 4 && top[1] < stack[1], "\(stack) → \(top)")
+}

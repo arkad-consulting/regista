@@ -1233,6 +1233,7 @@ List the face layouts for screen recordings — bubble (corner, circle or rounde
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `recordingId` | string | no | the last imported | Recording (default: the last imported). |
+| `side` | one of `left`, `right`, `top`, `bottom` | no | – | The face's side in the split and stack boxes: split right (default) or left, stack bottom (default) or top — as layout.apply's side. |
 
 Returns: see the description above.
 

@@ -69,6 +69,7 @@
 "3D titles" = "titres 3D";
 "5 secondi di silenzio all'inizio, una pausa tra le righe. Se sbagli, fermati un attimo e rileggi tutta la riga." = "5 secondes de silence au début, une pause entre les lignes. Si vous vous trompez, arrêtez-vous un instant et relisez toute la ligne.";
 "A" = "Fin";
+"a destra" = "à droite";
 "Aggiungi altri toni" = "Ajoutez d'autres tons";
 "Aiuto" = "Aide";
 "allenata · %d toni" = "entraînée · %d tons";
@@ -181,6 +182,7 @@
 "SCHEDE ANIMATE" = "CARTES ANIMÉES";
 "Scorciatoie da tastiera" = "Raccourcis clavier";
 "Segnala un problema…" = "Signaler un problème…";
+"sotto" = "en bas";
 "STILE" = "STYLE";
 "Scegli i suoni uno per uno in Pro" = "Choisir les sons un par un dans Pro";
 "Scegli una musica…" = "Choisir une musique…";
@@ -911,7 +913,6 @@
 "La lingua del parlato è quella da cui parte la trascrizione di un video nuovo: si cambia anche nei passi di Testi e sottotitoli. Francese e portoghese dell'interfaccia sono parziali: il resto appare in inglese." = "La langue parlée est celle dont part la transcription d'une nouvelle vidéo : elle se change aussi dans les étapes de Textes et sous-titres. Le français et le portugais de l'interface sont partiels : le reste s'affiche en anglais.";
 "La musica scende mentre qualcuno parla e risale nelle pause." = "La musique baisse quand quelqu'un parle et remonte pendant les pauses.";
 "La nuova lingua dell'interfaccia vale dalla prossima apertura di Regista." = "La nouvelle langue de l'interface s'applique à la prochaine ouverture de Regista.";
-"La pausa c'è quando registri lo schermo: senza schermo, ferma e registra una nuova ripresa" = "La pause est disponible quand vous enregistrez l'écran : sans écran, arrêtez et enregistrez une nouvelle prise";
 "La pista scende mentre qualcuno parla." = "La piste baisse quand quelqu'un parle.";
 "La pista Voce è già occupata al cursore: scegli «Dopo l'ultima voce» o sposta il cursore." = "La piste Voix est déjà occupée à la tête de lecture : choisissez « Après la dernière voix » ou déplacez la tête de lecture.";
 "La prima pista audio mescola più file: la voce si pulisce da un file solo." = "La première piste audio mélange plusieurs fichiers : la voix se nettoie depuis un seul fichier.";
@@ -1820,7 +1821,9 @@
 "voice-over from text" = "voix off à partir du texte";
 "voice.step.train" = "Entraînez la voix";
 "Volto" = "Visage";
+"Volto a sinistra" = "Visage à gauche";
 "Volto nel video" = "Visage dans la vidéo";
+"Volto sopra" = "Visage en haut";
 "Volume" = "Volume";
 "VoxCPM2 voice-over" = "Voix off VoxCPM2";
 "VoxCPM2 weights" = "Poids de VoxCPM2";
