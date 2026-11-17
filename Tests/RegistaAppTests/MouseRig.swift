@@ -255,26 +255,48 @@ final class MouseRig {
         click(p, clicks: 2)
     }
 
-    /// A right click, each event given to the window as the application's current event (`deliver`), so the views that
-    /// read `NSApp.currentEvent` see it (a context menu area does); the menu that opens is recorded by RigGuard instead
-    /// of tracked. Never through the event queue: with the screen locked the queue gives back no posted mouse event,
-    /// and no menu opened in the rig for as long as the lock lasted (#57).
+    /// A right click; the menu that opens is recorded by RigGuard instead of tracked.
     ///
-    /// One more thing happens only while the screen is locked: over some SwiftUI content (a project tab's name) the
-    /// hosting view keeps a right press that came through the window and opens nothing, while the same press given to
-    /// the view under the point opens the menu, as the window's does with the screen unlocked. So with the screen
-    /// locked, and only then, a press that opened no menu is given once to the view under the point; each one is
-    /// counted and said on stderr (`lockedRightClicks`). With the screen unlocked a missing menu stays missing.
+    /// With the screen unlocked it first goes through the event queue, as AppKit delivers a real one: taken from the
+    /// queue it becomes `NSApp.currentEvent` (a context menu area reads it), then it is given to the window. With the
+    /// screen locked the queue gives back no posted mouse event (#57), so each event is given straight to the window
+    /// as the application's current event (`deliver`).
+    ///
+    /// Neither way is enough over some SwiftUI content (a project tab's name, a Media tile): the hosting view keeps a
+    /// press that came through the window and opens nothing, always when it was handed straight to the window and
+    /// some of the times when it came from the queue, locked or not (seen 2026-11-17 with the screen unlocked and the
+    /// display on), while the same press given to the view under the point opens the menu. So a press that opened no
+    /// menu is given once to the view under the point, the one the window itself would pick; each one is counted and
+    /// said on stderr with what was tried (`handedRightClicks`). A view with no menu still opens none.
     func rightClick(_ p: CGPoint, modifiers: NSEvent.ModifierFlags = []) {
         RigTrace.note("MouseRig.rightClick at \(Int(p.x)),\(Int(p.y))")
         guard let down = event(.rightMouseDown, p, modifiers: modifiers), let up = event(.rightMouseUp, p, modifiers: modifiers) else { return }
         takeKey()
         let events = RigGuard.events.count
+        var opened: Bool { RigGuard.events.dropFirst(events).contains { $0.kind == .menu } }
+        var tried = "the screen is locked"
+        if !Self.screenLocked {
+            // Posting stops the running run loop: a nested one of ours (see `click`).
+            CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue) {
+                NSApp.postEvent(down, atStart: false)
+                NSApp.postEvent(up, atStart: false)
+            }
+            CFRunLoopRunInMode(.defaultMode, 0.3, false)
+            var taken = 0
+            while let e = NSApp.nextEvent(matching: [.rightMouseDown, .rightMouseUp], until: .distantPast, inMode: .default, dequeue: true) {
+                window.sendEvent(e)
+                taken += 1
+            }
+            drain()
+            pump()
+            if opened { return }
+            tried = "the event queue gave back \(taken) of the 2 events posted and no menu opened"
+        }
         deliver(down, to: window)
         pump()
-        if !RigGuard.events.dropFirst(events).contains(where: { $0.kind == .menu }), Self.screenLocked, let hit = viewAt(p) {
-            Self.lockedRightClicks += 1
-            FileHandle.standardError.write(Data("MouseRig: the screen is locked and a right press through the window opened no menu at \(Int(p.x)),\(Int(p.y)); given to \(Swift.type(of: hit)) (#57)\n".utf8))
+        if !opened, let hit = viewAt(p) {
+            Self.handedRightClicks += 1
+            FileHandle.standardError.write(Data("MouseRig: \(tried), and a right press through the window opened no menu at \(Int(p.x)),\(Int(p.y)); given to \(Swift.type(of: hit)) (#57)\n".utf8))
             // A press of its own: the hosting view does not answer twice for the one the window already gave it.
             if let again = event(.rightMouseDown, p, modifiers: modifiers) {
                 let previous = NSApp.currentEvent
@@ -288,8 +310,9 @@ final class MouseRig {
         pump()
     }
 
-    /// Right presses given to the view under the point because the screen was locked (see `rightClick`).
-    static var lockedRightClicks = 0
+    /// Right presses given to the view under the point because none sent through the window opened a menu (see
+    /// `rightClick`).
+    static var handedRightClicks = 0
     /// Whether the session's screen is locked (a Mac left alone while the tests run).
     static var screenLocked: Bool {
         ((CGSessionCopyCurrentDictionary() as? [String: Any])?["CGSSessionScreenIsLocked"] as? NSNumber)?.boolValue ?? false
@@ -678,13 +701,14 @@ enum RigGuard {
         swap(AVAudioPlayer.self, #selector(AVAudioPlayer.play as (AVAudioPlayer) -> () -> Bool), #selector(AVAudioPlayer.rig_play))
         // A click must never end the test run: a quit is recorded, not obeyed (the process would exit with 0 and the
         // tests not yet run would be missing from a run that looks green). Any other exit than the test runner's own,
-        // at the end of the run, prints where it came from. One such exit is known and not prevented here: the test
-        // runner's main loop is a bare CFRunLoopRun followed by exit(0), and a stop that AppKit queues while a test
-        // awaits ends it (`drain` absorbs most of them). scripts/test.sh sees a run without its summary and runs the
-        // suite once more; it is never counted as green.
+        // at the end of the run, prints where it came from. One such exit was known: the test runner's main loop is a
+        // bare CFRunLoopRun followed by exit(0), and a stop that AppKit queues while a test awaits ended it (#40).
+        // `holdTheMainLoop` keeps the main thread out of that loop; scripts/test.sh still sees a run without its
+        // summary and takes it up again, never counting it as green.
         swap(NSApplication.self, #selector(NSApplication.terminate(_:)), #selector(NSApplication.rig_terminate(_:)))
         // #40: a stop asked through NSApp is written down with its caller (RigTrace).
         swap(NSApplication.self, #selector(NSApplication.stop(_:)), #selector(NSApplication.rig_stop(_:)))
+        holdTheMainLoop()
         guardProcesses()
         guardTrash()
         guardPasteboard()
@@ -733,6 +757,37 @@ enum RigGuard {
     }
 
     /// Every Process (NSTask) the code runs goes through `-launchAndReturnError:` (Process.run): checked there.
+    /// #40, at its root. The test runner's main thread sits in a bare CFRunLoopRun followed by exit(0): a stop that
+    /// AppKit queues (a posted event, a window shown, a teleprompter's display link) ends that loop when it lands
+    /// while a test awaits, and the process with it, with code 0 and the remaining tests not run. The rig's nested
+    /// loops absorbed the stops that landed in them, never the ones in between. So the main thread does not go back
+    /// to the runner's loop: a timer waits until that loop itself calls it, then turns a loop of ours for ever.
+    /// Everything the main thread does from then on (the tests' main-actor code, the main queue, timers, AppKit) runs
+    /// inside it, and a stop ends one turn of it, written down by RigTrace. The process still ends as before, by the
+    /// runner's own exit.
+    ///
+    /// "Called by the runner's loop itself" is: no nested run of the default mode has started since this was installed
+    /// (an observer counts them: a wait on a subprocess, a loop of the rig's), and the thread runs no Swift task (a
+    /// test's code that turns a loop of its own). Started anywhere else, the loop would never give that caller its
+    /// thread back. The stack cannot tell: under a Swift task it shows the task's frames, not the thread's.
+    private static func holdTheMainLoop() {
+        nonisolated(unsafe) var nested = 0
+        let observer = CFRunLoopObserverCreateWithHandler(nil, CFRunLoopActivity.entry.rawValue | CFRunLoopActivity.exit.rawValue, true, 0) { _, activity in
+            nested += activity == .entry ? 1 : -1
+        }
+        CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .defaultMode)
+        let timer = CFRunLoopTimerCreateWithHandler(nil, CFAbsoluteTimeGetCurrent(), 0.02, 0, 0) { timer in
+            guard nested == 0, withUnsafeCurrentTask(body: { $0 == nil }) else { return }
+            CFRunLoopTimerInvalidate(timer)
+            CFRunLoopObserverInvalidate(observer)
+            RigTrace.note("RigGuard: the main thread turns the rig's loop from here on, not the runner's")
+            while true {
+                if RigTrace.run("hold", 3600) == .finished { usleep(1000) }
+            }
+        }
+        CFRunLoopAddTimer(CFRunLoopGetMain(), timer, .defaultMode)
+    }
+
     private static func guardProcesses() {
         typealias Launch = @convention(c) (AnyObject, Selector, AutoreleasingUnsafeMutablePointer<NSError?>?) -> ObjCBool
         let sel = NSSelectorFromString("launchAndReturnError:")
