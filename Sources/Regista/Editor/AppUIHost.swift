@@ -61,7 +61,8 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                     // The teleprompter window (never captured on screen), showing the project's script mid-reading.
                     let size = CGSize(width: width ?? Int(TeleprompterController.defaultSize.width), height: height ?? Int(TeleprompterController.defaultSize.height))
                     let c = TeleprompterController.preview(text: store.project?.script?.prompt ?? TeleprompterController.shared.text,
-                                                           mirror: w == "teleprompter-mirror", fontSize: TeleprompterController.shared.fontSize)
+                                                           mirror: w == "teleprompter-mirror", fontSize: TeleprompterController.shared.fontSize,
+                                                           mode: TeleprompterController.shared.mode)
                     view = NSHostingView(rootView: TeleprompterView(controller: c, settled: true))
                     view.frame = CGRect(origin: .zero, size: size)
                     previewController = c

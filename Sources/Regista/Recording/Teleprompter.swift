@@ -306,9 +306,11 @@ final class TeleprompterController: ObservableObject {
 
     // MARK: Preview (ui.screenshot)
 
-    /// A stand-alone controller showing `text` mid-reading, for offscreen renders of the window.
-    static func preview(text: String, mirror: Bool, fontSize: Double) -> TeleprompterController {
+    /// A stand-alone controller showing `text` mid-reading, for offscreen renders of the window. Its scroll mode is
+    /// given, never the saved one: a render draws the look it is asked for, whatever ran before it (#64).
+    static func preview(text: String, mirror: Bool, fontSize: Double, mode: Mode) -> TeleprompterController {
         let c = TeleprompterController(preview: true)
+        c.mode = mode
         c.text = text
         c.mirror = mirror
         c.fontSize = fontSize

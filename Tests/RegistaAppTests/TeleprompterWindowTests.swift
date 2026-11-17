@@ -50,7 +50,8 @@ private func render(mirror: Bool, script: String = sample, size: NSSize = Telepr
     for url in (try? FileManager.default.contentsOfDirectory(at: fonts, includingPropertiesForKeys: nil)) ?? [] where url.pathExtension == "ttf" {
         CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
     }
-    let c = TeleprompterController.preview(text: script, mirror: mirror, fontSize: 40)
+    // The voice-following look the test checks (the word read in gold), whatever mode the process's defaults hold (#64).
+    let c = TeleprompterController.preview(text: script, mirror: mirror, fontSize: 40, mode: .voice)
     let view = NSHostingView(rootView: TeleprompterView(controller: c, settled: true))
     view.frame = NSRect(origin: .zero, size: size)
     let w = NSWindow(contentRect: view.frame, styleMask: [.borderless], backing: .buffered, defer: false)
