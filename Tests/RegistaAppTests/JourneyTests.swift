@@ -695,8 +695,12 @@ extension MouseSuites.ClickAudits {
         j.step("Gobbo: types the script, Velocità; Registra: the Gobbo switch on", sees: "«1 frase · 10 parole · circa 1 min», the Gobbo row on, Record ready")
 
         // Record.
-        /// The status bar's clock: «Registrazione 0:03».
-        func clock() -> String? { j.rig.elements(containing: "Registrazione 0:").first { $0.role == "AXStaticText" }?.name }
+        /// The status bar's clock: «Registrazione 0:03», or «In pausa · 0:03» while the take is paused (#65).
+        func clock() -> String? {
+            let bar = Double(j.rig.size.height) - Double(Chrome.statusHeight)
+            return j.rig.elements().first { $0.role == "AXStaticText" && $0.visible && $0.frame.minY >= bar - 1
+                && ($0.name.hasPrefix("Registrazione 0:") || $0.name.hasPrefix("In pausa · 0:")) }?.name
+        }
         try await j.tap("Avvia / Ferma registrazione")
         #expect(await j.until { j.app.recorder.isRecording }, "Record did not start: \(j.app.recorder.errorMessage ?? "")")
         #expect(await j.until(2) { clock() != nil }, "the status bar does not show the take's clock: \(j.screen())")
@@ -713,13 +717,18 @@ extension MouseSuites.ClickAudits {
             // The tab says so too (#62: it read «sta registrando» beside a paused take).
             let tabLine = { j.rig.elements().first { $0.role == "AXStaticText" && $0.frame.minY < 90 && ($0.name.hasPrefix("in pausa") || $0.name.hasPrefix("sta registrando")) }?.name ?? "" }
             #expect(await j.until(2) { tabLine().hasPrefix("in pausa") }, "pause \(k): the tab reads «\(tabLine())»")
+            // The status bar's item says the take is paused too (#65: it kept «● Registrazione 0:04»).
+            #expect(await j.until(2) { clock()?.hasPrefix("In pausa · 0:") == true }, "pause \(k): the status bar reads «\(clock() ?? "nothing")»")
             let still = clock()
             await j.app.idle(1.2)
             #expect(clock() == still && still != nil, "pause \(k): the clock moved while paused (\(still ?? "none") → \(clock() ?? "none"))")
             j.step("Clicks Pausa (\(k))", sees: "«Riprendi», «In pausa · …», the tab «in pausa», the clock standing at \(still ?? "?")")
             try await j.tap("Pausa / Riprendi")
             #expect(await j.until { !j.app.recorder.isPaused }, "resume \(k) did not resume")
-            #expect(await j.until(2) { clock() != still }, "resume \(k): the clock does not run again (\(still ?? "none"))")
+            // «Registrazione» again, and its time moves on from the one that stood still.
+            let time = { (s: String?) in s?.components(separatedBy: " ").last }
+            #expect(await j.until(2) { clock()?.hasPrefix("Registrazione 0:") == true && time(clock()) != time(still) },
+                    "resume \(k): the clock does not run again (\(still ?? "none") → \(clock() ?? "none"))")
             #expect(prompter.isPlaying, "the teleprompter did not go on after pause \(k)")
             #expect(await j.until(2) { tabLine().hasPrefix("sta registrando") }, "resume \(k): the tab reads «\(tabLine())»")
             j.step("Clicks Riprendi (\(k))", sees: "«Pausa» again, the clock running from \(still ?? "?")")

@@ -476,8 +476,9 @@ struct StatusBar: View {
             JobsStatusItem()   // long work of every tab: progress, Cancel, errors (E2 #54)
             if recorder.isRecording {
                 HStack(spacing: 5) {
-                    Circle().fill(Ed.danger).frame(width: 6, height: 6)
-                    Text(verbatim: String(format: loc("Registrazione %@"), timecode(recorder.elapsed))).fixedSize()
+                    // A paused take says so, in the colour of the preview's paused pill (#65).
+                    Circle().fill(recorder.isPaused ? Ed.warn : Ed.danger).frame(width: 6, height: 6)
+                    Text(verbatim: String(format: loc(recorder.isPaused ? "In pausa · %@" : "Registrazione %@"), timecode(recorder.elapsed))).fixedSize()
                 }
             }
             if let save = saveState {
