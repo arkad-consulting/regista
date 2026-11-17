@@ -60,7 +60,7 @@ extension MouseSuites {
         #expect(dropped.contains { $0.hasPrefix("video \(asset) 0.00–") } && dropped.contains { $0.hasPrefix("audio \(asset) 0.00–") }, "\(dropped)")
 
         // The same tile through what the Media panel's «Metti in timeline al cursore» runs, with the playhead at 0:00
-        // (the menu itself is clicked in theMediaTilesMenuPutsTheSameClip, with the click audits).
+        // (the menu itself is clicked in theMediaTilesMenuPutsTheSameClip, which the push hook runs).
         for _ in 0..<4 where store.project?.tracks.flatMap(\.clips).isEmpty == false { _ = try await store.perform("history.undo", [:]) }
         #expect(store.project?.tracks.flatMap(\.clips).isEmpty == true, "the drop was not undone: \(clips())")
         store.preview.seek(0)
@@ -96,7 +96,7 @@ extension MouseSuites {
 }
 
 extension MouseSuites.ClickAudits {
-@Suite(.serialized) @MainActor struct MediaTileMenuTests {
+@Suite(.serialized) @MainActor struct MediaTileMenuScreenClickTests {   // in the push hook's filter (…ScreenClickTests)
     /// The Media panel's own way to the timeline, clicked: a right click on the tile, «Metti in timeline al cursore» with
     /// the playhead at 0:00, gives the clip a Media tile dropped on the empty V1 lane at 0:00 gives (#36).
     @Test func theMediaTilesMenuPutsTheSameClip() async throws {
