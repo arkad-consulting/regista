@@ -103,6 +103,24 @@ import Testing
     } throws: { "\($0)".contains("a stand-in of the test rig") }
     #expect(ours(RigProcesses.started.dropFirst(started)).isEmpty, "a rig generation started a process: \(RigProcesses.started.dropFirst(started))")
     #expect(FileManager.default.fileExists(atPath: s.generationState.path))
+
+    // The record cannot cut those folders off (#60). It keeps the executable whole and each of the first four arguments up
+    // to 120 characters: both folders are shorter, so a recorded argument that starts with one keeps it whole…
+    for folder in mine {
+        #expect(folder.count < RigProcesses.argumentLimit, "\(folder) (\(folder.count) characters) can be cut off a recorded argument")
+    }
+    // …and a generation's process is its job's wrapper, `/bin/sh -c <script> <program> <args…>` (GenerationJobDir.launch),
+    // whose program — in the services' folder for every provider of the rig — is the third argument, within the four
+    // kept. A launch of that very shape, with a program of the services' folder that only exits, is recorded with it.
+    let probe = URL(fileURLWithPath: mine[0]).appendingPathComponent("not-installed/probe-\(String(repeating: "x", count: 40))")
+    try FileManager.default.createDirectory(at: probe.deletingLastPathComponent(), withIntermediateDirectories: true)
+    try "#!/bin/sh\nexit 0\n".write(to: probe, atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: probe.path)
+    let before = RigProcesses.started.count
+    try GenerationJobDir(projects.appendingPathComponent("probe-job")).launch(GenerationProcess(probe, ["--out", projects.path]), wait: true)
+    let recorded = ours(RigProcesses.started.dropFirst(before))
+    #expect(recorded.count == 1 && recorded.first?.contains(mine[0]) == true, "the probe's launch was recorded as \(RigProcesses.started.dropFirst(before))")
+    #expect(RigProcesses.line("/bin/sh", ["-c", "s", probe.path, "a", "b", projects.path]).contains(mine[0]))
 }
 
 /// The installer is the rig's stub: it writes down what it was asked and installs nothing.

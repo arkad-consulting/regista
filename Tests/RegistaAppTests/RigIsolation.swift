@@ -503,9 +503,19 @@ enum RigProcesses {
         return inside(script) ? nil : "\(executable) runs \(script), outside the scratch folders and the repository"
     }
 
+    /// What a recorded line keeps (#60): the executable whole, then the first `keptArguments` arguments, each cut after
+    /// `argumentLimit` characters.
+    static let keptArguments = 4
+    static let argumentLimit = 120
+
+    /// The line `check` records for a start.
+    static func line(_ executable: String, _ arguments: [String]) -> String {
+        ([executable] + arguments.prefix(keptArguments).map { $0.count > argumentLimit ? String($0.prefix(argumentLimit)) + "…" : $0 }).joined(separator: " ")
+    }
+
     /// Called by RigGuard for each start: records it and says whether it may run.
     static func check(_ executable: String, _ arguments: [String]) -> String? {
-        let line = ([executable] + arguments.prefix(4).map { $0.count > 120 ? String($0.prefix(120)) + "…" : $0 }).joined(separator: " ")
+        let line = line(executable, arguments)
         let why = refusal(executable, arguments)
         lock.withLock {
             _started.append(line)
