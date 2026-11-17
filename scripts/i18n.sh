@@ -265,10 +265,10 @@ msg() {
     it.fix_install_claude) echo 'installa Claude Desktop (https://claude.ai/download), accedi, poi rilancia scripts/install.sh' ;;
     fr.fix_install_claude) echo "installe Claude Desktop (https://claude.ai/download), connecte-toi, puis relance scripts/install.sh" ;;
     pt.fix_install_claude) echo 'instale o Claude Desktop (https://claude.ai/download), entre na sua conta e execute scripts/install.sh de novo' ;;
-    en.fix_repoint) echo 'repoint it to the app: Regista › Settings › Claude › Repoint, or scripts/install.sh --claude %s' ;;
-    it.fix_repoint) echo "ricollegalo all'app: Regista › Impostazioni › Claude › Ricollega, o scripts/install.sh --claude %s" ;;
-    fr.fix_repoint) echo "reconnecte-le à l'app : Regista › Réglages › Claude › Reconnecter, ou scripts/install.sh --claude %s" ;;
-    pt.fix_repoint) echo 'reconecte-o ao app: Regista › Ajustes › Claude › Reconectar a este app, ou scripts/install.sh --claude %s' ;;
+    en.fix_repoint) echo 'repoint it to the app: Regista › Settings › Claude › Repoint to this app…, or scripts/install.sh --claude %s' ;;
+    it.fix_repoint) echo "ricollegalo all'app: Regista › Impostazioni › Claude › Ricollega a questa app…, o scripts/install.sh --claude %s" ;;
+    fr.fix_repoint) echo "reconnecte-le à l'app : Regista › Réglages › Claude › Pointer vers cette app…, ou scripts/install.sh --claude %s" ;;
+    pt.fix_repoint) echo 'reconecte-o ao app: Regista › Ajustes › Claude › Reconectar a este app…, ou scripts/install.sh --claude %s' ;;
     en.fix_optin) echo 'opt-in, non-commercial licence: scripts/install.sh --only %s (shows the licence first), or Settings › Engines' ;;
     it.fix_optin) echo 'su richiesta, licenza non commerciale: scripts/install.sh --only %s (mostra prima la licenza), o Impostazioni › Motori' ;;
     fr.fix_optin) echo 'sur demande, licence non commerciale : scripts/install.sh --only %s (affiche la licence avant), ou Réglages › Moteurs' ;;

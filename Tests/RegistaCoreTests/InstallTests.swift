@@ -258,6 +258,23 @@ private func messageKeys() throws -> [String: Set<String>] {
     }
 }
 
+/// #26: the doctor's repoint hint names the app's own button, exactly as each language's table spells it (and the path
+/// to it: Settings › Claude), so the two cannot drift again.
+@Test func theRepointHintQuotesTheAppsButton() throws {
+    func value(_ key: String, _ lang: String) throws -> String {
+        let table = try String(contentsOf: repo.appendingPathComponent("Resources/Localization/\(lang).lproj/Localizable.strings"), encoding: .utf8)
+        let prefix = "\"\(key)\" = \""
+        let line = try #require(table.split(separator: "\n").first { $0.hasPrefix(prefix) }, "\(lang): no \(key)")
+        return String(line.dropFirst(prefix.count).dropLast(2))   // the value, without its closing quote and semicolon
+    }
+    for lang in ["it", "en", "fr", "pt"] {
+        let path = "Regista › \(try value("Impostazioni", lang)) › Claude › \(try value("Ricollega a questa app…", lang))"
+        let r = try Subprocess.run(URL(fileURLWithPath: "/bin/bash"), ["-c", ". \"$0/scripts/lib.sh\"; t fix_repoint desktop", repo.path],
+                                   environment: ["REGISTA_LANG": lang])
+        #expect(r.stdoutText.contains(path), "\(lang): \(r.stdoutText) does not quote \(path)")
+    }
+}
+
 // MARK: the opt-in install
 
 @Test func theNonCommercialAlignerShowsItsLicenceWhenInstalled() throws {

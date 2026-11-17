@@ -303,8 +303,8 @@
 "Apre Impostazioni di Sistema › Privacy e sicurezza › Registrazione schermo e audio di sistema" = "Ouvre Réglages Système › Confidentialité et sécurité › Enregistrement de l'écran et de l'audio système";
 "Apre Impostazioni di Sistema › Privacy e sicurezza, dove si consente Regista" = "Ouvre Réglages Système › Confidentialité et sécurité, où l'on autorise Regista";
 "Apri altro…" = "Ouvrir un autre…";
-"Apri Claude Code nella cartella di Regista: si collega da solo a questa finestra." = "Ouvrez Claude Code dans le dossier de Regista : il se connecte tout seul à cette fenêtre.";
-"Apri Claude Code nella cartella di Regista: si collega da solo a questa finestra. Qui vedrai, in parole semplici, ogni passo che fa." = "Ouvrez Claude Code dans le dossier de Regista : il se connecte tout seul à cette fenêtre. Chaque étape qu'il effectue s'affichera ici, en termes simples.";
+"Collega Claude Desktop o Claude Code in Impostazioni › Claude. Lo stato diventa «collegato» alla prima richiesta di Claude." = "Connectez Claude Desktop ou Claude Code dans Réglages › Claude. L'état passe à « connecté » à la première demande de Claude.";
+"Collega Claude Desktop o Claude Code in Impostazioni › Claude. Lo stato diventa «collegato» alla prima richiesta di Claude. Qui vedrai, in parole semplici, ogni passo che fa." = "Connectez Claude Desktop ou Claude Code dans Réglages › Claude. L'état passe à « connecté » à la première demande de Claude. Chaque étape qu'il effectue s'affichera ici, en termes simples.";
 "Apri il passo Copione" = "Ouvrir l'étape Script";
 "Apri il progetto" = "Ouvrir le projet";
 "Apri Impostazioni" = "Ouvrir Réglages";

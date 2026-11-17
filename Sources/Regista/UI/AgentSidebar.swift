@@ -71,7 +71,7 @@ struct ActivityLog: View {
             if items.isEmpty {
                 EmptyHint(symbol: "sparkles", text: store.agentConnected
                           ? loc("Collegato. I passi di Claude compaiono qui mentre li fa.")
-                          : loc("Apri Claude Code nella cartella di Regista: si collega da solo a questa finestra."))
+                          : loc("Collega Claude Desktop o Claude Code in Impostazioni › Claude. Lo stato diventa «collegato» alla prima richiesta di Claude."))
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {

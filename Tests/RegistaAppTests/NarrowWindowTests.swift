@@ -283,6 +283,26 @@ extension MouseSuites {
         }
     }
 
+    /// #26: with no agent connected and nothing in the log, the Claude tab says how to connect (both clients, Impostazioni ›
+    /// Claude, connected at Claude's first request); its text lies whole inside the right panel at the minimum window size.
+    @Test(arguments: languages)
+    func theNotConnectedTextFitsTheRightPanel(_ language: String) async throws {
+        let app = try await AppRig(project: nil)
+        defer { app.close() }
+        app.hostEditor(Navigation(activity: .media, rightTab: .claude), size: RigWindowSize.minimum.size, language: language)
+        await app.settle()
+        #expect(!app.store.agentConnected && app.store.activity.isEmpty, "\(language): the tab is not in its not-connected state")
+        let key = "Collega Claude Desktop o Claude Code in Impostazioni › Claude. Lo stato diventa «collegato» alla prima richiesta di Claude. Qui vedrai, in parole semplici, ogni passo che fa."
+        let right = RenderParts.right(RigWindowSize.minimum.size)
+        let text = try #require(app.rig.elements().first { $0.role == "AXStaticText" && $0.name == word(key, language) },
+                                "\(language): no not-connected text in the Claude tab")
+        #expect(text.visible && inside(text.frame, right.insetBy(dx: Ed.Space.l - 1, dy: 0)),
+                "\(language): the text at \(text.frame) does not lie inside the right panel \(right)")
+        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+            try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("claude-not-connected-\(language).png"))
+        }
+    }
+
     /// #41: at the default and the minimum size, on every tab (the Ispettore with a clip too), the right panel's tab bar is
     /// at its top, under the title row, nothing of the panel is above it, and each tab answers.
     @Test(arguments: [RigWindowSize.standard, .minimum], languages)

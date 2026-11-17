@@ -673,7 +673,7 @@ struct ClaudePanel: View {
                 Image(systemName: "sparkles").font(Ed.icon(Ed.TypeSize.heading, .light)).foregroundStyle(Ed.text3)
                     .frame(width: 52, height: 52).background(Circle().fill(Ed.control))
                 Text(verbatim: loc("Claude non collegato")).font(Ed.ui(Ed.TypeSize.control, .semibold)).foregroundStyle(Ed.text)
-                Text(verbatim: loc("Apri Claude Code nella cartella di Regista: si collega da solo a questa finestra. Qui vedrai, in parole semplici, ogni passo che fa."))
+                Text(verbatim: loc("Collega Claude Desktop o Claude Code in Impostazioni › Claude. Lo stato diventa «collegato» alla prima richiesta di Claude. Qui vedrai, in parole semplici, ogni passo che fa."))
                     .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: 240)
             }
