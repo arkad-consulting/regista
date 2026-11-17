@@ -50,6 +50,13 @@ public struct Project: Codable, Hashable, Sendable {
         tracks.filter { $0.kind == .video || $0.kind == .overlay }.flatMap(\.clips).map(\.end).max() ?? .zero
     }
 
+    /// A generated (cloned) voice clip on a track that is not muted: the video must say so where it is published (EU AI Act
+    /// art. 50). export.render returns `aiDisclosure` then; the Export panel shows the note (#25).
+    public var hasAudibleGeneratedVoice: Bool {
+        let voices = Set(assets.filter { $0.generated?.kind == .voice }.map(\.id))
+        return tracks.contains { !$0.muted && $0.clips.contains { voices.contains($0.assetID) } }
+    }
+
     mutating func makeID(_ prefix: String) -> String {
         let n = (idCounters[prefix] ?? 0) + 1
         idCounters[prefix] = n

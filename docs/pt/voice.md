@@ -114,8 +114,10 @@ Cada idioma tem a sua lista.
 - Para apagar tudo: **Ajustes › Perfil e voz**, **Apagar meu perfil e minha voz…**. Gravações, clipes e modelos vão
   para o Lixo.
 - Uma voz gerada é um conteúdo feito com inteligência artificial. Quando publicar um vídeo com a sua voz clonada, diga
-  isso na descrição do post (por exemplo, "voz gerada por IA"). O painel **Voz** lembra você embaixo do texto; quando
-  quem exporta é o Claude, ele avisa na resposta. A tela **Exportar** ainda não repete esse aviso.
+  isso na descrição do post (por exemplo, "voz gerada por IA"). O painel **Voz** lembra você embaixo do texto. Quando
+  uma voz gerada se ouve na linha do tempo, a tela **Exportar** mostra, junto com as verificações, a linha
+  **Voz gerada por IA** com a frase para colar e o botão **Copiar**; depois da exportação, a mesma nota fica em
+  **Última exportação**. Quando quem exporta é o Claude, ele avisa na resposta.
 
 Se algo não funcionar, veja [Solução de problemas](troubleshooting.md). O resto do app está no
 [Guia do Regista](user-guide.md).

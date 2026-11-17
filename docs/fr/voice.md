@@ -124,8 +124,9 @@ Chaque langue a sa propre liste.
   modèles partent à la corbeille.
 - Une voix générée est un contenu créé par intelligence artificielle. Quand vous publiez une vidéo avec votre voix
   clonée, indiquez-le dans la description du post (par exemple « voix générée par IA »). Le panneau **Voix** vous le
-  rappelle sous le texte ; quand c'est Claude qui exporte, il vous le dit dans sa réponse. L'écran **Exporter** ne le
-  répète pas pour l'instant.
+  rappelle sous le texte. Quand une voix générée s'entend dans la timeline, l'écran **Exporter** affiche, avec les
+  contrôles, la ligne **Voix générée par IA** avec la phrase à reprendre et le bouton **Copier** ; après l'export, la même
+  mention reste sous **Dernier export**. Quand c'est Claude qui exporte, il vous le dit dans sa réponse.
 
 Si quelque chose ne fonctionne pas, voir [Résolution des problèmes](troubleshooting.md). Le reste de l'app est dans le
 [Guide de Regista](user-guide.md).

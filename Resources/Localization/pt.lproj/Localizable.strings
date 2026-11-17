@@ -1807,7 +1807,6 @@
 "Voce fuori campo" = "Narração";
 "voce pulita" = "voz limpa";
 "Voce pulita, a −15 LUFS." = "Voz limpa, a −15 LUFS.";
-"Voce sintetica, generata con l'IA a partire dalla tua. L'export aggiunge la nota «voce generata con IA» da riportare nella descrizione del post." = "Voz sintética, gerada por IA a partir da sua. A exportação adiciona a nota “voz gerada por IA” para colocar na descrição do post.";
 "Voce: %d paragrafi" = "Voz: %d parágrafos";
 "Voce: 1 paragrafo" = "Voz: 1 parágrafo";
 "Voce: 2 paragrafi" = "Voz: 2 parágrafos";
@@ -2184,3 +2183,7 @@
 "Solo per camera e voce" = "Só para câmera e voz";
 "Il monitor Sorgente: il file scelto in Media" = "O monitor Origem: o arquivo escolhido em Mídia";
 "Il monitor Programma: il montaggio" = "O monitor Programa: a edição";
+"Voce sintetica, generata con l'IA a partire dalla tua. In Esporta trovi la nota «voce generata con IA» da riportare nella descrizione del post, con «Copia»." = "Voz sintética, gerada por IA a partir da sua. Exportar mostra a nota “voz gerada por IA” para colocar na descrição do post, com Copiar.";
+"Voce generata con IA" = "Voz gerada por IA";
+"Questo video contiene una voce generata con l'intelligenza artificiale." = "Este vídeo contém uma voz gerada por inteligência artificial.";
+"Da riportare nella descrizione del post." = "Para colocar na descrição do post.";

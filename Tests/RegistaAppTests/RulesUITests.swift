@@ -406,3 +406,89 @@ func ruleMessagesWriteNumbersInTheInterfaceLanguage(_ language: String, _ point:
     o.follow(tab: "t2", width: 1000, height: 700)
     #expect(o.preset == "16:9", "a format with no chip changed the choice")
 }
+
+/// The rich fixture with its take marked as a generated (cloned) voice: what voice.say leaves on the timeline.
+@MainActor private func projectWithGeneratedVoice() throws -> URL {
+    let folder = try RigProject.rich()
+    let file = folder.appendingPathComponent("project.json")
+    var json = try #require(try JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
+    var assets = try #require(json["assets"] as? [[String: Any]])
+    assets[0]["generated"] = ["provider": "voxcpm", "model": "voxcpm2", "kind": "voice", "prompt": "Oggi Regista monta il reel.", "cost": 0,
+                              "unit": "credits", "created": "2026-11-16T10:00:00Z", "jobID": "job-1", "requestHash": "rig"]
+    json["assets"] = assets
+    try JSONSerialization.data(withJSONObject: json).write(to: file)
+    return folder
+}
+
+// #25: the AI-voice note where a person exports. With an audible generated voice clip the Export panel shows, with the
+// checks, «Voce generata con IA», its sentence and «Copia» (once on the rig's pasteboard); without one, no such row. After an
+// export whose result carries aiDisclosure, «Ultimo export» carries the same note.
+extension MouseSuites {
+@Suite(.serialized) @MainActor struct AIVoiceNoteMouseTests {
+    @Test func theExportPanelShowsTheAIVoiceNote() async throws {
+        let sentence = AIVoiceNote.sentence
+        // Without a generated voice: no row.
+        do {
+            let app = try await AppRig()
+            defer { app.close() }
+            app.hostEditor(Navigation(activity: .export, rightTab: .inspector))
+            await app.settle()
+            #expect(app.store.project?.hasAudibleGeneratedVoice == false)
+            #expect(app.rig.elements(containing: "Voce generata con IA").isEmpty, "the note shows without a generated voice")
+        }
+        let app = try await AppRig(project: nil)
+        defer { app.close() }
+        try await app.store.perform("project.open", ["path": .string(try projectWithGeneratedVoice().path)])
+        _ = await until(app, 10) { app.store.project?.hasAudibleGeneratedVoice == true }
+        #expect(app.store.project?.hasAudibleGeneratedVoice == true)
+        app.hostEditor(Navigation(activity: .export, rightTab: .inspector))
+        await app.settle()
+        func row() -> RigElement? { app.rig.elements(containing: "Voce generata con IA").first }
+        func copy() -> RigElement? {
+            guard let r = row() else { return nil }
+            return app.rig.elements().filter { $0.isControl && $0.name == "Copia" && $0.visible && abs($0.centre.y - r.centre.y) < 14 }.first
+        }
+        #expect(await until(app, 4) { row() != nil }, "no «Voce generata con IA» row with a generated voice on the timeline")
+        #expect(!app.rig.elements(containing: sentence).isEmpty, "the row has no sentence under it")
+        // In view (the panel scrolls), then «Copia», once.
+        let start = try #require(row()).centre
+        for _ in 0..<20 where copy().map({ !$0.clip.contains($0.frame) }) ?? true {
+            app.rig.scrollContent(at: CGPoint(x: start.x, y: 300), by: 60)
+            await app.settle()
+        }
+        let button = try #require(copy(), "the row has no «Copia» in view")
+        let n = app.store.activity.count, changes = rigPasteboard.changeCount
+        app.rig.click(button.centre)
+        await app.settle()
+        #expect(rigPasteboard.string(forType: .string) == sentence, "«Copia» put \(rigPasteboard.string(forType: .string) ?? "nothing") on the pasteboard")
+        #expect(rigPasteboard.changeCount == changes + 1, "«Copia» wrote \(rigPasteboard.changeCount - changes) times")
+        #expect(app.commands(since: n).isEmpty, "«Copia» ran \(app.commands(since: n))")
+        #expect(copy() != nil, "«Copia» is gone after the click")
+        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+            try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("export-ai-voice-note.png"))
+        }
+
+        // An export with that voice: «Ultimo export» carries the note too.
+        let out = rigTempDir("ai-voice-export").appendingPathComponent("reel.mp4")
+        try await app.store.perform("export.render", ["path": .string(out.path), "preset": "9:16", "exportAnyway": true])
+        let last = try #require(app.store.activity.last { $0.command == "export.render" })
+        #expect(last.status == .ok && last.aiDisclosure, "the export's activity does not carry aiDisclosure (\(last.status), \(last.result))")
+        await app.settle()
+        // (Counted in the whole panel, the part below the fold included.)
+        func notes() -> Int { app.rig.elements().filter { $0.role == "AXStaticText" && $0.name == "Voce generata con IA" }.count }
+        #expect(await until(app, 4) { notes() == 2 }, "«Ultimo export» does not carry the note: \(notes()) rows")
+        // With REGISTA_UI_SNAPSHOTS: the panel in French too, scrolled to «Ultimo export».
+        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+            app.rig.scrollContent(at: CGPoint(x: start.x, y: 300), by: 2000)
+            await app.settle()
+            try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("export-ai-voice-last-it.png"))
+            app.hostEditor(Navigation(activity: .export, rightTab: .inspector), language: "fr")
+            await app.settle()
+            try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("export-ai-voice-note-fr.png"))
+            app.rig.scrollContent(at: CGPoint(x: start.x, y: 300), by: 2000)
+            await app.settle()
+            try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("export-ai-voice-last-fr.png"))
+        }
+    }
+}
+}

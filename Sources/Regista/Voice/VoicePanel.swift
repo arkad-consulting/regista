@@ -209,7 +209,7 @@ struct VoicePanel: View {
     private var honesty: some View {
         HStack(alignment: .top, spacing: Ed.Space.s) {
             Image(systemName: "info.circle").font(Ed.icon(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
-            Text(verbatim: loc("Voce sintetica, generata con l'IA a partire dalla tua. L'export aggiunge la nota «voce generata con IA» da riportare nella descrizione del post."))
+            Text(verbatim: loc("Voce sintetica, generata con l'IA a partire dalla tua. In Esporta trovi la nota «voce generata con IA» da riportare nella descrizione del post, con «Copia»."))
                 .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
         }
     }

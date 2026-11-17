@@ -93,6 +93,8 @@ struct ExportSettingsPanel: View {
                     check("Picco reale", meter.curve.truePeak.isFinite ? String(format: "%.1f dBTP", meter.curve.truePeak) : "–",
                           ok: meter.curve.truePeak.isFinite && !LoudnessTarget.peakOver(meter.curve.truePeak))
                     check("Sottotitoli", staleCaptions ? "da rigenerare" : (hasCaptions ? "aggiornati" : "nessuno"), ok: !staleCaptions)
+                    // A generated voice that is heard: the note to put in the post description (#25).
+                    if store.project?.hasAudibleGeneratedVoice == true { AIVoiceNote() }
                 }
                 section("File") {
                     // Standard Save As: a proposed name, the user picks the name and the folder.
@@ -121,6 +123,7 @@ struct ExportSettingsPanel: View {
                 if let last = store.activity.last(where: { $0.command.hasPrefix("export.") }) {
                     section("Ultimo export") {
                         ActivityRow(a: last, compact: false)
+                        if last.aiDisclosure { AIVoiceNote() }
                     }
                 }
             }
@@ -214,6 +217,31 @@ struct ExportSettingsPanel: View {
             Text(verbatim: loc(label)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2)
             Spacer()
             Text(verbatim: loc(value)).font(Ed.mono(Ed.TypeSize.small)).foregroundStyle(Ed.text)
+        }
+    }
+}
+
+/// The AI-voice note (#25): the video has a generated voice, so its post must say so (EU AI Act art. 50). The sentence to
+/// paste into the post description, and «Copia», which puts it on the pasteboard the environment gives (a test's own).
+struct AIVoiceNote: View {
+    @Environment(\.pasteboard) private var pasteboard
+    static let sentence = "Questo video contiene una voce generata con l'intelligenza artificiale."
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Ed.Space.xs) {
+            HStack(spacing: Ed.Space.s) {
+                Image(systemName: "waveform.badge.exclamationmark").font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(Ed.gold)
+                Text(verbatim: loc("Voce generata con IA")).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2)
+                Spacer(minLength: Ed.Space.s)
+                EdButton(title: "Copia", symbol: "doc.on.doc") {
+                    pasteboard.clearContents()
+                    pasteboard.setString(loc(Self.sentence), forType: .string)
+                }
+            }
+            Text(verbatim: loc(Self.sentence)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text).textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(verbatim: loc("Da riportare nella descrizione del post.")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

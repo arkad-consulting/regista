@@ -37,6 +37,8 @@ final class EditorStore: ObservableObject {
         var project: String?
         /// A line that is not a command (a tab opened by the agent, projects not found at launch).
         var note: String?
+        /// An export whose result carries `aiDisclosure` (a generated voice in the video): «Ultimo export» shows the note (#25).
+        var aiDisclosure = false
     }
 
     /// The workbench this tab belongs to, and the tab's id ("tab-1"…, project.list's id).
@@ -317,7 +319,10 @@ final class EditorStore: ObservableObject {
             if let i = activity.lastIndex(where: { $0.id == entry.id }) {
                 activity[i].seconds = seconds
                 switch result {
-                case .success(let r): activity[i].status = .ok; activity[i].result = Summary.result(id, r)
+                case .success(let r):
+                    activity[i].status = .ok
+                    activity[i].result = Summary.result(id, r)
+                    activity[i].aiDisclosure = r["aiDisclosure"] != nil
                 case .failure(let e): activity[i].status = .failed; activity[i].result = StepError.readable(e, fallback: "Il motore ha risposto: %@")
                 }
             }

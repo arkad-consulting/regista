@@ -1807,7 +1807,6 @@
 "Voce fuori campo" = "Voce fuori campo";
 "voce pulita" = "voce pulita";
 "Voce pulita, a −15 LUFS." = "Voce pulita, a −15 LUFS.";
-"Voce sintetica, generata con l'IA a partire dalla tua. L'export aggiunge la nota «voce generata con IA» da riportare nella descrizione del post." = "Voce sintetica, generata con l'IA a partire dalla tua. L'export aggiunge la nota «voce generata con IA» da riportare nella descrizione del post.";
 "Voce: %d paragrafi" = "Voce: %d paragrafi";
 "Voce: 1 paragrafo" = "Voce: 1 paragrafo";
 "Voce: 2 paragrafi" = "Voce: 2 paragrafi";
@@ -2184,3 +2183,7 @@
 "Solo per camera e voce" = "Solo per camera e voce";
 "Il monitor Sorgente: il file scelto in Media" = "Il monitor Sorgente: il file scelto in Media";
 "Il monitor Programma: il montaggio" = "Il monitor Programma: il montaggio";
+"Voce sintetica, generata con l'IA a partire dalla tua. In Esporta trovi la nota «voce generata con IA» da riportare nella descrizione del post, con «Copia»." = "Voce sintetica, generata con l'IA a partire dalla tua. In Esporta trovi la nota «voce generata con IA» da riportare nella descrizione del post, con «Copia».";
+"Voce generata con IA" = "Voce generata con IA";
+"Questo video contiene una voce generata con l'intelligenza artificiale." = "Questo video contiene una voce generata con l'intelligenza artificiale.";
+"Da riportare nella descrizione del post." = "Da riportare nella descrizione del post.";

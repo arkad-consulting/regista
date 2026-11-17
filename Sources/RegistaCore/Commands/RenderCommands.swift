@@ -101,8 +101,7 @@ enum ExportRender: Command {
                       "violations": .array(rules.violations.map(\.json))],
         ]
         // EU AI Act art. 50: a cloned voice in the video must be disclosed where it is published.
-        let voiceAssets = Set(project.assets.filter { $0.generated?.kind == .voice }.map(\.id))
-        if project.tracks.contains(where: { !$0.muted && $0.clips.contains { voiceAssets.contains($0.assetID) } }) {
+        if project.hasAudibleGeneratedVoice {
             result["aiDisclosure"] = "This video has an AI-generated voice (cloned, VoxCPM2): say so in the post description (e.g. «voix générée par IA» / «voce generata con IA»)."
         }
         if masterGain != 0 { result["masterGain"] = .number((masterGain * 100).rounded() / 100) }

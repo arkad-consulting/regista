@@ -115,8 +115,10 @@ Each language has its own list.
 - To delete everything: **Settings › Profile and voice**, **Delete my profile and my voice…**. Recordings, clips and
   models go to the Trash.
 - A generated voice is content made with artificial intelligence. When you publish a video with your cloned voice, say
-  so in the post description (for example "AI-generated voice"). The **Voice** panel reminds you under the text; when
-  Claude does the export, it tells you in its answer. The **Export** screen does not repeat it for now.
+  so in the post description (for example "AI-generated voice"). The **Voice** panel reminds you under the text. When a
+  generated voice is heard on the timeline, the **Export** screen shows, with the checks, the row **AI-generated voice**
+  with the sentence to paste and a **Copy** button; after the export the same note stays under **Last export**. When
+  Claude does the export, it tells you in its answer.
 
 If something does not work, see [Troubleshooting](troubleshooting.md). The rest of the app is in the
 [Regista guide](user-guide.md).
