@@ -915,7 +915,9 @@ struct ContinuesCue: ViewModifier {
                     LinearGradient(colors: [color.opacity(0), color], startPoint: .top, endPoint: .bottom)
                         .frame(height: Self.height)
                         .allowsHitTesting(false)
+                        // Text to accessibility, never a control: the click audit leaves it alone, VoiceOver reads it.
                         .accessibilityElement()
+                        .accessibilityAddTraits(.isStaticText)
                         .accessibilityLabel(loc("Altro sotto"))
                 }
             }
