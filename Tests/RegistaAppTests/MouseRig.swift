@@ -255,24 +255,44 @@ final class MouseRig {
         click(p, clicks: 2)
     }
 
-    /// A right click as AppKit delivers it: through the event queue, so the views that read `NSApp.currentEvent` see it
-    /// (a context menu area does); the menu that opens is recorded by RigGuard instead of tracked.
+    /// A right click, each event given to the window as the application's current event (`deliver`), so the views that
+    /// read `NSApp.currentEvent` see it (a context menu area does); the menu that opens is recorded by RigGuard instead
+    /// of tracked. Never through the event queue: with the screen locked the queue gives back no posted mouse event,
+    /// and no menu opened in the rig for as long as the lock lasted (#57).
+    ///
+    /// One more thing happens only while the screen is locked: over some SwiftUI content (a project tab's name) the
+    /// hosting view keeps a right press that came through the window and opens nothing, while the same press given to
+    /// the view under the point opens the menu, as the window's does with the screen unlocked. So with the screen
+    /// locked, and only then, a press that opened no menu is given once to the view under the point; each one is
+    /// counted and said on stderr (`lockedRightClicks`). With the screen unlocked a missing menu stays missing.
     func rightClick(_ p: CGPoint, modifiers: NSEvent.ModifierFlags = []) {
         RigTrace.note("MouseRig.rightClick at \(Int(p.x)),\(Int(p.y))")
         guard let down = event(.rightMouseDown, p, modifiers: modifiers), let up = event(.rightMouseUp, p, modifiers: modifiers) else { return }
         takeKey()
-        // Posting stops the running run loop: a nested one of ours (see `click`).
-        CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue) {
-            NSApp.postEvent(down, atStart: false)
-            NSApp.postEvent(up, atStart: false)
+        let events = RigGuard.events.count
+        deliver(down, to: window)
+        pump()
+        if !RigGuard.events.dropFirst(events).contains(where: { $0.kind == .menu }), Self.screenLocked, let hit = viewAt(p) {
+            Self.lockedRightClicks += 1
+            FileHandle.standardError.write(Data("MouseRig: the screen is locked and a right press through the window opened no menu at \(Int(p.x)),\(Int(p.y)); given to \(Swift.type(of: hit)) (#57)\n".utf8))
+            // A press of its own: the hosting view does not answer twice for the one the window already gave it.
+            if let again = event(.rightMouseDown, p, modifiers: modifiers) {
+                let previous = NSApp.currentEvent
+                NSApp.setValue(again, forKey: "currentEvent")
+                hit.rightMouseDown(with: again)
+                NSApp.setValue(previous, forKey: "currentEvent")
+            }
         }
-        CFRunLoopRunInMode(.defaultMode, 0.3, false)
-        // Taken from the queue (it becomes NSApp.currentEvent), then given to the window.
-        while let e = NSApp.nextEvent(matching: [.rightMouseDown, .rightMouseUp], until: .distantPast, inMode: .default, dequeue: true) {
-            window.sendEvent(e)
-        }
+        deliver(up, to: window)
         drain()
         pump()
+    }
+
+    /// Right presses given to the view under the point because the screen was locked (see `rightClick`).
+    static var lockedRightClicks = 0
+    /// Whether the session's screen is locked (a Mac left alone while the tests run).
+    static var screenLocked: Bool {
+        ((CGSessionCopyCurrentDictionary() as? [String: Any])?["CGSSessionScreenIsLocked"] as? NSNumber)?.boolValue ?? false
     }
 
     /// Press at `from`, move by `delta` in ten steps, release.

@@ -499,6 +499,7 @@ extension MouseSuites.ClickAudits {
         // Save: the tab's menu (a native menu: its item is run as the menu would).
         let timeline = j.store.project?.tracks.map { $0.clips.map { [$0.id, "\($0.start.seconds)", "\($0.end.seconds)"] } }
         let tab = try #require(j.rig.elements().first { $0.role == "AXStaticText" && $0.name == "Montaggio" && $0.frame.minY < 90 }, "no tab: \(j.screen())")
+        RigGuard.lastMenu = nil
         j.rig.rightClick(tab.centre)
         let menu = try #require(RigGuard.lastMenu, "the tab has no menu")
         let save = try #require(menu.items.firstIndex { $0.title == "Salva" }, "no Salva in \(menu.items.map(\.title))")
@@ -521,6 +522,7 @@ extension MouseSuites.ClickAudits {
 
         // Close the tab (its menu's Chiudi, as its ×), then reopen the project from Inizio's recent projects.
         let tab2 = try #require(j.rig.elements().first { $0.role == "AXStaticText" && $0.name == "Montaggio" && $0.frame.minY < 90 }, "no tab: \(j.screen())")
+        RigGuard.lastMenu = nil
         j.rig.rightClick(tab2.centre)
         let menu2 = try #require(RigGuard.lastMenu, "the tab has no menu")
         let close = try #require(menu2.items.firstIndex { $0.title == "Chiudi" }, "no Chiudi in \(menu2.items.map(\.title))")

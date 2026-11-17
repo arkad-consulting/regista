@@ -111,12 +111,7 @@ extension MouseSuites {
         defer { t.close() }
         RigGuard.lastMenu = nil
         t.rig.rightClick(CGPoint(x: t.x(2), y: t.laneY("V1")))
-        // A synthetic right click reaches the views on some runs only (it passed in the run of d7e5283, it fails on
-        // others with the same code): what decides it is outside the test. Intermittent until the rig drives it reliably.
-        guard let menu = RigGuard.lastMenu else {
-            withKnownIssue("a synthetic right click did not reach the timeline on this run", isIntermittent: true) { Issue.record("no menu") }
-            return
-        }
+        let menu = try #require(RigGuard.lastMenu, "the clip has no menu")
         #expect(t.store.selection == [t.footage.id], "the right click did not select the clip")
         let i = try #require(menu.items.firstIndex { $0.title == "Duplica" })
         let n = t.store.activity.count

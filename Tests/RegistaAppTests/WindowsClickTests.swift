@@ -198,12 +198,7 @@ extension MouseSuites.ClickAudits {
         RigGuard.lastMenu = nil
         let events = RigGuard.events.count
         app.rig.rightClick(CGPoint(x: v1.frame.maxX + 40, y: v1.centre.y))
-        guard let menu = RigGuard.lastMenu else {
-            withKnownIssue("a synthetic right click did not reach the track header on this run (see the timeline's)", isIntermittent: true) {
-                Issue.record("no menu: \(RigGuard.events.dropFirst(events))")
-            }
-            return
-        }
+        let menu = try #require(RigGuard.lastMenu, "the track header has no menu: \(RigGuard.events.dropFirst(events))")
         let i = try #require(menu.items.firstIndex { $0.title == "Blocca la pista" }, "items: \(menu.items.map(\.title))")
         let n = app.store.activity.count
         menu.performActionForItem(at: i)
