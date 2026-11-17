@@ -225,7 +225,9 @@ private struct SimpleStepRow: View {
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }
+        // Selected only while open: an added trait alone stayed on a step that was done and left (#69).
         .accessibilityAddTraits(open ? .isSelected : [])
+        .accessibilityRemoveTraits(open ? [] : .isSelected)
     }
 
     private var label: some View {
