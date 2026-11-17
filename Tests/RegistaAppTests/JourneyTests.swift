@@ -5,7 +5,7 @@ import SwiftUI
 import Testing
 @testable import Regista
 
-// Three whole journeys driven by clicks, from an empty app to an exported file, the way a person does the work: the
+// Four whole journeys driven by clicks, from an empty app to an exported file, the way a person does the work: the
 // whole window on the rig's services (AppRig), at the default window size, in Italian, with real mouse and keyboard
 // events. Every control and every screen is clicked on its own by the click audits; the defects a person keeps meeting
 // sit in the passages between screens (a recording that went nowhere visible, a result that is not shown, a default
@@ -621,6 +621,176 @@ extension MouseSuites.ClickAudits {
         let ratio: Double = Double(movie.width) / Double(movie.height)
         #expect(abs(ratio - 16.0 / 9) < 0.01, "exported \(movie.width)×\(movie.height), not 16:9")
         j.step("Esporta › Esporta video…, Salva", sees: "the file \(movie.width)×\(movie.height), \(String(format: "%.1f", movie.seconds)) s")
+    }
+
+    /// 4. A camera-only take with pauses, to the exported file — what a person does first: an empty app → Registra ›
+    /// «Solo volto» → the teleprompter on, a short script typed in Gobbo, scrolling at its own speed → Record, Pausa,
+    /// Riprendi, Pausa, Riprendi, Ferma (the clock stands still while paused) → the take becomes a new project in this tab,
+    /// the notice says where it went → the automatic edit runs → Testi e sottotitoli › Trascrizione shows the words →
+    /// another caption style → Esporta writes a file as long as the edit.
+    @Test func aCameraTakeWithPausesToTheExportedFile() async throws {
+        let j = try await Journey("4-camera-pauses", project: nil)
+        let prompter = TeleprompterController.shared
+        // The teleprompter is the app's one (its text and mode are saved in the test process's defaults): put back after.
+        let d = UserDefaults.standard
+        let saved = (text: prompter.text, mode: prompter.mode, autoEdit: d.object(forKey: Prefs.autoEditKey),
+                     storedText: d.object(forKey: "prompterText"), storedMode: d.object(forKey: "prompterMode"))
+        defer {
+            prompter.text = saved.text
+            prompter.mode = saved.mode
+            d.set(saved.storedText, forKey: "prompterText")
+            d.set(saved.storedMode, forKey: "prompterMode")
+            d.set(saved.autoEdit, forKey: Prefs.autoEditKey)
+            j.close()
+        }
+        UserDefaults.standard.set(true, forKey: Prefs.autoEditKey)
+        j.app.capture.take = try j.take()
+        j.app.followRecorder()
+        let bench = j.app.store.bench
+        await j.open(Navigation(activity: .home, rightTab: .inspector))
+        #expect(j.shows("Cosa vuoi fare?") && j.store.project == nil)
+        j.step("Opens the app", sees: "Inizio, an empty tab")
+
+        // Registra › «Solo volto».
+        try await j.tap("Registra")
+        #expect(j.store.nav.activity == .record, "Registra did not open")
+        try await j.tap("Solo volto")
+        #expect(j.control("Solo volto")?.selected == true && !j.app.recorder.sources.screen && j.app.recorder.sources.camera)
+        #expect(j.shows("Diventa un nuovo progetto in questa scheda"), "the line does not say where the take goes")
+        #expect(j.control("Montaggio automatico a fine registrazione")?.value == "1", "the automatic edit is not on")
+        j.step("Registra › Solo volto", sees: "camera and microphone on, «Diventa un nuovo progetto in questa scheda», the automatic edit on")
+
+        // The teleprompter: the script typed in the right panel's Gobbo, its own speed, then its switch on Registra.
+        let width = Double(j.rig.size.width)
+        let gobboTab = try #require(j.rig.elements().first { $0.isControl && $0.visible && $0.name == "Gobbo" && $0.frame.minX > width - 340 },
+                                    "no Gobbo tab in the right panel: \(j.screen())")
+        j.rig.click(gobboTab.centre)
+        await j.app.settle()
+        #expect(j.store.nav.rightTab == .prompter, "the Gobbo tab did not open")
+        let editor = try #require(j.rig.elements().first { $0.role == "AXTextArea" && $0.visible && $0.frame.minX > width - 340 },
+                                  "no script editor in Gobbo: \(j.screen())")
+        j.rig.click(editor.centre)
+        await j.app.settle()
+        // ⌘A is the Edit menu's Select All, and a hosted window has no menu bar: the action the menu item sends to the
+        // window's first responder (the script's text view the click focused).
+        let typing = try #require(j.rig.window.firstResponder as? NSTextView, "the click did not put the cursor in the script")
+        typing.selectAll(nil)
+        let script = "Oggi Regista monta il reel. Le pause spariscono da sole."
+        j.rig.type(script)
+        await j.app.settle()
+        #expect(prompter.text == script, "the script typed in Gobbo is «\(prompter.text)»")
+        // One line of ten words, counted in the singular where it is one (#63: it read «1 frasi»).
+        #expect(j.shows("1 frase · 10 parole"), "Gobbo does not count the script: \(j.screen())")
+        try await j.tap("Velocità")
+        #expect(prompter.mode == .speed, "Velocità is not the teleprompter's mode")
+        let gobboSwitch = { j.rig.elements().first { $0.isControl && $0.visible && $0.label == "Gobbo" && $0.frame.maxX < width - 340 && ["0", "1"].contains($0.value) } }
+        let toggle = try #require(gobboSwitch(), "no Gobbo switch on Registra: \(j.screen())")
+        if toggle.value == "0" {
+            j.rig.click(toggle.centre)
+            await j.app.settle()
+        }
+        #expect(j.app.recorder.sources.prompter && gobboSwitch()?.value == "1", "the teleprompter is not on for the take")
+        #expect(await j.until { j.app.recorder.isReady && j.control("Avvia / Ferma registrazione")?.enabled == true },
+                "the Record button is not ready: \(j.app.recorder.blockReason ?? "") — \(j.screen())")
+        j.step("Gobbo: types the script, Velocità; Registra: the Gobbo switch on", sees: "«1 frase · 10 parole · circa 1 min», the Gobbo row on, Record ready")
+
+        // Record.
+        /// The status bar's clock: «Registrazione 0:03».
+        func clock() -> String? { j.rig.elements(containing: "Registrazione 0:").first { $0.role == "AXStaticText" }?.name }
+        try await j.tap("Avvia / Ferma registrazione")
+        #expect(await j.until { j.app.recorder.isRecording }, "Record did not start: \(j.app.recorder.errorMessage ?? "")")
+        #expect(await j.until(2) { clock() != nil }, "the status bar does not show the take's clock: \(j.screen())")
+        #expect(await j.until(2) { prompter.isVisible && prompter.isPlaying }, "the teleprompter did not open and scroll with the take")
+        j.step("Clicks Registra (the red button)", sees: "«Ferma · 0:00», the clock in the status bar, the teleprompter scrolling")
+
+        // Pausa, Riprendi, twice: the clock stands still while paused and the preview says so.
+        for k in 1...2 {
+            await j.app.idle(1.1)
+            try await j.tap("Pausa / Riprendi")
+            #expect(await j.until { j.app.recorder.isPaused }, "pause \(k) did not pause")
+            #expect(await j.until(2) { j.shows("In pausa") }, "pause \(k): the window does not say the take is paused: \(j.screen())")
+            #expect(!prompter.isPlaying, "the teleprompter scrolls during pause \(k)")
+            // The tab says so too (#62: it read «sta registrando» beside a paused take).
+            let tabLine = { j.rig.elements().first { $0.role == "AXStaticText" && $0.frame.minY < 90 && ($0.name.hasPrefix("in pausa") || $0.name.hasPrefix("sta registrando")) }?.name ?? "" }
+            #expect(await j.until(2) { tabLine().hasPrefix("in pausa") }, "pause \(k): the tab reads «\(tabLine())»")
+            let still = clock()
+            await j.app.idle(1.2)
+            #expect(clock() == still && still != nil, "pause \(k): the clock moved while paused (\(still ?? "none") → \(clock() ?? "none"))")
+            j.step("Clicks Pausa (\(k))", sees: "«Riprendi», «In pausa · …», the tab «in pausa», the clock standing at \(still ?? "?")")
+            try await j.tap("Pausa / Riprendi")
+            #expect(await j.until { !j.app.recorder.isPaused }, "resume \(k) did not resume")
+            #expect(await j.until(2) { clock() != still }, "resume \(k): the clock does not run again (\(still ?? "none"))")
+            #expect(prompter.isPlaying, "the teleprompter did not go on after pause \(k)")
+            #expect(await j.until(2) { tabLine().hasPrefix("sta registrando") }, "resume \(k): the tab reads «\(tabLine())»")
+            j.step("Clicks Riprendi (\(k))", sees: "«Pausa» again, the clock running from \(still ?? "?")")
+        }
+        await j.app.idle(1.1)
+
+        // Ferma: the take becomes a new project in this tab, saved in the projects folder, the notice says where.
+        let tabID = j.store.tabID
+        try await j.tap("Avvia / Ferma registrazione")
+        #expect(await j.until(20) { bench.notice != nil && j.store.project?.tracks.flatMap(\.clips).count == 2 },
+                "the take went nowhere visible: notice \(String(describing: bench.notice)), \(j.screen())")
+        await j.app.settle()
+        #expect(!j.app.recorder.isRecording && j.app.capture.log.filter { $0 == "pauseMovie" }.count == 2, "\(j.app.capture.log)")
+        let project = try #require(j.store.project)
+        #expect(bench.active.tabID == tabID && bench.tabs.count == 1, "the take did not land in this tab")
+        #expect(j.rig.elements().contains { $0.role == "AXStaticText" && $0.name == project.name && $0.frame.minY < 90 },
+                "the tab is not named after the take's project «\(project.name)»: \(j.screen())")
+        #expect(j.shows("Registrazione salvata in «\(project.name)»"), "the notice does not say where the take went: \(j.screen())")
+        let take = try #require(project.assets.first?.path, "no take in Media")
+        #expect(take.hasPrefix(rigFolder.path) && FileManager.default.fileExists(atPath: take), "the take is not in the scratch recordings folder: \(take)")
+        #expect(j.store.projectURL.map { $0.path.hasPrefix(EditorStore.projectsFolder.path) && FileManager.default.fileExists(atPath: $0.path) } == true,
+                "the new project is not saved in the projects folder")
+        j.step("Clicks Ferma", sees: "the new project «\(project.name)» in this tab, the take on V1/A1, «Registrazione salvata in «\(project.name)»»")
+
+        // The automatic edit runs on its own (Fai tutto: transcript, script, takes, cut, voice, captions).
+        #expect(await j.until(5) { j.store.jobs.latest(TextStep.allJobKind) != nil }, "the automatic edit did not start: \(j.screen())")
+        #expect(await j.until(90) { j.store.jobs.latest(TextStep.allJobKind)?.isRunning == false }, "the automatic edit did not finish: \(j.screen())")
+        await j.app.settle()
+        let job = try #require(j.store.jobs.latest(TextStep.allJobKind))
+        #expect(job.state == .done, "the automatic edit ended \(job.state): \(job.detail)")
+        let edited = try #require(j.store.project)
+        #expect(edited.tracks.contains { $0.kind == .caption && $0.captions != nil }, "the automatic edit made no captions")
+        #expect(edited.script != nil, "the teleprompter's script did not become the project's script")
+        #expect(edited.tracks.first { $0.kind == .video }?.clips.isEmpty == false, "no clip on the timeline after the edit")
+        j.step("Waits for the automatic edit", sees: "the job done, the edit on the timeline with its captions (\(String(format: "%.1f", edited.duration.seconds)) s)")
+
+        // Testi e sottotitoli › Trascrizione: the words.
+        try await j.tap("Testi e sottotitoli")
+        #expect(j.store.nav.activity == .texts)
+        try await j.tap("Trascrizione")
+        #expect(j.store.nav.textsTab == .transcript)
+        #expect(await j.until { j.shows("Regista") && j.shows("pause") }, "the transcript panel shows no words: \(j.screen())")
+        j.step("Testi e sottotitoli › Trascrizione", sees: "the take's words, paragraph by paragraph")
+
+        // Another caption style (Testi e sottotitoli › Sottotitoli).
+        try await j.tap("Sottotitoli")
+        let before = try #require(edited.tracks.first { $0.captions != nil }?.captions?.style.id)
+        let other = try #require(CaptionStyle.all.first { !(before == $0.id || before.hasPrefix($0.id + "+")) })
+        let name = captionStyleName(other.id)
+        try await j.tap(name)
+        #expect(await j.until { j.store.project?.tracks.first { $0.captions != nil }?.captions?.style.id.hasPrefix(other.id) == true },
+                "the captions are not in «\(name)»: \(String(describing: j.store.project?.tracks.first { $0.captions != nil }?.captions?.style.id))")
+        #expect(j.control(name)?.selected == true, "«\(name)» is not shown as chosen")
+        j.step("Testi e sottotitoli › Sottotitoli, clicks «\(name)»", sees: "the captions in «\(name)» on the picture, the chip chosen")
+
+        // Esporta: the file, as long as the edit.
+        try await j.tap("Esporta")
+        #expect(j.store.nav.activity == .export)
+        let out = j.scratch.appendingPathComponent("prima-ripresa.mp4")
+        RigGuard.panelAnswer = [out]
+        #expect(await j.until(6) { j.control("Esporta video…") != nil }, "no Esporta video…: \(j.screen())")
+        j.step("Clicks Esporta", sees: "the export screen, the rules card")
+        try await j.tap("Esporta video…")
+        #expect(await j.until(90) { FileManager.default.fileExists(atPath: out.path) && j.store.jobs.latest("export")?.isRunning == false },
+                "no exported file: \(j.screen())")
+        await j.app.settle()
+        let p = try #require(j.store.project)
+        let movie = try await Journey.probe(out)
+        #expect(abs(movie.seconds - p.duration.seconds) < 0.1, "exported \(movie.seconds) s of a \(p.duration.seconds) s edit")
+        #expect(out.path.hasPrefix(j.scratch.path))
+        j.step("Esporta › Esporta video…, Salva", sees: "the file \(movie.width)×\(movie.height), \(String(format: "%.1f", movie.seconds)) s, in the scratch folder")
     }
 }
 }
