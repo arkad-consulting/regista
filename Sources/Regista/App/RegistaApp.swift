@@ -1,5 +1,6 @@
 import Combine
 import struct RegistaCore.BuildStamp
+import enum RegistaCore.EngineScripts
 import SwiftUI
 
 @main
@@ -223,6 +224,8 @@ final class AppState: ObservableObject {
         DebugSnapshots.startIfRequested()
         AutoSave.start(bench)
         bench.follow(recorder).store(in: &bag)
+        // An engines folder installed by an older app gets this app's helper scripts (#61), off the main thread.
+        Task.detached(priority: .utility) { EngineScripts.refresh() }
     }
 
     /// The loudness meter and the teleprompter follow the tab on screen.

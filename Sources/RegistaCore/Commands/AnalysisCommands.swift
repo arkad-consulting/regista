@@ -65,7 +65,7 @@ extension CommandContext {
 
 enum EnginesStatus: Command {
     static let id = "engines.status"
-    static let summary = "Check what this Mac can run before analysing: RAM tier (\(EngineManifest.shared.tiers.map { "\($0.id) \(Int($0.ramGB)) GB" }.joined(separator: " / "))+), each engine's path, availability and checksum (ffmpeg, whisper.cpp, WhisperX, DeepFilterNet, Vision, compositor, Blender, HyperFrames, SFX library, the generation providers ComfyUI / Higgsfield), and the default transcription engine, plus the build id (when served by the app through regista-mcp: appBuild, mcpBuild and buildWarning when they differ). Every entry also carries the engine manifest's facts (name, unlocks, minRamGB, diskGB, licence, install method, state installed / missing / notChecked / planned, tierReason when the tier is too low); `components` lists the rest of the manifest (models, aligners, build tools, voice training, ComfyUI models, planned engines). Returns that report."
+    static let summary = "Check what this Mac can run before analysing: RAM tier (\(EngineManifest.shared.tiers.map { "\($0.id) \(Int($0.ramGB)) GB" }.joined(separator: " / "))+), each engine's path, availability and checksum (ffmpeg, whisper.cpp, WhisperX, DeepFilterNet, Vision, compositor, Blender, HyperFrames, SFX library, the generation providers ComfyUI / Higgsfield), and the default transcription engine (an engine installed in the engines folder also says scriptsCurrent: false, with scriptsDiffer, when its helper scripts differ from the app's and could not be replaced), plus the build id (when served by the app through regista-mcp: appBuild, mcpBuild and buildWarning when they differ). Every entry also carries the engine manifest's facts (name, unlocks, minRamGB, diskGB, licence, install method, state installed / missing / notChecked / planned, tierReason when the tier is too low); `components` lists the rest of the manifest (models, aligners, build tools, voice training, ComfyUI models, planned engines). Returns that report."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [
         .optional("verify", .boolean, "Also hash the large model files (slow, ~2 s per GB). Binaries are always hashed."),
@@ -176,14 +176,26 @@ enum EnginesStatus: Command {
             if let reason { o["reason"] = .string(reason) }
             return .object(o)
         }
+        // An engine installed in the engines folder whose helper scripts are the app's own (#61): scriptsCurrent, and the
+        // ones that differ (replaced at launch and when the engine is used; still there means they could not be written).
+        func scripts(_ list: [JSONValue]) -> [JSONValue] {
+            list.map { v in
+                guard let folder = s.enginesFolder, case .object(var o) = v, let id = o["id"]?.stringValue,
+                      let m = manifest.entry(id), EngineScripts.installed(m, in: folder) else { return v }
+                let differ = EngineScripts.differing(m, in: folder)
+                o["scriptsCurrent"] = .bool(differ.isEmpty)
+                if !differ.isEmpty { o["scriptsDiffer"] = .array(differ.map { .string($0) }) }
+                return .object(o)
+            }
+        }
         var result: [String: JSONValue] = [
             "tier": .string(s.tier.rawValue),
             "memoryGB": .number((Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824).rounded()),
             "configFile": .string(EngineConfig.defaultFile.path),
             "configLoaded": .bool(fm.fileExists(atPath: EngineConfig.defaultFile.path) && s.configWarning == nil),
             "defaults": ["transcription": .string(s.tier.defaultTranscriber(c))],
-            "engines": .array(engines),
-            "components": .array(components),
+            "engines": .array(scripts(engines)),
+            "components": .array(scripts(components)),
         ]
         if let w = s.configWarning { result["configWarning"] = .string(w) }
         // The build of the process that ran this (the app when attached; regista-mcp adds its own and compares).

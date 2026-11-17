@@ -12,6 +12,7 @@
   engines.py field <id> <key>         one manifest field of an entry (empty when absent), e.g. licence, licenceUrl
   engines.py comfy-bytes              the disk ComfyUI and its model families take (set up by hand, Pro tier)
   engines.py others <id,id,...>       names of the available entries not in the list (doctor: "not checked")
+  engines.py scripts <id>             the helper scripts of an entry (relative to the engines folder), one per line
   engines.py install-info <id>        method|step|formula|artifact ids (comma)|files (comma)|tier|status (install.sh --only)
   engines.py ids                      every entry id, one per line
   engines.py docs [--check] [--out F] writes docs/reference/engines.md (or F); --check exits 1 when the committed file is
@@ -173,6 +174,13 @@ def validate(m, lock):
         for f in e.get("files", []):
             if not isinstance(f, str) or not f or f.startswith("/") or ".." in f.split("/"):
                 errs.append("%s: files must be paths relative to the engines folder (got %r)" % (i, f))
+        for f in e.get("scripts", []):
+            if not isinstance(f, str) or not f or f.startswith("/") or ".." in f.split("/"):
+                errs.append("%s: scripts must be paths relative to the engines folder (got %r)" % (i, f))
+            elif not any(f == g or f.startswith(g + "/") for g in e.get("files", [])):
+                errs.append("%s: script %s is not among its files" % (i, f))
+            elif not os.path.isfile(os.path.join(REPO, "engines", f)):
+                errs.append("%s: script %s is not in engines/" % (i, f))
         if e.get("artifacts") and "version" in e:
             errs.append("%s: version comes from engines.lock when artifacts are named; drop it" % i)
     named = set(a for e in m.get("engines", []) for a in artifact_ids(e, lock))
@@ -310,6 +318,9 @@ def main(argv):
     elif cmd == "others":
         known = set(args[0].split(",")) if args else set()
         print(", ".join(e["name"] for e in m["engines"] if e["status"] == "available" and e["id"] not in known))
+    elif cmd == "scripts":
+        for f in entry(args[0]).get("scripts", []):
+            print(f)
     elif cmd == "install-info":
         e = entry(args[0])
         i = e["install"]

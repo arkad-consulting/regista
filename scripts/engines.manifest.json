@@ -12,6 +12,8 @@
     "the first time it is needed), manual (steps), cloud. status: available (Regista uses it) or planned (not built).",
     "files: what the engine puts in Regista's engines folder (~/Library/Application Support/Regista/engines), relative to it:",
     "the Motori screen removes exactly these, and scripts/install.sh --only <id> downloads a single-artifact entry to its one file.",
+    "scripts: the small helper files the installer copies from the repository's engines/ (never a lock file, an environment or a",
+    "model): the app replaces those of an installed engine that differ from its own copy, at launch and when the engine is used.",
     "After editing: scripts/reference-docs.sh (regenerates docs/reference/engines.md; the pre-commit hook runs --check)."
   ],
   "tiers": [
@@ -165,6 +167,7 @@
       "minRamGB": 16, "ramInUseGB": null, "diskBytes": 1037017637,
       "licence": "BSD-2-Clause", "nonCommercial": false,
       "install": {"method": "installer", "step": "medium-whisperx"}, "files": ["whisperx/.venv", "whisperx/pyproject.toml", "whisperx/uv.lock", "whisperx/wx_align.py", "whisperx/textnorm.py"], "artifacts": ["whisperx-env"],
+      "scripts": ["whisperx/wx_align.py", "whisperx/textnorm.py"],
       "optional": false, "dependsOn": ["uv", "faster-whisper-model", "punkt-tab"], "status": "available",
       "notes": "diskBytes = the .venv without its nltk_data; per-package licences in LICENSES.md"
     },
@@ -236,6 +239,7 @@
       "minRamGB": 16, "ramInUseGB": 8, "diskBytes": 1449879422,
       "licence": "Apache-2.0", "nonCommercial": false,
       "install": {"method": "installer", "step": "medium-voxcpm"}, "files": ["voxcpm/.venv", "voxcpm/pyproject.toml", "voxcpm/uv.lock", "voxcpm/vox_say.py", "voxcpm/train_voxcpm_finetune.py", "voxcpm/scripts"], "artifacts": ["voxcpm-env"],
+      "scripts": ["voxcpm/vox_say.py", "voxcpm/train_voxcpm_finetune.py", "voxcpm/scripts/it.md", "voxcpm/scripts/en.md", "voxcpm/scripts/fr.md", "voxcpm/scripts/pt.md"],
       "optional": false, "dependsOn": ["uv", "voxcpm-weights"], "status": "available",
       "notes": "diskBytes = the .venv"
     },

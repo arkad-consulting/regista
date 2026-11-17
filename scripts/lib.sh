@@ -160,6 +160,24 @@ hyperframes_state() {
   [ -f "$h" ] || { echo missing; return; }
   if [ "$h" = "$HF_CLI" ] && ! cmp -s "$REPO/engines/hyperframes/package-lock.json" "$HF_DIR/package-lock.json"; then echo other; else echo installed; fi
 }
+# scripts_state <id>: "current", "differ <script> …" (the engines folder's helper scripts are not the repository's), or
+# "none" (no scripts, or the engine is not installed there): the rule of the app's EngineScripts and Motori (#61).
+# Installed = every file of the entry that is not a script (nor a folder holding scripts) is in the engines folder.
+scripts_state() {
+  local scripts files f s rest=0 differ=""
+  scripts="$(manifest scripts "$1")"; [ -n "$scripts" ] || { echo none; return; }
+  files="$(manifest install-info "$1" | cut -d'|' -f5 | tr ',' '\n')"
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    printf '%s\n' "$scripts" | grep -qxF -e "$f" && continue
+    printf '%s\n' "$scripts" | grep -qF -e "$f/" && continue
+    rest=1
+    [ -e "$ENGINES_DIR/$f" ] || { echo none; return; }
+  done <<<"$files"
+  [ "$rest" = 1 ] || { echo none; return; }
+  while IFS= read -r s; do cmp -s "$REPO/engines/$s" "$ENGINES_DIR/$s" || differ="$differ $s"; done <<<"$scripts"
+  if [ -z "$differ" ]; then echo current; else echo "differ$differ"; fi
+}
 # The regista-mcp an installed app ships (scripts/build-app.sh): what both Claude configs run.
 bundled_mcp() { echo "$1/Contents/MacOS/regista-mcp"; }
 WX_PUNKT="$WX_DIR/.venv/nltk_data/tokenizers/punkt_tab"

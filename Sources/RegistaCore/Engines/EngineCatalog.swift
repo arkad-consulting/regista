@@ -46,6 +46,8 @@ public struct EngineCatalog: Equatable, Sendable {
         public let action: Action
         /// The engine's own reason when it is missing (engines.status `reason`), e.g. "npx (Node.js) not found".
         public let reason: String?
+        /// False when the engine's helper scripts differ from the app's and could not be replaced (#61).
+        public var scriptsCurrent = true
     }
 
     public let tier: MachineTier
@@ -94,7 +96,8 @@ public struct EngineCatalog: Equatable, Sendable {
             }
             return Row(id: e.id, name: e.name, unlocks: e.unlocks, disk: manifest.diskText(e.id), licence: e.licence,
                        nonCommercial: e.nonCommercial, paid: e.paid, optional: e.optional, method: e.install.method,
-                       group: group, state: state, action: action, reason: r?["reason"]?.stringValue)
+                       group: group, state: state, action: action, reason: r?["reason"]?.stringValue,
+                       scriptsCurrent: r?["scriptsCurrent"]?.boolValue ?? true)
         }
     }
 

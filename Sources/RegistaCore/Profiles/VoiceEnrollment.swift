@@ -393,6 +393,7 @@ public enum VoiceEnrollment {
         try FileManager.default.createDirectory(at: job.url, withIntermediateDirectories: true)
         try Data(out.path.utf8).write(to: job.url.appendingPathComponent("run"))
         let trainer = config.url(config.voxcpmProject).appendingPathComponent("train_voxcpm_finetune.py")
+        EngineScripts.refresh(["voxcpm"])   // the app's trainer, if an update changed it (#61)
         try job.launch(GenerationProcess(config.url(config.uv),
                                          ["run", "--frozen", "--project", config.url(config.voxcpmProject).path, "python", "-I",
                                           trainer.path, "--config_path", cfgFile.path],

@@ -225,6 +225,10 @@ msg() {
     it.fix_reinstall) echo 'rilancia scripts/install.sh' ;;
     fr.fix_reinstall) echo 'relance scripts/install.sh' ;;
     pt.fix_reinstall) echo 'execute scripts/install.sh de novo' ;;
+    en.fix_scripts) echo 'open Regista: it replaces them with its own copy at launch (or run scripts/install.sh --only %s)' ;;
+    it.fix_scripts) echo 'apri Regista: li sostituisce con la sua copia all'"'"'avvio (o rilancia scripts/install.sh --only %s)' ;;
+    fr.fix_scripts) echo 'ouvrez Regista : il les remplace par sa copie au lancement (ou relancez scripts/install.sh --only %s)' ;;
+    pt.fix_scripts) echo 'abra o Regista: ele os substitui pela própria cópia ao iniciar (ou execute scripts/install.sh --only %s)' ;;
     en.fix_run) echo 'run: %s' ;;
     it.fix_run) echo 'esegui: %s' ;;
     fr.fix_run) echo 'exécute : %s' ;;

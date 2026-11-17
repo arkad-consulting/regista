@@ -301,6 +301,11 @@ private struct EngineRowView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             if expanded, let steps { howTo(steps) }
+            // Its helper scripts differ from the app's and could not be replaced (#61): normally they are, at launch.
+            if row.state == .installed, !row.scriptsCurrent {
+                Text("I file di supporto di questo motore sono più vecchi di quelli dell'app: rimuovilo e installalo di nuovo.")
+                    .font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+            }
         }
         .listRowBackground(highlighted ? Color.accentColor.opacity(0.12) : nil)
     }

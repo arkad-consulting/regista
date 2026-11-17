@@ -223,7 +223,8 @@ public struct VoxCPMProvider: GeneratorProvider {
     }
 
     public func process(_ r: GenerationRequest, job: URL) throws -> GenerationProcess {
-        GenerationProcess(config.url(config.uv),
+        EngineScripts.refresh([id])   // the app's vox_say.py, if an update changed it (#61)
+        return GenerationProcess(config.url(config.uv),
                           ["run", "--frozen", "--project", config.url(config.voxcpmProject).path, "python", "-I",
                            config.url(config.voxcpmScript).path, try input(r, job: job)],
                           environment: ["HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1"])

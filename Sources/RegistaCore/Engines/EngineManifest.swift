@@ -39,6 +39,9 @@ public struct EngineManifest: Sendable {
         public let artifacts: [String]
         /// What the engine puts in Regista's engines folder, relative to it (the Motori screen removes exactly these).
         public let files: [String]
+        /// The small helper files among them that the app keeps equal to its own copy (#61): never a lock file, an
+        /// environment or a model (`EngineScripts`).
+        public let scripts: [String]
         public let optional: Bool
         public let dependsOn: [String]
         /// available or planned.
@@ -175,6 +178,10 @@ public struct EngineManifest: Sendable {
             for f in e.files where f.isEmpty || f.hasPrefix("/") || f.split(separator: "/").contains("..") {
                 problems.append("\(e.id): files must be paths relative to the engines folder (got \(f))")
             }
+            for f in e.scripts where f.isEmpty || f.hasPrefix("/") || f.split(separator: "/").contains("..")
+                || !e.files.contains(where: { f == $0 || f.hasPrefix($0 + "/") }) {
+                problems.append("\(e.id): scripts must be paths among its files (got \(f))")
+            }
             for a in e.artifacts where artifacts(of: Entry.withArtifacts([a])).isEmpty {
                 problems.append("\(e.id): artifact \(a) is not in engines.lock")
             }
@@ -216,7 +223,7 @@ public struct EngineManifest: Sendable {
 
 extension EngineManifest.Entry: Decodable {
     private enum K: String, CodingKey {
-        case id, name, role, unlocks, minRamGB, ramInUseGB, diskBytes, licence, nonCommercial, licenceUrl, install, artifacts, files, optional,
+        case id, name, role, unlocks, minRamGB, ramInUseGB, diskBytes, licence, nonCommercial, licenceUrl, install, artifacts, files, scripts, optional,
              dependsOn, status, version, paid
     }
 
@@ -236,6 +243,7 @@ extension EngineManifest.Entry: Decodable {
         install = try c.decode(EngineManifest.Install.self, forKey: .install)
         artifacts = try c.decodeIfPresent([String].self, forKey: .artifacts) ?? []
         files = try c.decodeIfPresent([String].self, forKey: .files) ?? []
+        scripts = try c.decodeIfPresent([String].self, forKey: .scripts) ?? []
         optional = try c.decode(Bool.self, forKey: .optional)
         dependsOn = try c.decode([String].self, forKey: .dependsOn)
         status = try c.decode(String.self, forKey: .status)
@@ -247,6 +255,6 @@ extension EngineManifest.Entry: Decodable {
     static func withArtifacts(_ a: [String]) -> Self {
         .init(id: "", name: "", role: "", unlocks: [], minRamGB: nil, ramInUseGB: nil, diskBytes: nil, declaresDisk: false,
               licence: "", nonCommercial: false, licenceUrl: nil, install: .init(method: "", step: nil, formula: nil, steps: nil), artifacts: a,
-              files: [], optional: false, dependsOn: [], status: "", version: nil, paid: false)
+              files: [], scripts: [], optional: false, dependsOn: [], status: "", version: nil, paid: false)
     }
 }

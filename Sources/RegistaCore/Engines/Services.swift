@@ -227,6 +227,9 @@ public struct EngineServices {
     /// The editing-rule sheets (#31): `rules/` of the support folder in the standard set (`RuleBook.defaultDirectory`); a
     /// throwaway folder otherwise, so tests never write the user's sheets.
     public var rules = RuleBook(directory: FileManager.default.temporaryDirectory.appendingPathComponent("regista-rules-\(UUID().uuidString.prefix(8))"))
+    /// The engines folder whose helper scripts engines.status compares with the app's copy (#61): the installer's
+    /// (`EngineCatalog.enginesDirectory`) in the standard set; nil otherwise, so nothing is reported.
+    public var enginesFolder: URL?
     /// The host's Cancel for waited-for generation runs (the app's jobs engine has one; nil elsewhere).
     public var cancellation: GenerationCancellation?
     /// The local ComfyUI server's node list (`/object_info`; nil when it is off), read by generate.check and before a
@@ -263,6 +266,7 @@ public struct EngineServices {
         s.generationState = Generation.defaultStateDirectory
         s.profiles = ProfileStore(directory: ProfileStore.defaultDirectory)
         s.rules = RuleBook(directory: RuleBook.defaultDirectory)
+        s.enginesFolder = EngineCatalog.enginesDirectory
         return s
     }
 

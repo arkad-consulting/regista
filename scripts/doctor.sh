@@ -11,6 +11,14 @@ PROBLEMS=0
 # problem "<what>" "<fix>"
 problem() { PROBLEMS=$((PROBLEMS + 1)); bad "$1"; printf '      %s: %s\n' "$(t fix)" "$2"; }
 REINSTALL="$(t fix_reinstall)"
+# The helper scripts of an engine in the engines folder against the repository's (#61; lib.sh scripts_state).
+check_scripts() {
+  local st; st="$(scripts_state "$1")"
+  case "$st" in
+    current) ok "$2 helper scripts match the repo" ;;
+    differ*) problem "$2 helper scripts differ from the repo:${st#differ}" "$(t fix_scripts "$1")" ;;
+  esac
+}
 run_fix() { t fix_run "$1"; }
 
 step "System"
@@ -89,8 +97,9 @@ if medium_up; then
     if [ -x "$(cfg uv "$BREW_BIN/uv")" ] && [ -x "$wx/.venv/bin/python" ]; then ok "WhisperX env ($wx/.venv)"
     else problem "WhisperX env missing in $wx" "$REINSTALL"; fi
     if [ "$wx" = "$WX_DIR" ]; then
-      if cmp -s engines/whisperx/uv.lock "$wx/uv.lock" && cmp -s engines/whisperx/wx_align.py "$wx/wx_align.py"; then ok "WhisperX env matches the repo"
+      if cmp -s engines/whisperx/uv.lock "$wx/uv.lock"; then ok "WhisperX env matches the repo"
       else problem "WhisperX env is older than the repo" "$REINSTALL"; fi
+      check_scripts whisperx WhisperX
       if [ -f "$WX_CT2/model.bin" ]; then
         if [ "$QUICK" = 1 ] || sha_ok "$WX_CT2/model.bin" "$(lock_get ct2-whisper-large-v3-turbo 5)"; then ok "faster-whisper model ($WX_CT2)"
         else warn "faster-whisper model.bin hash differs from engines.lock (converted locally; works, but not the reference build)"; fi
@@ -121,6 +130,7 @@ if medium_up; then
   else
     if [ "$vox" != "$VOX_DIR" ] || cmp -s engines/voxcpm/uv.lock "$vox/uv.lock"; then ok "VoxCPM2 env ($vox/.venv)"
     else problem "VoxCPM2 env is older than the repo" "$REINSTALL"; fi
+    [ "$vox" != "$VOX_DIR" ] || check_scripts voxcpm VoxCPM2
     vox_bad=""
     for id in $(lock_ids | grep '^vox:'); do
       f="$voxm/${id#vox:}"
