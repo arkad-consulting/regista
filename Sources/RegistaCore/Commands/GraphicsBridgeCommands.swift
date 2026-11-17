@@ -33,10 +33,15 @@ enum GraphicsEngines {
         let source: String
     }
 
+    /// "Installed" (#11), the rule scripts/doctor.sh applies too (InstallTests compares the two): the pinned copy in the
+    /// engines folder, or the path engines.json names. A Node.js or npx found elsewhere on this Mac still runs HyperFrames
+    /// (through npx) but is not installed: Motori keeps offering the install.
+    static func nodeInstalled(_ config: EngineConfig) -> Bool { FileManager.default.isExecutableFile(atPath: config.url(config.node).path) }
+    static func hyperframesInstalled(_ config: EngineConfig) -> Bool { FileManager.default.fileExists(atPath: config.url(config.hyperframes).path) }
+
     static func hyperframes(_ config: EngineConfig) -> HyperframesRunner? {
-        let fm = FileManager.default
-        let node = config.url(config.node), cli = config.url(config.hyperframes)
-        if fm.isExecutableFile(atPath: node.path), fm.fileExists(atPath: cli.path) {
+        if nodeInstalled(config), hyperframesInstalled(config) {
+            let node = config.url(config.node), cli = config.url(config.hyperframes)
             return HyperframesRunner(executable: node, prefix: [cli.path], source: "installed")
         }
         return npx(config).map { HyperframesRunner(executable: $0, prefix: ["--yes", "hyperframes@\(EngineConfig.hyperframesVersion)"], source: "npx") }

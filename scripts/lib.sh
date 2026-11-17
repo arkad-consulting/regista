@@ -142,6 +142,24 @@ NODE_VERSION="$(lock_get node 2)"
 NODE_HOME="$ENGINES_DIR/node/node-v$NODE_VERSION-darwin-arm64"
 HF_DIR="$ENGINES_DIR/hyperframes"
 HF_CLI="$HF_DIR/node_modules/hyperframes/bin/hyperframes.mjs"
+# Installed (#11) = the pinned copy in the engines folder, or the path engines.json names: the rule the app's Motori screen
+# applies too (GraphicsEngines.nodeInstalled / hyperframesInstalled; InstallTests runs both on the same fake folder). A node
+# or npx found elsewhere on this Mac is not installed.
+node_path() { local v; v="$(json_get "$CONFIG" node)"; v="${v:-$NODE_HOME/bin/node}"; echo "${v/#\~/$HOME}"; }
+hyperframes_path() { local v; v="$(json_get "$CONFIG" hyperframes)"; v="${v:-$HF_CLI}"; echo "${v/#\~/$HOME}"; }
+# node_state: "installed <version>", "missing", or "other <version>" (the pinned path holds another version)
+node_state() {
+  local n v; n="$(node_path)"
+  [ -x "$n" ] || { echo missing; return; }
+  v="$("$n" --version 2>/dev/null)"
+  if [ "$n" != "$NODE_HOME/bin/node" ] || [ "$v" = "v$NODE_VERSION" ]; then echo "installed $v"; else echo "other $v"; fi
+}
+# hyperframes_state: "installed", "missing", or "other" (the engines folder's copy is not engines/hyperframes/package-lock.json)
+hyperframes_state() {
+  local h; h="$(hyperframes_path)"
+  [ -f "$h" ] || { echo missing; return; }
+  if [ "$h" = "$HF_CLI" ] && ! cmp -s "$REPO/engines/hyperframes/package-lock.json" "$HF_DIR/package-lock.json"; then echo other; else echo installed; fi
+}
 # The regista-mcp an installed app ships (scripts/build-app.sh): what both Claude configs run.
 bundled_mcp() { echo "$1/Contents/MacOS/regista-mcp"; }
 WX_PUNKT="$WX_DIR/.venv/nltk_data/tokenizers/punkt_tab"

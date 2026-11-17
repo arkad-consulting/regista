@@ -95,7 +95,7 @@ enum EnginesStatus: Command {
             }
         }
         func entry(_ id: String, _ role: String, path: String?, available: Bool, reason: String? = nil,
-                   expected: String? = nil, hash: Bool = false) -> JSONValue {
+                   expected: String? = nil, hash: Bool = false, installed: Bool? = nil) -> JSONValue {
             let tier = manifest.minimumTier(id)
             var o: [String: JSONValue] = ["id": .string(id), "role": .string(role), "minimumTier": .string(tier.rawValue),
                                           "available": .bool(available), "enabled": .bool(available && s.tier >= tier)]
@@ -107,7 +107,7 @@ enum EnginesStatus: Command {
             } else if let expected {
                 o["expectedSha256"] = .string(expected)
             }
-            facts(id, state: available ? "installed" : "missing", into: &o)
+            facts(id, state: (installed ?? available) ? "installed" : "missing", into: &o)
             return .object(o)
         }
         let whisper = s.transcribers[WhisperCppTranscriber.engineID]
@@ -115,6 +115,7 @@ enum EnginesStatus: Command {
         let ffmpegOK = fm.isExecutableFile(atPath: EngineConfig.expand(c.ffmpeg))
         let modelOK = fm.fileExists(atPath: EngineConfig.expand(c.whisperModel))
         let cleanReason = s.cleaner.unavailableReason()
+        let hyperframes = GraphicsEngines.hyperframes(c)
         let engines: [JSONValue] = [
             entry("ffmpeg", "audio extraction, voice chain, loudness", path: c.ffmpeg, available: ffmpegOK),
             entry("ffprobe", "media metadata", path: c.ffprobe, available: fm.isExecutableFile(atPath: EngineConfig.expand(c.ffprobe))),
@@ -132,10 +133,14 @@ enum EnginesStatus: Command {
                   reason: s.renderer == nil ? "this host was built without RegistaEngines" : nil),
             entry("blender", "3D titles (graphics.blenderTitle, EEVEE, Blender \(manifest.artifact("blender")!.version))", path: c.blender,
                   available: fm.isExecutableFile(atPath: EngineConfig.expand(c.blender)), reason: fm.isExecutableFile(atPath: EngineConfig.expand(c.blender)) ? nil : "not installed"),
-            entry("hyperframes", "HTML motion graphics (graphics.hyperframes, hyperframes \(EngineConfig.hyperframesVersion)\(GraphicsEngines.hyperframes(c)?.source == "npx" ? " through npx" : ""), scripts off)",
-                  path: GraphicsEngines.hyperframes(c).map { $0.source == "installed" ? c.hyperframes : $0.executable.path },
-                  available: GraphicsEngines.hyperframes(c) != nil,
-                  reason: GraphicsEngines.hyperframes(c) == nil ? "not installed (Node.js and the pinned HyperFrames CLI: scripts/install.sh --only hyperframes)" : nil),
+            // Runs through a Node.js found on this Mac (npx) too, but only the pinned CLI in the engines folder is installed (#11).
+            entry("hyperframes", "HTML motion graphics (graphics.hyperframes, hyperframes \(EngineConfig.hyperframesVersion)\(hyperframes?.source == "npx" ? " through npx" : ""), scripts off)",
+                  path: hyperframes.map { $0.source == "installed" ? c.hyperframes : $0.executable.path },
+                  available: hyperframes != nil,
+                  reason: hyperframes == nil ? "not installed (Node.js and the pinned HyperFrames CLI: scripts/install.sh --only hyperframes)"
+                      : GraphicsEngines.hyperframesInstalled(c) ? nil
+                      : "not installed: runs through npx with a Node.js found on this Mac, not the pinned copy (scripts/install.sh --only hyperframes)",
+                  installed: GraphicsEngines.hyperframesInstalled(c)),
             entry("sfx-bank", "sound effects made in code (earshot, MIT), shipped with Regista", path: SoundLibrary.bankDirectory.path,
                   available: !SoundLibrary.bank().isEmpty, reason: SoundLibrary.bank().isEmpty ? "the app was built without Resources/SFX" : nil),
             entry("sfx-library", "your own sound effects (sfx.library, next to the bank)", path: c.sfxLibrary,
@@ -211,10 +216,8 @@ enum EnginesStatus: Command {
         case "shotcut":
             let apps = ["/Applications/Shotcut.app", "~/Applications/Shotcut.app"]
             return file(apps.first { fm.fileExists(atPath: EngineConfig.expand($0)) } ?? apps[0])
-        case "node":
-            if fm.isExecutableFile(atPath: EngineConfig.expand(c.node)) { return (c.node, "installed") }
-            guard let npx = GraphicsEngines.npx(c) else { return (c.node, "missing") }
-            return file(npx.deletingLastPathComponent().appendingPathComponent("node").path)
+        // The pinned build in the engines folder (or the one engines.json names); a system node is not installed (#11).
+        case "node": return (c.node, GraphicsEngines.nodeInstalled(c) ? "installed" : "missing")
         default: return (nil, "notChecked")   // ComfyUI model families (their folders are the user's setup), cloud
         }
     }

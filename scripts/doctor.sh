@@ -132,18 +132,19 @@ if medium_up; then
     else problem "VoxCPM2 weights $vox_bad" "$REINSTALL"; fi
   fi
   # Node.js and HyperFrames: the pinned build in the engines folder and the CLI from engines/hyperframes/package-lock.json.
-  node="$(cfg node "$NODE_HOME/bin/node")"
-  if [ ! -x "$node" ]; then problem "Node.js not installed ($node): HTML graphics (HyperFrames) cannot render" "$(run_fix 'scripts/install.sh --only node')"
-  else
-    nv="$("$node" --version 2>/dev/null)"
-    if [ "$node" != "$NODE_HOME/bin/node" ] || [ "$nv" = "v$NODE_VERSION" ]; then ok "Node.js $nv ($node)"
-    else problem "Node.js $nv at $node is not the pinned $NODE_VERSION" "$(run_fix 'scripts/install.sh --only node')"; fi
-  fi
-  hf="$(cfg hyperframes "$HF_CLI")"
-  if [ ! -f "$hf" ]; then problem "HyperFrames CLI not installed ($hf)" "$(run_fix 'scripts/install.sh --only hyperframes')"
-  elif [ "$hf" = "$HF_CLI" ] && ! cmp -s engines/hyperframes/package-lock.json "$HF_DIR/package-lock.json"; then
-    problem "HyperFrames in $HF_DIR is not the version of engines/hyperframes/package-lock.json" "$(run_fix 'scripts/install.sh --only hyperframes')"
-  else ok "HyperFrames $(lock_get hyperframes-env 2) ($hf)"; fi
+  # (node_state / hyperframes_state in lib.sh: the rule the app's Motori screen shares, #11)
+  node="$(node_path)"; ns="$(node_state)"
+  case "$ns" in
+    missing) problem "Node.js not installed ($node): HTML graphics (HyperFrames) cannot render" "$(run_fix 'scripts/install.sh --only node')" ;;
+    installed*) ok "Node.js ${ns#installed } ($node)" ;;
+    *) problem "Node.js ${ns#other } at $node is not the pinned $NODE_VERSION" "$(run_fix 'scripts/install.sh --only node')" ;;
+  esac
+  hf="$(hyperframes_path)"
+  case "$(hyperframes_state)" in
+    missing) problem "HyperFrames CLI not installed ($hf)" "$(run_fix 'scripts/install.sh --only hyperframes')" ;;
+    other) problem "HyperFrames in $HF_DIR is not the version of engines/hyperframes/package-lock.json" "$(run_fix 'scripts/install.sh --only hyperframes')" ;;
+    *) ok "HyperFrames $(lock_get hyperframes-env 2) ($hf)" ;;
+  esac
 fi
 b="$(cfg blender "$HOME/Applications/Blender.app/Contents/MacOS/Blender")"
 if [ -x "$b" ]; then ok "Blender ($b)"; elif medium_up; then warn "Blender not installed (optional, 3D titles): scripts/install.sh --with blender"; fi

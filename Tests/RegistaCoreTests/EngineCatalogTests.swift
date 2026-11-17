@@ -219,3 +219,55 @@ private func installSh(_ args: [String], env: [String: String] = [:]) throws -> 
     #expect(CommandJob.curlPercent("######################                     45.3%") == 45.3)
     #expect(CommandJob.curlPercent("  ↓ model.bin (1.6 GB)") == nil)
 }
+
+/// #11: one rule for "installed". Motori (engines.status → EngineCatalog) and scripts/doctor.sh (lib.sh node_state /
+/// hyperframes_state) give the same answer for Node.js and HyperFrames on the same fake engines folder: empty, the pinned
+/// copies, and a system Node.js (npx) only — which runs HyperFrames but is not installed, so Motori still offers the install.
+@Test func motoriAndTheDoctorAgreeOnWhatIsInstalled() throws {
+    let support = tempDir(), engines = support.appendingPathComponent("engines")
+    let version = try #require(manifest.artifact("node")?.version)
+    let node = engines.appendingPathComponent("node/node-v\(version)-darwin-arm64/bin/node")
+    let cli = engines.appendingPathComponent("hyperframes/node_modules/hyperframes/bin/hyperframes.mjs")
+    let system = support.appendingPathComponent("system-bin")
+    func write(_ url: URL, _ text: String, executable: Bool) throws {
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data(text.utf8).write(to: url)
+        try FileManager.default.setAttributes([.posixPermissions: executable ? 0o755 : 0o644], ofItemAtPath: url.path)
+    }
+    func answers() throws -> (motori: [String: EngineCatalog.Row], doctor: [String: String]) {
+        var services = FakeServices().make()
+        services.config.node = node.path
+        services.config.hyperframes = cli.path
+        services.config.npx = system.appendingPathComponent("npx").path
+        let status = try Engine(prober: FakeProber(), services: services).execute("engines.status")
+        let catalog = EngineCatalog(status: status, tier: .medium, enginesDirectory: engines)
+        let r = try Subprocess.run(URL(fileURLWithPath: "/bin/bash"), ["-c", ". \"$0/scripts/lib.sh\"; node_state; hyperframes_state", repo.path],
+                                   // Its own engines.json too: the test process may carry another REGISTA_ENGINES (the rig's).
+                                   environment: ["REGISTA_SUPPORT_DIR": support.path, "REGISTA_ENGINES": support.appendingPathComponent("engines.json").path,
+                                                 "REGISTA_LANG": "en"])
+        let lines = r.stdoutText.split(separator: "\n").map(String.init)
+        #expect(lines.count == 2, "\(r.stdoutText) \(r.stderrText)")
+        return (["node": try #require(catalog.row("node")), "hyperframes": try #require(catalog.row("hyperframes"))],
+                ["node": lines.first ?? "", "hyperframes": lines.last ?? ""])
+    }
+    func agree(_ setup: String, installed: Bool) throws {
+        let (motori, doctor) = try answers()
+        for id in ["node", "hyperframes"] {
+            let row = try #require(motori[id])
+            #expect((row.state == .installed) == installed, "\(setup): Motori says \(id) is \(row.state)")
+            #expect(doctor[id]!.hasPrefix("installed") == installed, "\(setup): the doctor says \(id) is \(doctor[id]!)")
+            #expect((row.action == .install) == !installed, "\(setup): \(id)'s install button")
+        }
+    }
+    try agree("empty", installed: false)
+    // A Node.js found on this Mac only: HyperFrames runs through npx, but neither is installed.
+    try write(system.appendingPathComponent("npx"), "#!/bin/sh\n", executable: true)
+    try write(system.appendingPathComponent("node"), "#!/bin/sh\necho v1.0.0\n", executable: true)
+    try agree("system fallback only", installed: false)
+    // The pinned copies in the engines folder.
+    try write(node, "#!/bin/sh\necho v\(version)\n", executable: true)
+    try write(cli, "", executable: false)
+    try FileManager.default.copyItem(at: repo.appendingPathComponent("engines/hyperframes/package-lock.json"),
+                                     to: engines.appendingPathComponent("hyperframes/package-lock.json"))
+    try agree("pinned copies", installed: true)
+}
