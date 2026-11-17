@@ -25,7 +25,10 @@ public struct OutputFaces {
 
     /// Face boxes (landmark extent) on the output frame at timeline time `t`, output pixels.
     public mutating func boxes(at t: MediaTime) -> [[Double]] {
-        let layers = job.layers(at: t)
+        // The picture on top (a generated layer — a motion template, a title — is drawn over it, not instead of it).
+        let layers = job.layers(at: t).filter { l in
+            switch l.source { case .video, .image: true; default: false }
+        }
         guard let top = layers.last(where: \.isMainPicture), case .video = top.source,
               let asset = job.project.asset(top.assetID), asset.image == nil, top.crop[0] > 0, let track = track(asset),
               let clip = job.project.tracks.first(where: { $0.id == top.trackID })?.clips.first(where: { $0.id == top.clipID }) else { return [] }
@@ -41,6 +44,22 @@ public struct OutputFaces {
         if lo > 0, abs(samples[lo - 1].t - s) < abs(samples[lo].t - s) { lo -= 1 }
         guard abs(samples[lo].t - s) <= 1.5 / max(track.fps, 1) else { return [] }
         return samples[lo].boxes.map { Self.toOutput($0, layer: top, width: job.width, height: job.height) }
+    }
+
+    /// The zones nothing should cover on the output frame at `t`: each face's head and some neck (`FaceFraming.captionZone`),
+    /// what captions.checkFaces tests every caption word against.
+    public mutating func zones(at t: MediaTime) -> [[Double]] { boxes(at: t).map(FaceFraming.captionZone) }
+
+    /// The first frame in [from, to) where a face's zone touches `box` (output pixels [x, y, w, h]); nil when the face
+    /// stays clear of it the whole time (#16: a motion template, a speaker bubble). The same test as a caption word's.
+    public mutating func firstOverlap(_ box: [Double], from: MediaTime, to: MediaTime) -> MediaTime? {
+        let frame = MediaTime.frameDuration(at: job.frameRate)
+        var at = from
+        while at < to {
+            if zones(at: at).contains(where: { FaceFraming.intersects($0, box) }) { return at }
+            at = at + frame
+        }
+        return nil
     }
 
     /// A source box through a full-frame layer's crop, scale and offset (and its box, once moved by hand).

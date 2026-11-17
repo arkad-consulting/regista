@@ -183,3 +183,38 @@ private func frame(_ e: Engine, at t: Double) throws -> CGImage {
     #expect(GraphicsCatalog.followNeed(face, project: project, selection: [follower]) == nil)
     #expect(GraphicsCatalog.unavailable(face, project: project, blender: true, selection: [follower]) == nil)
 }
+
+// #16: by hand, the Grafica panel's Applica uses motion.add's default place, so a template added with a click lands off
+// the face. A real click on the real panel; the footage is the synthetic head with its face track, cropped so the face
+// sits on the right third at the height of the top cards (where stat-card goes by default).
+extension MouseSuites {
+@Suite(.serialized) @MainActor struct MotionFaceMouseTests {
+    @Test func aTemplateAddedWithAClickLandsOffTheFace() async throws {
+        MotionLibrary.registerAll()
+        let app = try await AppRig(project: "empty")
+        defer { app.close() }
+        let dir = rigTempDir("faceclear")
+        let head = try await app.store.perform("media.synthesize", ["path": .string(dir.appendingPathComponent("head.mov").path), "duration": 4, "faces": true])
+        let asset = try #require(head.value(at: "asset.id")?.stringValue)
+        let v = try #require(try await app.store.perform("track.add", ["kind": "video"]).value(at: "track.id")?.stringValue)
+        try await app.store.perform("timeline.place", ["assetId": .string(asset), "trackId": .string(v), "sourceIn": 0, "sourceOut": 4])
+        let clip = try #require(app.store.project?.tracks.first { $0.id == v }?.clips.first?.id)
+        try await app.store.perform("clip.set", ["clipId": .string(clip), "crop": [720, 1280, 60, 466]])
+        var nav = Navigation(activity: .graphics, rightTab: .inspector)
+        nav.graphicsSection = .motion
+        app.hostEditor(nav)
+        GraphicsState.shared.motionItem = "stat-card"   // its form open, as a click on its tile opens it
+        defer { GraphicsState.shared.motionItem = nil }
+        await app.settle()
+        let before = app.clips.filter { $0.motion != nil }.count
+        let apply = try #require(app.rig.elements().first { $0.isControl && $0.visible && $0.name == "Applica" }, "no Applica")
+        app.rig.click(apply.centre)
+        await app.settle()
+        let added = app.clips.filter { $0.motion?.template == "stat-card" }
+        #expect(added.count == before + 1, "the click added \(added.count - before) templates")
+        // Mirrored to the left: the default right-hand place is on the face.
+        #expect(added.last?.motion?.fields["position"] == [290, 540], "\(String(describing: added.last?.motion?.fields["position"]))")
+        #expect(app.rig.elements().contains { $0.isControl && $0.visible && $0.name == "Applica" })   // still there
+    }
+}
+}

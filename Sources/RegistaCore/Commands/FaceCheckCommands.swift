@@ -29,7 +29,7 @@ enum CaptionsCheckFaces: Command {
             guard var at = ch.words.first?.start else { continue }
             while at < ch.end {
                 frames += 1
-                let zones = faces.boxes(at: at).map(FaceFraming.captionZone)
+                let zones = faces.zones(at: at)
                 if !zones.isEmpty { faceFrames += 1 }
                 // The words drawn on this frame (word-by-word reveal).
                 let shown = captions.style.showsWholeChunk ? ch.words.indices.map { $0 } : ch.words.indices.filter { ch.words[$0].start < at + frame }

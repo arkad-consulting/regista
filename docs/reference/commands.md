@@ -1240,7 +1240,7 @@ Returns: see the description above.
 
 **Speaker layout** · MCP tool: `layout_speaker` · undo: yes — one undo step · takes `project`
 
-Frame the speaker (any project, not only screen recordings) on a time range: letterbox-headline (9:16: black top band with a persistent headline, the 16:9 picture in the middle, the bottom band empty for Instagram's buttons — captions land under the picture), split-card (the speaker in a rounded card on one side, a free area on the other for a graphic; light canvas), pip-bubble (the speaker in a circle in a corner over a full-frame graphic or B-roll: brollAssetId fills the frame under it), inset-frame (the whole shot shrinks into a styled card on a dark backdrop — frame neon (glow + corner brackets + PREVIEW chip, brand accent), glass or plain; position center, topLeft or left of a panel; animates in from full frame and back out), full (removes the layout). Cuts the main video at the range edges and writes ordinary clip properties (box placement, crop around the face — faces.track makes it exact —, mask), so clip.set and history.undo work. Returns the clips written, the speaker box, the free area for a graphic and warnings.
+Frame the speaker (any project, not only screen recordings) on a time range: letterbox-headline (9:16: black top band with a persistent headline, the 16:9 picture in the middle, the bottom band empty for Instagram's buttons — captions land under the picture), split-card (the speaker in a rounded card on one side, a free area on the other for a graphic; light canvas), pip-bubble (the speaker in a circle in a corner over a full-frame graphic or B-roll: brollAssetId fills the frame under it), inset-frame (the whole shot shrinks into a styled card on a dark backdrop — frame neon (glow + corner brackets + PREVIEW chip, brand accent), glass or plain; position center, topLeft or left of a panel; animates in from full frame and back out), full (removes the layout). Cuts the main video at the range edges and writes ordinary clip properties (box placement, crop around the face — faces.track makes it exact —, mask), so clip.set and history.undo work. A pip-bubble without B-roll over a face-tracked speaker goes to the first corner that leaves the face free (a corner given is kept, with a warning when it covers the face). Returns the clips written, the speaker box, the free area for a graphic, the bubble's corner, faceCheck (whether the corner was checked against a face, or why not) and warnings.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1250,7 +1250,7 @@ Frame the speaker (any project, not only screen recordings) on a time range: let
 | `trackId` | string | no | the first video track with clips | The speaker's video track (default: the first video track with clips). |
 | `headline` | string | no | – | letterbox-headline: the text of the top band (sentence case, ≤ 6 words reads best). |
 | `side` | one of `left`, `right` | no | left | split-card: side of the card (default left). |
-| `corner` | one of `topLeft`, `topRight`, `bottomLeft`, `bottomRight` | no | bottomRight, kept clear of the Instagram rail and the caption band | pip-bubble: corner (default bottomRight, kept clear of the Instagram rail and the caption band). |
+| `corner` | one of `topLeft`, `topRight`, `bottomLeft`, `bottomRight` | no | bottomRight, kept clear of the Instagram rail and the caption band | pip-bubble: corner (default bottomRight, kept clear of the Instagram rail and the caption band; without B-roll and over a face-tracked speaker, the first corner of bottomRight, bottomLeft, topRight, topLeft that leaves the face free). A corner given is kept, with a warning when the bubble covers the face. |
 | `size` | one of `S`, `M`, `L` | no | M | pip-bubble: S, M or L (default M). |
 | `brollAssetId` | string | no | – | pip-bubble: a video or image asset filling the frame under the bubble over the range. |
 | `brollIn` | seconds | no | 0 | pip-bubble: start inside the B-roll (default 0). |
@@ -1262,7 +1262,7 @@ Frame the speaker (any project, not only screen recordings) on a time range: let
 | `accent` | string | no | the kit's highlight, else #FF7A1A | Glow / accent colour (#RRGGBB or a brand role; default the kit's highlight, else #FF7A1A). |
 | `background` | string | no | – | Frame background around the box (#RRGGBB or a brand role; defaults per preset). |
 
-Returns: the clips written, the speaker box, the free area for a graphic and warnings.
+Returns: the clips written, the speaker box, the free area for a graphic, the bubble's corner, faceCheck (whether the corner was checked against a face, or why not) and warnings.
 
 ## logo
 
@@ -1525,7 +1525,7 @@ Returns: the clip and the loudest moment.
 
 **Add an animation** · MCP tool: `motion_add` · undo: yes — one undo step · takes `project`
 
-Add a motion template — an animated, branded graphic drawn by the compositor: an orbit carousel of photos around the speaker, an iOS-style checklist whose ticks land on the words, a counter or clock, a swing tag, scrolling marquee rows, the shot shrinking into a phone frame, floating cards behind the speaker, a HUD viewfinder, animated charts… effects.catalog {category: "templates"} lists every template with its fields (types, example values), description, useWhen and avoid; effects.preview shows one before adding it. Colours and fonts come from the applied brand kit (fields accept #RRGGBB or colour roles: ink, paper, primary, accent, highlight). Templates that go behind the person (layering behind/split) need matte.track over their window. sync: true times a list field (e.g. checklist rows) to the transcript: each entry lands when its first word is spoken. Returns the clip, the fields used and warnings.
+Add a motion template — an animated, branded graphic drawn by the compositor: an orbit carousel of photos around the speaker, an iOS-style checklist whose ticks land on the words, a counter or clock, a swing tag, scrolling marquee rows, the shot shrinking into a phone frame, floating cards behind the speaker, a HUD viewfinder, animated charts… effects.catalog {category: "templates"} lists every template with its fields (types, example values), description, useWhen and avoid; effects.preview shows one before adding it. Colours and fonts come from the applied brand kit (fields accept #RRGGBB or colour roles: ink, paper, primary, accent, highlight). Templates that go behind the person (layering behind/split) need matte.track over their window. sync: true times a list field (e.g. checklist rows) to the transcript: each entry lands when its first word is spoken. Without band or position, over a face-tracked picture (faces.track), it takes the first place the template allows that leaves the face free for its whole time; a place given is kept, with a warning when it covers the face. Returns the clip, the fields used, the place and faceCheck (whether the place was checked against a face, or why not) and warnings.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1534,13 +1534,13 @@ Add a motion template — an animated, branded graphic drawn by the compositor: 
 | `duration` | seconds | no | the template's | Seconds on screen (default: the template's). |
 | `end` | seconds | no | – | Timeline end instead of duration. |
 | `fields` | object | no | – | Template fields (names from effects.catalog; omitted ones keep their example/default). |
-| `band` | one of `top`, `middle`, `lower` | no | – | Vertical band for templates that sit in one (top y 110–640, middle, lower). |
-| `position` | array of number | no | – | Centre [x, y] on a 1080×1920 frame (overrides band). |
+| `band` | one of `top`, `middle`, `lower` | no | – | Vertical band for templates that sit in one (top y 110–640, middle, lower). Without band and position, a template over a face-tracked picture takes the first of its places (its band, then the others; or its point, then the point mirrored) that leaves the face free. |
+| `position` | array of number | no | – | Centre [x, y] on a 1080×1920 frame (overrides band). Kept even over a face (the result warns). |
 | `sync` | boolean | no | – | Time the template's list entries to the transcript words (checklist ticks, script lines). |
 | `behind` | boolean | no | – | Draw the whole template behind the speaker (needs matte.track), e.g. a kicker headline the head passes in front of. |
 | `trackId` | string | no | a free one | Overlay track (default: a free one). |
 
-Returns: the clip, the fields used and warnings.
+Returns: the clip, the fields used, the place and faceCheck (whether the place was checked against a face, or why not) and warnings.
 
 ## overlay
 

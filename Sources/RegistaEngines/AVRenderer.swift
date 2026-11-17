@@ -525,6 +525,34 @@ public struct AVRenderer: VideoRenderer {
         try CaptionRasterizer.writePNG(cg, to: url)
     }
 
+    /// The box of one layer's visible pixels at `time` (alpha above 2 %), measured on a quarter-size drawing.
+    public func layerBox(_ job: RenderJob, clipID: String, at time: MediaTime) throws -> [Double]? {
+        let drawer = try FrameDrawer(job: job, trackIDs: [:], orientations: [:])
+        guard var layer = job.layers(at: time).first(where: { $0.clipID == clipID }) else { return nil }
+        if case .motion(let m, let t, let d, _) = layer.source { layer.source = .motion(m, time: t, duration: d, part: .whole) }
+        guard let image = drawer.picture(layer, source: { _ in nil }) else { return nil }
+        let k = 0.25
+        let w = max(Int((Double(job.width) * k).rounded()), 1), h = max(Int((Double(job.height) * k).rounded()), 1)
+        let small = image.cropped(to: CGRect(x: 0, y: 0, width: job.width, height: job.height)).transformed(by: CGAffineTransform(scaleX: k, y: k))
+        let ci = CIContext(options: [.workingColorSpace: NSNull(), .outputColorSpace: NSNull()])
+        let rect = CGRect(x: 0, y: 0, width: w, height: h)
+        guard let cg = ci.createCGImage(small.cropped(to: rect), from: rect, format: .RGBA8, colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!),
+              let bitmap = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                                     space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue),
+              let data = { bitmap.draw(cg, in: rect); return bitmap.data }() else { return nil }
+        // A bitmap context's memory starts with the top row.
+        let pixels = data.bindMemory(to: UInt8.self, capacity: w * h * 4)
+        var x0 = w, y0 = h, x1 = -1, y1 = -1
+        for y in 0..<h {
+            for x in 0..<w where pixels[(y * w + x) * 4 + 3] > 5 {
+                x0 = min(x0, x); x1 = max(x1, x); y0 = min(y0, y); y1 = max(y1, y)
+            }
+        }
+        guard x1 >= x0 else { return nil }
+        let top = Double(y0), bottom = Double(y1 + 1)
+        return [Double(x0) / k, top / k, Double(x1 - x0 + 1) / k, (bottom - top) / k]
+    }
+
 }
 
 extension EngineServices {

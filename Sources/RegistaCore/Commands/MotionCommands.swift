@@ -5,7 +5,7 @@ import Foundation
 
 enum MotionAdd: Command {
     static let id = "motion.add"
-    static let summary = "Add a motion template — an animated, branded graphic drawn by the compositor: an orbit carousel of photos around the speaker, an iOS-style checklist whose ticks land on the words, a counter or clock, a swing tag, scrolling marquee rows, the shot shrinking into a phone frame, floating cards behind the speaker, a HUD viewfinder, animated charts… effects.catalog {category: \"templates\"} lists every template with its fields (types, example values), description, useWhen and avoid; effects.preview shows one before adding it. Colours and fonts come from the applied brand kit (fields accept #RRGGBB or colour roles: ink, paper, primary, accent, highlight). Templates that go behind the person (layering behind/split) need matte.track over their window. sync: true times a list field (e.g. checklist rows) to the transcript: each entry lands when its first word is spoken. Returns the clip, the fields used and warnings."
+    static let summary = "Add a motion template — an animated, branded graphic drawn by the compositor: an orbit carousel of photos around the speaker, an iOS-style checklist whose ticks land on the words, a counter or clock, a swing tag, scrolling marquee rows, the shot shrinking into a phone frame, floating cards behind the speaker, a HUD viewfinder, animated charts… effects.catalog {category: \"templates\"} lists every template with its fields (types, example values), description, useWhen and avoid; effects.preview shows one before adding it. Colours and fonts come from the applied brand kit (fields accept #RRGGBB or colour roles: ink, paper, primary, accent, highlight). Templates that go behind the person (layering behind/split) need matte.track over their window. sync: true times a list field (e.g. checklist rows) to the transcript: each entry lands when its first word is spoken. Without band or position, over a face-tracked picture (faces.track), it takes the first place the template allows that leaves the face free for its whole time; a place given is kept, with a warning when it covers the face. Returns the clip, the fields used, the place and faceCheck (whether the place was checked against a face, or why not) and warnings."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .required("template", .string, "Template id (effects.catalog category templates: orbit-carousel, checklist, counter, …)."),
@@ -13,8 +13,8 @@ enum MotionAdd: Command {
         .optional("duration", .time, "Seconds on screen (default: the template's)."),
         .optional("end", .time, "Timeline end instead of duration."),
         .optional("fields", .object, "Template fields (names from effects.catalog; omitted ones keep their example/default)."),
-        .optional("band", .oneOf(SafeZones.bandNames), "Vertical band for templates that sit in one (top y 110–640, middle, lower)."),
-        .optional("position", .array(.number), "Centre [x, y] on a 1080×1920 frame (overrides band)."),
+        .optional("band", .oneOf(SafeZones.bandNames), "Vertical band for templates that sit in one (top y 110–640, middle, lower). Without band and position, a template over a face-tracked picture takes the first of its places (its band, then the others; or its point, then the point mirrored) that leaves the face free."),
+        .optional("position", .array(.number), "Centre [x, y] on a 1080×1920 frame (overrides band). Kept even over a face (the result warns)."),
         .optional("sync", .boolean, "Time the template's list entries to the transcript words (checklist ticks, script lines)."),
         .optional("behind", .boolean, "Draw the whole template behind the speaker (needs matte.track), e.g. a kicker headline the head passes in front of."),
         .optional("trackId", .string, "Overlay track (default: a free one)."),
@@ -66,6 +66,12 @@ enum MotionAdd: Command {
         let t = try Graphics.track("overlays", in: &project, start: start, end: end, preferred: p.string("trackId"))
         var clip = Clip(id: project.makeID("c"), assetID: "", sourceIn: .zero, sourceOut: end - start, start: start)
         clip.motion = layer
+        // Off the speaker's face (#16): the first free place it allows, unless a place was given.
+        let explicit = p.has("position") || p.has("band") || given["position"] != nil || given["band"] != nil
+        let placed = MotionPlacement.choose(spec, clip: clip, track: t, in: project, explicit: explicit, renderer: ctx.services.renderer)
+        clip.motion?.fields = placed.fields
+        fields = placed.fields
+        warnings += placed.warnings.map { .string($0) }
         if layering != .front {
             var probe = clip
             probe.behindSubject = true
@@ -75,7 +81,8 @@ enum MotionAdd: Command {
         project.tracks[t].sortClips()
         ctx.project = project
         return ["clip": ProjectState.summary(of: clip), "trackId": .string(project.tracks[t].id), "template": .string(name),
-                "fields": .object(fields), "warnings": .array(warnings)]
+                "fields": .object(fields), "place": placed.place.map { .string($0) } ?? .null,
+                "faceCheck": placed.faceCheck.map { .string($0) } ?? .null, "warnings": .array(warnings)]
     }
 
     /// A type problem with a field value, nil when it fits.

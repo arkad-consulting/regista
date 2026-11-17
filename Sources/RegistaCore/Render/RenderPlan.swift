@@ -556,6 +556,9 @@ public protocol VideoRenderer {
     /// A full-frame transparent PNG of one generated or image layer (title, still, sequence frame) as it is drawn
     /// at timeline time `time` (the MLT export places these where Shotcut cannot draw them itself).
     func writeLayerImage(_ job: RenderJob, clipID: String, at time: MediaTime, to url: URL) throws
+    /// Where one generated layer (a motion template, a title…) puts ink at timeline time `time`: the box [x, y, w, h] of
+    /// its visible pixels, output pixels, top-left origin; nil when it draws nothing there (#16: kept off the face).
+    func layerBox(_ job: RenderJob, clipID: String, at time: MediaTime) throws -> [Double]?
 }
 
 extension VideoRenderer {
@@ -582,6 +585,10 @@ extension VideoRenderer {
     }
 
     public func writeLayerImage(_ job: RenderJob, clipID: String, at time: MediaTime, to url: URL) throws {
+        throw CommandError(.io, "this host cannot draw layer images")
+    }
+
+    public func layerBox(_ job: RenderJob, clipID: String, at time: MediaTime) throws -> [Double]? {
         throw CommandError(.io, "this host cannot draw layer images")
     }
 }

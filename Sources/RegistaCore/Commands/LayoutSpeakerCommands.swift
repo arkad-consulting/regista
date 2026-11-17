@@ -3,7 +3,7 @@ import Foundation
 /// layout.speaker: the speaker layouts of `SpeakerLayout` on a time range of any project.
 enum LayoutSpeaker: Command {
     static let id = "layout.speaker"
-    static let summary = "Frame the speaker (any project, not only screen recordings) on a time range: letterbox-headline (9:16: black top band with a persistent headline, the 16:9 picture in the middle, the bottom band empty for Instagram's buttons — captions land under the picture), split-card (the speaker in a rounded card on one side, a free area on the other for a graphic; light canvas), pip-bubble (the speaker in a circle in a corner over a full-frame graphic or B-roll: brollAssetId fills the frame under it), inset-frame (the whole shot shrinks into a styled card on a dark backdrop — frame neon (glow + corner brackets + PREVIEW chip, brand accent), glass or plain; position center, topLeft or left of a panel; animates in from full frame and back out), full (removes the layout). Cuts the main video at the range edges and writes ordinary clip properties (box placement, crop around the face — faces.track makes it exact —, mask), so clip.set and history.undo work. Returns the clips written, the speaker box, the free area for a graphic and warnings."
+    static let summary = "Frame the speaker (any project, not only screen recordings) on a time range: letterbox-headline (9:16: black top band with a persistent headline, the 16:9 picture in the middle, the bottom band empty for Instagram's buttons — captions land under the picture), split-card (the speaker in a rounded card on one side, a free area on the other for a graphic; light canvas), pip-bubble (the speaker in a circle in a corner over a full-frame graphic or B-roll: brollAssetId fills the frame under it), inset-frame (the whole shot shrinks into a styled card on a dark backdrop — frame neon (glow + corner brackets + PREVIEW chip, brand accent), glass or plain; position center, topLeft or left of a panel; animates in from full frame and back out), full (removes the layout). Cuts the main video at the range edges and writes ordinary clip properties (box placement, crop around the face — faces.track makes it exact —, mask), so clip.set and history.undo work. A pip-bubble without B-roll over a face-tracked speaker goes to the first corner that leaves the face free (a corner given is kept, with a warning when it covers the face). Returns the clips written, the speaker box, the free area for a graphic, the bubble's corner, faceCheck (whether the corner was checked against a face, or why not) and warnings."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .required("preset", .oneOf(SpeakerLayout.names), "letterbox-headline, split-card, pip-bubble, inset-frame or full."),
@@ -12,7 +12,7 @@ enum LayoutSpeaker: Command {
         .optional("trackId", .string, "The speaker's video track (default: the first video track with clips)."),
         .optional("headline", .string, "letterbox-headline: the text of the top band (sentence case, ≤ 6 words reads best)."),
         .optional("side", .oneOf(["left", "right"]), "split-card: side of the card (default left)."),
-        .optional("corner", .oneOf(LayoutSpec.corners), "pip-bubble: corner (default bottomRight, kept clear of the Instagram rail and the caption band)."),
+        .optional("corner", .oneOf(LayoutSpec.corners), "pip-bubble: corner (default bottomRight, kept clear of the Instagram rail and the caption band; without B-roll and over a face-tracked speaker, the first corner of bottomRight, bottomLeft, topRight, topLeft that leaves the face free). A corner given is kept, with a warning when the bubble covers the face."),
         .optional("size", .oneOf(LayoutSpec.sizes), "pip-bubble: S, M or L (default M)."),
         .optional("brollAssetId", .string, "pip-bubble: a video or image asset filling the frame under the bubble over the range."),
         .optional("brollIn", .time, "pip-bubble: start inside the B-roll (default 0)."),
@@ -43,7 +43,7 @@ enum LayoutSpeaker: Command {
         let brand = project.brand
         func role(_ v: String?) -> String? { v.map { brand?.color($0) ?? $0 } }
         let accent = role(p.string("accent")) ?? brand?.colors["highlight"] ?? brand?.colors["accent"] ?? "#FF7A1A"
-        let options = SpeakerLayout.Options(side: p.string("side"), corner: p.string("corner"), size: p.string("size"), position: p.string("position"),
+        var options = SpeakerLayout.Options(side: p.string("side"), corner: p.string("corner"), size: p.string("size"), position: p.string("position"),
                                             frame: p.string("frame"), label: p.string("label").flatMap { $0.isEmpty ? nil : $0 },
                                             badge: p.string("badge"), accent: accent, background: role(p.string("background")))
         var log: [JSONValue] = []
@@ -89,6 +89,53 @@ enum LayoutSpeaker: Command {
             clip.transform = tr
             clip.placement = g.placement
             clip.mask = g.mask
+        }
+
+        // The bubble over the speaker himself (no B-roll) stays off his face (#16): the first free corner, unless one was given.
+        var faceCheck: String?
+        if layout == .pipBubble, !p.has("brollAssetId") {
+            let what = "the pip-bubble"
+            if let under = FaceClear.untracked(project, from: from, to: to) {
+                if !under.tracked {
+                    faceCheck = FaceClear.notChecked(asset: under.asset)
+                } else {
+                    let job = RenderJob(project: project, preset: ExportPreset.named(nil, project: project))
+                    var faces = OutputFaces(job: job)
+                    /// When the face first meets the bubble in `corner`, nil when never.
+                    func overlap(_ corner: String) -> MediaTime? {
+                        var o = options
+                        o.corner = corner
+                        for i in inRange {
+                            let clip = project.tracks[t0].clips[i]
+                            guard let v = project.asset(clip.assetID)?.video, let pl = layout.geometry(width: W, height: H, source: (v.width, v.height),
+                                  face: Recording.face(camera: project.asset(clip.assetID)!, in: project, from: clip.start, to: clip.end), options: o).placement,
+                                  pl.fit == .box else { continue }
+                            let w = (pl.width ?? 1) * Double(job.width), h = (pl.height ?? 1) * Double(job.height)
+                            let box = [pl.x * Double(job.width) - w / 2, pl.y * Double(job.height) - h / 2, w, h]
+                            if let at = faces.firstOverlap(box, from: clip.start, to: clip.end) { return at }
+                        }
+                        return nil
+                    }
+                    faceCheck = FaceClear.checked(covers: false)
+                    if let corner = options.corner {
+                        if let at = overlap(corner) {
+                            warnings.append(.string(FaceClear.placedOverFace(what, at: at)))
+                            faceCheck = FaceClear.checked(covers: true)
+                        }
+                    } else {
+                        let corners = ["bottomRight", "bottomLeft", "topRight", "topLeft"]
+                        var first: MediaTime?
+                        for (k, c) in corners.enumerated() {
+                            guard let at = overlap(c) else { options.corner = c; break }
+                            if k == 0 { first = at }
+                        }
+                        if options.corner == nil, let first {
+                            warnings.append(.string(FaceClear.noFreePlace(what, at: first, places: corners)))
+                            faceCheck = FaceClear.checked(covers: true)
+                        }
+                    }
+                }
+            }
         }
 
         switch layout {
@@ -186,6 +233,8 @@ enum LayoutSpeaker: Command {
         return ["layout": .string(layout.rawValue), "from": ProjectState.seconds(from), "to": ProjectState.seconds(to),
                 "clips": .array(written.map { .string($0) }), "speakerBox": px(speakerBox), "freeArea": px(geometry.free),
                 "background": project.settings.background.map { .string($0) } ?? .null, "headlineClip": headlineClip,
-                "pipTrack": bubbleTrack, "commands": .array(log), "warnings": .array(warnings)]
+                "pipTrack": bubbleTrack, "corner": layout == .pipBubble ? .string(options.corner ?? "bottomRight") : .null,
+                "faceCheck": faceCheck.map { .string($0) } ?? .null,
+                "commands": .array(log), "warnings": .array(warnings)]
     }
 }
