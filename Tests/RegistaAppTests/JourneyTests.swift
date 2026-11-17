@@ -108,6 +108,7 @@ final class Journey {
     func tap(_ text: String, in r: MouseRig? = nil, sourceLocation: SourceLocation = #_sourceLocation) async throws {
         let found = control(text, in: r)
         guard let e = found else {
+            FileHandle.standardError.write(Data("journey: no «\(text)» on screen: \(screen(r))\n".utf8))
             Issue.record("no «\(text)» on screen: \(screen(r))", sourceLocation: sourceLocation)
             throw JourneyStop()
         }
@@ -823,6 +824,45 @@ extension MouseSuites.ClickAudits {
         defer { j.close() }
         try await j.semplice(size: RigWindowSize.minimum.size, export: false)
     }
+
+    /// 6. A reel finished by hand, from a cut take (the first journey's start and the automatic edit, not proven again):
+    /// Marca › a neutral built-in kit → a title at the opening → a call to action at the end → the logo → Audio › a music
+    /// with ducking under the voice → a sound effect on a cut → a look → Esporta: the rules card says what passes and
+    /// what fails, a failing rule fixed with its own «Sistema», the file written. After each step: the element on the
+    /// timeline and on the Program picture, the Inspector's values; each element on the picture is clicked and changed in
+    /// the Inspector.
+    @Test func aReelIsFinishedByHand() async throws {
+        let j = try await Journey("6-finish-reel", project: nil)
+        let autoEdit = UserDefaults.standard.object(forKey: Prefs.autoEditKey)
+        defer {
+            UserDefaults.standard.set(autoEdit, forKey: Prefs.autoEditKey)
+            j.close()
+        }
+        // The start of the first journey: a camera take recorded, cut by the automatic edit.
+        UserDefaults.standard.set(true, forKey: Prefs.autoEditKey)
+        j.app.capture.take = try j.take()
+        j.app.followRecorder()
+        await j.open(Navigation(activity: .home, rightTab: .inspector))
+        try await j.tap("Registra")
+        #expect(await j.until { j.app.recorder.isReady && j.control("Avvia / Ferma registrazione")?.enabled == true }, "Record is not ready: \(j.screen())")
+        try await j.tap("Avvia / Ferma registrazione")
+        #expect(await j.until { j.app.recorder.isRecording })
+        await j.app.idle(1.2)
+        try await j.tap("Avvia / Ferma registrazione")
+        #expect(await j.until(20) { j.store.project != nil && j.store.jobs.latest(TextStep.allJobKind) != nil }, "the take went nowhere: \(j.screen())")
+        #expect(await j.until(90) { j.store.jobs.latest(TextStep.allJobKind)?.isRunning == false }, "the automatic edit did not finish")
+        await j.app.settle()
+        let cut = try #require(j.store.project)
+        // A take recorded without the teleprompter is cut from its own words: both sentences stay (#71: it was cut
+        // against the teleprompter's sample text and lost the second).
+        #expect(cut.script?.lines.contains { $0.contains("Incolla qui il tuo testo") } != true, "the teleprompter's sample became the take's script: \(String(describing: cut.script?.lines))")
+        let said = cut.tracks.first { $0.captions != nil }?.captions?.chunks.flatMap(\.words).map(\.text).joined(separator: " ").lowercased() ?? ""
+        #expect(said.contains("regista") && said.contains("spariscono"), "the edit lost words of the take: captions «\(said)»")
+        let cuts = (cut.tracks.first { $0.kind == .video }?.clips ?? []).dropFirst().map(\.start.seconds)
+        j.step("Records a take, the automatic edit cuts it", sees: "the cut take (\(String(format: "%.1f", cut.duration.seconds)) s, \(cuts.count + 1) pieces) with its captions")
+
+        try await j.finishByHand(cuts: Array(cuts))
+    }
 }
 }
 
@@ -1133,5 +1173,215 @@ extension Journey {
         #expect(movie.width * 16 == movie.height * 9, "exported \(movie.width)×\(movie.height), not 9:16")
         #expect(abs(movie.seconds - (store.project?.duration.seconds ?? 0)) < 0.1)
         step("Esporta video…, Salva", sees: "the file \(movie.width)×\(movie.height), \(String(format: "%.1f", movie.seconds)) s")
+    }
+}
+
+// MARK: - Journey 6: a reel finished by hand
+
+extension Journey {
+    /// The Program monitor's «Vai all'inizio» (the Source monitor has the same button, left of it).
+    func toStart() async throws {
+        rig.click(try #require(rig.elements().filter { $0.label == "Vai all'inizio" && $0.visible }.max { $0.frame.minX < $1.frame.minX }).centre)
+        await app.settle()
+    }
+
+    /// The Grafica row named `name` (scrolled into view) clicked; for a title the form opens with its words selected:
+    /// `text` replaces them and «Aggiungi» puts it at the playhead. Returns the new clip.
+    func addTitle(_ row: String, _ text: String, sourceLocation: SourceLocation = #_sourceLocation) async throws -> Clip {
+        let found = await reveal(row, at: CGPoint(x: 200, y: 600))
+        let r = try #require(found, "no «\(row)» in Grafica: \(screen())", sourceLocation: sourceLocation)
+        rig.click(r.centre)
+        await app.settle()
+        await app.idle(0.4)
+        #expect(rig.isTyping, "the «\(row)» form does not take the keyboard", sourceLocation: sourceLocation)
+        rig.type(text)
+        let add = try #require(control("Aggiungi"), "the «\(row)» form's Aggiungi is out of sight: \(screen())", sourceLocation: sourceLocation)
+        rig.click(add.centre)
+        await app.settle()
+        let clip = { self.store.project?.tracks.flatMap(\.clips).first { $0.title?.text.contains(text) == true } }
+        #expect(await until { clip() != nil }, "no «\(text)»: \(screen())", sourceLocation: sourceLocation)
+        return try #require(clip(), sourceLocation: sourceLocation)
+    }
+
+    /// Clicks `clipID` on the Program picture at `time` and types `scale` (per cent) in the Inspector's Scala: it is
+    /// selected, the Inspector shows its size, and the new size is drawn. Returns the line for the audit table.
+    func pickAndScale(_ clipID: String, at time: Double, to scale: Int, _ what: String, sourceLocation: SourceLocation = #_sourceLocation) async throws -> String {
+        store.preview.seek(time)
+        await app.idle(0.4)
+        guard let e = drawn.first(where: { $0.clipID == clipID }), let p = onPicture(e.center[0], e.center[1]) else {
+            Issue.record("\(what) is not on the picture at \(time) s: \(drawn.map { "\($0.kind) \($0.clipID ?? "-")" })", sourceLocation: sourceLocation)
+            return "\(what) not on the picture"
+        }
+        rig.click(p)
+        await app.settle()
+        #expect(store.canvasSelection == clipID, "a click on \(what) selected \(String(describing: store.canvasSelection))", sourceLocation: sourceLocation)
+        let before = inspectorValue(self, "Scala")
+        #expect(inspectorNumber(before).map { abs($0 - e.scale * 100) <= 1 } == true,
+                "the Inspector's Scala reads \(before ?? "nothing") for \(what) drawn at \(e.scale)", sourceLocation: sourceLocation)
+        guard let field = rig.elements().first(where: { $0.role == "AXStaticText" && $0.value == before && $0.frame.minX > rig.size.width - Chrome.rightWidth }) else {
+            Issue.record("no Scala value to click for \(what): \(screen())", sourceLocation: sourceLocation)
+            return "\(what): no Scala"
+        }
+        let n = store.activity.count
+        rig.click(field.centre)
+        rig.pump(0.1)
+        #expect(rig.isTyping, "a click on \(what)'s Scala did not make a field", sourceLocation: sourceLocation)
+        rig.key("a", keyCode: 0, modifiers: .command)
+        rig.type("\(scale)")
+        rig.key(.returnKey)
+        await app.settle()
+        #expect(app.commands(since: n) == ["clip.place"], "\(what): the Inspector's Scala ran \(app.commands(since: n))", sourceLocation: sourceLocation)
+        let after = drawn.first { $0.clipID == clipID }
+        #expect(after.map { abs($0.scale - Double(scale) / 100) < 0.01 } == true, "\(what) drawn at \(String(describing: after?.scale)) after Scala \(scale) %",
+                sourceLocation: sourceLocation)
+        return "clicked on the picture, Scala \(before ?? "?") → \(inspectorValue(self, "Scala") ?? "?")"
+    }
+
+    /// Journey 6 from a cut take (`cuts`: where the pieces of V1 join).
+    func finishByHand(cuts: [Double]) async throws {
+        // Marca › Café Atelier (a built-in kit of no real business, its placeholder logo).
+        try await tap("Marca del progetto: il brand kit di sottotitoli, titoli e logo")
+        let picker = try #require(await popover(), "Marca opened no picker")
+        try await tap("Café Atelier", in: picker)
+        #expect(await until { store.project?.brand?.id == "cafe-atelier" }, "the kit was not applied")
+        #expect(await until { shows("Café Atelier") }, "the window does not name the kit: \(screen())")
+        step("Marca › Café Atelier", sees: "«Café Atelier» named, its captions on the picture")
+
+        // A title at the opening, in the kit's style.
+        try await toStart()
+        try await tap("Grafica")
+        let title = try await addTitle("Titolo", "IL REEL")
+        #expect(title.start.seconds < 0.05, "the title is not at the opening (\(title.start.seconds) s)")
+        let titleLine = try await pickAndScale(title.id, at: title.start.seconds + min(1, (title.end.seconds - title.start.seconds) / 2), to: 80, "the title")
+        step("Grafica › Titolo «IL REEL» at 0:00; on the picture, Scala 80 in the Inspector", sees: "the title on the timeline and the picture; \(titleLine)")
+
+        // The call to action at the end: a label over the last second and a half.
+        let duration = try #require(store.project?.duration.seconds)
+        store.preview.seek(max(0, duration - 1.5))
+        await app.idle(0.3)
+        let cta = try await addTitle("Etichetta", "SEGUICI")
+        let after = try #require(store.project?.duration.seconds)
+        // #72 (open, a decision to take): a title keeps its 2.5 s past the end of the video and the reel gets longer.
+        withKnownIssue("#72: a title added near the end runs past the video") {
+            #expect(abs(after - duration) < 0.05, "the call to action made the reel \(after) s long (it was \(duration) s): \(cta.start.seconds)–\(cta.end.seconds)")
+            #expect(cta.end.seconds <= duration + 0.05, "the call to action runs past the end (\(cta.end.seconds) s of \(duration) s)")
+        }
+        let ctaLine = try await pickAndScale(cta.id, at: (cta.start.seconds + min(cta.end.seconds, duration)) / 2, to: 120, "the call to action")
+        // The Inspector names its track as the lane does (#75: «Titles 2»).
+        #expect(shows(" · Titoli") && !shows("Titles"), "the Inspector does not name the call to action's track «Titoli»: \(screen())")
+        step("Playhead 1.5 s before the end, Grafica › Etichetta «SEGUICI»", sees: "the label \(String(format: "%.1f–%.1f", cta.start.seconds, cta.end.seconds)) s; \(ctaLine)")
+
+        // The logo, from Grafica › Logo.
+        try await tap("Logo")
+        try await tap("Logo nel video")
+        #expect(await until { store.project?.tracks.contains { $0.role == "logo" && !$0.clips.isEmpty } == true }, "no logo: \(screen())")
+        let logo = try #require(store.project?.tracks.first { $0.role == "logo" }?.clips.first)
+        let logoLine = try await pickAndScale(logo.id, at: min(logo.end.seconds - 0.6, max(logo.start.seconds + 1, duration / 2)), to: 60, "the logo")
+        step("Grafica › Logo › Logo nel video", sees: "the kit's logo in its corner \(String(format: "%.1f–%.1f", logo.start.seconds, logo.end.seconds)) s; \(logoLine)")
+
+        // Audio › a music, under the voice.
+        try await tap("Audio")
+        #expect(store.nav.activity == .audio)
+        RigGuard.panelAnswer = [try music()]
+        try await tap("Aggiungi musica…")
+        #expect(await until(30) { store.project.flatMap(AudioCalls.musicTrack) != nil && store.jobs.latest(AudioCalls.musicJob)?.isRunning == false }, "no music: \(screen())")
+        await app.settle()
+        let musicTrack = try #require(store.project.flatMap(AudioCalls.musicTrack))
+        #expect(musicTrack.ducking != nil, "the music does not go down under the voice")
+        #expect(control("Abbassa sotto la voce")?.value == "1" && shows("Quanto scende"), "the panel does not show the ducking: \(screen())")
+        let length = store.project?.duration.seconds ?? 0
+        #expect(abs(musicTrack.end.seconds - length) < 0.1, "the music lasts \(musicTrack.end.seconds) s of a \(length) s reel")
+        let level = rig.elements().first { $0.role == "AXStaticText" && $0.value == "LUFS" }.flatMap { unit in
+            rig.elements().filter { $0.role == "AXStaticText" && abs($0.centre.y - unit.centre.y) < 8 && $0.frame.maxX <= unit.frame.minX + 1 }.max { $0.frame.minX < $1.frame.minX }?.value
+        }
+        // The music's job checks it under the voice on its own; «Controlla sotto la voce» is offered when it did not.
+        if store.musicCheck == nil {
+            try await tap("Controlla sotto la voce")
+            #expect(await until(60) { store.jobs.latest("audio.checkDucking")?.isRunning == false && store.musicCheck != nil }, "the check under the voice did not end: \(screen())")
+            await app.settle()
+        }
+        #expect(store.musicCheck.map { shows($0.line) } == true, "the panel does not show the check under the voice: \(screen())")
+        let check = store.musicCheck
+        step("Audio › Aggiungi musica… musica.wav, Controlla sotto la voce",
+             sees: "the music on its track, «Abbassa sotto la voce» on; the level meter \(level ?? "not drawn") LUFS; the check: \(check?.line ?? "none")")
+
+        // A sound effect on a cut: the playhead on the join, Effetti sonori › + on a whoosh.
+        let at = cuts.first ?? 1
+        if cuts.isEmpty { Issue.record("the automatic edit left one piece: the sound goes at 1 s, not on a cut") }
+        store.preview.seek(at)
+        await app.idle(0.2)
+        try await tap("Effetti sonori")
+        // The first sound of the group on screen: its row plays it, its + (at the row's right end) adds it at the playhead.
+        await app.idle(0.5)   // the list lays out its rows
+        let titles = SoundLibrary.all(store.engine.context.services.config).map(SoundNames.title)
+        let row = try #require(rig.controls().first { c in c.role == "AXButton" && titles.contains { c.label.hasPrefix($0 + ",") } }, "no sound's row: \(screen())")
+        // The + is offered to assistive clients as the row's named action (#73).
+        let named = ((row.ref as? NSObject)?.value(forKey: "accessibilityCustomActions") as? [NSAccessibilityCustomAction])?.map(\.name) ?? []
+        #expect(named.contains("Aggiungi al cursore (pista Effetti)"), "the sound's row offers no add action: \(named)")
+        // The + sits at the row's right end (22 pt, 10 pt in).
+        rig.click(CGPoint(x: row.frame.maxX - 10 - 11, y: row.centre.y))
+        await app.idle(0.3)
+        await app.settle()
+        let sfx = store.project?.tracks.filter { $0.role == "sfx" }.flatMap(\.clips) ?? []
+        #expect(sfx.count == 1 && abs((sfx.first?.start.seconds ?? -9) - at) < 0.05, "the sound is not on the cut at \(at) s: \(sfx.map(\.start.seconds))")
+        step("Playhead on the cut at \(String(format: "%.2f", at)) s, Audio › Effetti sonori › + on the first whoosh", sees: "the sound on the Effetti track at the cut")
+
+        // A look: Grafica › Filtri › Pellicola.
+        try await tap("Grafica")
+        try await tap("Filtri")
+        let film = SimpleLooks.title("film")
+        let filmRow = await reveal(film, at: CGPoint(x: 200, y: 600))
+        rig.click(try #require(filmRow, "no «\(film)» in Grafica › Filtri: \(screen())").centre)
+        await app.settle()
+        #expect(await until { store.project?.grade?.look == "film" }, "the look is not on: \(String(describing: store.project?.grade))")
+        step("Grafica › Filtri › \(film)", sees: "the whole picture in the look")
+
+        // Esporta: the rules card, a failing rule fixed with its own button, the file.
+        try await tap("Esporta")
+        #expect(store.nav.activity == .export)
+        #expect(await until(6) { shows("da sistemare") || shows("controlli rispettati") }, "no rules card: \(screen())")
+        let report = try await store.silent("rules.check")
+        let failing = report["violations"]?.arrayValue?.filter { $0["severity"] == "fail" } ?? []
+        let loudness = rig.elements().first { $0.role == "AXStaticText" && ($0.value.hasSuffix(" LUFS") || $0.value == "–") && $0.frame.minX > 300 }?.value
+        step("Clicks Esporta", sees: "the rules card: \(failing.count) da sistemare (\(failing.compactMap { $0["check"]?.stringValue }.joined(separator: ", "))); Loudness «\(loudness ?? "?")» (the rig has no meter running)")
+        if let fix = control("Sistema") {
+            let before = failing.count
+            rig.click(fix.centre)
+            await app.settle()
+            let now = try await store.silent("rules.check")["violations"]?.arrayValue?.filter { $0["severity"] == "fail" }.count ?? 0
+            #expect(now < before, "«Sistema» fixed nothing (\(before) → \(now) failing)")
+            // The card follows the fix before the next click (its buttons change with what is left).
+            #expect(await until(6) { now == 0 ? shows("controlli rispettati") : shows("\(now) da sistemare") }, "the rules card does not show the fix: \(screen())")
+            await app.settle()
+            step("Clicks «Sistema» under the first failing rule", sees: "\(before) → \(now) da sistemare")
+        } else if !failing.isEmpty {
+            Issue.record("a failing rule has no «Sistema» of its own: \(failing)")
+        }
+        let out = scratch.appendingPathComponent("reel-finito.mp4")
+        RigGuard.panelAnswer = [out]
+        let left = try await store.silent("rules.check")["violations"]?.arrayValue?.filter { $0["severity"] == "fail" }.compactMap { $0["check"]?.stringValue } ?? []
+        if let fixAll = control("Sistema tutto ed esporta") {
+            rig.click(fixAll.centre)
+        } else if let plain = control("Esporta video…") {
+            rig.click(plain.centre)
+        } else {
+            // What is left has no fix of its own: the logo Grafica puts over the whole video breaks the reel's «logo only
+            // at the end» (#74, a decision to take). The person exports anyway.
+            withKnownIssue("#74: Grafica's logo for the whole video against the reel's rule") {
+                #expect(left.isEmpty, "rules left with no fix: \(left)")
+            }
+            try await tap("Esporta lo stesso")
+            step("«Il logo solo alla fine» has no «Sistema»", sees: "«Esporta lo stesso» only (left: \(left.joined(separator: ", ")))")
+        }
+        await app.settle()
+        #expect(await until(180) { FileManager.default.fileExists(atPath: out.path) && store.jobs.latest("export")?.isRunning == false },
+                "no exported file (export job: \(String(describing: store.jobs.latest("export").map { "\($0.state) \($0.detail)" }))): \(screen())")
+        await app.settle()
+        let p = try #require(store.project)
+        let movie = try await Journey.probe(out)
+        #expect(abs(movie.seconds - p.duration.seconds) < 0.1, "exported \(movie.seconds) s of a \(p.duration.seconds) s reel")
+        let failingAfter = try await store.silent("rules.check")["violations"]?.arrayValue?.filter { $0["severity"] == "fail" }.compactMap { $0["check"]?.stringValue } ?? []
+        #expect(failingAfter.allSatisfy { $0 == "logo-end" }, "rules other than the logo's still fail after the export: \(failingAfter)")
+        step("Esporta video…, Salva", sees: "the file \(movie.width)×\(movie.height), \(String(format: "%.1f", movie.seconds)) s; still failing: \(failingAfter.isEmpty ? "nothing" : failingAfter.joined(separator: ", "))")
     }
 }
