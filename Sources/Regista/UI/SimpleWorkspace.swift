@@ -703,8 +703,11 @@ struct Filmstrip: View {
                 rulerView(duration: duration, width: W)
                 if effects {
                     if items.isEmpty, p?.duration ?? .zero > .zero {
+                        // One line over the frames: in a narrow strip it wrapped and the frames cut its second line (#70).
                         Text("Gli effetti che aggiungi compaiono qui, nel punto dove li hai messi")
                             .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
+                            .lineLimit(1).minimumScaleFactor(0.85).truncationMode(.tail)
+                            .frame(width: W, alignment: .leading)
                             .offset(y: Self.ruler + 1)
                     }
                     ForEach(Array(rows.enumerated()), id: \.offset) { r, row in
