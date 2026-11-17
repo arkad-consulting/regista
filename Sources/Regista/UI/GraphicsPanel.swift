@@ -225,6 +225,7 @@ struct GraphicsPanel: View {
                         .padding(Ed.Space.m)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .continuesCue()
                     // A form opened under a row low in the list comes into view whole, its Aggiungi button included.
                     .onChange(of: state.textItem) { _, id in Self.reveal(id, proxy) }
                     .onChange(of: state.motionItem) { _, id in Self.reveal(id, proxy) }

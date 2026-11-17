@@ -58,6 +58,7 @@ struct VoicePanel: View {
                 }
                 .padding(Ed.Space.l)
             }
+            .continuesCue()
             if model.state == .ready, model.pane == .text { footer }
         }
         .task { await model.refresh() }

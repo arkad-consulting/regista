@@ -150,6 +150,7 @@ struct RecordView: View {
                 }
                 .padding(Ed.Space.l)
             }
+            .continuesCue()
             footer
         }
     }

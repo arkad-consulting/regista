@@ -293,3 +293,83 @@ extension MouseSuites {
     }
 }
 }
+
+// #54: a column that continues says so. At 1440×900 with «Schermo + volto» and a display whose line takes three lines,
+// the bubble's Angolo / Misura / Forma rows are below the fold: the cue (a fade of the panel's colour above the fixed
+// footer) is drawn; a control under it still answers a click; once the column is scrolled to its end the cue is gone.
+extension MouseSuites {
+@Suite(.serialized) @MainActor struct ContinuesCueMouseTests {
+    @Test func registraSaysItsColumnContinues() async throws {
+        let app = try await AppRig(project: nil)
+        defer { app.close() }
+        app.capture.screen = true
+        app.capture.displays = Array(DisplayInfo.samples.prefix(1))   // "Built-in Retina Display · 1512×982 · schermo principale"
+        app.hostEditor(Navigation(activity: .record, rightTab: .inspector), size: CGSize(width: 1440, height: 900))
+        await app.settle()
+        func control(_ name: String) -> RigElement? {
+            app.rig.elements().first { $0.isControl && $0.visible && ($0.label == name || $0.title == name || $0.label.hasPrefix(name + ",")) }
+        }
+        func text(_ name: String) -> RigElement? { app.rig.elements().first { $0.role == "AXStaticText" && $0.name == name } }
+        func inView(_ e: RigElement?) -> Bool { e.map { $0.visible && $0.clip.insetBy(dx: -1, dy: -1).contains($0.frame) } ?? false }
+        var cue: RigElement? { app.rig.elements().first { $0.name == "Altro sotto" && $0.visible } }
+        func until(_ seconds: Double = 4, _ condition: () -> Bool) async -> Bool {
+            let end = Date().addingTimeInterval(seconds)
+            while !condition() {
+                if Date() > end { return false }
+                await app.idle(0.05)
+            }
+            return true
+        }
+        app.rig.click(try #require(control("Schermo + volto"), "no «Schermo + volto»").centre)
+        await app.settle()
+        #expect(await until { app.recorder.sources.screen && app.recorder.sources.camera && app.recorder.sources.target != nil })
+        if app.recorder.sources.layout.kind != .bubble {
+            app.rig.click(try #require(control("Bolla"), "no «Bolla» tile").centre)
+            await app.settle()
+        }
+        #expect(app.recorder.sources.layout.kind == .bubble)
+        await app.settle()
+        // Rows below the fold, and the cue says so.
+        #expect(!inView(text("Forma")), "«Forma» is in view: nothing to cue")
+        #expect(await until { cue != nil }, "no cue while «Angolo» / «Misura» / «Forma» are below")
+        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+            try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("record-continues-cue-it.png"))
+        }
+        let band = try #require(cue).frame
+        #expect(band.height <= ContinuesCue.height + 1, "the cue is \(band.height) pt tall")
+
+        // A control under the cue still answers: scroll until one of the bubble's choices lies under the fade, click it.
+        let column = CGPoint(x: band.midX, y: band.minY - 60)
+        let choices = ["S", "M", "L", "Cerchio", "Quadrato"]
+        var under: RigElement?
+        for _ in 0..<40 where under == nil {
+            under = app.rig.elements().first { $0.isControl && $0.visible && choices.contains($0.name) && band.contains($0.centre) && !$0.selected }
+            if under == nil { app.rig.scrollContent(at: column, by: 6); await app.settle() }
+        }
+        let target = try #require(under, "no choice of the bubble ever lay under the cue")
+        #expect(cue != nil, "the cue went before the end of the column")
+        let before = app.recorder.sources.layout
+        var changes = 0
+        let watch = app.recorder.$sources.map(\.layout).removeDuplicates().dropFirst().sink { _ in changes += 1 }
+        defer { watch.cancel() }
+        app.rig.click(target.centre)
+        await app.settle()
+        let after = app.recorder.sources.layout
+        let expected = ["S", "M", "L"].contains(target.name) ? after.size == target.name : after.shape == (target.name == "Cerchio" ? "circle" : "rounded")
+        #expect(expected && after != before && changes == 1, "a click on «\(target.name)» under the cue gave \(after) after \(changes) changes")
+
+        // Scrolled to its end: every row in view, the cue gone.
+        app.rig.scrollContent(at: column, by: 2000)
+        await app.settle()
+        #expect(inView(text("Forma")), "«Forma» is not in view at the end of the column")
+        #expect(await until { cue == nil }, "the cue is still drawn at the end of the column")
+        // With REGISTA_UI_SNAPSHOTS: the column's top in French, the cue drawn.
+        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+            try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("record-continues-end-it.png"))
+            app.hostEditor(Navigation(activity: .record, rightTab: .inspector), size: CGSize(width: 1440, height: 900), language: "fr")
+            await app.settle()
+            try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("record-continues-cue-fr.png"))
+        }
+    }
+}
+}

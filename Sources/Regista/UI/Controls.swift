@@ -896,6 +896,37 @@ final class ColorPanelBridge: NSObject {
     }
 }
 
+// MARK: - A column that continues
+
+/// A scrolling column of the left panel with a fixed footer or a fixed edge says that it continues (#54): while content is
+/// hidden below, a short fade of the panel's colour over the last 16 pt above the edge; gone once the column is scrolled
+/// to its end. The fade never takes a click: a control under it still answers. (Accessible as "Altro sotto", so a test
+/// and VoiceOver can tell it is there.)
+struct ContinuesCue: ViewModifier {
+    var color: Color
+    @State private var below = false
+    static let height: CGFloat = 16
+
+    func body(content: Content) -> some View {
+        content
+            .onScrollGeometryChange(for: Bool.self) { g in g.visibleRect.maxY < g.contentSize.height - 1 } action: { _, now in below = now }
+            .overlay(alignment: .bottom) {
+                if below {
+                    LinearGradient(colors: [color.opacity(0), color], startPoint: .top, endPoint: .bottom)
+                        .frame(height: Self.height)
+                        .allowsHitTesting(false)
+                        .accessibilityElement()
+                        .accessibilityLabel(loc("Altro sotto"))
+                }
+            }
+    }
+}
+
+extension View {
+    /// The cue of a column that continues below a fixed footer or edge (`ContinuesCue`), in the panel's colour.
+    func continuesCue(_ color: Color = Ed.side) -> some View { modifier(ContinuesCue(color: color)) }
+}
+
 // MARK: - Sections, tags, cards
 
 /// A section's small title: spaced capitals in the tertiary grey (shell A's "MEDIA", "INQUADRATURA").

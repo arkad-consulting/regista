@@ -21,6 +21,7 @@ struct MediaTab: View {
                     }
                     .padding(10)
                 }
+                .continuesCue()
                 if let a = store.sourceAssetID.flatMap({ store.project?.asset($0) }) { details(a) }
             }
         }
