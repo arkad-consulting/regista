@@ -794,6 +794,13 @@ struct PrompterEditorView: View {
     /// Whether this Mac recognizes the chosen language on device (nil while checking).
     @State private var support: LiveSpeechSession.OnDeviceSupport?
 
+    /// «1 frase · 10 parole · circa 1 min»: each count in the singular when it is one (#63).
+    static func counts(sentences: Int, words: Int) -> String {
+        [sentences == 1 ? loc("1 frase") : String(format: loc("%d frasi"), sentences),
+         words == 1 ? loc("1 parola") : loc("%@ parole", String(words)),
+         String(format: loc("circa %d min"), max(1, Int((Double(words) / 160).rounded())))].joined(separator: " · ")
+    }
+
     /// The script editor's height when the panel is short; with room to spare it grows to fill the panel.
     static let editorMin: CGFloat = 160
 
@@ -811,8 +818,7 @@ struct PrompterEditorView: View {
     private var content: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: Ed.Space.l) {
-                Text(verbatim: String(format: loc("%d frasi · %d parole · circa %d min"), p.prompt.sentences.count,
-                                      p.wordCount, max(1, Int((Double(p.wordCount) / 160).rounded()))))
+                Text(verbatim: Self.counts(sentences: p.prompt.sentences.count, words: p.wordCount))
                     .font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text2)
                 Text("In modalità **Voce** il gobbo ti ascolta: avanza mentre leggi, si ferma se parli d'altro e, se ricominci una frase, torna al suo inizio e segna una nuova ripresa. Una riga numerata = una ripresa; \" / \" = pausa, *parola* = parola chiave. La finestra non compare mai nelle registrazioni dello schermo.")
                     .font(Ed.ui(Ed.TypeSize.small))

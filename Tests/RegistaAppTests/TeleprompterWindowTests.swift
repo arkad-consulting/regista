@@ -102,3 +102,11 @@ private func goldPixels(_ rep: NSBitmapImageRep) -> [(x: Int, y: Int)] {
     let rowY = Double(wn.map(\.y).reduce(0, +)) / Double(wn.count)
     #expect(rowY > Double(normal.pixelsHigh) * 0.2 && rowY < Double(normal.pixelsHigh) * 0.6)
 }
+
+/// #63: Gobbo's line over the script says one sentence and one word in the singular.
+@MainActor
+@Test func theTeleprompterCountsSayOneInTheSingular() {
+    #expect(PrompterEditorView.counts(sentences: 1, words: 1) == "1 frase · 1 parola · circa 1 min")
+    #expect(PrompterEditorView.counts(sentences: 1, words: 10) == "1 frase · 10 parole · circa 1 min")
+    #expect(PrompterEditorView.counts(sentences: 3, words: 480) == "3 frasi · 480 parole · circa 3 min")
+}

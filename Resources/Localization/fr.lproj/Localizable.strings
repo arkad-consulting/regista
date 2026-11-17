@@ -38,7 +38,6 @@
 "%d clip sulla pista Voce" = "%d clips sur la piste Voix";
 "%d clip sulla pista Voce · %@" = "%d clips sur la piste Voix · %@";
 "%d effetti sonori" = "%d effets sonores";
-"%d frasi · %d parole · circa %d min" = "%d phrases · %d mots · environ %d min";
 "%d GB" = "%d Go";
 "%d GB di RAM" = "%d Go de RAM";
 "%d grafiche nel video" = "%d graphismes dans la vidéo";
@@ -2195,3 +2194,5 @@
 "Altro sotto" = "Suite plus bas";
 "I file di supporto di questo motore sono più vecchi di quelli dell'app: rimuovilo e installalo di nuovo." = "Les fichiers d'assistance de ce moteur sont plus anciens que ceux de l'app : supprimez-le et installez-le à nouveau.";
 "in pausa" = "en pause";
+"1 frase" = "1 phrase";
+"%d frasi" = "%d phrases";
