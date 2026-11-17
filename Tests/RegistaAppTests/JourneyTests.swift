@@ -45,9 +45,9 @@ final class Journey {
     var rig: MouseRig { app.rig }
     var store: EditorStore { app.store.bench.active }
 
-    /// The window at the default size on `nav`, the keyboard going to it as in the app.
-    func open(_ nav: Navigation) async {
-        app.hostEditor(nav, language: "it")
+    /// The window on `nav` (at the default size, else `size`), the keyboard going to it as in the app.
+    func open(_ nav: Navigation, size: CGSize = CGSize(width: 1440, height: 900)) async {
+        app.hostEditor(nav, size: size, language: "it")
         app.store.bench.window = rig.window
         KeyMonitor.install(app.store.bench)
         await app.settle()
@@ -802,5 +802,336 @@ extension MouseSuites.ClickAudits {
         #expect(out.path.hasPrefix(j.scratch.path))
         j.step("Esporta › Esporta video…, Salva", sees: "the file \(movie.width)×\(movie.height), \(String(format: "%.1f", movie.seconds)) s, in the scratch folder")
     }
+
+    /// 5. Monta › Semplice, the guided steps: an empty app → Nuovo progetto… → Media › Importa… a take with speech →
+    /// «Semplice» in the editor's toolbar → each step by its own button, in its order: Taglio e riprese («Taglia il
+    /// video»), Sottotitoli (the switch), Aspetto (the light and a colour), Musica e suoni (a music, the whoosh on the
+    /// cuts), Voce («Pulisci la voce»), Grafica (a title) → a step back and forward again, Pro and back: nothing lost →
+    /// «Esporta il reel» → the file. After each step: which step is open, what its button did (the timeline, the
+    /// transcript, the captions on the picture), that the next step is offered only when it can run, and that the step's
+    /// main control is in view or its column says it continues.
+    @Test func theGuidedStepsOfSemplice() async throws {
+        let j = try await Journey("5-semplice", project: nil)
+        defer { j.close() }
+        try await j.semplice(size: CGSize(width: 1440, height: 900), export: true)
+    }
+
+    /// 5b. Journey 5 at the window's minimum size (1024×640, the steps' rail compact): every step's main control is in
+    /// view, or its column says it continues; the steps act as at the default size.
+    @Test func theGuidedStepsOfSempliceAtTheMinimumWindow() async throws {
+        let j = try await Journey("5-semplice-min", project: nil)
+        defer { j.close() }
+        try await j.semplice(size: RigWindowSize.minimum.size, export: false)
+    }
 }
+}
+
+// MARK: - Journey 5: Monta › Semplice
+
+extension Journey {
+    /// The rail's row of `step` (its title, then its state in words).
+    func stepRow(_ step: SimpleStep) -> RigElement? {
+        // In the rail's column, under «Fai tutto» (the activity bar has a «Voce» too, the step panel's footer names the
+        // next step).
+        let title = step.title()
+        let all = rig.elements()
+        guard let doAll = all.first(where: { $0.isControl && $0.label.hasPrefix("Taglia, sceglie le riprese") }) else { return nil }
+        return all.first { $0.role == "AXButton" && $0.frame.minX >= doAll.frame.minX - 4 && $0.frame.maxX <= doAll.frame.maxX + 4
+            && ($0.label == title || $0.label.components(separatedBy: ", ").contains(title)) }
+    }
+
+    /// Clicks the rail's row of `step`, scrolling the rail (as the wheel would) when it is below the fold.
+    func openRow(_ step: SimpleStep, sourceLocation: SourceLocation = #_sourceLocation) async throws {
+        var row = try #require(stepRow(step), "no «\(step.title())» on the rail: \(screen())", sourceLocation: sourceLocation)
+        for _ in 0..<10 where !(row.visible && row.clip.insetBy(dx: -1, dy: -1).contains(row.frame)) {
+            guard rig.scrollContent(at: CGPoint(x: row.centre.x, y: min(row.centre.y, row.clip.maxY - 30)), by: 80) else { break }
+            await app.idle(0.05)
+            row = try #require(stepRow(step), sourceLocation: sourceLocation)
+        }
+        rig.click(row.centre)
+        await app.settle()
+        #expect(openStep == step, "a click on «\(step.title())» opened \(String(describing: openStep))", sourceLocation: sourceLocation)
+        // The step opens at its top, its name in view, whatever the step before was scrolled to.
+        #expect(headerInView(step), "«\(step.title())» opened without its name in view: \(screen())", sourceLocation: sourceLocation)
+    }
+
+    /// The step open: its row on the rail is the chosen one.
+    var openStep: SimpleStep? { SimpleStep.allCases.first { stepRow($0)?.selected == true } }
+
+    /// The step panel's header names `step`, in view (right of the rail).
+    func headerInView(_ step: SimpleStep) -> Bool {
+        let rail = stepRow(.cut)?.frame.maxX ?? 0
+        return rig.elements().contains { $0.role == "AXStaticText" && $0.visible && $0.value == step.title() && $0.frame.minX > rail
+            && $0.clip.insetBy(dx: -1, dy: -1).contains($0.frame) }
+    }
+
+    /// Clicks the step panel's «Prossimo passo» button: it opens `next` at its top.
+    func goNext(_ next: SimpleStep, sourceLocation: SourceLocation = #_sourceLocation) async throws {
+        let b = try #require(nextButton, "no «Prossimo passo»: \(screen())", sourceLocation: sourceLocation)
+        #expect(b.label == next.title(), "«Prossimo passo» offers \(b.label), not \(next.title())", sourceLocation: sourceLocation)
+        rig.click(b.centre)
+        await app.settle()
+        #expect(openStep == next, "«Prossimo passo: \(b.label)» opened \(String(describing: openStep)): rail \(SimpleStep.allCases.map { "\($0.rawValue)=\(stepRow($0).map { "\($0) \($0.selected)" } ?? "-")" })", sourceLocation: sourceLocation)
+        #expect(headerInView(next), "«\(next.title())» opened without its name in view: \(screen())", sourceLocation: sourceLocation)
+    }
+
+    /// The step panel's footer button that opens the next step to do (named by its title), nil when none is offered.
+    var nextButton: RigElement? {
+        let rail = stepRow(.cut)?.frame.maxX ?? 0
+        return rig.elements().first { e in e.role == "AXButton" && e.visible && e.frame.minX > rail && SimpleStep.allCases.contains { $0.title() == e.label } }
+    }
+
+    /// `e` is whole in view, above the status bar, or the scrolling column it lies in says it continues («Altro sotto»).
+    func inViewOrCued(_ e: RigElement?) -> Bool {
+        guard let e else { return false }
+        if e.visible && e.clip.insetBy(dx: -1, dy: -1).contains(e.frame) && e.frame.maxY <= Double(rig.size.height) - Double(Chrome.statusHeight) { return true }
+        return rig.elements().contains { $0.name == "Altro sotto" && $0.frame.minX <= e.centre.x && $0.frame.maxX >= e.centre.x }
+    }
+
+    /// A step's main control (named `name`, in view or not) is in view, or its column says it continues; then it is
+    /// scrolled into view as a person would, under the cue. Returns the line for the audit table.
+    @discardableResult
+    func mainControl(_ name: String, sourceLocation: SourceLocation = #_sourceLocation) async -> String {
+        let find = { self.rig.elements().first { $0.isControl && ($0.label == name || $0.title == name || $0.label.hasPrefix(name + ",")) } }
+        var e = find()
+        // Far below the fold a control is not in the accessibility tree at all: what a person does is scroll the
+        // column that says it continues, the step panel (right of the rail) first.
+        var cueSeen = false
+        if e == nil {
+            let rail = stepRow(.cut)?.frame.maxX ?? 0
+            let cues = rig.elements().filter { $0.name == "Altro sotto" }.sorted { ($0.frame.minX > rail ? 0 : 1) < ($1.frame.minX > rail ? 0 : 1) }
+            cueSeen = !cues.isEmpty
+            for cue in cues where e == nil {
+                for _ in 0..<12 where e == nil {
+                    guard rig.scrollContent(at: CGPoint(x: cue.centre.x, y: cue.frame.minY - 40), by: 80) else { break }
+                    await app.idle(0.05)
+                    e = find()
+                }
+            }
+        }
+        #expect(e != nil, "no «\(name)» in the step: \(screen())", sourceLocation: sourceLocation)
+        #expect(cueSeen || inViewOrCued(e), "«\(name)» is below the fold at \(Int(rig.size.width))×\(Int(rig.size.height)) and nothing says the column continues: \(String(describing: e?.frame)) in \(String(describing: e?.clip)); cues \(rig.elements().filter { $0.name.contains("Altro") }.map { "\($0) \($0.frame)" })",
+                sourceLocation: sourceLocation)
+        guard var shown = e else { return "«\(name)» missing" }
+        let line = !cueSeen && shown.clip.insetBy(dx: -1, dy: -1).contains(shown.frame) ? "«\(name)» in view" : "«\(name)» below the fold under «Altro sotto»"
+        for _ in 0..<10 where !(shown.visible && shown.clip.insetBy(dx: -1, dy: -1).contains(shown.frame)) {
+            guard rig.scrollContent(at: CGPoint(x: shown.centre.x, y: shown.clip.midY), by: 80), let again = find() else { break }
+            await app.idle(0.05)
+            shown = again
+        }
+        #expect(shown.visible && shown.clip.insetBy(dx: -1, dy: -1).contains(shown.frame), "«\(name)» could not be scrolled into view", sourceLocation: sourceLocation)
+        return line
+    }
+
+    /// The project as a person would notice a loss: every clip's place, the captions, the look, the music's ducking.
+    var simpleSignature: String {
+        guard let p = store.project else { return "" }
+        let clips = p.tracks.map { t in "\(t.kind.rawValue)/\(t.role ?? "")[\(t.clips.map { "\($0.id)@\($0.start.seconds)-\($0.end.seconds)" }.joined(separator: ","))]\(t.ducking.map { "d\($0.depth)" } ?? "")" }
+        return clips.joined(separator: " ") + " look:\(p.grade?.look ?? "-") captions:\(p.tracks.first { $0.captions != nil }?.captions?.style.id ?? "-")"
+    }
+
+    /// A music file of `seconds` (two soft tones, gently pulsing), as a person would pick from their folder.
+    func music(_ name: String = "musica.wav", seconds: Double = 12) throws -> URL {
+        let url = scratch.appendingPathComponent(name)
+        try? FileManager.default.removeItem(at: url)
+        let rate = 44_100.0
+        let format = try #require(AVAudioFormat(standardFormatWithSampleRate: rate, channels: 2))
+        let frames = AVAudioFrameCount(rate * seconds)
+        let buffer = try #require(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames))
+        buffer.frameLength = frames
+        for c in 0..<2 {
+            let samples = try #require(buffer.floatChannelData?[c])
+            for i in 0..<Int(frames) {
+                let t = Double(i) / rate
+                samples[i] = Float(0.12 * (sin(2 * .pi * 220 * t) + 0.6 * sin(2 * .pi * 277.18 * t)) * (0.7 + 0.3 * sin(2 * .pi * 2 * t)))
+            }
+        }
+        do {
+            let file = try AVAudioFile(forWriting: url, settings: format.settings)
+            try file.write(from: buffer)
+        }
+        return url
+    }
+
+    /// Journey 5 (JourneyTests.theGuidedStepsOfSemplice) in a window of `size`; `export`: then «Esporta il reel» to the file.
+    func semplice(size: CGSize, export: Bool) async throws {
+        let at = "\(Int(size.width))×\(Int(size.height))"
+        let video = try take("parlato.mov")
+        await open(Navigation(activity: .home, rightTab: .inspector), size: size)
+        step("Opens the app at \(at)", sees: "Inizio, an empty tab")
+
+        // Nuovo progetto…, Media › Importa… the take: it goes on the empty timeline.
+        RigGuard.panelAnswer = [scratch.appendingPathComponent("Semplice")]
+        try await tap("Nuovo progetto…")
+        #expect(await until { store.project?.name == "Semplice" }, "no new project: \(screen())")
+        await app.settle()
+        try await tap("Media")
+        RigGuard.panelAnswer = [video]
+        try await tap("Importa video, audio o immagini nel progetto")
+        #expect(await until(10) { store.project?.tracks.flatMap(\.clips).count == 2 }, "the take is not on the timeline: \(screen())")
+        await app.settle()
+        step("Nuovo progetto… «Semplice», Media › Importa… parlato.mov", sees: "the take on V1 and A1, the Pro level")
+
+        // Monta › Semplice: the six steps, Taglio e riprese open and next.
+        try await tap("Semplice")
+        #expect(await until { store.nav.level == .simple && stepRow(.cut) != nil }, "«Semplice» did not show the steps (level \(store.nav.level)): \(screen())")
+        await app.settle()
+        // Every step is on the rail, in view or below a column that says it continues.
+        for s in SimpleStep.allCases { #expect(inViewOrCued(stepRow(s)), "the step «\(s.title())» is not on the rail, or below the fold with no cue: \(String(describing: stepRow(s)?.frame))") }
+        #expect(openStep == .cut, "the open step is \(String(describing: openStep)), not Taglio e riprese")
+        #expect(nextButton == nil, "a next step is offered before the first one is done: \(String(describing: nextButton))")
+        let cutButton = await mainControl("Taglia il video")
+        step("Clicks «Semplice» in the editor's toolbar", sees: "the six steps, Taglio e riprese open and «Prossimo», \(cutButton)")
+
+        // Another step opened from the rail before the cut: the take is already on the timeline, so its controls act;
+        // the footer offers the step still to do first, which can run.
+        try await openRow(.look)
+        #expect(openStep == .look, "a click on Aspetto opened \(String(describing: openStep))")
+        let lookChip = SimpleLooks.title("film")
+        await mainControl(lookChip)
+        #expect(control(lookChip)?.enabled == true, "Aspetto's colours are off with the take on the timeline")
+        #expect(nextButton?.label == SimpleStep.cut.title() && store.simpleSnapshot[.cut].canAct,
+                "the step offered next is \(nextButton?.label ?? "none") (the cut can act: \(store.simpleSnapshot[.cut].canAct))")
+        step("Clicks Aspetto on the rail before the cut", sees: "Aspetto's light and colours, «Prossimo passo: Taglio e riprese»")
+        try await goNext(.cut)
+
+        // 1. Taglio e riprese: «Taglia il video» transcribes, finds the takes, cuts the pauses.
+        await mainControl("Taglia il video")
+        try await tap("Taglia il video")
+        #expect(await until(60) { store.simpleSnapshot[.cut].status == .done && store.simpleSnapshot.busy == nil }, "the cut did not finish: \(screen())")
+        await app.settle()
+        let cut = try #require(store.project)
+        #expect(cut.assets.first?.analysis?.transcript != nil, "the take was not transcribed")
+        #expect(cut.takes != nil, "no takes were found")
+        #expect(cut.duration.seconds < 5.9, "the pauses are still there: \(cut.duration.seconds) s of a 6 s take")
+        #expect(openStep == .cut && rig.elements().contains { $0.value == "RIPRESE" }, "the cut's panel does not show the takes: \(screen())")
+        #expect(nextButton?.label == SimpleStep.captions.title(), "after the cut the next step offered is \(nextButton?.label ?? "none")")
+        step("Taglio e riprese › Taglia il video", sees: "the edit \(String(format: "%.1f", cut.duration.seconds)) s on the timeline, «RIPRESE», «Prossimo passo: Sottotitoli»")
+
+        // 2. Sottotitoli: the switch makes them from the words; they are on the picture.
+        try await goNext(.captions)
+        let captionsSwitch = await mainControl("Sottotitoli nel video")
+        try await tap("Sottotitoli nel video")
+        #expect(await until(30) { store.simpleSnapshot.captionsTrack != nil && store.simpleSnapshot.busy == nil }, "no captions: \(screen())")
+        await app.settle()
+        store.preview.seek(0.6)
+        await app.idle(0.3)
+        #expect(drawn.contains { $0.kind == .caption }, "no caption on the picture at 0.6 s: \(drawn.map(\.kind))")
+        #expect(control("Sottotitoli nel video")?.value == "1", "the switch does not read on")
+        #expect(nextButton?.label == SimpleStep.look.title(), "after the captions the next step offered is \(nextButton?.label ?? "none")")
+        step("Prossimo passo › Sottotitoli, the switch on (\(captionsSwitch))", sees: "the captions on the picture, the step done, «Prossimo passo: Aspetto»")
+
+        // 3. Aspetto: the light and a colour.
+        try await goNext(.look)
+        let light = await mainControl("Luce leggera")
+        try await tap("Luce leggera")
+        #expect(await until { store.simpleSnapshot.light }, "the light grade is not on")
+        await mainControl(lookChip)
+        try await tap(lookChip)
+        #expect(await until { store.project?.grade?.look == "film" }, "the colour is not on: \(String(describing: store.project?.grade))")
+        #expect(control(lookChip)?.selected == true, "«\(lookChip)» is not shown as chosen")
+        #expect(store.simpleSnapshot[.look].status == .done)
+        step("Prossimo passo › Aspetto, Luce leggera, «\(lookChip)» (\(light))", sees: "the picture warmer and lighter, the step done")
+
+        // 4. Musica e suoni: optional, so it is opened from the rail; a music, then the whoosh on the cuts.
+        let offered = nextButton?.label
+        #expect(offered != SimpleStep.sound.title(), "the optional step is offered as the next one to do")
+        try await openRow(.sound)
+        #expect(openStep == .sound)
+        let pick = await mainControl("Scegli una musica…")
+        RigGuard.panelAnswer = [try music()]
+        try await tap("Scegli una musica…")
+        #expect(await until(30) { store.simpleSnapshot.music != nil && store.jobs.latest(AudioCalls.musicJob)?.isRunning == false }, "no music: \(screen())")
+        await app.settle()
+        #expect(store.simpleSnapshot.music?.ducking == true, "the music does not go down under the voice")
+        await mainControl("Si abbassa quando parli")
+        #expect(shows("musica.wav") && control("Si abbassa quando parli")?.value == "1", "the step does not show the music and its ducking: \(screen())")
+        await mainControl("Un whoosh sui tagli")
+        let whoosh = control("Un whoosh sui tagli")
+        if whoosh?.enabled == true {
+            try await tap("Un whoosh sui tagli")
+            #expect(await until { store.simpleSnapshot.effects > 0 }, "no sound on the cuts")
+        } else {
+            Issue.record("«Un whoosh sui tagli» is off after the cut (\(store.project.flatMap(SimpleSnapshot.mainVideo)?.clips.count ?? 0) clips): \(screen())")
+        }
+        step("Musica e suoni (from the rail), Scegli una musica… musica.wav, Un whoosh sui tagli (\(pick))",
+             sees: "the music under the voice with its ducking, \(store.simpleSnapshot.effects) sounds on the cuts")
+
+        // 5. Voce: the cleaning, when this Mac has its engine; else the way to install it.
+        try await openRow(.voice)
+        #expect(openStep == .voice)
+        if store.simpleSnapshot[.voice].status == .unavailable {
+            #expect(control("Installa…") != nil, "Voce cannot run and does not offer the install: \(screen())")
+            step("Voce", sees: "the cleaner is not installed on this Mac: «Installa…»")
+        } else {
+            let clean = await mainControl("Pulisci la voce")
+            try await tap("Pulisci la voce")
+            #expect(await until(90) { store.simpleSnapshot.cleaned && store.simpleSnapshot.busy == nil }, "the voice was not cleaned: \(screen())")
+            await app.settle()
+            #expect(control("Pulisci la voce")?.value == "1")
+            step("Voce › Pulisci la voce (\(clean))", sees: "the voice cleaned at −15 LUFS, the step done")
+        }
+
+        // 6. Grafica: a title at the playhead.
+        store.preview.seek(0)
+        try await openRow(.graphics)
+        #expect(openStep == .graphics)
+        let titleLine = await mainControl("Titolo")
+        rig.click(try #require(control("Titolo")).centre)
+        await app.settle()
+        await app.idle(0.4)
+        #expect(rig.isTyping, "the title form does not take the keyboard")
+        rig.type("SEMPLICE")
+        await mainControl("Aggiungi")
+        rig.click(try #require(control("Aggiungi"), "the title form's Aggiungi cannot be reached: \(screen())").centre)
+        await app.settle()
+        let titleClip = { self.store.project?.tracks.flatMap(\.clips).first { $0.title?.text.contains("SEMPLICE") == true } }
+        #expect(await until { titleClip() != nil }, "no title: \(screen())")
+        if let t = titleClip() {
+            store.preview.seek(t.start.seconds + 0.5)
+            await app.idle(0.3)
+            #expect(drawn.contains { $0.clipID == t.id }, "the title is not on the picture")
+        }
+        #expect(store.simpleSnapshot[.graphics].status == .done)
+        step("Grafica › Titolo, types SEMPLICE, Aggiungi (\(titleLine))", sees: "the title on the picture, the step done")
+
+        // A step back and forward again: nothing lost.
+        let kept = simpleSignature
+        let states = SimpleStep.allCases.map { store.simpleSnapshot[$0].status }
+        try await openRow(.voice)
+        #expect(openStep == .voice && simpleSignature == kept, "going back to Voce changed the project")
+        try await openRow(.graphics)
+        #expect(openStep == .graphics && simpleSignature == kept && store.simpleSnapshot[.graphics].status == .done, "forward to Grafica again: \(screen())")
+        step("Clicks Voce on the rail, then Grafica", sees: "each step as it was left")
+
+        // Pro and back: the same project, the same steps.
+        try await tap("Pro")
+        #expect(await until { store.nav.level == .pro && laneY("V1") != nil }, "«Pro» did not show the timeline: \(screen())")
+        #expect(simpleSignature == kept, "Pro changed the project")
+        step("Clicks «Pro»", sees: "the timeline with the edit, captions, music, sounds and title")
+        try await tap("Semplice")
+        #expect(await until { store.nav.level == .simple && stepRow(.cut) != nil }, "back to Semplice: \(screen())")
+        #expect(simpleSignature == kept, "back to Semplice changed the project")
+        #expect(SimpleStep.allCases.map { store.simpleSnapshot[$0].status } == states, "the steps' states changed through Pro")
+        #expect(openStep == .graphics, "back from Pro the open step is \(String(describing: openStep)), not Grafica where the person left")
+        step("Clicks «Semplice» again", sees: "the six steps as they were, \(openStep?.title() ?? "no step") open")
+
+        guard export else { return }
+        // «Esporta il reel»: Esporta on Reel 9:16, then the file.
+        let exportButton = try #require(rig.controls().first { $0.name.hasPrefix("Apre Esporta con il formato Reel 9:16") }, "no «Esporta il reel»: \(screen())")
+        rig.click(exportButton.centre)
+        await app.settle()
+        #expect(store.nav.activity == .export && ExportOptions.shared.preset == "9:16", "«Esporta il reel» did not open Esporta on 9:16")
+        #expect(await until(6) { shows("da sistemare") || shows("controlli rispettati") || shows("controllo rispettato") }, "no rules card: \(screen())")
+        step("Clicks «Esporta il reel»", sees: "Esporta on Reel 9:16, the rules card")
+        let out = scratch.appendingPathComponent("semplice.mp4")
+        RigGuard.panelAnswer = [out]
+        if let fixAll = control("Sistema tutto ed esporta") { rig.click(fixAll.centre) } else { try await tap("Esporta video…") }
+        await app.settle()
+        #expect(await until(90) { FileManager.default.fileExists(atPath: out.path) && store.jobs.latest("export")?.isRunning == false }, "no exported file: \(screen())")
+        let movie = try await Journey.probe(out)
+        #expect(movie.width * 16 == movie.height * 9, "exported \(movie.width)×\(movie.height), not 9:16")
+        #expect(abs(movie.seconds - (store.project?.duration.seconds ?? 0)) < 0.1)
+        step("Esporta video…, Salva", sees: "the file \(movie.width)×\(movie.height), \(String(format: "%.1f", movie.seconds)) s")
+    }
 }
