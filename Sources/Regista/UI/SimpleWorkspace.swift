@@ -143,6 +143,8 @@ private struct SimpleRail: View {
                 }
                 .padding(compact ? Ed.Space.s : Ed.Space.m)
             }
+            // A short window hides the last steps under the export (#67).
+            .continuesCue(Ed.side)
             exportBar
         }
         .background(Ed.side)
@@ -307,6 +309,8 @@ private struct SimplePanel: View {
                 .padding(Ed.Space.l)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            // A step's main button can be below a short window's fold, over the footer (#67).
+            .continuesCue(Ed.panel)
             footer
         }
         .background(Ed.panel)
