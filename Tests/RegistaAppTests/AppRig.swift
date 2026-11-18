@@ -209,6 +209,26 @@ final class AppRig {
         UserDefaults.standard.removeObject(forKey: SettingsRoute.tabKey)
     }
 
+    /// The app launched again on `old`'s defaults and the same scratch support folder: `old`'s window closes (its defaults
+    /// kept, this rig owns them now), then a workbench is built as the app's AppState builds it, with no tab of its own,
+    /// and its tabs come back as at launch (`Workbench.restoreTabs`).
+    init(relaunching old: AppRig) async throws {
+        old.close(keepingDefaults: true)
+        setenv("REGISTA_ENGINE_SOCKET", FileManager.default.temporaryDirectory.appendingPathComponent("rg-\(UUID().uuidString.prefix(8)).sock").path, 1)
+        defaultsName = old.defaultsName
+        defaults = UserDefaults(suiteName: defaultsName)!
+        let bench = Workbench(defaults: defaults, seedFolders: [], services: RigServices.factory())
+        capture = RigCapture()
+        recorder = Recorder(defaults: defaults, hardware: capture)
+        bench.recorder = recorder
+        TeleprompterController.shared.recorder = recorder
+        meter = LoudnessMeter()
+        RigTrace.note("AppRig.init(relaunching:): restoreTabs")
+        bench.restoreTabs()
+        store = bench.active
+        RigGuard.alertAnswer = .alertSecondButtonReturn
+    }
+
     /// The editor window at a navigation state, on the tab on screen (another tab selected rebuilds it, as in the app).
     /// `language`: the window's words in that language (MouseRig), nil for the Italian keys.
     func hostEditor(_ nav: Navigation, size: CGSize = CGSize(width: 1440, height: 900), language: String? = nil,
@@ -242,7 +262,10 @@ final class AppRig {
     /// launch (Workbench.follow). The click audits leave them unwired (a take there writes nothing).
     func followRecorder() { recorderLink = store.bench.follow(recorder) }
 
-    func close() {
+    func close() { close(keepingDefaults: false) }
+
+    /// `keepingDefaults`: the app's defaults stay for a relaunch (`init(relaunching:)`).
+    func close(keepingDefaults: Bool) {
         recorderLink = nil
         recorder.onFinished = nil
         recorder.onSessionFinished = nil
@@ -251,7 +274,7 @@ final class AppRig {
         if recorder.isRecording { recorder.stop() }
         if TeleprompterController.shared.recorder === recorder { TeleprompterController.shared.recorder = nil }
         if store.preview.isPlaying { store.preview.togglePlay() }
-        defaults.removePersistentDomain(forName: defaultsName)
+        if !keepingDefaults { defaults.removePersistentDomain(forName: defaultsName) }
     }
 
     /// Waits `seconds` with the main run loop turning inside a nested loop of ours: the store's results (blocks on the

@@ -21,7 +21,7 @@ struct JourneyStop: Error {}
 /// One journey: its window, a snapshot after each step, a line per step.
 @MainActor
 final class Journey {
-    let app: AppRig
+    private(set) var app: AppRig
     let name: String
     private(set) var lines: [String] = []
     private var count = 0
@@ -44,6 +44,13 @@ final class Journey {
 
     var rig: MouseRig { app.rig }
     var store: EditorStore { app.store.bench.active }
+
+    /// The app launched again on the same defaults and support folder (AppRig.init(relaunching:)); its window opened on
+    /// the navigation the app restores.
+    func relaunch() async throws {
+        app = try await AppRig(relaunching: app)
+        await open(app.store.bench.nav)
+    }
 
     /// The window on `nav` (at the default size, else `size`), the keyboard going to it as in the app.
     func open(_ nav: Navigation, size: CGSize = CGSize(width: 1440, height: 900)) async {
@@ -838,7 +845,34 @@ extension MouseSuites.ClickAudits {
             UserDefaults.standard.set(autoEdit, forKey: Prefs.autoEditKey)
             j.close()
         }
-        // The start of the first journey: a camera take recorded, cut by the automatic edit.
+        let cuts = try await j.recordAndCut()
+        try await j.finishByHand(cuts: cuts)
+    }
+
+    /// 7. A project saved, closed and found again: journey 6's finished reel (its steps reused, not proven again) → the
+    /// tab says it has unsaved changes → saved with the menu's Salva (the command table) and with ⌘S (a key event) →
+    /// a change, the tab's ×: Annulla keeps the tab, Non salvare drops the change, Salva writes it → Inizio lists the
+    /// project with its name and length, a click reopens it: everything as it was → the history, undo and redo → undo
+    /// right after reopening → export again: the same length, the same picture → the app launched again.
+    @Test func aProjectIsSavedClosedAndFoundAgain() async throws {
+        let j = try await Journey("7-found-again", project: nil)
+        let autoEdit = UserDefaults.standard.object(forKey: Prefs.autoEditKey)
+        defer {
+            UserDefaults.standard.set(autoEdit, forKey: Prefs.autoEditKey)
+            j.close()
+        }
+        try await j.foundAgain()
+    }
+}
+}
+
+// MARK: - Journey 6's start: a take recorded and cut
+
+extension Journey {
+    /// The start of the first journey: a camera take recorded, cut by the automatic edit. Returns where the pieces of V1
+    /// join.
+    func recordAndCut() async throws -> [Double] {
+        let j = self
         UserDefaults.standard.set(true, forKey: Prefs.autoEditKey)
         j.app.capture.take = try j.take()
         j.app.followRecorder()
@@ -860,10 +894,8 @@ extension MouseSuites.ClickAudits {
         #expect(said.contains("regista") && said.contains("spariscono"), "the edit lost words of the take: captions «\(said)»")
         let cuts = (cut.tracks.first { $0.kind == .video }?.clips ?? []).dropFirst().map(\.start.seconds)
         j.step("Records a take, the automatic edit cuts it", sees: "the cut take (\(String(format: "%.1f", cut.duration.seconds)) s, \(cuts.count + 1) pieces) with its captions")
-
-        try await j.finishByHand(cuts: Array(cuts))
+        return Array(cuts)
     }
-}
 }
 
 // MARK: - Journey 5: Monta › Semplice
@@ -1393,5 +1425,266 @@ extension Journey {
         }
         #expect(await until(6) { shows("controlli rispettati") }, "the rules card does not show every rule respected: \(screen())")
         step("Esporta video…, Salva", sees: "the file \(movie.width)×\(movie.height), \(String(format: "%.1f", movie.seconds)) s; still failing: \(failingAfter.isEmpty ? "nothing" : failingAfter.joined(separator: ", "))")
+    }
+}
+
+// MARK: - Journey 7: a project saved, closed and found again
+
+/// A menu item's action (the rig's stand-in for the menu bar: an NSMenu drawn from the command table).
+final class MenuAction: NSObject {
+    let run: @MainActor () -> Void
+    init(_ run: @escaping @MainActor () -> Void) { self.run = run }
+    @objc func fire() { MainActor.assumeIsolated { run() } }
+}
+
+extension Journey {
+    /// The command table of the menu bar on this window (MenuCommands.all, as EditorCommands draws it).
+    var menuContext: MenuContext {
+        MenuContext(bench: app.store.bench, recents: app.store.bench.recents, recorder: app.recorder,
+                    openGuide: { _ in }, openShortcuts: {}, showAbout: {})
+    }
+
+    /// The menu item `id` run as the menu runs it.
+    func menu(_ id: String, sourceLocation: SourceLocation = #_sourceLocation) throws {
+        let item = try #require(MenuCommands.all(menuContext).first { $0.id == id }, "no menu item \(id)", sourceLocation: sourceLocation)
+        #expect(item.enabled, "the menu's \(item.title) is disabled", sourceLocation: sourceLocation)
+        item.run()
+    }
+
+    /// The application's main menu drawn from the command table with its keys, so that a key event finds its item the
+    /// way AppKit finds it in the app's menu bar. Returns what to put back.
+    func installMenuBar() -> (previous: NSMenu?, actions: [MenuAction]) {
+        let previous = NSApp.mainMenu
+        let bar = NSMenu(), top = NSMenuItem(), menu = NSMenu(title: "Regista")
+        var actions: [MenuAction] = []
+        for c in MenuCommands.all(menuContext) {
+            let action = MenuAction(c.run)
+            actions.append(action)
+            let item = NSMenuItem(title: c.title, action: #selector(MenuAction.fire), keyEquivalent: c.shortcut.map { String($0.key.character).lowercased() } ?? "")
+            item.target = action
+            if let m = c.shortcut?.modifiers {
+                var flags: NSEvent.ModifierFlags = []
+                if m.contains(.command) { flags.insert(.command) }
+                if m.contains(.shift) { flags.insert(.shift) }
+                if m.contains(.option) { flags.insert(.option) }
+                if m.contains(.control) { flags.insert(.control) }
+                item.keyEquivalentModifierMask = flags
+            }
+            item.isEnabled = c.enabled
+            menu.addItem(item)
+        }
+        top.submenu = menu
+        bar.addItem(top)
+        NSApp.mainMenu = bar
+        return (previous, actions)
+    }
+
+    /// The project as a person would notice a loss: every clip on every track with its times, a title's words and size,
+    /// a clip's level and size, the tracks' ducking, the captions' style, the look, the brand, the format.
+    var savedSignature: String {
+        guard let p = store.project else { return "no project" }
+        let tracks = p.tracks.map { t in
+            "\(t.kind.rawValue)/\(t.role ?? "")/\(t.name)\(t.muted ? " muted" : "")[" + t.clips.map { c in
+                "\(c.id)@\(String(format: "%.3f-%.3f", c.start.seconds, c.end.seconds))"
+                    + (c.title.map { " «\($0.text)» \($0.size)" } ?? "") + (c.gain.map { " gain \($0)" } ?? "")
+                    + (c.transform.map { " scale \($0.scale)" } ?? "")
+            }.joined(separator: ", ") + "]" + (t.ducking.map { " ducking \($0.depth)" } ?? "")
+        }
+        let captions = p.tracks.first { $0.captions != nil }?.captions
+        return tracks.joined(separator: " ")
+            + " captions:\(captions?.style.id ?? "-") \(captions?.style.fontSize ?? 0) \(captions?.chunks.count ?? 0) chunks"
+            + " look:\(p.grade?.look ?? "-") \(p.grade?.amount ?? 0) brand:\(p.brand?.id ?? "-")"
+            + " format:\(p.settings.width)×\(p.settings.height)@\(p.settings.frameRate.num)/\(p.settings.frameRate.den)"
+    }
+
+    /// The tab's × (its tooltip reads «Chiudi la scheda»).
+    func closeTab(answer: NSApplication.ModalResponse, sourceLocation: SourceLocation = #_sourceLocation) async throws {
+        let alerts = RigGuard.events.filter { $0.kind == .alert }.count
+        RigGuard.alertAnswer = answer
+        defer { RigGuard.alertAnswer = .alertSecondButtonReturn }
+        try await tap("Chiudi la scheda", sourceLocation: sourceLocation)
+        await app.idle(0.3)
+        await app.settle()
+        #expect(RigGuard.events.filter { $0.kind == .alert }.count == alerts + 1, "the × did not ask about the unsaved changes",
+                sourceLocation: sourceLocation)
+    }
+
+    /// Grafica › Filtri › the look `id` clicked; the project is in it.
+    func pickLook(_ id: String, sourceLocation: SourceLocation = #_sourceLocation) async throws {
+        try await tap("Grafica", sourceLocation: sourceLocation)
+        try await tap("Filtri", sourceLocation: sourceLocation)
+        let name = SimpleLooks.title(id)
+        let row = await reveal(name, at: CGPoint(x: 200, y: 600))
+        rig.click(try #require(row, "no «\(name)» in Grafica › Filtri: \(screen())", sourceLocation: sourceLocation).centre)
+        await app.settle()
+        #expect(await until { store.project?.grade?.look == id }, "the look is not «\(name)»: \(String(describing: store.project?.grade))",
+                sourceLocation: sourceLocation)
+    }
+
+    /// Frames of a movie at `times` (seconds).
+    nonisolated static func frames(_ url: URL, at times: [Double]) async throws -> [CGImage] {
+        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = .zero
+        var out: [CGImage] = []
+        for t in times { out.append(try await generator.image(at: CMTime(seconds: t, preferredTimescale: 600)).image) }
+        return out
+    }
+
+    /// Mean difference of two pictures, 0…1 per channel (both drawn at 90×160).
+    nonisolated static func difference(_ a: CGImage, _ b: CGImage) -> Double {
+        func pixels(_ i: CGImage) -> [UInt8] {
+            var data = [UInt8](repeating: 0, count: 90 * 160 * 4)
+            let ctx = CGContext(data: &data, width: 90, height: 160, bitsPerComponent: 8, bytesPerRow: 90 * 4, space: CGColorSpaceCreateDeviceRGB(),
+                                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+            ctx.draw(i, in: CGRect(x: 0, y: 0, width: 90, height: 160))
+            return data
+        }
+        let (x, y) = (pixels(a), pixels(b))
+        return zip(x, y).reduce(0.0) { $0 + abs(Double($1.0) - Double($1.1)) } / Double(x.count) / 255
+    }
+
+    /// Journey 7 (JourneyTests.aProjectIsSavedClosedAndFoundAgain).
+    func foundAgain() async throws {
+        let cuts = try await recordAndCut()
+        try await finishByHand(cuts: cuts)
+        let name = try #require(store.project?.name)
+        let projectURL = try #require(store.projectURL, "the reel has no folder")
+
+        // The tab says it has unsaved changes.
+        #expect(store.dirty, "the finished reel reads as saved")
+        #expect(shows("Modifiche non salvate"), "the status bar does not say the changes are unsaved: \(screen())")
+        step("Journey 6's reel, finished and exported", sees: "the tab's dot, «Modifiche non salvate» in the status bar")
+
+        // Salva, from the menu's command table.
+        try menu("save")
+        await app.settle()
+        #expect(await until { !store.dirty }, "the menu's Salva did not save")
+        #expect(await until { shows("Salvato") }, "the status bar does not say saved: \(screen())")
+        step("File › Salva (the menu's command)", sees: "«Salvato» in the status bar, the tab's dot gone")
+
+        // A change, then ⌘S as a key event through the menu bar's keys.
+        try await pickLook("golden")
+        #expect(store.dirty && shows("Modifiche non salvate"), "a change does not read as unsaved")
+        let bar = installMenuBar()
+        defer { NSApp.mainMenu = bar.previous }
+        rig.key("s", keyCode: 1, modifiers: .command)
+        await app.settle()
+        #expect(await until { !store.dirty }, "⌘S did not save")
+        #expect(await until { shows("Salvato") }, "the status bar does not say saved after ⌘S: \(screen())")
+        let saved = try ProjectStore.load(from: projectURL)
+        #expect(saved.grade?.look == "golden", "⌘S did not write the change: \(String(describing: saved.grade))")
+        step("Grafica › Filtri › \(SimpleLooks.title("golden")), then ⌘S", sees: "the dot while unsaved, then «Salvato»")
+
+        // The history: the steps are listed; one back and forward again gives the same project.
+        let before = store.project
+        let clock = try #require(rig.elements().first { $0.isControl && $0.visible && $0.label.hasPrefix("Cronologia") }, "no history button: \(screen())")
+        rig.click(clock.centre)
+        let history = try #require(await popover(), "the history button opened nothing")
+        let listed = history.elements().filter { $0.role == "AXStaticText" && $0.visible }.map(\.name)
+        #expect(listed.contains(CommandTitles.title("look.apply")) && listed.contains(CommandTitles.title("title.add")),
+                "the history does not list the edits: \(listed)")
+        step("Clicks the history button (the clock)", sees: "the edits, newest first: \(listed.prefix(4).joined(separator: ", "))…")
+        try await tap(loc("menu.undo"), in: history)
+        #expect(await until { store.project?.grade?.look == "film" }, "one step back is not the look before: \(String(describing: store.project?.grade))")
+        try await tap(loc("menu.redo"), in: history)
+        #expect(await until { store.project == before }, "back and forward again is not the same project")
+        step("In the history: Annulla, Ripeti", sees: "the look before, then the same project again")
+        history.window.orderOut(nil)
+        await app.settle()
+        if store.dirty { try menu("save"); await app.settle() }
+
+        // A change, the tab's ×: Annulla keeps the tab and the change.
+        try await pickLook("airy")
+        try await closeTab(answer: .alertSecondButtonReturn)
+        #expect(store.project?.grade?.look == "airy" && store.dirty, "Annulla did not keep the tab and its change")
+        step("Grafica › Filtri › \(SimpleLooks.title("airy")), the tab's ×, Annulla", sees: "«Salvare le modifiche a «\(name)»?»; the tab stays, unsaved")
+
+        // Non salvare: the tab closes, the change is dropped.
+        try await closeTab(answer: .alertThirdButtonReturn)
+        #expect(await until { store.project == nil }, "Non salvare did not close the tab: \(screen())")
+        #expect(try ProjectStore.load(from: projectURL).grade?.look == "golden", "Non salvare wrote the change")
+        // Inizio lists it with its name and its length.
+        // Inizio's list of recent projects (the side panel) reads «name, m:ss».
+        let seconds = Int(saved.duration.seconds.rounded())
+        let length = String(format: "%d:%02d", seconds / 60, seconds % 60)
+        let recent = try #require(control(name), "«\(name)» is not among the recent projects: \(screen())")
+        #expect(rig.elements().contains { $0.isControl && $0.visible && $0.label == "\(name), \(length)" }, "the recent project does not show its length \(length): \(screen())")
+        step("The tab's ×, Non salvare", sees: "Inizio, «\(name)» among the recent projects with its length \(length)")
+        rig.click(recent.centre)
+        #expect(await until(10) { store.project?.name == name }, "the project did not reopen")
+        await app.settle()
+        #expect(store.project?.grade?.look == "golden" && !store.dirty, "the reopened project is not the saved one: \(String(describing: store.project?.grade))")
+        step("Clicks «\(name)» in Recenti", sees: "the project in its tab, in \(SimpleLooks.title("golden")) (the dropped change is gone)")
+
+        // Salva: a change written by the ×.
+        try await pickLook("vivid")
+        let expected = savedSignature
+        let expectedProject = store.project
+        let rules = try await store.silent("rules.check")
+        let reference = scratch.appendingPathComponent("prima.mp4")
+        _ = try await store.silent("export.render", ["path": .string(reference.path), "preset": "9:16"])
+        try await closeTab(answer: .alertFirstButtonReturn)
+        #expect(await until { store.project == nil }, "Salva did not close the tab: \(screen())")
+        #expect(try ProjectStore.load(from: projectURL).grade?.look == "vivid", "Salva did not write the change")
+        step("Grafica › Filtri › \(SimpleLooks.title("vivid")), the tab's ×, Salva", sees: "Inizio; the change written")
+
+        // Found again: everything as it was.
+        rig.click(try #require(control(name), "«\(name)» is not among the recent projects: \(screen())").centre)
+        #expect(await until(10) { store.project?.name == name }, "the project did not reopen")
+        await app.settle()
+        #expect(savedSignature == expected, "the reopened project differs:\n\(savedSignature)\nsaved:\n\(expected)")
+        #expect(store.project == expectedProject, "the reopened project is not equal to the saved one (beyond what the signature reads)")
+        #expect(shows(name) && shows("Marca: Café Atelier") || shows("Café Atelier"), "the window does not show the project and its kit: \(screen())")
+        let again = try await store.silent("rules.check")
+        #expect(again["pass"] == rules["pass"] && again["failures"] == rules["failures"], "the rules read otherwise: \(again) for \(rules)")
+        step("Clicks «\(name)» in Recenti", sees: "every clip on every track at its times, the titles, the captions' style, \(SimpleLooks.title("vivid")), the kit, the music's level and ducking, the format")
+
+        // Undo right after reopening: nothing to take back, nothing harmful.
+        #expect(control("Annulla l'ultima modifica")?.enabled == false, "Annulla is offered right after reopening")
+        let opened = store.project
+        rig.click(try #require(rig.elements().first { $0.isControl && $0.visible && $0.label.hasPrefix("Annulla l'ultima modifica") }).centre)
+        await app.settle()
+        rig.key("z", keyCode: 6, modifiers: .command)
+        await app.settle()
+        #expect(store.project == opened, "an undo right after reopening changed the project")
+        rig.click(try #require(rig.elements().first { $0.isControl && $0.visible && $0.label.hasPrefix("Cronologia") }).centre)
+        let empty = try #require(await popover(), "the history button opened nothing")
+        #expect(empty.elements().contains { $0.name.contains("passo annullabile") }, "the history after reopening is not empty")
+        step("Right after reopening: Annulla, ⌘Z, the history", sees: "nothing to take back: Annulla off, the history says every change is a step to undo")
+        empty.window.orderOut(nil)
+        await app.settle()
+
+        // Export again: the same length and the same picture as before the save.
+        try await tap("Esporta")
+        let out = scratch.appendingPathComponent("dopo.mp4")
+        RigGuard.panelAnswer = [out]
+        #expect(await until(6) { control("Esporta video…") != nil || control("Sistema tutto ed esporta") != nil }, "no way to export: \(screen())")
+        try await tap(control("Esporta video…") != nil ? "Esporta video…" : "Sistema tutto ed esporta")
+        #expect(await until(120) { FileManager.default.fileExists(atPath: out.path) && store.jobs.latest("export")?.isRunning == false },
+                "no exported file: \(screen())")
+        let first = try await Journey.probe(reference), second = try await Journey.probe(out)
+        #expect(abs(first.seconds - second.seconds) < 0.05 && first.width == second.width, "exported \(second) after reopening, \(first) before")
+        let times = [0.4, second.seconds / 2, max(0, second.seconds - 0.4)]
+        let a = try await Journey.frames(reference, at: times), b = try await Journey.frames(out, at: times)
+        let differences = zip(a, b).map { Journey.difference($0, $1) }
+        #expect(differences.allSatisfy { $0 < 0.02 }, "the picture differs after reopening at \(times): \(differences)")
+        step("Esporta › \(control("Esporta video…") != nil ? "Esporta video…" : "Sistema tutto ed esporta")", sees: "the file \(second.width)×\(second.height), \(String(format: "%.2f", second.seconds)) s as before; the frames at \(times.map { String(format: "%.1f", $0) }.joined(separator: ", ")) s differ by \(differences.map { String(format: "%.3f", $0) }.joined(separator: ", "))")
+
+        // The app launched again on the same defaults and support folder.
+        try await relaunch()
+        let same = { (u: URL?) in u.map { RecentList.normalized($0.path) == RecentList.normalized(projectURL.path) } == true }
+        let restored = app.store.bench.tabs.first { same($0.projectURL) || same($0.pendingPath) }
+        if let tab = restored {
+            #expect(await until(10) { tab.project != nil }, "the remembered tab did not open its project")
+            app.store.bench.select(tab.tabID)
+            await open(app.store.bench.nav)
+            #expect(savedSignature == expected, "the relaunched project differs:\n\(savedSignature)\nsaved:\n\(expected)")
+            #expect(rig.elements().contains { $0.role == "AXStaticText" && $0.name == name && $0.frame.minY < 90 }, "the tab does not name «\(name)»: \(screen())")
+            step("The app launched again", sees: "the project reopened in its tab (as it was open at quit), \(store.nav.workspace) on screen")
+        } else {
+            #expect(control(name) != nil, "after a relaunch the project is neither reopened nor offered: \(screen())")
+            step("The app launched again", sees: "Inizio, «\(name)» offered among the recent projects (not reopened)")
+        }
     }
 }
