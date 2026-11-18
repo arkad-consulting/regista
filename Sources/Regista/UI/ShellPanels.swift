@@ -587,6 +587,7 @@ struct EditorToolbar: View {
 /// "Marca: WeSites": the project's brand kit; opens the Marca picker, the one place that picks it (E4 #3, ⇧⌘B).
 struct MarcaButton: View {
     @EnvironmentObject private var store: EditorStore
+    @ObservedObject private var library = BrandKitLibrary.shared
     @Environment(\.navOverride) private var navOverride
     @State private var hover = false
 
@@ -596,7 +597,8 @@ struct MarcaButton: View {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 6) {
                     swatch
-                    Text(verbatim: String(format: loc("Marca: %@"), store.project?.brand?.name ?? loc("nessuna")))
+                    // The project's copy against its kit (#98): «· copia del progetto», «· kit eliminato».
+                    Text(verbatim: title)
                         .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(hover ? Ed.text : Ed.text2).lineLimit(1).fixedSize()
                 }
                 swatch
@@ -609,14 +611,18 @@ struct MarcaButton: View {
         .buttonStyle(.plain)
         .onHover { hover = $0 }
         .tip("Marca del progetto: il brand kit di sottotitoli, titoli e logo", shortcut: "⇧⌘B")
+        // What it reads, also for an assistive client (its label is the tooltip).
+        .accessibilityValue(Text(verbatim: title))
         // Only the live window opens it (an offscreen render draws the picker as its own workspace, brand-picker).
         .popover(isPresented: Binding(get: { navOverride == nil && store.showBrandKits }, set: { store.showBrandKits = $0 }), arrowEdge: .bottom) {
             BrandPicker(onPick: { store.showBrandKits = false })
-                .frame(height: BrandPicker.height(kits: BrandKitLibrary.shared.kits.count))
+                .frame(height: BrandPicker.height(kits: library.kits.count, notice: store.project?.brand.map(library.status) ?? .same))
                 .background(Ed.side)
                 .environment(\.colorScheme, .dark)
         }
     }
+
+    private var title: String { String(format: loc("Marca: %@"), store.project?.brand.map(library.label) ?? loc("nessuna")) }
 
     @ViewBuilder private var swatch: some View {
         if let k = store.project?.brand { KitBubble(kit: k, size: 14) } else {

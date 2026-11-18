@@ -248,7 +248,10 @@ extension Journey {
         #expect(abs(store.preview.playhead.time - (outside.first?.start.seconds ?? -1)) < 0.05, "the playhead is at \(store.preview.playhead.time)")
         step("A title «FUORI MARCA» in #00FF00; Esporta, a click on «Marca»", sees: "brandkit.check names it; «\(count)»; \(outside.map { "«\($0.text)»" }.joined(separator: ", ")) named, the first selected and the playhead on it")
 
-        // 8. The kit changed in Settings while the project is open: does the project follow, and does the window say so?
+        // 8. The kit changed in Settings while the project is open: the project keeps its copy, and the Marca tab says so (#98).
+        let marcaTip = loc("Marca del progetto: il brand kit di sottotitoli, titoli e logo")
+        /// What the Marca tab reads (its words are its accessibility value: its label is its tooltip).
+        func marca() -> String? { rig.elements().first { $0.isControl && $0.label.hasPrefix(marcaTip) }?.value }
         let projectBefore = store.project?.brand?.colors["primary"]
         if let field = s.elements().first(where: { $0.role == "AXTextField" && $0.label.contains(String(format: loc("%@, codice esadecimale"), loc("Principale"))) }) {
             await typeIn(s, field, "#2E7D32")
@@ -256,10 +259,11 @@ extension Journey {
         #expect(await until(5) { library.kit(id)?.colors["primary"] == "#2E7D32" }, "the kit's primary did not change")
         await app.settle()
         let projectAfter = store.project?.brand?.colors["primary"]
-        withKnownIssue("an open project keeps its copy of the kit when the kit changes in Settings, and the window does not say which it shows (#98)", isIntermittent: true) {
-            #expect(projectAfter == "#2E7D32", "the open project still has \(projectAfter ?? "?") after the kit changed")
-        }
-        step("Settings: Principale #2E7D32 while the reel is open", sees: "the kit #2E7D32; the open project \(projectBefore ?? "?") → \(projectAfter ?? "?"); «Marca: Forno Rosa» unchanged, nothing says which version the reel shows")
+        #expect(projectAfter == projectBefore, "the open project took \(projectAfter ?? "?") from the kit: it keeps its copy")
+        try await tap("Grafica")
+        let copyTab = String(format: loc("Marca: %@"), String(format: loc("%@ · copia del progetto"), "Forno Rosa"))
+        #expect(await until(3) { marca() == copyTab }, "the Marca tab reads «\(marca() ?? "nothing")», not «\(copyTab)»")
+        step("Settings: Principale #2E7D32 while the reel is open", sees: "the kit #2E7D32; the open project keeps \(projectAfter ?? "?"); «\(marca() ?? "?")»")
 
         // 9. Through the socket: brandkit.list has the kit with the form's fields.
         // Claude connects as regista-mcp does (the pill is in the snapshot: with the Settings window beside it, the main
@@ -295,15 +299,14 @@ extension Journey {
         _ = try await store.perform("brandkit.delete", ["kit": .string(id)])
         library.reload()
         await app.settle()
-        let stillNamed = shows("Forno Rosa")
+        let goneTab = String(format: loc("Marca: %@"), String(format: loc("%@ · kit eliminato"), "Forno Rosa"))
+        #expect(await until(3) { marca() == goneTab }, "after the delete the Marca tab reads «\(marca() ?? "nothing")», not «\(goneTab)»")
+        let goneRead = marca() ?? "?"
         let brand = store.project?.brand
+        #expect(brand?.name == "Forno Rosa" && brand?.colors["primary"] == projectBefore, "the project lost its copy of the kit: \(brand?.name ?? "none")")
         try await tap("Esporta")
         await app.idle(0.5)
-        withKnownIssue("a project whose kit was deleted keeps showing it with no word that it is gone (#98)", isIntermittent: true) {
-            #expect(!stillNamed || brand == nil, "the tab still says «Marca: Forno Rosa» for a kit that no longer exists")
-        }
-        #expect(brand?.name.isEmpty != true, "the project's kit has a blank name after the delete")
-        step("Deletes «Forno Rosa» (the reel uses it); Esporta", sees: "the tab \(stillNamed ? "still names «Forno Rosa»" : "names no kit"); the project's kit \(brand.map { "«\($0.name)», its own copy" } ?? "none"); Esporta opens with no word about it")
+        step("Deletes «Forno Rosa» (the reel uses it); Esporta", sees: "«\(goneRead)»; the project's kit \(brand.map { "«\($0.name)», its own copy" } ?? "none")")
         try? FileManager.default.removeItem(at: fontCopy)
     }
 }

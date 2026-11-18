@@ -226,9 +226,11 @@ struct ExportSettingsPanel: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(off.map { ([$0.text, shortTime($0.start.seconds)] + $0.colors).joined(separator: " · ") }.joined(separator: "\n"))
+            .help(([BrandKitLibrary.shared.label(kit)] + off.map { ([$0.text, shortTime($0.start.seconds)] + $0.colors).joined(separator: " · ") })
+                .joined(separator: "\n"))
         } else {
-            check("Marca", kit.name, ok: true, lookup: false)
+            // The kit named as the Marca tab names it (#98).
+            check("Marca", BrandKitLibrary.shared.label(kit), ok: true, lookup: false)
         }
     }
 

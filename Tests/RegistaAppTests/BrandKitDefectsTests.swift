@@ -122,5 +122,89 @@ extension MouseSuites {
             _ = try await j.store.perform("timeline.delete", ["clipIds": [.string(greenID)]])
         }
     }
+
+    /// #98: a project keeps its copy of the kit. The kit changed after it was applied: the Marca tab reads «· copia del
+    /// progetto», its popover says so and «Aggiorna dal kit» applies the kit again (one command, one undo step; ⌘Z brings
+    /// the old colour back); a kit changed and put back is not different. The kit deleted: «· kit eliminato», the popover
+    /// says the project keeps its copy, no «Aggiorna»; Esporta names the kit the same way.
+    @Test func aProjectKeepsItsCopyOfTheKitAndSaysSo() async throws {
+        let j = try await Journey("n23-kit-copy", project: "rich")
+        defer { j.close() }
+        let titles = j.app.clips.filter { $0.title != nil }.map { JSONValue.string($0.id) }
+        if !titles.isEmpty { _ = try await j.store.perform("timeline.delete", ["clipIds": .array(titles)]) }
+        let marcaTip = "Marca del progetto: il brand kit di sottotitoli, titoli e logo"
+        for language in ["it", "fr"] {
+            j.language = language
+            let id = "n23-copia-\(language)", name = "Copia \(language.uppercased())"
+            _ = try? BrandKitStore().delete(id)
+            _ = try await j.store.perform("brandkit.create", ["name": .string(name), "id": .string(id), "from": "cafe-atelier"])
+            _ = try await j.store.perform("brandkit.apply", ["kit": .string(id)])
+            await j.open(Navigation(activity: .graphics, rightTab: .inspector))
+            let old = try #require(j.store.project?.brand?.colors["primary"])
+            let tab = { (label: String) in String(format: loc("Marca: %@"), label) }
+            /// The Marca tab reads `text` (its words are its accessibility value: its label is its tooltip).
+            func reads(_ text: String) -> Bool { j.rig.elements().contains { $0.isControl && $0.label.hasPrefix(loc(marcaTip)) && $0.value == text } }
+            let copyLabel = String(format: loc("%@ · copia del progetto"), name), goneLabel = String(format: loc("%@ · kit eliminato"), name)
+            #expect(reads(tab(name)), "\(language): the tab does not read «\(tab(name))»: \(j.screen())")
+
+            // Changed and put back: not different.
+            _ = try await j.store.perform("brandkit.update", ["kit": .string(id), "colors": ["primary": "#2E7D32"]])
+            await j.app.settle()
+            #expect(await j.until(3) { reads(tab(copyLabel)) }, "\(language): the tab does not read «\(tab(copyLabel))»: \(j.screen())")
+            j.step("\(language): the kit changed after it was applied", sees: "«\(tab(copyLabel))»")
+            _ = try await j.store.perform("brandkit.update", ["kit": .string(id), "colors": ["primary": .string(old)]])
+            await j.app.settle()
+            #expect(await j.until(3) { reads(tab(name)) }, "\(language): a kit put back still reads as changed: \(j.screen())")
+            _ = try await j.store.perform("brandkit.update", ["kit": .string(id), "colors": ["primary": "#2E7D32"]])
+            await j.app.settle()
+
+            // The popover: the line and «Aggiorna dal kit».
+            try await j.tap(marcaTip)
+            let picker = try #require(await j.popover(), "\(language): Marca opened no picker")
+            let line = loc("Il kit è cambiato dopo che l'hai applicato a questo progetto.")
+            #expect(!picker.elements(containing: line).isEmpty, "\(language): the popover does not say «\(line)»: \(j.screen(picker))")
+            j.shot(picker, "\(language)-changed")
+            let update = try #require(j.control("Aggiorna dal kit", in: picker), "\(language): no «Aggiorna dal kit»: \(j.screen(picker))")
+            let commands = j.store.activity.count
+            picker.click(update.centre)
+            await j.app.settle()
+            #expect(j.app.commands(since: commands) == ["brandkit.apply"], "\(language): the click ran \(j.app.commands(since: commands))")
+            #expect(j.store.project?.brand?.colors["primary"] == "#2E7D32", "\(language): the project has \(j.store.project?.brand?.colors["primary"] ?? "?")")
+            j.store.showBrandKits = false
+            await j.app.idle(0.4)
+            #expect(await j.until(3) { reads(tab(name)) }, "\(language): after «Aggiorna dal kit» the tab reads: \(j.screen())")
+            j.step("\(language): the kit changed; Marca › Aggiorna dal kit", sees: "«\(tab(copyLabel))», then «\(tab(name))» with the kit's new colour")
+            j.store.undo()
+            await j.app.settle()
+            #expect(j.store.project?.brand?.colors["primary"] == old, "\(language): ⌘Z left \(j.store.project?.brand?.colors["primary"] ?? "?")")
+
+            // Deleted: the project keeps its copy and says so; no «Aggiorna».
+            _ = try await j.store.perform("brandkit.delete", ["kit": .string(id)])
+            await j.app.settle()
+            #expect(await j.until(3) { reads(tab(goneLabel)) }, "\(language): the tab does not read «\(tab(goneLabel))»: \(j.screen())")
+            #expect(j.store.project?.brand?.name == name && j.store.project?.brand?.colors["primary"] == old, "\(language): the project lost its copy")
+            try await j.tap(marcaTip)
+            let picker2 = try #require(await j.popover(), "\(language): Marca opened no picker")
+            let gone = String(format: loc("Il kit «%@» è stato eliminato: il progetto tiene la sua copia e il video non cambia."), name)
+            #expect(!picker2.elements(containing: gone).isEmpty, "\(language): the popover does not say «\(gone)»: \(j.screen(picker2))")
+            #expect(j.control("Aggiorna dal kit", in: picker2) == nil, "\(language): «Aggiorna dal kit» for a deleted kit")
+            j.shot(picker2, "\(language)-deleted")
+            j.store.showBrandKits = false
+            await j.app.idle(0.4)
+            try await j.tap("Esporta")
+            await j.app.idle(0.4)
+            _ = await j.reveal(loc("Marca"), at: CGPoint(x: 200, y: 500))
+            #expect(j.shows(goneLabel), "\(language): Esporta does not name the kit «\(goneLabel)»: \(j.screen())")
+            j.step("\(language): the kit deleted; Esporta", sees: "«\(tab(goneLabel))»; «\(gone)»; Esporta «\(goneLabel)»")
+        }
+        for language in ["it", "en", "fr", "pt"] {
+            let table = MouseRig.table(language)
+            for key in ["%@ · copia del progetto", "%@ · kit eliminato", "Il kit è cambiato dopo che l'hai applicato a questo progetto.", "Aggiorna dal kit",
+                        "Il kit «%@» è stato eliminato: il progetto tiene la sua copia e il video non cambia."] {
+                let text = table.localizedString(forKey: key, value: "", table: nil)
+                #expect(!text.isEmpty && (language == "it" || text != key), "\(language): «\(key)» has no text")
+            }
+        }
+    }
 }
 }

@@ -35,6 +35,31 @@ final class BrandKitLibrary: ObservableObject {
 
     func kit(_ id: String?) -> BrandKit? { kits.first { $0.id == id } }
 
+    /// A project's copy of its kit against the kit as it is now (#98): the project keeps its copy (a video comes out
+    /// tomorrow as it does today), and the window says when the two differ or the kit is gone.
+    enum CopyStatus { case same, changed, deleted }
+
+    /// Compares what a person can see — colours, fonts, logo files, the logo's corner and size — never timestamps: a kit
+    /// changed and put back is the same.
+    func status(of copy: BrandKit) -> CopyStatus {
+        guard let current = kit(copy.id)?.absolutized() else { return .deleted }
+        let a = copy.absolutized()
+        func codes(_ k: BrandKit) -> [String: String] { k.colors.mapValues { $0.uppercased() } }
+        let same = codes(a) == codes(current) && a.fonts == current.fonts && a.logo == current.logo && (a.logos ?? [:]) == (current.logos ?? [:])
+            && a.logoPlacement?.corner == current.logoPlacement?.corner && a.logoPlacement?.width == current.logoPlacement?.width
+        return same ? .same : .changed
+    }
+
+    /// The kit as the window names it (the Marca tab, Esporta): its name, and whether the project's copy differs from the
+    /// kit or the kit was deleted.
+    func label(_ copy: BrandKit) -> String {
+        switch status(of: copy) {
+        case .same: copy.name
+        case .changed: String(format: loc("%@ · copia del progetto"), copy.name)
+        case .deleted: String(format: loc("%@ · kit eliminato"), copy.name)
+        }
+    }
+
     static func isUserKit(_ id: String) -> Bool {
         FileManager.default.fileExists(atPath: BrandKitStore().folder(id).appendingPathComponent("kit.json").path)
     }
@@ -142,7 +167,10 @@ struct BrandPicker: View {
     var onPick: () -> Void = {}
 
     static let width: CGFloat = 300
-    static func height(kits: Int) -> CGFloat { CGFloat(118 + 40 * max(kits, 1)) }
+    /// `notice`: the project's copy differs from its kit, or the kit was deleted (#98): one more block on top.
+    static func height(kits: Int, notice: BrandKitLibrary.CopyStatus = .same) -> CGFloat {
+        CGFloat(118 + 40 * max(kits, 1) + (notice == .changed ? 96 : notice == .deleted ? 64 : 0))
+    }
 
     var body: some View {
         let active = store.project?.brand?.id
@@ -153,6 +181,7 @@ struct BrandPicker: View {
                     .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 14).padding(.top, Ed.Space.m).padding(.bottom, Ed.Space.s)
+            if let copy = store.project?.brand { copyNotice(copy) }
             ScrollView {
                 VStack(spacing: Ed.Space.xxs) {
                     ForEach(library.kits, id: \.id) { kit in
@@ -173,6 +202,28 @@ struct BrandPicker: View {
         }
         .frame(width: Self.width)
         .onAppear { library.reload() }
+    }
+
+    /// The project's copy against its kit (#98): changed → one line and «Aggiorna dal kit» (brandkit.apply again: one
+    /// command, one undo step); deleted → the project keeps its copy, nothing to update.
+    @ViewBuilder
+    private func copyNotice(_ copy: BrandKit) -> some View {
+        switch library.status(of: copy) {
+        case .same: EmptyView()
+        case .changed:
+            VStack(alignment: .leading, spacing: Ed.Space.s) {
+                Text(verbatim: loc("Il kit è cambiato dopo che l'hai applicato a questo progetto."))
+                    .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
+                EdButton(title: "Aggiorna dal kit", symbol: "arrow.triangle.2.circlepath") {
+                    store.run("brandkit.apply", ["kit": .string(copy.id)])
+                }
+            }
+            .padding(.horizontal, 14).padding(.bottom, Ed.Space.s)
+        case .deleted:
+            Text(verbatim: String(format: loc("Il kit «%@» è stato eliminato: il progetto tiene la sua copia e il video non cambia."), copy.name))
+                .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 14).padding(.bottom, Ed.Space.s)
+        }
     }
 
     private struct KitRow: View {

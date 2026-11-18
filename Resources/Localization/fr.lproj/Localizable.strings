@@ -2398,3 +2398,8 @@
 "track.footageSound" = "Son des rushes";
 "1 titolo fuori dai colori del kit" = "1 titre hors des couleurs du kit";
 "%@ titoli fuori dai colori del kit" = "%@ titres hors des couleurs du kit";
+"%@ · copia del progetto" = "%@ · copie du projet";
+"%@ · kit eliminato" = "%@ · kit supprimé";
+"Il kit è cambiato dopo che l'hai applicato a questo progetto." = "Le kit a changé depuis que vous l'avez appliqué à ce projet.";
+"Aggiorna dal kit" = "Mettre à jour depuis le kit";
+"Il kit «%@» è stato eliminato: il progetto tiene la sua copia e il video non cambia." = "Le kit « %@ » a été supprimé : le projet garde sa copie et la vidéo ne change pas.";

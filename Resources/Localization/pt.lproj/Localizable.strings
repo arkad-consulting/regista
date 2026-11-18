@@ -2398,3 +2398,8 @@
 "track.footageSound" = "Áudio das filmagens";
 "1 titolo fuori dai colori del kit" = "1 título fora das cores do kit";
 "%@ titoli fuori dai colori del kit" = "%@ títulos fora das cores do kit";
+"%@ · copia del progetto" = "%@ · cópia do projeto";
+"%@ · kit eliminato" = "%@ · kit excluído";
+"Il kit è cambiato dopo che l'hai applicato a questo progetto." = "O kit mudou depois que você o aplicou a este projeto.";
+"Aggiorna dal kit" = "Atualizar a partir do kit";
+"Il kit «%@» è stato eliminato: il progetto tiene la sua copia e il video non cambia." = "O kit “%@” foi excluído: o projeto mantém sua própria cópia e o vídeo não muda.";

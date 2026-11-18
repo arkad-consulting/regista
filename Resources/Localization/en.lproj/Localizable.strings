@@ -2398,3 +2398,8 @@
 "track.footageSound" = "Footage sound";
 "1 titolo fuori dai colori del kit" = "1 title outside the kit's colours";
 "%@ titoli fuori dai colori del kit" = "%@ titles outside the kit's colours";
+"%@ · copia del progetto" = "%@ · project's copy";
+"%@ · kit eliminato" = "%@ · kit deleted";
+"Il kit è cambiato dopo che l'hai applicato a questo progetto." = "The kit changed after you applied it to this project.";
+"Aggiorna dal kit" = "Update from the kit";
+"Il kit «%@» è stato eliminato: il progetto tiene la sua copia e il video non cambia." = "The kit “%@” was deleted: the project keeps its own copy and the video does not change.";
