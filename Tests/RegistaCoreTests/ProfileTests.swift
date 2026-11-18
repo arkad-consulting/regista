@@ -109,7 +109,11 @@ private struct EnrollFixture {
     #expect(none["note"] != nil)
     let made = try e.execute("profile.create", params: ["name": "Noor"])
     #expect(made["active"] == true)
-    #expect(try e.execute("voice.list")["languages"] == [])
+    let empty = try e.execute("voice.list")
+    #expect(empty["languages"] == [])
+    // The next step is the one the voice-over recipe gives (#85): the person records the voice in Regista's Voce panel.
+    let note = empty["note"]?.stringValue ?? ""
+    #expect(note.contains("Voce panel") && note.contains("Regista"), "voice.list's note: \(note)")
 }
 
 @Test func recordingScriptParsesAndRejectsBrokenFiles() throws {

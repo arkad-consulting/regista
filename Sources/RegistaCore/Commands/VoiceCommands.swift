@@ -25,7 +25,7 @@ enum ProfileGet: Command {
         let active = store.activeID
         var r: [String: JSONValue] = ["profiles": .array(all.map { Profiles.summary($0, active: $0.profile.id == active) })]
         if let a = all.first(where: { $0.profile.id == active }) { r["active"] = Profiles.summary(a, active: true) } else { r["active"] = .null }
-        if all.isEmpty { r["note"] = "no profile yet: ask the person their first name and run profile.create {name}; then voice.enroll.script to record their voice" }
+        if all.isEmpty { r["note"] = "no profile yet: ask the person their first name and run profile.create {name}; then their voice: the person records their voice in Regista: the Voce panel's button to clone the voice, or Settings › Profile and voice (voice.enroll.script gives the text to read for a recording made elsewhere)" }
         return .object(r)
     }
 }
@@ -105,7 +105,7 @@ enum VoiceList: Command {
         }
         guard let entry = try store.active() else {
             return ["profile": .null, "languages": [], "engine": .object(engine),
-                    "note": "no profile on this Mac: profile.create {name}, then the person records their own voice (voice.enroll.script)"]
+                    "note": "no profile on this Mac: profile.create {name}, then the voice: the person records it in Regista: the Voce panel's button to clone the voice, or Settings › Profile and voice (voice.enroll.script gives the text to read for a recording made elsewhere)"]
         }
         if entry.locked {
             return ["profile": Profiles.summary(entry, active: true), "languages": [], "engine": .object(engine)]
@@ -137,7 +137,7 @@ enum VoiceList: Command {
             return .object(o)
         }
         var r: [String: JSONValue] = ["profile": Profiles.summary(fresh, active: true), "languages": .array(languages), "engine": .object(engine)]
-        if languages.isEmpty { r["note"] = .string("\(fresh.profile.name) has no voice yet: voice.enroll.script {language}") }
+        if languages.isEmpty { r["note"] = .string("\(fresh.profile.name) has no voice yet: the person records it in Regista: the Voce panel's button to clone the voice, or Settings › Profile and voice (voice.enroll.script gives the text to read for a recording made elsewhere)") }
         return .object(r)
     }
 }

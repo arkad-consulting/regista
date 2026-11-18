@@ -96,7 +96,7 @@ public struct ProfileStore: Sendable {
     /// The active profile for using its voice: missing → how to create one; locked → how to adopt it.
     public func requireActive(command: String) throws -> ProfileEntry {
         guard let e = try active() else {
-            throw CommandError.invalid("\(command): no profile on this Mac yet — create yours with profile.create {name}, then record your voice (voice.enroll.script)")
+            throw CommandError.invalid("\(command): no profile on this Mac yet — create yours with profile.create {name}, then the voice: the person records it in Regista: the Voce panel's button to clone the voice, or Settings › Profile and voice (voice.enroll.script gives the text to read for a recording made elsewhere)")
         }
         guard !e.locked else {
             throw CommandError.conflict("\(command): profile \(e.profile.name) was created on another Mac and is locked here; its owner adopts it in the Regista app (Settings → Profile) if this is their new Mac")
