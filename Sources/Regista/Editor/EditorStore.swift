@@ -28,7 +28,10 @@ final class EditorStore: ObservableObject {
         var command: String
         var params: String
         var status: Status = .running
+        /// The second line: what happened, in words (CommandLines), or the error of a failed command.
         var result = ""
+        /// The result's raw fields, for the row's tooltip (Summary.details).
+        var details = ""
         var started = Date()
         var seconds: Double = 0
         /// Only looked (a query that writes nothing the user keeps): collapsed with its neighbours in the Claude tab.
@@ -321,7 +324,8 @@ final class EditorStore: ObservableObject {
                 switch result {
                 case .success(let r):
                     activity[i].status = .ok
-                    activity[i].result = Summary.result(id, r)
+                    activity[i].result = CommandLines.line(id, r) ?? ""
+                    activity[i].details = Summary.details(id, r)
                     activity[i].aiDisclosure = r["aiDisclosure"] != nil
                 case .failure(let e): activity[i].status = .failed; activity[i].result = StepError.readable(e, fallback: "Il motore ha risposto: %@")
                 }
@@ -702,7 +706,8 @@ enum RecordingDestination: String, Hashable {
     case newProject, thisProject
 }
 
-/// Short human strings for the activity list.
+/// Short strings for the activity list's tooltips: the parameters and the result's raw fields (the second line is
+/// CommandLines' sentence).
 enum Summary {
     static func params(_ v: JSONValue) -> String {
         guard case .object(let o) = v, !o.isEmpty else { return "" }
@@ -746,7 +751,7 @@ enum Summary {
     }
 
     /// The most telling fields of a result.
-    static func result(_ command: String, _ r: JSONValue) -> String {
+    static func details(_ command: String, _ r: JSONValue) -> String {
         guard case .object(let o) = r else { return scalar(r) }
         // The result's field names in words (resultLabel).
         let preferred = ["undone", "redone", "removed", "duration", "frames", "words", "count", "chunks", "segments", "read", "clips",

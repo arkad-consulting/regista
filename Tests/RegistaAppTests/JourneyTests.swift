@@ -1775,11 +1775,24 @@ extension Journey {
         #expect(entry?.isAgent == true && entry?.source == "Claude", "the log has no Claude line for \(command): \(String(describing: entry))", sourceLocation: sourceLocation)
         // A query is a quiet line, and queries in a row fold into one («Claude · 2 controlli»).
         let query = Commands.all.first { $0.id == command }?.kind == .query
-        #expect(await until(3) { shows(title) || query && shows("controlli") }, "the Claude panel does not show «\(title)»: \(screen())", sourceLocation: sourceLocation)
+        #expect(await inClaudePanel { shows(title) || query && shows("controlli") }, "the Claude panel does not show «\(title)»: \(screen())", sourceLocation: sourceLocation)
         #expect(shows("Claude collegato"), "the pill does not read «Claude collegato»: \(screen())", sourceLocation: sourceLocation)
         #expect(await until(5) { store.running == nil && !store.jobs.jobs.contains(where: \.isRunning) && !statusBar().contains { $0.contains(title) } },
                 "«\(title)» is still in the status bar after its answer: \(statusBar())", sourceLocation: sourceLocation)
         var line = "the Claude panel: «\(title)»" + (reply.isError ? " (refused)" : "")
+        // The second line says what happened in words (#79): the sentence of the command's result, never raw fields; a
+        // refusal keeps its error. A look folds into the quiet row, which has no second line.
+        if let entry, !reply.isError, entry.status == .ok, let sentence = CommandLines.line(command, reply.result ?? [:]) {
+            #expect(entry.result == sentence, "the log's line «\(entry.result)» is not the sentence of the reply «\(sentence)»", sourceLocation: sourceLocation)
+            let problems = lineProblems(entry.result, result: reply.result ?? [:])
+            #expect(problems.isEmpty, "«\(entry.result)»: \(problems.joined(separator: ", "))", sourceLocation: sourceLocation)
+            if !entry.readOnly {
+                #expect(await inClaudePanel { shows(entry.result) }, "the Claude panel does not show «\(entry.result)»: \(screen())", sourceLocation: sourceLocation)
+            }
+            line += " — «\(entry.result)»"
+        } else if let entry, reply.isError {
+            #expect(entry.status != .failed || !entry.result.isEmpty, "a refused \(command) shows no error", sourceLocation: sourceLocation)
+        }
         if let p = store.project {
             #expect(rig.elements().contains { $0.role == "AXStaticText" && $0.name == p.name && $0.frame.minY < 90 }, "the tab does not name «\(p.name)»: \(screen())",
                     sourceLocation: sourceLocation)
@@ -1787,6 +1800,20 @@ extension Journey {
             line += "; the tab «\(p.name)»\(store.dirty ? " with its dot" : "")"
         }
         return line
+    }
+
+    /// Whether the Claude panel shows what `seen` looks for, scrolled to its newest step. The panel follows its last
+    /// step with a SwiftUI scroll, which SwiftUI applies on the refresh of the display the window is on: the rig's window
+    /// is on none, so once the log is longer than the panel the person's wheel brings the end into view (said on stderr).
+    func inClaudePanel(_ seen: () -> Bool) async -> Bool {
+        if await until(1, seen) { return true }
+        let at = CGPoint(x: rig.size.width - 160, y: rig.size.height / 2)
+        for _ in 0..<12 where !seen() {
+            guard rig.scrollContent(at: at, by: 400) else { break }
+            await app.idle(0.1)
+        }
+        FileHandle.standardError.write(Data("journey: the Claude panel was scrolled to its end by the wheel\n".utf8))
+        return await until(2, seen)
     }
 
     /// The timeline as the window draws it: the clips of each lane (the number on the timeline's footer is V1's).

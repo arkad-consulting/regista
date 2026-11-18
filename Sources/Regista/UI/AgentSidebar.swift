@@ -188,7 +188,7 @@ struct ActivityRow: View {
         .padding(.vertical, 5)
         .background(a.status == .running ? Ed.goldSoft.opacity(0.5) : .clear)
         .overlay(alignment: .leading) { if a.isAgent { Rectangle().fill(Ed.gold.opacity(0.7)).frame(width: 2) } }
-        .help(a.params)   // the details stay one hover away
+        .help([a.params, a.details].filter { !$0.isEmpty }.joined(separator: "\n"))   // the details stay one hover away
     }
 
     @ViewBuilder private var status: some View {
