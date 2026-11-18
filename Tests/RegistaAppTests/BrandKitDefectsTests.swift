@@ -206,5 +206,68 @@ extension MouseSuites {
             }
         }
     }
+
+    /// Follow-up of #96: a colour's code typed and then left — by a click on another field, or by Tab — is committed as
+    /// Return commits it: a valid code is one brandkit.update; an invalid one puts the kit's code back and says why.
+    @Test func aTypedColourCodeIsKeptWhenTheFieldIsLeft() async throws {
+        let j = try await Journey("n23-hex-leave", project: "rich")
+        defer { j.close() }
+        await j.open(Navigation(activity: .graphics, rightTab: .inspector))
+        let id = "n23-codice"
+        _ = try? BrandKitStore().delete(id)
+        _ = try await j.store.perform("brandkit.create", ["name": "Codice", "id": .string(id), "from": "cafe-atelier"])
+        defer { _ = try? BrandKitStore().delete(id) }
+        _ = try await j.store.perform("brandkit.apply", ["kit": .string(id)])
+        let library = BrandKitLibrary.shared
+        library.reload()
+        for language in ["it", "fr"] {
+            j.language = language
+            let s = await j.brandKitWindow()
+            defer { s.close() }
+            func codeField(_ role: String) -> RigElement? {
+                let label = loc(BrandKitSettings.roleNames.first { $0.0 == role }!.1)
+                return s.elements().first { $0.role == "AXTextField" && $0.label.contains(String(format: loc("%@, codice esadecimale"), label)) }
+            }
+            /// Types in a field that has the keyboard (focused through accessibility, its text selected), no Return.
+            func type(_ field: RigElement, _ text: String) {
+                s.takeKey()
+                if let v = (field.ref as? NSView) ?? (field.ref as? NSCell)?.controlView { s.window.makeFirstResponder(v) }
+                s.pump(0.1)
+                (s.window.firstResponder as? NSTextView)?.selectAll(nil)
+                s.type(text)
+                s.pump(0.2)
+            }
+            let primary = try #require(codeField("primary"), "\(language): no code field for the primary colour: \(j.screen(s))")
+            let code = language == "it" ? "#1A6B3C" : "#5B2A86"
+            type(primary, code)
+            #expect(library.kit(id)?.colors["primary"] != code, "\(language): the code was committed before the field was left")
+            // A click on another field (the kit's name).
+            let commands = j.store.activity.count
+            let name = try #require(s.elements().first { $0.visible && $0.role == "AXTextField" && $0.value == "Codice" }, "\(language): no name field")
+            s.click(name.centre)
+            s.pump(0.2)
+            await j.app.settle()
+            #expect(await j.until(5) { library.kit(id)?.colors["primary"] == code }, "\(language): leaving the field by a click kept \(library.kit(id)?.colors["primary"] ?? "?")")
+            #expect(j.app.commands(since: commands) == ["brandkit.update"], "\(language): leaving the field ran \(j.app.commands(since: commands))")
+            #expect(codeField("primary")?.value == code, "\(language): the field reads \(codeField("primary")?.value ?? "?")")
+
+            // An invalid code left by Tab: the kit's code back, the red line.
+            let accent = try #require(codeField("accent"))
+            let before = library.kit(id)?.colors["accent"]
+            let tabCommands = j.store.activity.count
+            type(accent, "verde")
+            s.key(.tab)
+            s.pump(0.3)
+            await j.app.settle()
+            let why = String(format: loc("«%@» non è un colore: scrivilo come #RRGGBB."), "verde")
+            #expect(await j.until(3) { codeField("accent")?.value == before }, "\(language): the field reads «\(codeField("accent")?.value ?? "?")», not the kit's \(before ?? "?")")
+            // The red line is at the foot of the form.
+            _ = s.scrollContent(at: CGPoint(x: 460, y: 300), by: 2000)
+            s.pump(0.3)
+            #expect(await j.until(3) { !s.elements(containing: why).isEmpty }, "\(language): no «\(why)»: \(j.screen(s))")
+            #expect(library.kit(id)?.colors["accent"] == before && j.app.commands(since: tabCommands).isEmpty, "\(language): an invalid code changed the kit")
+            j.shot(s, "\(language)-left")
+        }
+    }
 }
 }

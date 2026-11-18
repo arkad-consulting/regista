@@ -133,8 +133,10 @@ private struct KitForm: View {
     @State private var name = ""
     @State private var colors: [String: String] = [:]
     @State private var colorTask: Task<Void, Never>?
-    /// What is typed in a colour's code field, until Return.
+    /// What is typed in a colour's code field, until Return or until the field is left.
     @State private var hexDrafts: [String: String] = [:]
+    /// The colour role whose code field has the keyboard.
+    @FocusState private var hexFocus: String?
     @State private var width: Double = 0
     @State private var opacity: Double = 1
 
@@ -174,6 +176,7 @@ private struct KitForm: View {
                             TextField("#RRGGBB", text: hexBinding(role))
                                 .labelsHidden().textFieldStyle(.roundedBorder).font(.system(.caption, design: .monospaced)).frame(width: 82)
                                 .onSubmit { commitHex(role) }
+                                .focused($hexFocus, equals: role)
                                 .accessibilityLabel(Text(verbatim: String(format: loc("%@, codice esadecimale"), loc(label))))
                                 .disabled(demo)
                         }
@@ -241,6 +244,9 @@ private struct KitForm: View {
             }
         }
         .formStyle(.grouped)
+        // Leaving a code field (a click elsewhere, Tab) commits what was typed, as Return does (#96).
+        .onChange(of: hexFocus) { old, _ in if let old { commitHex(old) } }
+        .onDisappear { for role in hexDrafts.keys { commitHex(role) } }
         .onAppear { sync() }
         .onChange(of: kit) { _, _ in sync() }
     }
@@ -303,7 +309,7 @@ private struct KitForm: View {
         Binding(get: { hexDrafts[role] ?? colors[role] ?? kit.colors[role] ?? "" }, set: { hexDrafts[role] = $0 })
     }
 
-    /// Return in a code field: a valid #RRGGBB (the # may be left out) becomes the role's colour, one brandkit.update;
+    /// Return in a code field, or leaving it: a valid #RRGGBB (the # may be left out) becomes the role's colour, one brandkit.update;
     /// anything else goes back to the kit's code and says why.
     private func commitHex(_ role: String) {
         guard let typed = hexDrafts.removeValue(forKey: role) else { return }
