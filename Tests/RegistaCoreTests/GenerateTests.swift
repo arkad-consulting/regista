@@ -64,6 +64,8 @@ struct GenerateFixture {
     let asset = try #require(f.engine.project?.asset(aid))
     let g = try #require(asset.generated)
     #expect(g.provider == "fakefree")
+    // Named by its own words, never by the provider and the kind (#86: «voxcpm voice: …»).
+    #expect(asset.name == "abstract server room", "the generated asset is named «\(asset.name)»")
     #expect(g.model == "fake-still")
     #expect(g.prompt == "abstract server room")
     #expect(g.seed == 7)

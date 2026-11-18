@@ -105,7 +105,8 @@ enum Generate {
         case .image, .video, .upscale: assetID = try Graphics.importVisual(dest.path, into: &project, &ctx, alpha: false, command: command)
         }
         let i = project.assets.firstIndex { $0.id == assetID }!
-        project.assets[i].name = "\(job.request.provider) \(job.request.kind.rawValue): \(job.request.prompt.isEmpty ? src.lastPathComponent : String(job.request.prompt.prefix(40)))"
+        // Named by its own words (the paragraph said, the prompt), never by the provider's id (#86: «voxcpm voice: …»).
+        project.assets[i].name = job.request.prompt.isEmpty ? src.lastPathComponent : String(job.request.prompt.prefix(60))
         project.assets[i].generated = GenerationInfo(
             provider: job.request.provider, model: out.model, kind: job.request.kind, prompt: job.request.prompt, seed: out.seed,
             cost: out.cost ?? job.cost, unit: job.cost > 0 || (out.cost ?? 0) > 0 ? "credits" : (ctx.services.generators[job.request.provider]?.paid == true ? "credits" : "free"),
