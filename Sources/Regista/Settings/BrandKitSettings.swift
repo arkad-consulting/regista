@@ -132,6 +132,8 @@ private struct KitForm: View {
     @State private var name = ""
     @State private var colors: [String: String] = [:]
     @State private var colorTask: Task<Void, Never>?
+    /// What is typed in a colour's code field, until Return.
+    @State private var hexDrafts: [String: String] = [:]
     @State private var width: Double = 0
     @State private var opacity: Double = 1
 
@@ -165,7 +167,15 @@ private struct KitForm: View {
             Section("Colori") {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading), count: 2), alignment: .leading, spacing: 8) {
                     ForEach(BrandKitSettings.roleNames, id: \.0) { role, label in
-                        ColorPicker(selection: colorBinding(role), supportsOpacity: false) { Text(verbatim: loc(label)) }
+                        HStack(spacing: 6) {
+                            ColorPicker(selection: colorBinding(role), supportsOpacity: false) { Text(verbatim: loc(label)) }
+                            // The brand's exact colour, typed as its guidelines give it (#96: the well alone takes no code here).
+                            TextField("#RRGGBB", text: hexBinding(role))
+                                .labelsHidden().textFieldStyle(.roundedBorder).font(.system(.caption, design: .monospaced)).frame(width: 82)
+                                .onSubmit { commitHex(role) }
+                                .accessibilityLabel(Text(verbatim: String(format: loc("%@, codice esadecimale"), loc(label))))
+                                .disabled(demo)
+                        }
                     }
                 }
             }
@@ -285,6 +295,26 @@ private struct KitForm: View {
                 perform("brandkit.update", ["kit": .string(kit.id), "colors": .object(changed.mapValues { .string($0) })])
             }
         })
+    }
+
+    /// A colour's code field: the kit's code, or what is being typed.
+    private func hexBinding(_ role: String) -> Binding<String> {
+        Binding(get: { hexDrafts[role] ?? colors[role] ?? kit.colors[role] ?? "" }, set: { hexDrafts[role] = $0 })
+    }
+
+    /// Return in a code field: a valid #RRGGBB (the # may be left out) becomes the role's colour, one brandkit.update;
+    /// anything else goes back to the kit's code and says why.
+    private func commitHex(_ role: String) {
+        guard let typed = hexDrafts.removeValue(forKey: role) else { return }
+        let code = typed.trimmingCharacters(in: .whitespaces).uppercased()
+        let hex = code.hasPrefix("#") ? code : "#" + code
+        guard hex.range(of: "^#[0-9A-F]{6}$", options: .regularExpression) != nil else {
+            problem = String(format: loc("«%@» non è un colore: scrivilo come #RRGGBB."), typed)
+            return
+        }
+        guard hex != (colors[role] ?? kit.colors[role]) else { return }
+        colors[role] = hex
+        perform("brandkit.update", ["kit": .string(kit.id), "colors": .object([role: .string(hex)])])
     }
 
     static func hex(_ c: Color) -> String? {

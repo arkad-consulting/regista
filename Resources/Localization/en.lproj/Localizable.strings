@@ -2392,3 +2392,6 @@
 "inglese" = "English";
 "francese" = "French";
 "portoghese" = "Portuguese";
+"%@, codice esadecimale" = "%@, hex code";
+"«%@» non è un colore: scrivilo come #RRGGBB." = "“%@” is not a colour: write it as #RRGGBB.";
+"#RRGGBB" = "#RRGGBB";
