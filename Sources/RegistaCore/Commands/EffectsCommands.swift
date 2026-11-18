@@ -583,6 +583,7 @@ enum LogoAnimate: Command {
         if clipID == nil {
             let project = try ctx.requireProject()
             guard let path = p.string("path") ?? project.brand?.logoPath() else {
+                if let kit = project.brand { throw LogoOverlay.noLogo(kit, command: id) }
                 throw CommandError.invalid("\(id): pass path, clipId, or apply a brand kit with a logo first")
             }
             let def: Double = motion == .sting ? 1.6 : motion == .spin ? 2 : 3

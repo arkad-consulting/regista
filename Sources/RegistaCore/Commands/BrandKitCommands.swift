@@ -156,9 +156,7 @@ enum BrandKits {
 enum LogoOverlay {
     static func clip(kit: BrandKit, project: inout Project, _ ctx: inout CommandContext, start: MediaTime, end: MediaTime, placement: LogoPlacement,
                      variant: String?, path: String?, command: String) throws -> (clip: Clip, warnings: [JSONValue]) {
-        guard let file = path.map(EngineConfig.expand) ?? kit.logoPath(variant) else {
-            throw CommandError.conflict("\(command): kit \(kit.id) has no logo: add one with brandkit.setLogo")
-        }
+        guard let file = path.map(EngineConfig.expand) ?? kit.logoPath(variant) else { throw noLogo(kit, command: command) }
         let k = Double(project.settings.width) / SafeZones.referenceWidth
         let assetID = try Graphics.importVisual(file, into: &project, &ctx, svgWidth: max(Int((placement.width * 2 * k).rounded()), 64), command: command)
         guard let video = project.asset(assetID)?.video, video.width > 0, video.height > 0 else { throw CommandError(.io, "\(command): the logo has no picture") }
@@ -180,6 +178,11 @@ enum LogoOverlay {
         var warnings: [JSONValue] = []
         if f.width < placement.width - 0.5 { warnings.append(.string("logo shrunk to \(Int(f.width)) px wide to stay inside the safe area")) }
         return (clip, warnings)
+    }
+
+    /// The refusal of a logo from a kit that has none (a kit made with «Nuovo kit» before its logo is chosen, #99).
+    static func noLogo(_ kit: BrandKit, command: String) -> CommandError {
+        CommandError.conflict("\(command): kit \"\(kit.name)\" has no logo yet: add one with brandkit.setLogo (kit \(kit.id))")
     }
 
     /// Problems of a box (output pixels) against the logo safe area: inside the Instagram limits, out of the caption band.
@@ -234,17 +237,22 @@ enum BrandkitApply: Command {
 
 enum BrandkitCreate: Command {
     static let id = "brandkit.create"
-    static let summary = "Create a brand kit for a client (e.g. a bakery, a studio): a copy of an existing kit (from, default arkad) with a new id and name, then the given colours, fonts, caption style, logo placement, title presets. Saved as a folder (kit.json + assets) in the user's brand kits. Add the logo with brandkit.setLogo and font files with brandkit.setFont. Returns the kit."
+    static let summary = "Create a brand kit for a client (e.g. a bakery, a studio): a copy of an existing kit (from) with a new id and name, or — without from — the default kit's colours, fonts and placement with no logo (a new brand never starts with another brand's logo), then the given colours, fonts, caption style, logo placement, title presets. Saved as a folder (kit.json + assets) in the user's brand kits. Add the logo with brandkit.setLogo and font files with brandkit.setFont. Returns the kit."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [
         .required("name", .string, "Display name (\"Café Atelier\")."),
         .optional("id", .string, "Kit id (lowercase, digits, -; default from the name)."),
-        .optional("from", .string, "Kit to start from (default arkad)."),
+        .optional("from", .string, "Kit to copy whole, logos included. Without it, the new kit takes the arkad kit's colours, fonts and placement, with no logo."),
     ] + BrandKits.editParams.filter { $0.name != "name" }
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         let store = BrandKitStore()
         var kit = try BrandKits.find(p.string("from") ?? "arkad", command: id)
+        if !p.has("from") {
+            // A new brand: none of the default kit's logos (#99).
+            kit.logo = nil
+            kit.logos = nil
+        }
         kit.id = p.string("id") ?? BrandKitStore.slug(p.requiredString("name"))
         guard BrandKitStore.validID(kit.id) else { throw CommandError.invalid("\(id): id \"\(kit.id)\": use lowercase letters, digits and -") }
         guard !FileManager.default.fileExists(atPath: store.folder(kit.id).path), !BrandKit.builtInIDs.contains(kit.id) else {

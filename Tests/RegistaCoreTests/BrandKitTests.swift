@@ -182,6 +182,34 @@ private func captionedEngine() throws -> Engine {
     #expect(throws: CommandError.self) { try e.execute("brandkit.delete", params: ["kit": "arkad"]) }   // built-in
 }
 
+/// #99: a kit created without `from` (Settings' «Nuovo kit») has the default kit's colours, fonts and placement and no
+/// logo of another brand; the logo commands on a project with it are refused, naming the kit. `from` still copies a kit
+/// whole, logos included.
+@Test func aNewKitStartsWithNoLogoAndTheLogoCommandsSaySo() throws {
+    _ = kitsDirectory
+    let e = try captionedEngine()
+    let made = try e.execute("brandkit.create", params: ["name": "Senza Logo", "id": "senza-logo"])
+    #expect(made["kit"]?["logos"] == .object([:]) && made["kit"]?["logo"] == .null, "\(made.text())")
+    let kit = try #require(BrandKit.all()["senza-logo"])
+    #expect(kit.colors == BrandKit.arkad.colors && kit.logoPlacement == BrandKit.arkad.logoPlacement && kit.fonts.keys == BrandKit.arkad.fonts.keys)
+    #expect(kit.logoPath() == nil && BrandKit.logoVariants.allSatisfy { kit.logoPath($0) == nil })
+    let copy = try e.execute("brandkit.create", params: ["name": "Copia Intera", "id": "copia-intera", "from": "arkad"])
+    #expect(copy["kit"]?["logos"]?.objectValue?.count == 3, "\(copy.text())")
+
+    try e.execute("brandkit.apply", params: ["kit": "senza-logo"])
+    for (command, params) in [("logo.add", [:] as JSONValue), ("logo.add", ["variant": "mark"]), ("logo.animate", ["motion": "sting"])] {
+        do {
+            try e.execute(command, params: params)
+            Issue.record("\(command) was not refused")
+        } catch {
+            #expect("\(error)".contains("kit \"Senza Logo\" has no logo yet"), "\(command): \(error)")
+        }
+    }
+    #expect(e.project?.tracks.allSatisfy { $0.role != "logo" || $0.clips.isEmpty } == true)
+    try e.execute("brandkit.delete", params: ["kit": "senza-logo"])
+    try e.execute("brandkit.delete", params: ["kit": "copia-intera"])
+}
+
 /// #17: a caption style the user chose (an elegant serif) survives brandkit.apply; only its colours follow the kit.
 @Test func applyingAKitKeepsTheCaptionStyleTheUserChose() throws {
     _ = kitsDirectory

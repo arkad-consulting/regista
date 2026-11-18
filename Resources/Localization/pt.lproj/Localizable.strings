@@ -1321,7 +1321,6 @@
 "Questa clip" = "Este clipe";
 "Questa copia di Regista non contiene l'installatore: usa scripts/install.sh" = "Esta cópia do Regista não contém o instalador: use scripts/install.sh";
 "Questa registrazione non ha la camera: c'è solo lo schermo." = "Esta gravação não tem câmera: há só a tela.";
-"Questo kit non ha ancora un logo" = "Este kit ainda não tem logo";
 "Questo Mac" = "Este Mac";
 "Questo Mac non ha abbastanza memoria per il motore scelto." = "Este Mac não tem memória suficiente para o motor escolhido.";
 "Questo profilo è di un altro Mac" = "Este perfil é de outro Mac";
@@ -2395,3 +2394,4 @@
 "%@, codice esadecimale" = "%@, código hexadecimal";
 "«%@» non è un colore: scrivilo come #RRGGBB." = "“%@” não é uma cor: escreva-a como #RRGGBB.";
 "#RRGGBB" = "#RRGGBB";
+"Il kit «%@» non ha ancora un logo: sceglilo in Impostazioni › Brand kit." = "O kit “%@” ainda não tem logo: escolha-o em Ajustes › Kit de marca.";

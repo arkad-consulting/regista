@@ -149,13 +149,13 @@ Returns: pass and the details.
 
 **Create a brand kit** · MCP tool: `brandkit_create` · undo: yes — history.undo puts the brand kit back · takes `project`
 
-Create a brand kit for a client (e.g. a bakery, a studio): a copy of an existing kit (from, default arkad) with a new id and name, then the given colours, fonts, caption style, logo placement, title presets. Saved as a folder (kit.json + assets) in the user's brand kits. Add the logo with brandkit.setLogo and font files with brandkit.setFont. Returns the kit.
+Create a brand kit for a client (e.g. a bakery, a studio): a copy of an existing kit (from) with a new id and name, or — without from — the default kit's colours, fonts and placement with no logo (a new brand never starts with another brand's logo), then the given colours, fonts, caption style, logo placement, title presets. Saved as a folder (kit.json + assets) in the user's brand kits. Add the logo with brandkit.setLogo and font files with brandkit.setFont. Returns the kit.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `name` | string | yes | – | Display name ("Café Atelier"). |
 | `id` | string | no | from the name | Kit id (lowercase, digits, -; default from the name). |
-| `from` | string | no | arkad | Kit to start from (default arkad). |
+| `from` | string | no | – | Kit to copy whole, logos included. Without it, the new kit takes the arkad kit's colours, fonts and placement, with no logo. |
 | `colors` | object | no | – | Colour roles to set {role: #RRGGBB} (null removes): primary, accent, ink, paper, surface, success, highlight (caption keyword box, highlighted words), onHighlight (text on it). |
 | `fonts` | object | no | – | Font roles {display, text, textBold, mono: font name or file} (files: prefer brandkit.setFont, which copies them into the kit). |
 | `captionStyle` | object | no | – | Caption style fields to override (captions.setStyle names; colours may be roles), null removes one. |

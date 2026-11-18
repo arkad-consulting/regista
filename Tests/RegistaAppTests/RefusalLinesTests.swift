@@ -74,6 +74,11 @@ extension MouseSuites {
         keep("paid", await refused("generate.run", ["provider": "higgsfield", "kind": "image", "prompt": "a red chair"]))
         keep("engine", await refused("graphics.hyperframes", ["folder": .string(scratch.path), "start": 0]))
         keep("file", await refused("media.import", ["path": .string(scratch.appendingPathComponent("non-qui.mov").path)]))
+        // A kit made as «Nuovo kit» makes it, with no logo yet (#99), then the logo in the video.
+        _ = try await store.perform("brandkit.create", ["name": "Senza Logo", "id": "senza-logo-rifiuti"])
+        defer { _ = try? BrandKitStore().delete("senza-logo-rifiuti") }
+        _ = try await store.perform("brandkit.apply", ["kit": "senza-logo-rifiuti"])
+        keep("no logo", await refused("logo.add", ["replace": true]))
         let plain = try #require(await refused("takes.select", ["line": 9, "take": 1]), "takes.select on a line that does not exist was not refused")
 
         // The log's row: the sentence in red, the engine's text whole in the tooltip after the parameters.
@@ -109,13 +114,14 @@ extension MouseSuites {
                     #expect(line.contains("Prova") && line.contains(StepError.languageInWords("en")), "\(language): «\(line)»")
                 case "no voice": #expect(line.contains("Prova"), "\(language): «\(line)»")
                 case "file": #expect(line.contains("non-qui.mov"), "\(language): «\(line)»")
+                case "no logo": #expect(line.contains("Senza Logo") && line == StepError.noLogoLine("Senza Logo"), "\(language): «\(line)»")
                 default: break
                 }
             }
             // An error without a sentence of its own: the translated lead, then the engine's text (today's fallback).
             #expect(StepError.readable(plain, fallback: "Il motore ha risposto: %@") == String(format: loc("Il motore ha risposto: %@"), JobCenter.message(plain)))
         }
-        #expect(refusals.count == 7, "refused: \(refusals.map(\.what))")
+        #expect(refusals.count == 8, "refused: \(refusals.map(\.what))")
     }
 }
 }

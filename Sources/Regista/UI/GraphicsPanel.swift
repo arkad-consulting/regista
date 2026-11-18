@@ -71,7 +71,8 @@ enum GraphicsCatalog {
         if item.category == .captions, !p.tracks.contains(where: { $0.captions != nil }) {
             return "Prima genera i sottotitoli (Testi e sottotitoli)."
         }
-        if item.command == "logo.animate", p.brand?.logoPath() == nil { return "Scegli una marca con un logo (Marca, nella barra del montaggio)." }
+        if item.command == "logo.animate", let kit = p.brand, kit.logoPath() == nil { return StepError.noLogoLine(kit.name) }
+        if item.command == "logo.animate", p.brand == nil { return "Scegli una marca con un logo (Marca, nella barra del montaggio)." }
         if item.command == "clip.follow", let need = followNeed(item, project: p, selection: selection) {
             let face = item.id == "follow-face"
             switch need {
@@ -508,7 +509,7 @@ private struct LogoSection: View {
             VStack(alignment: .leading, spacing: Ed.Space.m) {
                 RToggle(title: "Logo nel video", isOn: Binding(get: { !logoClips.isEmpty }, set: { on in on ? addLogo() : removeLogo() }),
                         subtitle: kit == nil ? "Scegli prima una marca (Marca, nella barra del montaggio)."
-                            : kit?.logoPath() == nil ? "Questo kit non ha ancora un logo" : LogoSwitch.caption(atEnd: LogoSwitch.atEnd(store)))
+                            : kit?.logoPath() == nil ? StepError.noLogoLine(kit?.name ?? "") : LogoSwitch.caption(atEnd: LogoSwitch.atEnd(store)))
                     .disabled(kit?.logoPath() == nil)
                 LogoPlacementControls(placement: $placement, onCommit: { if !logoClips.isEmpty { addLogo() } })
                     .disabled(kit == nil)

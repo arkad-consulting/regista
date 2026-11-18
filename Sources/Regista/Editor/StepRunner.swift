@@ -285,6 +285,7 @@ struct StepError: Error, CustomStringConvertible {
         let noProfile = "no profile on this Mac yet"  // l10n-ignore
         let paid = #"is paid \(.*needs the human's approval"#  // l10n-ignore
         let noFile = #"no file at (.+)$"#  // l10n-ignore
+        let noLogo = #"kit "(.+)" has no logo yet:"#  // l10n-ignore
         if let m = match(rules), let count = Int(m[0]), let spec = RuleCheckSpec.named(m[1]) {
             let name = lookup(spec.title)
             return count == 1 ? String(format: lookup("Export rifiutato: 1 regola non rispettata — %@"), name)
@@ -302,10 +303,17 @@ struct StepError: Error, CustomStringConvertible {
         if match(paid) != nil {
             return lookup("Una generazione a pagamento parte solo dopo che hai visto il costo e l'hai approvata in Regista.")
         }
+        if let m = match(noLogo) { return noLogoLine(m[0], lookup) }
         if let m = match(noFile) {
             return String(format: lookup("Il file «%@» non c'è: forse è stato spostato o rinominato."), (m[0] as NSString).lastPathComponent)
         }
         return nil
+    }
+
+    /// A kit without a logo, where the logo would go (#99): the refusal of logo.add and logo.animate, and the reason the
+    /// logo switch and the logo animations give before a click.
+    static func noLogoLine(_ kit: String, _ lookup: (String) -> String = loc) -> String {
+        String(format: lookup("Il kit «%@» non ha ancora un logo: sceglilo in Impostazioni › Brand kit."), kit)
     }
 
     /// A voice's language by its name in the interface language («inglese», «anglais»).

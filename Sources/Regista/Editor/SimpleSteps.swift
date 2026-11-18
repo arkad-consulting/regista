@@ -320,7 +320,7 @@ struct SimpleSnapshot {
         s.cleaned = text[.clean].status == .done
         s.logoClips = p.tracks.filter { $0.role == "logo" }.flatMap(\.clips).map(\.id)
         s.logoReason = p.brand == nil ? "Scegli prima una marca (Marca, nella barra del montaggio)."
-            : p.brand?.logoPath() == nil ? "Questo kit non ha ancora un logo" : nil
+            : p.brand?.logoPath() == nil ? StepError.noLogoLine(p.brand?.name ?? "", lookup) : nil
         s.logoPlacement = p.brand?.logoPlacement ?? LogoPlacement()
         s.graphics = graphicClips(p)
         s.titleText = p.script?.lines.first.map(shortTitle) ?? ""

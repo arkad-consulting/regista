@@ -90,7 +90,8 @@ struct BrandKitSettings: View {
 
     private func create() {
         let id = uniqueID("nuovo-kit")
-        run("brandkit.create", ["name": .string(loc("Nuovo kit")), "id": .string(id), "from": "arkad"]) { _ in selected = id }
+        // The default kit's colours, fonts and placement, no logo of another brand (#99): each logo row reads «Nessun logo».
+        run("brandkit.create", ["name": .string(loc("Nuovo kit")), "id": .string(id)]) { _ in selected = id }
     }
 
     private func duplicate(_ kit: BrandKit) {

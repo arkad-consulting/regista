@@ -145,6 +145,16 @@ extension Journey {
             let all = s.elements().filter { $0.title == loc("Scegli…") || $0.label == loc("Scegli…") }
             return all.indices.contains(i) ? all[i] : nil
         }
+        // The logo rows reading «Nessun logo» (#99: a new kit has no logo of another brand until a file is chosen).
+        func noLogoRows() -> [String] {
+            let texts = s.elements().filter { $0.role == "AXStaticText" }
+            let none = texts.filter { $0.value == loc("Nessun logo") }
+            return BrandKitSettings.logoNames.map { loc($0.1) }.filter { label in
+                texts.first { $0.value == label }.map { row in none.contains { abs($0.centre.y - row.centre.y) < 14 } } ?? false
+            }
+        }
+        #expect(noLogoRows() == BrandKitSettings.logoNames.map { loc($0.1) }, "a new kit's logo rows: «Nessun logo» on \(noLogoRows()) only: \(screen(s))")
+        #expect(library.kit(id)?.logoPath() == nil, "the new kit has a logo: \(library.kit(id)?.logoPath() ?? "-")")
         if choose.count >= 6 {
             let logoBefore = library.kit(id)?.logoPathIfSet("onDark")
             RigGuard.panelAnswer = [fontCopy]
@@ -165,8 +175,10 @@ extension Journey {
             Issue.record("no corner pop-up: \(screen(s))")
         }
         s.pump(0.3)
+        #expect(noLogoRows() == [loc("Simbolo")], "after the two logos, «Nessun logo» reads on \(noLogoRows()), not on the symbol row alone")
+        #expect(library.kit(id)?.logoPathIfSet("mark") == nil, "the symbol is \(library.kit(id)?.logoPathIfSet("mark") ?? "-") before a file is chosen")
         shotKit(s, "03-font-logo-corner")
-        step("Scegli… the titles' font, the logo on dark and on light footage; Angolo: In alto a destra", sees: "font \(URL(fileURLWithPath: library.kit(id)?.fonts["display"] ?? "").lastPathComponent), logos \(BrandKit.logoVariants.filter { library.kit(id)?.logoPathIfSet($0) != nil }), corner \(library.kit(id)?.logoPlacement?.corner ?? "?")")
+        step("Scegli… the titles' font, the logo on dark and on light footage; Angolo: In alto a destra", sees: "«Nessun logo» on \(noLogoRows()); font \(URL(fileURLWithPath: library.kit(id)?.fonts["display"] ?? "").lastPathComponent), logos \(BrandKit.logoVariants.filter { library.kit(id)?.logoPathIfSet($0) != nil }), corner \(library.kit(id)?.logoPlacement?.corner ?? "?")")
 
         // 4. Marca › Forno Rosa on the open reel: the tab names it.
         try await tap("Marca del progetto: il brand kit di sottotitoli, titoli e logo")
