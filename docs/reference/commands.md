@@ -136,7 +136,7 @@ Returns: what was restyled.
 
 **Check the brand kit** · MCP tool: `brandkit_check` · undo: no — reads only · takes `project`
 
-Check the applied brand kit on the edit: fonts (each role resolved or its system fallback), captions (style keyword box colour = the kit's highlight, and the rendered keyword box pixels on the first keyword's frame), logo overlays inside their safe zone (Instagram limits, out of the caption band). Optionally writes the checked frame. Returns pass and the details.
+Check the applied brand kit on the edit: fonts (each role resolved or its system fallback), captions (style keyword box colour = the kit's highlight, and the rendered keyword box pixels on the first keyword's frame), logo overlays inside their safe zone (Instagram limits, out of the caption band), and titles, cards and labels whose text, box or highlight colour is none of the kit's colours (each named with its clip and time). Optionally writes the checked frame. Returns pass and the details.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|

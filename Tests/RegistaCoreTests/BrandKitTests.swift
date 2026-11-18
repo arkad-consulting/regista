@@ -210,6 +210,30 @@ private func captionedEngine() throws -> Engine {
     try e.execute("brandkit.delete", params: ["kit": "copia-intera"])
 }
 
+/// #97: brandkit.check names a title whose text, box or highlight colour is none of the applied kit's colours, with its
+/// clip and time; a title in the kit's colours (a hex of any role, or the role's name) is not named.
+@Test func theKitCheckNamesATitleOutsideTheKitsColours() throws {
+    _ = kitsDirectory
+    let e = try captionedEngine()
+    try e.execute("brandkit.apply", params: ["kit": "cafe-atelier"])
+    #expect(BrandKit.cafeAtelier.colors.values.allSatisfy { $0.uppercased() != "#00FF00" })
+    let green = try e.execute("title.add", params: ["text": "FUORI MARCA", "start": 1, "duration": 1, "color": "#00ff00"])
+    let greenID = try #require(green.value(at: "clip.id")?.stringValue)
+    let boxed = try e.execute("title.add", params: ["text": "SCATOLA", "start": 2, "duration": 1, "color": "#8A5A3C",
+                                                    "background": "box", "backgroundColor": "#123456"])
+    let boxedID = try #require(boxed.value(at: "clip.id")?.stringValue)
+    try e.execute("title.add", params: ["text": "IN MARCA", "start": 0.5, "duration": 1, "color": "#F5EFE4"])
+    let r = try e.execute("brandkit.check")
+    #expect(r["pass"] == false)
+    let named = r["titlesOutside"]?.arrayValue ?? []
+    #expect(named.map { $0["clipId"]?.stringValue ?? "?" } == [greenID, boxedID], "\(r["titlesOutside"]?.text() ?? "none")")
+    #expect(named.first?["time"] == 1 && named.first?["colors"] == ["#00FF00"] && named.last?["colors"] == ["#123456"])
+    #expect(r["problems"]?.arrayValue?.contains { $0.stringValue?.contains(greenID) == true && $0.stringValue?.contains("1.00 s") == true } == true,
+            "\(r["problems"]?.text() ?? "")")
+    // The same check the window's Marca row reads.
+    #expect(e.project?.brand?.offKitTitles(in: e.project!).map(\.clipID) == [greenID, boxedID])
+}
+
 /// #17: a caption style the user chose (an elegant serif) survives brandkit.apply; only its colours follow the kit.
 @Test func applyingAKitKeepsTheCaptionStyleTheUserChose() throws {
     _ = kitsDirectory

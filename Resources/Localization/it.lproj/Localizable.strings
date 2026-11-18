@@ -2396,3 +2396,5 @@
 "#RRGGBB" = "#RRGGBB";
 "Il kit «%@» non ha ancora un logo: sceglilo in Impostazioni › Brand kit." = "Il kit «%@» non ha ancora un logo: sceglilo in Impostazioni › Brand kit.";
 "track.footageSound" = "Audio della ripresa";
+"1 titolo fuori dai colori del kit" = "1 titolo fuori dai colori del kit";
+"%@ titoli fuori dai colori del kit" = "%@ titoli fuori dai colori del kit";

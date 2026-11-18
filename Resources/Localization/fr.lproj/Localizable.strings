@@ -2396,3 +2396,5 @@
 "#RRGGBB" = "#RRGGBB";
 "Il kit «%@» non ha ancora un logo: sceglilo in Impostazioni › Brand kit." = "Le kit « %@ » n'a pas encore de logo : choisissez-le dans Réglages › Kit de marque.";
 "track.footageSound" = "Son des rushes";
+"1 titolo fuori dai colori del kit" = "1 titre hors des couleurs du kit";
+"%@ titoli fuori dai colori del kit" = "%@ titres hors des couleurs du kit";

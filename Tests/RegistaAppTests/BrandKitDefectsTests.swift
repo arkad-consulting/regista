@@ -73,5 +73,54 @@ extension MouseSuites {
         j.shot(settingsFr, "settings-fr")
         settingsFr.close()
     }
+
+    /// #97: with a kit applied, Esporta's «Controlli» list has a row «Marca» that counts the titles outside the kit's
+    /// colours; a click on it selects the first one named and moves the playhead to it, once, and the row stays. Without
+    /// a title outside the kit it is a tick with the kit's name.
+    @Test func theBrandRowNamesATitleOutsideTheKitAndAClickGoesToIt() async throws {
+        let j = try await Journey("n23-brand-row", project: "rich")
+        defer { j.close() }
+        _ = try await j.store.perform("brandkit.apply", ["kit": "cafe-atelier"])
+        // The reel's own titles go, so the one in green is the only one outside the kit.
+        let titles = j.app.clips.filter { $0.title != nil }.map { JSONValue.string($0.id) }
+        if !titles.isEmpty { _ = try await j.store.perform("timeline.delete", ["clipIds": .array(titles)]) }
+        let kit = try #require(j.store.project?.brand)
+        for language in ["it", "fr"] {
+            j.language = language
+            await j.open(Navigation(activity: .export, rightTab: .inspector))
+            await j.app.idle(0.4)
+            func brandRow() -> RigElement? {
+                j.rig.elements().first { $0.visible && ($0.role == "AXStaticText" && $0.value == loc("Marca") || $0.isControl && $0.label.hasPrefix(loc("Marca"))) }
+            }
+            if !kit.offKitTitles(in: j.store.project!).isEmpty { Issue.record("\(language): titles outside the kit before the green one: \(kit.offKitTitles(in: j.store.project!))") }
+            _ = await j.reveal(loc("Marca"), at: CGPoint(x: 200, y: 500))
+            #expect(brandRow() != nil && j.shows(kit.name), "\(language): no tick «Marca» with the kit's name: \(j.screen())")
+            j.step("\(language): Esporta with the kit applied, no title outside its colours", sees: "«\(loc("Marca"))» \(kit.name), a tick")
+
+            let green = try await j.store.perform("title.add", ["text": "FUORI MARCA", "start": 2, "duration": 1, "color": "#00FF00"])
+            let greenID = try #require(green.value(at: "clip.id")?.stringValue)
+            await j.app.settle()
+            await j.app.idle(0.3)
+            let count = loc("1 titolo fuori dai colori del kit")
+            #expect(j.shows(count), "\(language): the row does not say «\(count)»: \(j.screen())")
+            let row = try #require(j.rig.elements().first { $0.isControl && $0.visible && ($0.label.contains(count) || $0.label.hasPrefix(loc("Marca"))) },
+                                   "\(language): the row is not a control: \(j.screen())")
+            j.store.selection = []
+            j.store.preview.seek(0)
+            await j.app.settle()
+            let commands = j.store.activity.count
+            j.rig.click(row.centre)
+            await j.app.settle()
+            #expect(j.store.selection == [greenID], "\(language): the click selected \(j.store.selection)")
+            #expect(abs(j.store.preview.playhead.time - 2) < 0.05, "\(language): the playhead is at \(j.store.preview.playhead.time)")
+            #expect(j.store.activity.count == commands, "\(language): the click ran \(j.app.commands(since: commands))")
+            #expect(j.rig.elements().contains { $0.isControl && $0.visible && ($0.label.contains(count) || $0.label.hasPrefix(loc("Marca"))) },
+                    "\(language): the row is gone after the click")
+            #expect(j.rig.elements().contains { $0.isControl && $0.visible && $0.name == loc("Esporta video…") || $0.name == loc("Esporta lo stesso") },
+                    "\(language): the warning blocks the export: \(j.screen())")
+            j.step("\(language): a title «FUORI MARCA» in #00FF00; a click on the row", sees: "«\(count)»; the title selected, the playhead at 2 s")
+            _ = try await j.store.perform("timeline.delete", ["clipIds": [.string(greenID)]])
+        }
+    }
 }
 }

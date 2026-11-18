@@ -2396,3 +2396,5 @@
 "#RRGGBB" = "#RRGGBB";
 "Il kit «%@» non ha ancora un logo: sceglilo in Impostazioni › Brand kit." = "The kit “%@” has no logo yet: choose it in Settings › Brand kit.";
 "track.footageSound" = "Footage sound";
+"1 titolo fuori dai colori del kit" = "1 title outside the kit's colours";
+"%@ titoli fuori dai colori del kit" = "%@ titles outside the kit's colours";

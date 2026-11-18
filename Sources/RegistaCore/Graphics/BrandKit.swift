@@ -101,6 +101,40 @@ public struct BrandKit: Codable, Hashable, Sendable {
         return r
     }
 
+    // MARK: Checks
+
+    /// A title, card or label whose text, box or highlight colour is none of the kit's colours (#97).
+    public struct OffKitTitle: Hashable, Sendable {
+        public let clipID: String
+        public let start: MediaTime
+        public let text: String
+        /// The colours outside the kit (#RRGGBB, uppercase).
+        public let colors: [String]
+    }
+
+    /// The titles of `project` (titles, cards, labels: every clip with a title) drawn in a colour that is not one of the
+    /// kit's (any role), in timeline order.
+    public func offKitTitles(in project: Project) -> [OffKitTitle] {
+        func code(_ c: String) -> String {
+            let v = color(c).uppercased()
+            return v.hasPrefix("#") && v.count == 9 ? String(v.prefix(7)) : v   // an alpha byte is not another colour
+        }
+        let palette = Set(colors.values.map(code))
+        var out: [OffKitTitle] = []
+        for track in project.tracks {
+            for clip in track.clips {
+                guard let t = clip.title else { continue }
+                var used = [t.color]
+                if let b = t.background { used.append(b.color) }
+                if let h = t.highlightColor, !(t.highlight ?? []).isEmpty { used.append(h) }
+                var off: [String] = []
+                for c in used.map(code) where !palette.contains(c) && !off.contains(c) { off.append(c) }
+                if !off.isEmpty { out.append(OffKitTitle(clipID: clip.id, start: clip.start, text: t.text, colors: off)) }
+            }
+        }
+        return out.sorted { $0.start != $1.start ? $0.start < $1.start : $0.clipID < $1.clipID }
+    }
+
     // MARK: Assets
 
     /// An asset path as a file path: absolute, `~/…`, `bundle:<path under Resources>` (the app bundle or the

@@ -227,17 +227,26 @@ extension Journey {
         #expect(logo != nil && corner, "the logo is not in the kit's corner (top right): \(String(describing: logo?.placement))")
         step("Grafica › Logo, «Logo nel video»", sees: "the logo at \(logo?.placement.map { "\(Int($0.x * 100))%, \(Int($0.y * 100))%" } ?? "nowhere") (the kit's corner: top right)")
 
-        // 7. The kit's check (the window has no button for it: run as the panel's commands run, on the tab's queue).
+        // 7. The kit's check: by the command, and in the window as Esporta's «Marca» row (#97).
         let pass = try await store.perform("brandkit.check")
-        step("brandkit.check (no button in the window: run on the tab)", sees: "pass \(pass["pass"]?.boolValue == true)")
+        step("brandkit.check on the tab", sees: "pass \(pass["pass"]?.boolValue == true)")
         let off = try await store.perform("title.add", ["text": "FUORI MARCA", "start": 0.5, "duration": 1, "color": "#00FF00"])
         let offID = off.value(at: "clip.id")?.stringValue ?? "?"
         let broken = try await store.perform("brandkit.check")
-        let names = broken.text().contains(offID)
-        withKnownIssue("brandkit.check looks at fonts, the captions' keyword box and the logo's zone, not at the titles' colours (#97)") {
-            #expect(broken["pass"] == false && names, "a title in a colour outside the kit passes the kit's check: \(broken.text().prefix(300))")
-        }
-        step("A title «FUORI MARCA» in #00FF00, brandkit.check again", sees: "pass \(broken["pass"]?.boolValue == true), the clip \(names ? "named" : "not named")")
+        let names = broken["titlesOutside"]?.arrayValue?.contains { $0["clipId"]?.stringValue == offID } == true
+        #expect(broken["pass"] == false && names, "a title in a colour outside the kit passes the kit's check: \(broken.text().prefix(300))")
+        try await tap("Esporta")
+        await app.idle(0.4)
+        let outside = store.project.flatMap { p in p.brand?.offKitTitles(in: p) } ?? []
+        let count = outside.count == 1 ? loc("1 titolo fuori dai colori del kit") : String(format: loc("%@ titoli fuori dai colori del kit"), "\(outside.count)")
+        _ = await reveal(count, at: CGPoint(x: 200, y: 500))
+        let brandRow = rig.elements().first { $0.isControl && $0.visible && ($0.label.contains(count) || $0.label.hasPrefix(loc("Marca"))) }
+        #expect(outside.contains { $0.clipID == offID } && brandRow != nil && shows(count), "Esporta's «Marca» row does not say «\(count)»: \(screen())")
+        store.selection = []
+        if let brandRow { rig.click(brandRow.centre); await app.settle() }
+        #expect(!outside.isEmpty && store.selection == [outside[0].clipID], "the click on «Marca» selected \(store.selection), not \(outside.first?.clipID ?? "?")")
+        #expect(abs(store.preview.playhead.time - (outside.first?.start.seconds ?? -1)) < 0.05, "the playhead is at \(store.preview.playhead.time)")
+        step("A title «FUORI MARCA» in #00FF00; Esporta, a click on «Marca»", sees: "brandkit.check names it; «\(count)»; \(outside.map { "«\($0.text)»" }.joined(separator: ", ")) named, the first selected and the playhead on it")
 
         // 8. The kit changed in Settings while the project is open: does the project follow, and does the window say so?
         let projectBefore = store.project?.brand?.colors["primary"]

@@ -93,6 +93,7 @@ struct ExportSettingsPanel: View {
                     check("Picco reale", meter.curve.truePeak.isFinite ? String(format: "%.1f dBTP", meter.curve.truePeak) : "–",
                           ok: meter.curve.truePeak.isFinite && !LoudnessTarget.peakOver(meter.curve.truePeak))
                     check("Sottotitoli", staleCaptions ? "da rigenerare" : (hasCaptions ? "aggiornati" : "nessuno"), ok: !staleCaptions)
+                    if let p = store.project, let kit = p.brand { brandCheck(kit, p) }
                     // A generated voice that is heard: the note to put in the post description (#25).
                     if store.project?.hasAudibleGeneratedVoice == true { AIVoiceNote() }
                 }
@@ -210,13 +211,37 @@ struct ExportSettingsPanel: View {
         return url
     }
 
-    private func check(_ label: String, _ value: String, ok: Bool) -> some View {
+    /// «Marca» (#97): the applied kit's colours on the titles, cards and labels — a tick, or a warning with how many are
+    /// outside them; a click selects the first one named and moves the playhead to it. A warning, never a refusal: the
+    /// editing rules are what blocks an export.
+    @ViewBuilder
+    private func brandCheck(_ kit: BrandKit, _ p: Project) -> some View {
+        let off = kit.offKitTitles(in: p)
+        if let first = off.first {
+            Button {
+                store.selection = [first.clipID]
+                store.preview.seek(first.start.seconds)
+            } label: {
+                check("Marca", off.count == 1 ? loc("1 titolo fuori dai colori del kit") : loc("%@ titoli fuori dai colori del kit", String(off.count)), ok: false)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(off.map { ([$0.text, shortTime($0.start.seconds)] + $0.colors).joined(separator: " · ") }.joined(separator: "\n"))
+        } else {
+            check("Marca", kit.name, ok: true, lookup: false)
+        }
+    }
+
+    /// `lookup`: false for data (a kit's name), drawn as it is.
+    private func check(_ label: String, _ value: String, ok: Bool, lookup: Bool = true) -> some View {
         HStack {
             Image(systemName: ok ? "checkmark.circle.fill" : "exclamationmark.circle").font(Ed.icon(Ed.TypeSize.small))
                 .foregroundStyle(ok ? Ed.ok : Ed.gold)
             Text(verbatim: loc(label)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2)
             Spacer()
-            Text(verbatim: loc(value)).font(Ed.mono(Ed.TypeSize.small)).foregroundStyle(Ed.text)
+            // One line, as every row of the list: a long value («1 titolo fuori dai colori del kit») shrinks a little.
+            Text(verbatim: lookup ? loc(value) : value).font(Ed.mono(Ed.TypeSize.small)).foregroundStyle(Ed.text)
+                .lineLimit(1).minimumScaleFactor(0.7)
         }
     }
 }

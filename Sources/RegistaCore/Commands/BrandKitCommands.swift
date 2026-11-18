@@ -500,7 +500,7 @@ enum LogoAdd: Command {
 
 enum BrandkitCheck: Command {
     static let id = "brandkit.check"
-    static let summary = "Check the applied brand kit on the edit: fonts (each role resolved or its system fallback), captions (style keyword box colour = the kit's highlight, and the rendered keyword box pixels on the first keyword's frame), logo overlays inside their safe zone (Instagram limits, out of the caption band). Optionally writes the checked frame. Returns pass and the details."
+    static let summary = "Check the applied brand kit on the edit: fonts (each role resolved or its system fallback), captions (style keyword box colour = the kit's highlight, and the rendered keyword box pixels on the first keyword's frame), logo overlays inside their safe zone (Instagram limits, out of the caption band), and titles, cards and labels whose text, box or highlight colour is none of the kit's colours (each named with its clip and time). Optionally writes the checked frame. Returns pass and the details."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [
         .optional("path", .string, "Write the frame checked (the first keyword's) to this .png."),
@@ -575,8 +575,15 @@ enum BrandkitCheck: Command {
                 problems += pr.map { .string("logo \(clip.id) \($0)") }
             }
         }
+        // Titles, cards and labels in a colour outside the kit (#97).
+        let off = kit.offKitTitles(in: project)
+        for t in off {
+            problems.append(.string("title \(t.clipID) «\(t.text)» at \(String(format: "%.2f", t.start.seconds)) s: \(t.colors.joined(separator: ", ")) not a colour of the kit"))
+        }
+        let titles: [JSONValue] = off.map { ["clipId": .string($0.clipID), "time": ProjectState.seconds($0.start), "text": .string($0.text),
+                                              "colors": .array($0.colors.map { .string($0) })] }
         let fonts = kit.fontReport()
-        return ["pass": .bool(problems.isEmpty), "kit": .string(kit.id), "captions": captions, "logos": .array(logos),
+        return ["pass": .bool(problems.isEmpty), "kit": .string(kit.id), "captions": captions, "logos": .array(logos), "titlesOutside": .array(titles),
                 "logosInside": .bool(logos.allSatisfy { $0["insideSafeZone"] == .bool(true) }), "logoCount": .number(Double(logos.count)),
                 "fonts": BrandKits.fontsJSON(kit), "fontsResolved": .number(Double(fonts.filter { !$0.fallback }.count)),
                 "fontFallbacks": .array(fonts.filter(\.fallback).map { .string("\($0.role): \($0.resolved)") }), "problems": .array(problems)]
