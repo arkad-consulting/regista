@@ -169,7 +169,7 @@ struct BrandPicker: View {
     static let width: CGFloat = 300
     /// `notice`: the project's copy differs from its kit, or the kit was deleted (#98): one more block on top.
     static func height(kits: Int, notice: BrandKitLibrary.CopyStatus = .same) -> CGFloat {
-        CGFloat(118 + 40 * max(kits, 1) + (notice == .changed ? 96 : notice == .deleted ? 64 : 0))
+        CGFloat(118 + 40 * max(kits, 1) + (notice == .changed ? 96 : notice == .deleted ? 88 : 0))
     }
 
     var body: some View {
@@ -220,7 +220,7 @@ struct BrandPicker: View {
             }
             .padding(.horizontal, 14).padding(.bottom, Ed.Space.s)
         case .deleted:
-            Text(verbatim: String(format: loc("Il kit «%@» è stato eliminato: il progetto tiene la sua copia e il video non cambia."), copy.name))
+            Text(verbatim: String(format: loc("Il kit «%@» è stato eliminato: il progetto tiene la sua copia dei colori. Il logo e i caratteri del kit possono mancare nel video."), copy.name))
                 .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 14).padding(.bottom, Ed.Space.s)
         }

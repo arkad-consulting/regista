@@ -185,7 +185,7 @@ extension MouseSuites {
             #expect(j.store.project?.brand?.name == name && j.store.project?.brand?.colors["primary"] == old, "\(language): the project lost its copy")
             try await j.tap(marcaTip)
             let picker2 = try #require(await j.popover(), "\(language): Marca opened no picker")
-            let gone = String(format: loc("Il kit «%@» è stato eliminato: il progetto tiene la sua copia e il video non cambia."), name)
+            let gone = String(format: loc("Il kit «%@» è stato eliminato: il progetto tiene la sua copia dei colori. Il logo e i caratteri del kit possono mancare nel video."), name)
             #expect(!picker2.elements(containing: gone).isEmpty, "\(language): the popover does not say «\(gone)»: \(j.screen(picker2))")
             #expect(j.control("Aggiorna dal kit", in: picker2) == nil, "\(language): «Aggiorna dal kit» for a deleted kit")
             j.shot(picker2, "\(language)-deleted")
@@ -200,7 +200,7 @@ extension MouseSuites {
         for language in ["it", "en", "fr", "pt"] {
             let table = MouseRig.table(language)
             for key in ["%@ · copia del progetto", "%@ · kit eliminato", "Il kit è cambiato dopo che l'hai applicato a questo progetto.", "Aggiorna dal kit",
-                        "Il kit «%@» è stato eliminato: il progetto tiene la sua copia e il video non cambia."] {
+                        "Il kit «%@» è stato eliminato: il progetto tiene la sua copia dei colori. Il logo e i caratteri del kit possono mancare nel video."] {
                 let text = table.localizedString(forKey: key, value: "", table: nil)
                 #expect(!text.isEmpty && (language == "it" || text != key), "\(language): «\(key)» has no text")
             }

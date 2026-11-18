@@ -2402,4 +2402,4 @@
 "%@ · kit eliminato" = "%@ · kit deleted";
 "Il kit è cambiato dopo che l'hai applicato a questo progetto." = "The kit changed after you applied it to this project.";
 "Aggiorna dal kit" = "Update from the kit";
-"Il kit «%@» è stato eliminato: il progetto tiene la sua copia e il video non cambia." = "The kit “%@” was deleted: the project keeps its own copy and the video does not change.";
+"Il kit «%@» è stato eliminato: il progetto tiene la sua copia dei colori. Il logo e i caratteri del kit possono mancare nel video." = "The kit “%@” was deleted: the project keeps its copy of the colours. The kit's logo and fonts may be missing from the video.";
