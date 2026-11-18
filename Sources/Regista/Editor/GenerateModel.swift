@@ -423,6 +423,7 @@ enum GenWords {
     static func readable(_ error: Error, _ lookup: (String) -> String = loc) -> String {
         if let b = error as? GenerateBlocked { return b.description }
         let raw = JobCenter.message(error)
+        if let sentence = StepError.refusal(raw, lookup) { return sentence }
         let says = [  // l10n-ignore-begin
             "budget exhausted",
             "not logged in",

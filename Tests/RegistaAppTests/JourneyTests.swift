@@ -1957,7 +1957,12 @@ extension Journey {
         if !failing.isEmpty {
             let refused = await claude(link, "export.render", ["path": .string(movie.path), "preset": "9:16"])
             #expect(refused.reply.isError && !FileManager.default.fileExists(atPath: movie.path), "export_render did not refuse with rules failing: \(refused.reply.text.prefix(200))")
-            step("export_render while \(failing.joined(separator: ", ")) fails", sees: await seesClaude("export.render", refused.reply) + "; no file")
+            // The panel says it in words (#88): the count and the first rule as the rules card names it, never its id.
+            let refusal = store.activity.last { $0.command == "export.render" }?.result ?? ""
+            let firstRule = failing.first.flatMap(RuleCheckSpec.named).map { loc($0.title) } ?? "?"
+            #expect(refusal.contains(firstRule) && !failing.contains { refusal.contains($0) }, "the refused export reads «\(refusal)», not the rule «\(firstRule)»")
+            #expect(await inClaudePanel { shows(refusal) }, "the Claude panel does not show «\(refusal)» whole: \(screen())")
+            step("export_render while \(failing.joined(separator: ", ")) fails", sees: await seesClaude("export.render", refused.reply) + "; no file; the panel: «\(refusal)»")
             let fixed = await claude(link, "rules.fix", ["all": true])
             #expect(!fixed.reply.isError && fixed.reply.result?.value(at: "check.pass") == true, "rules_fix: \(fixed.reply.text.prefix(300))")
             step("rules_fix {all: true}", sees: await seesClaude("rules.fix", fixed.reply) + "; \(fixed.reply.result?["applied"]?.arrayValue?.count ?? 0) fix(es) applied")
@@ -2025,7 +2030,9 @@ extension Journey {
         let paid = await claude(link, "generate.run", ["provider": "higgsfield", "kind": "image", "prompt": "a red chair"])
         #expect(paid.reply.isError, "a paid generation ran without approval: \(paid.reply.text.prefix(200))")
         #expect(await until(3) { store.pendingApproval != nil }, "no approval waits for the person: \(paid.reply.text.prefix(200))")
-        step("generate_run {provider: higgsfield} with no approval", sees: await seesClaude("generate.run", paid.reply) + "; refused: \(paid.reply.text.prefix(100))")
+        let paidLine = store.activity.last { $0.command == "generate.run" }?.result ?? ""
+        #expect(paidLine == loc("Una generazione a pagamento parte solo dopo che hai visto il costo e l'hai approvata in Regista."), "the refused generation reads «\(paidLine)»")
+        step("generate_run {provider: higgsfield} with no approval", sees: await seesClaude("generate.run", paid.reply) + "; the panel: «\(paidLine)»")
         let entry = try #require(store.pendingApproval)
         let approval = MouseRig(ApprovalSheet(entry: entry).environmentObject(store).environmentObject(store.preview).environmentObject(store.preview.playhead)
                                     .environmentObject(store.media).environmentObject(app.meter).environmentObject(app.recorder)

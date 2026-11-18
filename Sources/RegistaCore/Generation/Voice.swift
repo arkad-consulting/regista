@@ -120,7 +120,7 @@ public struct VoiceSetup: Hashable, Sendable {
         else if langs.count == 1 { language = langs.keys.first! }
         else { throw CommandError.invalid("voice \(name) speaks \(langs.keys.sorted().joined(separator: ", ")): pass options.language") }
         guard let setup = langs[language] else {
-            throw CommandError.notFound("voice \(name) has no \(language) (it speaks \(langs.keys.sorted().joined(separator: ", "))): the person records it in Regista: the Voce panel's button to clone the voice, or Settings › Profile and voice (voice.enroll.script {language: \"\(language)\"} gives the text to read for a recording made elsewhere)")
+            throw CommandError.notFound("voice \(entry.profile.name) has no \(language) (it speaks \(langs.keys.sorted().joined(separator: ", "))): the person records it in Regista: the Voce panel's button to clone the voice, or Settings › Profile and voice (voice.enroll.script {language: \"\(language)\"} gives the text to read for a recording made elsewhere)")
         }
         let tone = o["tone"]?.lowercased() ?? VoiceTone.neutral
         guard setup.availableTones.contains(tone) else {

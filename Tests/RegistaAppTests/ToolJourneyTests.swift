@@ -162,8 +162,12 @@ extension Journey {
         let refusal = store.activity.last { $0.command == "voice.say" }
         let why = refusal?.result ?? ""
         let failed = refusal?.status == .failed
-        let shown = !why.isEmpty && shows(String(why.prefix(30)))
-        #expect(failed && shown, "the window does not say why voice_say was refused: \(why)")
+        // In words (#88): the profile and the language by its name, read whole in the panel.
+        #expect(why == String(format: loc("Il profilo «%1$@» non ha una voce in %2$@: registrala nel pannello Voce."), "Prova", loc("inglese")),
+                "the refused voice_say reads «\(why)»")
+        let shown = !why.isEmpty
+        let whole = await inClaudePanel { shows(why) }
+        #expect(failed && shown && whole, "the window does not say why voice_say was refused: \(why)")
         step("voice_say {language: en} (no English voice)", sees: await seesClaude("voice.say", other.reply) + "; the panel: «\(refusal?.result.prefix(120) ?? "")»")
 
         // 4. voice_say: the clips on the Voce track, their text in the Inspector, the profile's voice named in Voce.

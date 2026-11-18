@@ -181,8 +181,10 @@ struct ActivityRow: View {
                     if !compact { Text(verbatim: Self.clock.string(from: a.started)).font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.text3) }
                 }
                 if !a.result.isEmpty {
+                    // The reason a step failed is read whole: it wraps, never cut (#88).
                     Text(verbatim: a.result).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(a.status == .failed ? Ed.danger : Ed.text2)
-                        .lineLimit(a.status == .failed ? 3 : 1).truncationMode(.tail)
+                        .lineLimit(a.status == .failed ? nil : 1).truncationMode(.tail)
+                        .fixedSize(horizontal: false, vertical: a.status == .failed)
                 }
             }
         }

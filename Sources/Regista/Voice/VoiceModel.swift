@@ -518,6 +518,7 @@ enum VoiceErrors: Error, CustomStringConvertible {
             return loc("Apri o crea prima un progetto: la voce va sulla sua timeline.")
         }
         if raw.contains("cancelled") { return loc("Annullato.") }
-        return String(format: loc("Non è riuscito: %@"), raw)
+        // The other failed-step sentences (#88: a voice in a language the profile has no voice in…), the same fallback.
+        return StepError.readable(error)
     }
 }

@@ -244,6 +244,8 @@ struct StepError: Error, CustomStringConvertible {
             "mixes several sources",
             "timeline is empty",
             "No project",
+            "is not installed",
+            "install it in Settings › Motori",
         ]  // l10n-ignore-end
         let reads = [
             lookup("Annullato: niente è stato modificato."),
@@ -259,9 +261,61 @@ struct StepError: Error, CustomStringConvertible {
             lookup("La prima pista audio mescola più file: la voce si pulisce da un file solo."),
             lookup("La timeline è vuota: non c'è niente da esportare."),
             lookup("Apri o crea prima un progetto."),
+            lookup("Il motore che serve non è installato su questo Mac: Impostazioni › Motori dice come installarlo."),
+            lookup("Il motore che serve non è installato su questo Mac: Impostazioni › Motori dice come installarlo."),
         ]
+        if let sentence = refusal(raw, lookup) { return sentence }
         let known = Array(zip(says, reads))
         if let hit = known.first(where: { raw.contains($0.0) }) { return hit.1 }
         return String(format: lookup(fallback), raw)
+    }
+
+    /// The refusals the recipes meet (#88), whose sentence carries what the engine's text names: the rule as the rules
+    /// card names it, the profile, the language by its name, the file. nil when `raw` is none of them.
+    static func refusal(_ raw: String, _ lookup: (String) -> String = loc) -> String? {
+        func match(_ pattern: String) -> [String]? {
+            guard let re = try? NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines]),
+                  let m = re.firstMatch(in: raw, range: NSRange(raw.startIndex..., in: raw)) else { return nil }
+            return (1..<m.numberOfRanges).map { i in Range(m.range(at: i), in: raw).map { String(raw[$0]) } ?? "" }
+        }
+        // The engine's own words (English matchers, not UI).
+        let rules = #"breaks (\d+) editing rules? of its kind \([^)]*\):\s*\n- ([a-z0-9-]+) at "#  // l10n-ignore
+        let language = #"^voice (.+) has no ([a-z]{2,3}) \(it speaks"#  // l10n-ignore
+        let noVoice = #"^(.+) has no voice yet:"#  // l10n-ignore
+        let noProfile = "no profile on this Mac yet"  // l10n-ignore
+        let paid = #"is paid \(.*needs the human's approval"#  // l10n-ignore
+        let noFile = #"no file at (.+)$"#  // l10n-ignore
+        if let m = match(rules), let count = Int(m[0]), let spec = RuleCheckSpec.named(m[1]) {
+            let name = lookup(spec.title)
+            return count == 1 ? String(format: lookup("Export rifiutato: 1 regola non rispettata — %@"), name)
+                : String(format: lookup("Export rifiutato: %1$@ regole non rispettate — la prima: %2$@"), "\(count)", name)
+        }
+        if let m = match(language) {
+            return String(format: lookup("Il profilo «%1$@» non ha una voce in %2$@: registrala nel pannello Voce."), m[0], languageInWords(m[1], lookup))
+        }
+        if let m = match(noVoice) {
+            return String(format: lookup("Il profilo «%@» non ha ancora una voce: registrala nel pannello Voce."), m[0])
+        }
+        if raw.contains(noProfile) {
+            return lookup("Su questo Mac non c'è ancora un profilo: crealo in Impostazioni › Profilo e voce, poi registra la voce nel pannello Voce.")
+        }
+        if match(paid) != nil {
+            return lookup("Una generazione a pagamento parte solo dopo che hai visto il costo e l'hai approvata in Regista.")
+        }
+        if let m = match(noFile) {
+            return String(format: lookup("Il file «%@» non c'è: forse è stato spostato o rinominato."), (m[0] as NSString).lastPathComponent)
+        }
+        return nil
+    }
+
+    /// A voice's language by its name in the interface language («inglese», «anglais»).
+    static func languageInWords(_ code: String, _ lookup: (String) -> String = loc) -> String {
+        switch code {
+        case "it": return lookup("italiano")
+        case "en": return lookup("inglese")
+        case "fr": return lookup("francese")
+        case "pt": return lookup("portoghese")
+        default: return Words.locale.localizedString(forLanguageCode: code) ?? code
+        }
     }
 }

@@ -327,7 +327,11 @@ final class EditorStore: ObservableObject {
                     activity[i].result = CommandLines.line(id, r) ?? ""
                     activity[i].details = Summary.details(id, r)
                     activity[i].aiDisclosure = r["aiDisclosure"] != nil
-                case .failure(let e): activity[i].status = .failed; activity[i].result = StepError.readable(e, fallback: "Il motore ha risposto: %@")
+                case .failure(let e):
+                    activity[i].status = .failed
+                    activity[i].result = StepError.readable(e, fallback: "Il motore ha risposto: %@")
+                    // The engine's text whole, one hover away (#88): the sentence above is what the person reads.
+                    activity[i].details = JobCenter.message(e)
                 }
             }
         }

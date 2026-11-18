@@ -2381,3 +2381,14 @@
 "%@ effetti sonori" = "%@ effets sonores";
 "%@ riprese" = "%@ prises";
 "Alla fine del video, come vuole la regola «%@»." = "À la fin de la vidéo, comme le veut la règle « %@ ».";
+"Export rifiutato: 1 regola non rispettata — %@" = "Exportation refusée : 1 règle non respectée — %@";
+"Export rifiutato: %1$@ regole non rispettate — la prima: %2$@" = "Exportation refusée : %1$@ règles non respectées — la première : %2$@";
+"Il profilo «%1$@» non ha una voce in %2$@: registrala nel pannello Voce." = "Le profil « %1$@ » n'a pas de voix en %2$@ : enregistrez-la dans le panneau Voix.";
+"Il profilo «%@» non ha ancora una voce: registrala nel pannello Voce." = "Le profil « %@ » n'a pas encore de voix : enregistrez-la dans le panneau Voix.";
+"Su questo Mac non c'è ancora un profilo: crealo in Impostazioni › Profilo e voce, poi registra la voce nel pannello Voce." = "Il n'y a pas encore de profil sur ce Mac : créez-le dans Réglages › Profil et voix, puis enregistrez la voix dans le panneau Voix.";
+"Una generazione a pagamento parte solo dopo che hai visto il costo e l'hai approvata in Regista." = "Une génération payante ne démarre qu'une fois son coût vu et approuvé par vous dans Regista.";
+"Il file «%@» non c'è: forse è stato spostato o rinominato." = "Le fichier « %@ » est introuvable : il a peut-être été déplacé ou renommé.";
+"italiano" = "italien";
+"inglese" = "anglais";
+"francese" = "français";
+"portoghese" = "portugais";
