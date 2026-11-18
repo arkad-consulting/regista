@@ -1827,37 +1827,11 @@ extension Journey {
     /// The timeline as the window draws it: the clips of each lane (the number on the timeline's footer is V1's).
     var videoClips: Int { store.project?.tracks.first { $0.kind == .video }?.clips.count ?? 0 }
 
-    /// Journey 8 (JourneyTests.claudeMakesAReelWhileTheWindowShowsIt).
-    func claudeReel() async throws {
-        let take = try take("ripresa.mov")
-        await open(Navigation(activity: .home, rightTab: .claude))
-        #expect(app.store.bench.socketProblem == nil, "the app does not listen: \(app.store.bench.socketProblem ?? "")")
-        let socket = EngineSocket.defaultPath()
-        let connected = ReplyBox()
-        let linkBox = LinkBox()
-        Task.detached { linkBox.link = try? ClaudeLink(socket: socket); connected.reply = .init(isError: linkBox.link == nil, text: "", result: nil) }
-        #expect(await until(10) { connected.reply != nil }, "Claude did not connect")
-        let link = try #require(linkBox.link, "Claude could not connect to the app's socket")
-        #expect(await until(3) { shows("Claude collegato") }, "the pill does not say Claude is connected: \(screen())")
-        step("Claude connects (regista-mcp's way: the app's engine socket)", sees: "«Claude collegato» in the title bar, the Claude panel open")
-
-        // The recipe Claude reads first; every tool it names exists.
-        let recipe = await claude(link, "recipe.get", ["name": "talking-head-reel"])
-        #expect(!recipe.reply.isError, "recipe_get: \(recipe.reply.text)")
-        let text = recipe.reply.result?["text"]?.stringValue ?? recipe.reply.text
-        let tools = Set(link.toolNames)
-        let words = text.components(separatedBy: CharacterSet.letters.union(CharacterSet(charactersIn: "_")).inverted)
-        let named = Set(words.filter { $0.contains("_") && !$0.hasSuffix("_") && $0.first?.isLowercase == true }).filter { n in Commands.all.contains { MCPServer.toolName($0.id).hasPrefix(n.split(separator: "_")[0] + "_") } }
-        let missing = named.subtracting(tools)
-        #expect(missing.isEmpty, "the recipe names tools that do not exist: \(missing.sorted())")
-        let order = ["project_new", "media_import", "media_extractAudio", "transcript_run", "script_set", "takes_list", "edit_autoCut", "audio_clean",
-                     "edit_punchIns", "captions_generate", "frame_contactSheet", "rules_check", "export_render", "export_srt", "project_save"]
-        let positions = order.map { text.range(of: $0)?.lowerBound }
-        #expect(positions.allSatisfy { $0 != nil }, "the recipe does not name \(zip(order, positions).filter { $0.1 == nil }.map(\.0))")
-        step("recipe_get {name: talking-head-reel}", sees: "\(await seesClaude("recipe.get", recipe.reply)); the recipe names \(named.count) tools, all of them exist")
-
+    /// Journey 8's first steps (reused by journey 12): Claude makes a project, imports `take`, transcribes it, sets the
+    /// script, lists the takes and cuts them; the window agrees after each command. Returns the take's asset id.
+    @discardableResult
+    func claudeCutsAReel(_ link: ClaudeLink, take: URL, name: String) async throws -> String {
         // 1. project.new
-        let name = "Reel di Claude"
         let made = await claude(link, "project.new", ["name": .string(name), "directory": .string(scratch.path), "kind": "talking-head-reel"])
         #expect(!made.reply.isError, "project_new: \(made.reply.text)")
         #expect(await until(5) { store.project?.name == name }, "the window does not show the new project: \(screen())")
@@ -1903,6 +1877,41 @@ extension Journey {
         }
         #expect(shows("\(videoClips) clip · "), "the timeline's footer does not count \(videoClips) clips: \(screen())")
         step("edit_autoCut", sees: await seesClaude("edit.autoCut", cut.reply) + "; \(videoClips) clips on V1, \(String(format: "%.1f", store.project?.duration.seconds ?? 0)) s")
+        return asset
+    }
+
+    /// Journey 8 (JourneyTests.claudeMakesAReelWhileTheWindowShowsIt).
+    func claudeReel() async throws {
+        let take = try take("ripresa.mov")
+        await open(Navigation(activity: .home, rightTab: .claude))
+        #expect(app.store.bench.socketProblem == nil, "the app does not listen: \(app.store.bench.socketProblem ?? "")")
+        let socket = EngineSocket.defaultPath()
+        let connected = ReplyBox()
+        let linkBox = LinkBox()
+        Task.detached { linkBox.link = try? ClaudeLink(socket: socket); connected.reply = .init(isError: linkBox.link == nil, text: "", result: nil) }
+        #expect(await until(10) { connected.reply != nil }, "Claude did not connect")
+        let link = try #require(linkBox.link, "Claude could not connect to the app's socket")
+        #expect(await until(3) { shows("Claude collegato") }, "the pill does not say Claude is connected: \(screen())")
+        step("Claude connects (regista-mcp's way: the app's engine socket)", sees: "«Claude collegato» in the title bar, the Claude panel open")
+
+        // The recipe Claude reads first; every tool it names exists.
+        let recipe = await claude(link, "recipe.get", ["name": "talking-head-reel"])
+        #expect(!recipe.reply.isError, "recipe_get: \(recipe.reply.text)")
+        let text = recipe.reply.result?["text"]?.stringValue ?? recipe.reply.text
+        let tools = Set(link.toolNames)
+        let words = text.components(separatedBy: CharacterSet.letters.union(CharacterSet(charactersIn: "_")).inverted)
+        let named = Set(words.filter { $0.contains("_") && !$0.hasSuffix("_") && $0.first?.isLowercase == true }).filter { n in Commands.all.contains { MCPServer.toolName($0.id).hasPrefix(n.split(separator: "_")[0] + "_") } }
+        let missing = named.subtracting(tools)
+        #expect(missing.isEmpty, "the recipe names tools that do not exist: \(missing.sorted())")
+        let order = ["project_new", "media_import", "media_extractAudio", "transcript_run", "script_set", "takes_list", "edit_autoCut", "audio_clean",
+                     "edit_punchIns", "captions_generate", "frame_contactSheet", "rules_check", "export_render", "export_srt", "project_save"]
+        let positions = order.map { text.range(of: $0)?.lowerBound }
+        #expect(positions.allSatisfy { $0 != nil }, "the recipe does not name \(zip(order, positions).filter { $0.1 == nil }.map(\.0))")
+        step("recipe_get {name: talking-head-reel}", sees: "\(await seesClaude("recipe.get", recipe.reply)); the recipe names \(named.count) tools, all of them exist")
+
+        // 1–4. project.new, media.import, media.extractAudio, transcript.run, script.set, takes.list, edit.autoCut
+        let name = "Reel di Claude"
+        let asset = try await claudeCutsAReel(link, take: take, name: name)
 
         // 5. audio.clean (the rig's engines: the cleaner when this Mac has it, else the refusal names what to install)
         let clean = await claude(link, "audio.clean", timeout: 180)
