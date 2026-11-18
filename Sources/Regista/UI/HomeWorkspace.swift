@@ -114,12 +114,15 @@ private struct Content: View {
     private var machineLine: some View {
         HStack(spacing: 10) {
             Image(systemName: "memorychip").font(Ed.icon(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
-            Text(verbatim: summaryText).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).lineLimit(1)
+            // On more lines when the main area is narrow, never cut (#82: it was cut to «RAM 64 Go · niveau Pr…»).
+            Text(verbatim: summaryText).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer()
-            EdButton(title: loc("Motori"), symbol: "cpu") { SettingsRoute.open(.engines, with: openSettings) }
+            EdButton(title: loc("Motori"), symbol: "cpu") { SettingsRoute.open(.engines, with: openSettings) }.fixedSize()
         }
         .padding(.horizontal, 40)
-        .frame(height: 44)
+        .padding(.vertical, Ed.Space.xs)
+        .frame(minHeight: 44)
         .background(Ed.panel)
         .overlay(alignment: .top) { Ed.line.frame(height: 1) }
     }
@@ -141,6 +144,15 @@ private struct StartCard: View {
     let run: () -> Void
     @State private var hover = false
 
+    private var actionLabel: some View {
+        HStack(spacing: 6) {
+            Text(verbatim: action).font(Ed.ui(Ed.TypeSize.small, .medium))
+            Image(systemName: "arrow.right").font(Ed.icon(Ed.TypeSize.micro, .semibold)).offset(x: hover ? 2 : 0)
+        }
+        .foregroundStyle(hover ? Ed.gold : Ed.text3)
+        .fixedSize()
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             FormatGlyph(kind: glyph, lit: hover).frame(height: 48, alignment: .bottomLeading)
@@ -148,11 +160,16 @@ private struct StartCard: View {
             Text(verbatim: text).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true).padding(.top, 6)
             Spacer(minLength: 14)
-            HStack(spacing: 6) {
-                Text(verbatim: action).font(Ed.ui(Ed.TypeSize.small, .medium))
-                Image(systemName: "arrow.right").font(Ed.icon(Ed.TypeSize.micro, .semibold)).offset(x: hover ? 2 : 0)
+            // The secondary link sits in the bottom-right corner (an overlay of its own): the action leaves it room on its
+            // line, or goes on the line above when both do not fit (#82: they overlapped in a narrow card in French).
+            if let secondary {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Ed.Space.s) { actionLabel; Spacer(minLength: Ed.Space.s); AccentLinkButton(title: secondary.0) {}.hidden() }
+                    VStack(alignment: .leading, spacing: Ed.Space.s) { actionLabel; AccentLinkButton(title: secondary.0) {}.hidden() }
+                }
+            } else {
+                actionLabel
             }
-            .foregroundStyle(hover ? Ed.gold : Ed.text3)
         }
         .padding(18)
         .frame(maxWidth: .infinity, minHeight: 224, maxHeight: 224, alignment: .topLeading)
@@ -160,15 +177,17 @@ private struct StartCard: View {
         .overlay(RoundedRectangle(cornerRadius: Ed.Radius.xl, style: .continuous).strokeBorder(hover ? Ed.gold.opacity(0.45) : Ed.line2, lineWidth: 1))
         .contentShape(RoundedRectangle(cornerRadius: Ed.Radius.xl))
         .onTapGesture(perform: run)
+        .onHover { h in withAnimation(.easeOut(duration: 0.14)) { hover = h } }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        // A control of its own beside the card's (it was folded into the card's element, so an assistive client could
+        // not press it on its own).
         .overlay(alignment: .bottomTrailing) {
             if let secondary {
                 AccentLinkButton(title: secondary.0, action: secondary.1)
                     .padding(18)
             }
         }
-        .onHover { h in withAnimation(.easeOut(duration: 0.14)) { hover = h } }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
     }
 }
 
