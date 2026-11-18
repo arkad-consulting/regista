@@ -319,9 +319,8 @@ extension MouseSuites {
     @Test func exportAnywayIsAlwaysOffered() async throws {
         let app = try await AppRig()
         defer { app.close() }
-        // A logo across the video: a rule without an automatic fix.
-        let card = try RigProject.media.get().appendingPathComponent("card.png")
-        try await app.store.perform("logo.add", ["path": .string(card.path), "start": 0, "end": 6])
+        // A title too small to read: a rule without an automatic fix.
+        try await app.store.perform("title.add", ["text": "piccolo", "start": 1, "duration": 2, "size": 10])
         app.hostEditor(Navigation(activity: .export, rightTab: .inspector))
         await app.settle()
         _ = await until(app, 4) { control(app, containing: "Esporta lo stesso") != nil }
@@ -334,6 +333,103 @@ extension MouseSuites {
         #expect(RigGuard.events.dropFirst(events).contains { $0.kind == .panel && $0.detail.contains("Esporta il video") }, "Esporta lo stesso asked for no file")
         #expect(ExportCalls.render(path: "/x.mp4", preset: "9:16", captions: true, bitrate: 14, anyway: true).params["exportAnyway"] == true)
         #expect(ExportCalls.render(path: "/x.mp4", preset: "9:16", captions: true, bitrate: 14).params["exportAnyway"] == nil)
+    }
+}
+}
+
+extension MouseSuites {
+/// «Logo nel video» follows the project's rules (#74): with «The logo only at the end» on (the default), the switch puts the
+/// logo in the closing 2 s of the video and its caption says so; with the rule off, the brand's corner for the whole video.
+/// Grafica › Logo and Semplice › Grafica, by clicks on the real window.
+@Suite(.serialized) @MainActor struct LogoSwitchMouseTests {
+    private func logoSwitch(_ app: AppRig) -> RigElement? {
+        app.rig.elements().first { $0.isControl && $0.visible && $0.label.hasPrefix("Logo nel video") && ["0", "1"].contains($0.value) }
+    }
+    private func logos(_ app: AppRig) -> [Clip] { app.store.project?.tracks.filter { $0.role == "logo" }.flatMap(\.clips) ?? [] }
+    private let atEnd = "Alla fine del video, come vuole la regola del reel."
+    private let corner = "Nell'angolo della marca, per tutto il video."
+
+    /// Clicks the switch: one command, the switch still there and flipped.
+    private func flip(_ app: AppRig, _ command: String, sourceLocation: SourceLocation = #_sourceLocation) async throws {
+        let sw = try #require(logoSwitch(app), "no «Logo nel video»", sourceLocation: sourceLocation)
+        let was = sw.value
+        let n = app.store.activity.count
+        app.rig.click(sw.centre)
+        await app.settle()
+        #expect(app.commands(since: n) == [command], "the switch ran \(app.commands(since: n))", sourceLocation: sourceLocation)
+        #expect(logoSwitch(app).map { $0.value != was } == true, "the switch is gone or did not flip", sourceLocation: sourceLocation)
+    }
+
+    /// The rig's rules folder is the test process's: the sheet switched off here is put back whatever happens.
+    private func check(_ app: AppRig, open: () async throws -> Void) async throws {
+        do { try await steps(app, open: open) } catch {
+            _ = try? await app.store.silent("rules.reset", ["kind": "every-video"])
+            throw error
+        }
+        _ = try await app.store.silent("rules.reset", ["kind": "every-video"])
+    }
+
+    private func steps(_ app: AppRig, open: () async throws -> Void) async throws {
+        let book = app.store.engine.context.services.rules
+        try await app.store.perform("brandkit.apply", ["kit": "cafe-atelier"])
+        let end = try #require(app.store.project?.videoEnd).seconds
+        // The rule on (the shipped sheets).
+        #expect(book.logoOnlyAtEnd(try #require(app.store.project)))
+        try await open()
+        #expect(app.rig.elements(containing: atEnd).isEmpty == false, "the caption does not say the logo goes at the end")
+        try await flip(app, "logo.add")
+        let closing = try #require(logos(app).first, "no logo")
+        #expect(logos(app).count == 1 && abs(closing.start.seconds - (end - 2)) < 0.04 && abs(closing.end.seconds - end) < 0.04,
+                "the logo is \(closing.start.seconds)–\(closing.end.seconds) s, not the last 2 s of a \(end) s video")
+        #expect(try await app.store.silent("rules.check")["violations"]?.arrayValue?.contains { $0["check"] == "logo-end" } == false,
+                "the logo the switch placed breaks «The logo only at the end»")
+        try await flip(app, "timeline.delete")
+        #expect(logos(app).isEmpty)
+        // The rule off: the corner for the whole video.
+        try await app.store.perform("rules.set", ["kind": "every-video", "checks": ["logo-end": false]])
+        #expect(!book.logoOnlyAtEnd(try #require(app.store.project)))
+        try await open()
+        #expect(app.rig.elements(containing: corner).isEmpty == false, "with the rule off the caption does not say the corner")
+        try await flip(app, "logo.add")
+        let whole = try #require(logos(app).first, "no logo")
+        #expect(whole.start == .zero && abs(whole.end.seconds - (app.store.project?.duration.seconds ?? 0)) < 0.04,
+                "with the rule off the logo is \(whole.start.seconds)–\(whole.end.seconds) s, not the whole video")
+    }
+
+    @Test func grafica() async throws {
+        let app = try await AppRig()
+        defer { app.close() }
+        var nav = Navigation(activity: .graphics, rightTab: .inspector)
+        nav.graphicsSection = .logo
+        try await check(app) {
+            app.hostEditor(nav)
+            await app.settle()
+            _ = await until(app) { logoSwitch(app) != nil }
+        }
+        // A long language, for a look at the caption's wrap ($REGISTA_UI_SNAPSHOTS).
+        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+            app.hostEditor(nav, language: "fr")
+            await app.settle()
+            try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("logo-switch-fr.png"))
+        }
+    }
+
+    @Test func semplice() async throws {
+        let app = try await AppRig()
+        defer { app.close() }
+        try await check(app) {
+            app.hostEditor(Navigation(activity: .media, level: .simple, rightTab: .inspector))
+            await app.settle()
+            // The rail's Grafica row (in the rail's column, under «Fai tutto»).
+            let all = app.rig.elements()
+            let doAll = try #require(all.first { $0.isControl && $0.label.hasPrefix("Taglia, sceglie le riprese") }, "no rail")
+            let title = SimpleStep.graphics.title()
+            let row = try #require(all.first { $0.role == "AXButton" && $0.frame.minX >= doAll.frame.minX - 4 && $0.frame.maxX <= doAll.frame.maxX + 4
+                && ($0.label == title || $0.label.components(separatedBy: ", ").contains(title)) }, "no Grafica on the rail")
+            app.rig.click(row.centre)
+            await app.settle()
+            _ = await until(app) { logoSwitch(app) != nil }
+        }
     }
 }
 }

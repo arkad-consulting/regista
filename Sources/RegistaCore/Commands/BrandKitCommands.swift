@@ -375,7 +375,7 @@ enum BrandkitDelete: Command {
 
 enum LogoAdd: Command {
     static let id = "logo.add"
-    static let summary = "Put the brand logo over the video: the applied kit's logo (or kit / path), at the kit's placement — a corner inside the Instagram safe area, never in the caption band — sized in px at 1080 wide, faded in and out. By default it spans the whole timeline (a watermark); pass start/duration for a closing card. brandkit.apply swaps it when the kit changes. Returns the clip, its box and warnings."
+    static let summary = "Put the brand logo over the video: the applied kit's logo (or kit / path), at the kit's placement — a corner inside the Instagram safe area, never in the caption band — sized in px at 1080 wide, faded in and out. By default it spans the whole timeline (a watermark) — unless the project's rules want the logo only at the end (logo-end, on in the default rules): then it goes in the closing 2 s of the video and the result's timing says so; pass start/duration for any other time (rules.check then judges it). clipId moves a logo already placed instead (the logo-end fix): to the closing seconds, or to start/end, keeping its look. brandkit.apply swaps it when the kit changes. Returns the clip, its box and warnings."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("start", .time, "Timeline start (default 0)."),
@@ -391,10 +391,12 @@ enum LogoAdd: Command {
         .optional("animation", .oneOf(LogoPlacement.animations), "Entrance (exit fades) — fade, pop, slideUp, slideDown, none — or a logo motion: spin, orbit (slow drift), pulse (breathing), sting (pop-in hit, for a closing card). Default: the kit's, else fade."),
         .optional("trackId", .string, "Track (default: the Logo track, created if needed)."),
         .optional("replace", .boolean, "Remove the logo clips already on the timeline first (one undo step: move or resize the logo)."),
+        .optional("clipId", .string, "Move this logo clip instead of adding one: to start/end when given, else to the closing seconds of the video. Keeps its corner, size and animation."),
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         var project = try ctx.requireProject()
+        if let cid = p.string("clipId") { return try move(cid, p, &project, &ctx) }
         if p.bool("replace") == true {
             for t in project.tracks.indices where project.tracks[t].role == "logo" { project.tracks[t].clips.removeAll() }
         }
@@ -410,10 +412,16 @@ enum LogoAdd: Command {
         if let v = p.number("opacity") { placement.opacity = v }
         if let v = p.string("animation") { placement.animation = v }
         let rate = project.settings.frameRate
-        let start = (p.time("start") ?? .zero).snapped(to: rate)
+        var start = (p.time("start") ?? .zero).snapped(to: rate)
         var end: MediaTime
+        var timing: String?
         if let e = p.time("end") { end = e.snapped(to: rate) }
         else if let d = p.time("duration") { end = (start + d).snapped(to: rate) }
+        else if !p.has("start"), ctx.services.rules.logoOnlyAtEnd(project), let w = RuleCheck.closingWindow(project) {
+            // The project's rules want the logo only at the end (#74): the closing seconds of the video.
+            (start, end) = w
+            timing = closingLine(w)
+        }
         else { end = project.duration > start ? project.duration : start + MediaTime(seconds: 3) }
         guard end > start else { throw CommandError.invalid("\(id): end must be after start") }
         let made = try LogoOverlay.clip(kit: kit, project: &project, &ctx, start: start, end: end, placement: placement, variant: p.string("variant"),
@@ -430,7 +438,55 @@ enum LogoAdd: Command {
             result["insideSafeZone"] = .bool(problems.isEmpty)
             result["warnings"] = .array(made.warnings + problems.map { .string("logo \($0)") })
         }
+        if let timing { result["timing"] = .string(timing) }
         return .object(result)
+    }
+
+    static func closingLine(_ w: (start: MediaTime, end: MediaTime)) -> String {
+        "at the end of the video, as the project's rules want (logo-end): \(String(format: "%.2f", w.start.seconds))–\(String(format: "%.2f", w.end.seconds)) s"
+    }
+
+    /// clipId: the logo already placed, moved to start/end or to the closing seconds of the video, its look kept (its
+    /// entrance stays at its start, its exit moves with its end). One undo step.
+    static func move(_ clipID: String, _ p: CommandParams, _ project: inout Project, _ ctx: inout CommandContext) throws -> JSONValue {
+        let (t, c) = try Timeline.locate(clip: clipID, in: project)
+        var clip = project.tracks[t].clips[c]
+        let rate = project.settings.frameRate
+        var start: MediaTime, end: MediaTime
+        var timing: String?
+        if p.has("start") || p.has("end") || p.has("duration") {
+            start = (p.time("start") ?? clip.start).snapped(to: rate)
+            if let e = p.time("end") { end = e.snapped(to: rate) }
+            else if let d = p.time("duration") { end = (start + d).snapped(to: rate) }
+            else { end = start + clip.duration }
+        } else {
+            guard let w = RuleCheck.closingWindow(project) else { throw CommandError.conflict("\(id): no video on the timeline to put the logo at the end of") }
+            (start, end) = w
+            timing = closingLine(w)
+        }
+        guard end > start else { throw CommandError.invalid("\(id): end must be after start") }
+        clip.keyframes = retimed(clip.keyframes, from: clip.duration, to: end - start)
+        clip.sourceOut = clip.sourceIn + (end - start)
+        clip.start = start
+        try Timeline.checkFree(project.tracks[t], start: start, end: end, except: clipID)
+        project.tracks[t].clips[c] = clip
+        project.tracks[t].sortClips()
+        ctx.project = project
+        var result: [String: JSONValue] = ["clip": ProjectState.summary(of: clip), "trackId": .string(project.tracks[t].id)]
+        if let timing { result["timing"] = .string(timing) }
+        return .object(result)
+    }
+
+    /// Keyframes of a clip `old` long made `new` long: those of its first half (the entrance) keep their time, those of
+    /// its second half (the exit) keep their distance from the end; none goes past the middle of the new length.
+    static func retimed(_ keys: [Keyframe]?, from old: MediaTime, to new: MediaTime) -> [Keyframe]? {
+        guard let keys else { return nil }
+        let half = MediaTime(ticks: old.ticks / 2), newHalf = MediaTime(ticks: new.ticks / 2)
+        return keys.map { k in
+            var k = k
+            k.time = k.time <= half ? min(k.time, newHalf) : min(max(k.time + new - old, newHalf), new)
+            return k
+        }.sorted { $0.time < $1.time }
     }
 }
 

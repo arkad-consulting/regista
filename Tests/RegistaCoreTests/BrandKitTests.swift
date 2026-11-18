@@ -140,12 +140,14 @@ private func captionedEngine() throws -> Engine {
             }
         }
     }
-    // logo.add on a project: a box inside, defaults from the kit, whole timeline.
+    // logo.add on a project: a box inside, defaults from the kit, whole timeline (the rule «logo only at the end» off).
     let e = try editingEngine()
     try e.execute("timeline.place", params: ["assetId": "a1", "trackId": "t1", "sourceIn": 0, "sourceOut": 10])
     try e.execute("brandkit.apply", params: ["kit": "arkad"])
+    try e.execute("rules.set", params: ["kind": "talking-head-reel", "checks": ["logo-end": false]])
+    defer { _ = try? e.execute("rules.reset", params: ["kind": "talking-head-reel"]) }
     let r = try e.checkUndoRedo("logo.add", ["path": .string(fakeMedia("logo.png")), "corner": "bottomRight"])
-    #expect(r["insideSafeZone"] == true)
+    #expect(r["insideSafeZone"] == true && r["timing"] == nil)
     let clip = try #require(e.project!.tracks.first { $0.role == "logo" }?.clips.first)
     #expect(clip.start == .zero && clip.end == t(10) && clip.keyframes?.first?.transform.opacity == 0)
     #expect(e.project!.tracks.firstIndex { $0.role == "logo" }! > e.project!.tracks.firstIndex { $0.kind == .video }!)

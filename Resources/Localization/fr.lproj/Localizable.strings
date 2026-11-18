@@ -145,6 +145,7 @@
 "Nascondi questo consiglio" = "Masquer ce conseil";
 "Naturale" = "Naturel";
 "Nell'angolo della marca, per tutto il video." = "Dans le coin de la marque, pendant toute la vidéo.";
+"Alla fine del video, come vuole la regola del reel." = "À la fin de la vidéo, comme le veut la règle du reel.";
 "Ogni frase è stata detta una volta sola: non c'è niente da scegliere." = "Chaque phrase n'a été dite qu'une fois : il n'y a rien à choisir.";
 "Ogni lingua ha la sua voce. Comincia da quella dei tuoi video, le altre si aggiungono dopo." = "Chaque langue a sa voix. Commencez par celle de vos vidéos, les autres s'ajoutent ensuite.";
 "Ogni passo è a posto" = "Chaque étape est en place";
@@ -2132,6 +2133,7 @@
 "End the captions before the logo" = "Finir les sous-titres avant le logo";
 "No transcript: the pause after the last word cannot be measured." = "Pas de transcription : la pause après le dernier mot ne peut pas être mesurée.";
 "Move the logo to %1$@ s" = "Déplacer le logo à %1$@ s";
+"Keep the logo for the last %1$@ s only" = "Ne garder le logo que sur les %1$@ dernières s";
 "The logo enters %1$@ s after the last spoken word: the pause must be at least %2$@ s." = "Le logo entre %1$@ s après le dernier mot prononcé : la pause doit durer au moins %2$@ s.";
 "The logo enters %1$@ s before the last spoken word ends: the pause must be at least %2$@ s." = "Le logo entre %1$@ s avant la fin du dernier mot prononcé : la pause doit durer au moins %2$@ s.";
 "A long pause before the logo: %1$@ s after the last spoken word (more than %2$@ s)." = "Une longue pause avant le logo : %1$@ s après le dernier mot prononcé (plus de %2$@ s).";

@@ -339,6 +339,12 @@ public struct RuleBook: Sendable {
         return (stored, "project", nil)
     }
 
+    /// Whether the project's kind has «The logo only at the end» on (#74): a logo added with no time of its own then goes
+    /// in the closing seconds of the video, and the switches that add it say so.
+    public func logoOnlyAtEnd(_ project: Project) -> Bool {
+        checks(kind(of: project).kind, language: "en").first { $0.spec.id == "logo-end" }?.on ?? false
+    }
+
     /// The rules an agent reads with a recipe: the checks that run, then the prose of "for every video" and of the kind.
     public func briefing(_ kind: String, language: String) -> String {
         let on = checks(kind, language: language).filter(\.on).map { c -> String in

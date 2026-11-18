@@ -657,7 +657,7 @@ private struct GraphicsPanelSimple: View {
             RSection("LOGO") {
                 RToggle(title: "Logo nel video", isOn: Binding(get: { !snap.logoClips.isEmpty }, set: { on in
                     store.runSimple(on ? SimpleCalls.logo(snap.logoPlacement) : SimpleCalls.removeClips(snap.logoClips))
-                }), subtitle: snap.logoReason ?? "Nell'angolo della marca, per tutto il video.")
+                }), subtitle: snap.logoReason ?? LogoSwitch.caption(atEnd: snap.logoAtEnd))
                 .disabled(snap.logoReason != nil && snap.logoClips.isEmpty)
             }
             RSection("SCHEDE ANIMATE") {

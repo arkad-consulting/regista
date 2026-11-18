@@ -92,6 +92,16 @@ enum RuleCheck {
     /// can move it); one that starts earlier is a logo across the video.
     static let closingLead = MediaTime(seconds: 3)
 
+    /// How long the closing logo stays when only the end allows one (#74): the logo-end check has no length of its own,
+    /// so the last 2 s of the video.
+    static let closingLogo = MediaTime(seconds: 2)
+
+    /// The closing seconds of the video, where a logo goes when only the end allows one; nil without a main video.
+    static func closingWindow(_ project: Project) -> (start: MediaTime, end: MediaTime)? {
+        guard let end = project.videoEnd, end > .zero else { return nil }
+        return (max(.zero, end - closingLogo).snapped(to: project.settings.frameRate), end)
+    }
+
     static func run(_ project: Project, book: RuleBook, language: String, renderer: VideoRenderer?) -> RuleReport {
         let (kind, source, note) = book.kind(of: project)
         let states = book.checks(kind, language: language)
@@ -275,7 +285,12 @@ enum RuleCheck {
                 } else {
                     text = RuleText(rulePhrase("A logo in the middle of the video (%1$@ s): the logo goes only at the end."), RuleText.s(c.start))
                 }
-                return RuleViolation(check: "logo-end", severity: .fail, text: text, time: c.start, clipID: c.id, fix: nil)
+                // The fix: the same logo, kept for the closing seconds only (one command, one undo step).
+                let fix = logo.track.kind != .overlay ? nil : RuleCheck.closingWindow(project).map { w in
+                    RuleFix(command: "logo.add", params: ["clipId": .string(c.id)],
+                            label: RuleText(rulePhrase("Keep the logo for the last %1$@ s only"), RuleText.s(w.end - w.start)))
+                }
+                return RuleViolation(check: "logo-end", severity: .fail, text: text, time: c.start, clipID: c.id, fix: fix)
             }
         }
 

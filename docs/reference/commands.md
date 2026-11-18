@@ -1271,7 +1271,7 @@ Returns: the clips written, the speaker box, the free area for a graphic, the bu
 
 **Add the logo** · MCP tool: `logo_add` · undo: yes — one undo step · takes `project`
 
-Put the brand logo over the video: the applied kit's logo (or kit / path), at the kit's placement — a corner inside the Instagram safe area, never in the caption band — sized in px at 1080 wide, faded in and out. By default it spans the whole timeline (a watermark); pass start/duration for a closing card. brandkit.apply swaps it when the kit changes. Returns the clip, its box and warnings.
+Put the brand logo over the video: the applied kit's logo (or kit / path), at the kit's placement — a corner inside the Instagram safe area, never in the caption band — sized in px at 1080 wide, faded in and out. By default it spans the whole timeline (a watermark) — unless the project's rules want the logo only at the end (logo-end, on in the default rules): then it goes in the closing 2 s of the video and the result's timing says so; pass start/duration for any other time (rules.check then judges it). clipId moves a logo already placed instead (the logo-end fix): to the closing seconds, or to start/end, keeping its look. brandkit.apply swaps it when the kit changes. Returns the clip, its box and warnings.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1288,6 +1288,7 @@ Put the brand logo over the video: the applied kit's logo (or kit / path), at th
 | `animation` | one of `pop`, `slideUp`, `slideDown`, `fade`, `bounce`, `none`, `spin`, `orbit`, `pulse`, `sting` | no | the kit's, else fade | Entrance (exit fades) — fade, pop, slideUp, slideDown, none — or a logo motion: spin, orbit (slow drift), pulse (breathing), sting (pop-in hit, for a closing card). Default: the kit's, else fade. |
 | `trackId` | string | no | the Logo track, created if needed | Track (default: the Logo track, created if needed). |
 | `replace` | boolean | no | – | Remove the logo clips already on the timeline first (one undo step: move or resize the logo). |
+| `clipId` | string | no | – | Move this logo clip instead of adding one: to start/end when given, else to the closing seconds of the video. Keeps its corner, size and animation. |
 
 Returns: the clip, its box and warnings.
 
@@ -1894,7 +1895,7 @@ Returns: pass, the violations, each check's state (on, number, skipped and why) 
 
 **Fix the broken rules** · MCP tool: `rules_fix` · undo: yes — one undo step · takes `project`
 
-Apply the safe fixes of the failing rule checks, all in one undo step: those of one check, or all of them; the check runs again after each fix (a moved logo changes what the captions must clear). Violations without a fix (a logo across the video, a title over the face, text too small) need an edit. Returns the fixes applied and the check after them.
+Apply the safe fixes of the failing rule checks, all in one undo step: those of one check, or all of them; the check runs again after each fix (a moved logo changes what the captions must clear). A logo outside the end is kept for the closing seconds only. Violations without a fix (a title over the face, text too small) need an edit. Returns the fixes applied and the check after them.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|

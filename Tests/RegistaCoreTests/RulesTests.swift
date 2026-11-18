@@ -235,3 +235,51 @@ private func rulesEngine(_ fakes: FakeServices = FakeServices()) throws -> (Engi
     try e.execute("title.add", params: ["text": "SHORT", "start": 0, "duration": 1.2])
     #expect(try e.execute("rules.check")["violations"]?.arrayValue?.filter { $0["check"] == "title-captions" }.count == 2)
 }
+
+// MARK: The logo follows the rules of the project's kind (#74)
+
+@Test func theLogoGoesInTheClosingSecondsWhenTheRulesWantItOnlyAtTheEnd() throws {
+    let (e, book) = try rulesEngine()
+    let logo = fakeMedia("logo.png")
+    #expect(book.logoOnlyAtEnd(e.project!))
+    // No time given: the closing 2 s of the 6 s video, and the result says why; the rule then holds.
+    let placed = try e.checkUndoRedo("logo.add", ["path": .string(logo)])
+    #expect(placed.value(at: "clip.start")?.doubleValue == 4 && placed.value(at: "clip.end")?.doubleValue == 6)
+    #expect(placed["timing"]?.stringValue?.contains("logo-end") == true)
+    #expect(try e.execute("rules.check")["violations"]?.arrayValue?.contains { $0["check"] == "logo-end" } == false)
+    // An explicit time is kept, and the check fails as before, now with its fix.
+    let across = try e.execute("logo.add", params: ["path": .string(logo), "replace": true, "start": 0, "end": 6])
+    #expect(across.value(at: "clip.start")?.doubleValue == 0 && across["timing"] == nil)
+    let check = try e.execute("rules.check")
+    let v = try #require(check["violations"]?.arrayValue?.first { $0["check"] == "logo-end" })
+    #expect(v.value(at: "fix.command") == "logo.add" && v.value(at: "fix.params.clipId") == v["clipId"])
+    #expect(v.value(at: "fix.messageKey") == "Keep the logo for the last %1$@ s only")
+    // The fix: the same clip, the last 2 s, its exit with it — one undo step.
+    let id = try #require(v["clipId"]?.stringValue)
+    let before = try #require(e.project?.tracks.flatMap(\.clips).first { $0.id == id })
+    let fixed = try e.checkUndoRedo("rules.fix", ["check": "logo-end"])
+    #expect(fixed.value(at: "check.violations")?.arrayValue?.contains { $0["check"] == "logo-end" } == false, "\(fixed)")
+    let after = try #require(e.project?.tracks.flatMap(\.clips).first { $0.id == id })
+    #expect(after.start == t(4) && after.end == t(6) && after.placement == before.placement && after.transform == before.transform)
+    #expect(after.keyframes?.first?.time == .zero && after.keyframes?.last?.time == t(2), "\(String(describing: after.keyframes))")
+    #expect(after.keyframes?.last?.transform.opacity == before.keyframes?.last?.transform.opacity)
+    // A logo placed by hand in the middle fails the rule too, and is fixed the same way.
+    try e.execute("logo.add", params: ["path": .string(logo), "replace": true, "start": 2, "end": 3])
+    #expect(try e.execute("rules.fix", params: ["all": true]).value(at: "check.violations")?.arrayValue?.contains { $0["check"] == "logo-end" } == false)
+    // The rule off: no time given is the whole video again.
+    try e.execute("rules.set", params: ["kind": "every-video", "checks": ["logo-end": false]])
+    defer { _ = try? e.execute("rules.reset", params: ["kind": "every-video"]) }
+    #expect(!book.logoOnlyAtEnd(e.project!))
+    let whole = try e.execute("logo.add", params: ["path": .string(logo), "replace": true])
+    #expect(whole.value(at: "clip.start")?.doubleValue == 0 && whole.value(at: "clip.end")?.doubleValue == 6 && whole["timing"] == nil)
+}
+
+@Test func aRetimedLogoKeepsItsEntranceAndItsExit() {
+    var rest = Transform(), gone = Transform()
+    gone.opacity = 0
+    let keys = [Keyframe(time: .zero, transform: gone), Keyframe(time: t(0.25), transform: rest),
+                Keyframe(time: t(5.75), transform: rest), Keyframe(time: t(6), transform: gone)]
+    let short = LogoAdd.retimed(keys, from: t(6), to: t(2))!
+    #expect(short.map(\.time) == [.zero, t(0.25), t(1.75), t(2)])
+    #expect(LogoAdd.retimed(nil, from: t(6), to: t(2)) == nil)
+}

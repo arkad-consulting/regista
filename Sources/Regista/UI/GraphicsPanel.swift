@@ -480,6 +480,20 @@ private struct StylesSection: View {
     }
 }
 
+/// «Logo nel video» (Grafica › Logo, Semplice › Grafica): where the switch puts the logo, in its caption (#74).
+enum LogoSwitch {
+    /// With the project's rule «The logo only at the end» on, the closing seconds of the video; else the brand's corner
+    /// for the whole video.
+    static func caption(atEnd: Bool) -> String {
+        atEnd ? "Alla fine del video, come vuole la regola del reel." : "Nell'angolo della marca, per tutto il video."
+    }
+
+    @MainActor
+    static func atEnd(_ store: EditorStore) -> Bool {
+        store.project.map(store.engine.context.services.rules.logoOnlyAtEnd) ?? false
+    }
+}
+
 /// The logo in the video (a Grafica element: on / off, corner, size, entrance, presence) and the logo animations.
 private struct LogoSection: View {
     @EnvironmentObject private var store: EditorStore
@@ -493,7 +507,7 @@ private struct LogoSection: View {
             VStack(alignment: .leading, spacing: Ed.Space.m) {
                 RToggle(title: "Logo nel video", isOn: Binding(get: { !logoClips.isEmpty }, set: { on in on ? addLogo() : removeLogo() }),
                         subtitle: kit == nil ? "Scegli prima una marca (Marca, nella barra del montaggio)."
-                            : kit?.logoPath() == nil ? "Questo kit non ha ancora un logo" : nil)
+                            : kit?.logoPath() == nil ? "Questo kit non ha ancora un logo" : LogoSwitch.caption(atEnd: LogoSwitch.atEnd(store)))
                     .disabled(kit?.logoPath() == nil)
                 LogoPlacementControls(placement: $placement, onCommit: { if !logoClips.isEmpty { addLogo() } })
                     .disabled(kit == nil)

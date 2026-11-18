@@ -1277,8 +1277,13 @@ extension Journey {
         try await tap("Logo nel video")
         #expect(await until { store.project?.tracks.contains { $0.role == "logo" && !$0.clips.isEmpty } == true }, "no logo: \(screen())")
         let logo = try #require(store.project?.tracks.first { $0.role == "logo" }?.clips.first)
+        // The reel's rules want the logo only at the end: the switch puts it in the closing 2 s and says so (#74).
+        let videoEnd = store.project?.videoEnd?.seconds ?? 0
+        #expect(abs(logo.end.seconds - videoEnd) < 0.05 && abs(logo.start.seconds - max(0, videoEnd - 2)) < 0.05,
+                "the logo is \(logo.start.seconds)–\(logo.end.seconds) s, not the closing 2 s of a \(videoEnd) s video")
+        #expect(shows("Alla fine del video, come vuole la regola del reel."), "the switch's caption does not say the logo goes at the end: \(screen())")
         let logoLine = try await pickAndScale(logo.id, at: min(logo.end.seconds - 0.6, max(logo.start.seconds + 1, duration / 2)), to: 60, "the logo")
-        step("Grafica › Logo › Logo nel video", sees: "the kit's logo in its corner \(String(format: "%.1f–%.1f", logo.start.seconds, logo.end.seconds)) s; \(logoLine)")
+        step("Grafica › Logo › Logo nel video", sees: "«Alla fine del video, come vuole la regola del reel.»; the kit's logo in its corner \(String(format: "%.1f–%.1f", logo.start.seconds, logo.end.seconds)) s; \(logoLine)")
 
         // Audio › a music, under the voice.
         try await tap("Audio")
@@ -1366,13 +1371,10 @@ extension Journey {
         } else if let plain = control("Esporta video…") {
             rig.click(plain.centre)
         } else {
-            // What is left has no fix of its own: the logo Grafica puts over the whole video breaks the reel's «logo only
-            // at the end» (#74, a decision to take). The person exports anyway.
-            withKnownIssue("#74: Grafica's logo for the whole video against the reel's rule") {
-                #expect(left.isEmpty, "rules left with no fix: \(left)")
-            }
+            // Every rule left has its fix (#74: the logo's rule used to have none): «Esporta lo stesso» is never the way on.
+            Issue.record("neither «Sistema tutto ed esporta» nor «Esporta video…» (left: \(left)): \(screen())")
             try await tap("Esporta lo stesso")
-            step("«Il logo solo alla fine» has no «Sistema»", sees: "«Esporta lo stesso» only (left: \(left.joined(separator: ", ")))")
+            step("No way on but «Esporta lo stesso»", sees: "left: \(left.joined(separator: ", "))")
         }
         await app.settle()
         #expect(await until(180) { FileManager.default.fileExists(atPath: out.path) && store.jobs.latest("export")?.isRunning == false },
@@ -1382,7 +1384,14 @@ extension Journey {
         let movie = try await Journey.probe(out)
         #expect(abs(movie.seconds - p.duration.seconds) < 0.1, "exported \(movie.seconds) s of a \(p.duration.seconds) s reel")
         let failingAfter = try await store.silent("rules.check")["violations"]?.arrayValue?.filter { $0["severity"] == "fail" }.compactMap { $0["check"]?.stringValue } ?? []
-        #expect(failingAfter.allSatisfy { $0 == "logo-end" }, "rules other than the logo's still fail after the export: \(failingAfter)")
+        #expect(failingAfter.isEmpty, "rules still fail after the export: \(failingAfter)")
+        // #77 (open, a decision to take): with the speech to the last frame, the fix of «A clean pause before the logo»
+        // moves the logo past the end of the video, and the reel gets longer with the logo over black.
+        let videoLength = p.videoEnd?.seconds ?? 0
+        withKnownIssue("#77: the logo-pause fix moves the logo past the end of the video") {
+            #expect(movie.seconds <= videoLength + 0.1, "the exported reel is \(movie.seconds) s for \(videoLength) s of video")
+        }
+        #expect(await until(6) { shows("controlli rispettati") }, "the rules card does not show every rule respected: \(screen())")
         step("Esporta video…, Salva", sees: "the file \(movie.width)×\(movie.height), \(String(format: "%.1f", movie.seconds)) s; still failing: \(failingAfter.isEmpty ? "nothing" : failingAfter.joined(separator: ", "))")
     }
 }

@@ -259,6 +259,8 @@ struct SimpleSnapshot {
     /// Why the logo cannot go in (a lookup key), nil when it can.
     var logoReason: String?
     var logoPlacement = LogoPlacement()
+    /// The project's rules want the logo only at the end: the switch puts it in the closing seconds (#74).
+    var logoAtEnd = false
     var graphics = 0
     var titleText = ""
 
@@ -425,6 +427,7 @@ extension EditorStore {
                                        voiceOver: voice.state)
         s.jobs = jobsByStep
         s.allJob = all
+        s.logoAtEnd = project.map(engine.context.services.rules.logoOnlyAtEnd) ?? false
         return s
     }
 

@@ -256,7 +256,7 @@ enum RulesCheck: Command {
 
 enum RulesFix: Command {
     static let id = "rules.fix"
-    static let summary = "Apply the safe fixes of the failing rule checks, all in one undo step: those of one check, or all of them; the check runs again after each fix (a moved logo changes what the captions must clear). Violations without a fix (a logo across the video, a title over the face, text too small) need an edit. Returns the fixes applied and the check after them."
+    static let summary = "Apply the safe fixes of the failing rule checks, all in one undo step: those of one check, or all of them; the check runs again after each fix (a moved logo changes what the captions must clear). A logo outside the end is kept for the closing seconds only. Violations without a fix (a title over the face, text too small) need an edit. Returns the fixes applied and the check after them."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("check", .oneOf(RuleCheckSpec.ids), "Fix only this check's violations."),
