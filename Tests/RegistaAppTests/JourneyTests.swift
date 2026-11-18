@@ -1,6 +1,7 @@
 import AppKit
 import AVFoundation
 import RegistaCore
+import RegistaMCP
 import SwiftUI
 import Testing
 @testable import Regista
@@ -863,6 +864,18 @@ extension MouseSuites.ClickAudits {
         }
         try await j.foundAgain()
     }
+
+    /// 8. Claude makes a reel through the tools while the window shows it: the commands go the way regista-mcp sends
+    /// them to the running app (MCPServer → SocketEngineHost → the workbench's engine socket), in the order of the
+    /// talking-head-reel recipe, with the rig's stand-in engines. After each command: the tab, the dot, the timeline, the
+    /// transcript, the job in the status bar, the Claude panel's line, the «Claude collegato» pill agree with the result.
+    /// A click on another tab while a long command runs, a command with `project` on a tab not on screen, history.undo,
+    /// and a paid generation refused without the person's approval.
+    @Test func claudeMakesAReelWhileTheWindowShowsIt() async throws {
+        let j = try await Journey("8-claude-reel", project: nil)
+        defer { j.close() }
+        try await j.claudeReel()
+    }
 }
 }
 
@@ -1688,3 +1701,318 @@ extension Journey {
         }
     }
 }
+
+// MARK: - Journey 8: Claude makes a reel through the tools
+
+/// Claude's side: an MCP server on the app's engine socket, as regista-mcp runs it (no second copy of the routing).
+final class ClaudeLink: @unchecked Sendable {
+    struct Reply: @unchecked Sendable {
+        var isError: Bool
+        var text: String
+        var result: JSONValue?
+    }
+
+    let server: MCPServer
+    private var id = 0
+
+    init(socket: URL) throws {
+        server = MCPServer(host: try SocketEngineHost(path: socket, client: "claude-code"))
+        _ = server.handle(["jsonrpc": "2.0", "id": 0, "method": "initialize",
+                           "params": ["protocolVersion": "2025-06-18", "clientInfo": ["name": "claude-code"]]])
+    }
+
+    /// tools/call of the command's tool (blocks until the app answers: call it off the main thread).
+    func call(_ command: String, _ args: JSONValue) -> Reply {
+        id += 1
+        let reply = server.handle(["jsonrpc": "2.0", "id": .number(Double(id)), "method": "tools/call",
+                                   "params": ["name": .string(MCPServer.toolName(command)), "arguments": args]]) ?? .null
+        let text = reply.value(at: "result.content.0.text")?.stringValue ?? reply.text()
+        return Reply(isError: reply.value(at: "result.isError") != false, text: text, result: reply.value(at: "result.structuredContent"))
+    }
+
+    var toolNames: [String] {
+        (server.handle(["jsonrpc": "2.0", "id": 9999, "method": "tools/list"])?.value(at: "result.tools")?.arrayValue ?? []).compactMap { $0["name"]?.stringValue }
+    }
+}
+
+private final class ReplyBox: @unchecked Sendable { var reply: ClaudeLink.Reply? }
+
+extension Journey {
+    /// Claude calls `command`; the window keeps turning while the app works. `during` runs in the wait (once the command
+    /// shows as running, when `whenRunning`). Returns the reply and whether the status bar showed the command running.
+    func claude(_ link: ClaudeLink, _ command: String, _ args: JSONValue = [:], timeout: Double = 120,
+                whenRunning: (() async -> Void)? = nil) async -> (reply: ClaudeLink.Reply, seenRunning: Bool) {
+        let box = ReplyBox()
+        let tab = store
+        Task.detached { box.reply = link.call(command, args) }
+        var seen = false, acted = false
+        let title = CommandTitles.title(command)
+        let end = Date().addingTimeInterval(timeout)
+        while box.reply == nil && Date() < end {
+            if tab.running == command || tab.jobs.jobs.contains(where: \.isRunning) {
+                if !seen { seen = statusBar().contains { $0.contains(title) } || tab.runningWork != nil }
+                if !acted, let whenRunning { acted = true; await whenRunning() }
+            }
+            await app.idle(0.02)
+        }
+        await app.settle()
+        let reply = box.reply ?? ClaudeLink.Reply(isError: true, text: "no reply in \(timeout) s", result: nil)
+        FileHandle.standardError.write(Data("claude \(command)\(reply.isError ? " ERROR" : ""): \(reply.text.prefix(300))\n".utf8))
+        return (reply, seen)
+    }
+
+    /// The status bar's texts.
+    func statusBar() -> [String] {
+        let bar = Double(rig.size.height) - Double(Chrome.statusHeight)
+        return rig.elements().filter { $0.role == "AXStaticText" && $0.visible && $0.frame.minY >= bar - 1 }.map(\.name)
+    }
+
+    /// What a person sees after Claude's `command`: the Claude panel's line and the pill; the tab's name and its dot;
+    /// the work gone from the status bar. Returns the line for the step.
+    func seesClaude(_ command: String, _ reply: ClaudeLink.Reply, sourceLocation: SourceLocation = #_sourceLocation) async -> String {
+        let title = CommandTitles.title(command)
+        let entry = store.activity.last { $0.command == command }
+        #expect(entry?.isAgent == true && entry?.source == "Claude", "the log has no Claude line for \(command): \(String(describing: entry))", sourceLocation: sourceLocation)
+        // A query is a quiet line, and queries in a row fold into one («Claude · 2 controlli»).
+        let query = Commands.all.first { $0.id == command }?.kind == .query
+        #expect(await until(3) { shows(title) || query && shows("controlli") }, "the Claude panel does not show «\(title)»: \(screen())", sourceLocation: sourceLocation)
+        #expect(shows("Claude collegato"), "the pill does not read «Claude collegato»: \(screen())", sourceLocation: sourceLocation)
+        #expect(await until(5) { store.running == nil && !store.jobs.jobs.contains(where: \.isRunning) && !statusBar().contains { $0.contains(title) } },
+                "«\(title)» is still in the status bar after its answer: \(statusBar())", sourceLocation: sourceLocation)
+        var line = "the Claude panel: «\(title)»" + (reply.isError ? " (refused)" : "")
+        if let p = store.project {
+            #expect(rig.elements().contains { $0.role == "AXStaticText" && $0.name == p.name && $0.frame.minY < 90 }, "the tab does not name «\(p.name)»: \(screen())",
+                    sourceLocation: sourceLocation)
+            #expect(shows("Modifiche non salvate") == store.dirty, "the status bar and the dot disagree (dirty \(store.dirty)): \(statusBar())", sourceLocation: sourceLocation)
+            line += "; the tab «\(p.name)»\(store.dirty ? " with its dot" : "")"
+        }
+        return line
+    }
+
+    /// The timeline as the window draws it: the clips of each lane (the number on the timeline's footer is V1's).
+    var videoClips: Int { store.project?.tracks.first { $0.kind == .video }?.clips.count ?? 0 }
+
+    /// Journey 8 (JourneyTests.claudeMakesAReelWhileTheWindowShowsIt).
+    func claudeReel() async throws {
+        let take = try take("ripresa.mov")
+        await open(Navigation(activity: .home, rightTab: .claude))
+        #expect(app.store.bench.socketProblem == nil, "the app does not listen: \(app.store.bench.socketProblem ?? "")")
+        let socket = EngineSocket.defaultPath()
+        let connected = ReplyBox()
+        let linkBox = LinkBox()
+        Task.detached { linkBox.link = try? ClaudeLink(socket: socket); connected.reply = .init(isError: linkBox.link == nil, text: "", result: nil) }
+        #expect(await until(10) { connected.reply != nil }, "Claude did not connect")
+        let link = try #require(linkBox.link, "Claude could not connect to the app's socket")
+        #expect(await until(3) { shows("Claude collegato") }, "the pill does not say Claude is connected: \(screen())")
+        step("Claude connects (regista-mcp's way: the app's engine socket)", sees: "«Claude collegato» in the title bar, the Claude panel open")
+
+        // The recipe Claude reads first; every tool it names exists.
+        let recipe = await claude(link, "recipe.get", ["name": "talking-head-reel"])
+        #expect(!recipe.reply.isError, "recipe_get: \(recipe.reply.text)")
+        let text = recipe.reply.result?["text"]?.stringValue ?? recipe.reply.text
+        let tools = Set(link.toolNames)
+        let words = text.components(separatedBy: CharacterSet.letters.union(CharacterSet(charactersIn: "_")).inverted)
+        let named = Set(words.filter { $0.contains("_") && !$0.hasSuffix("_") && $0.first?.isLowercase == true }).filter { n in Commands.all.contains { MCPServer.toolName($0.id).hasPrefix(n.split(separator: "_")[0] + "_") } }
+        let missing = named.subtracting(tools)
+        #expect(missing.isEmpty, "the recipe names tools that do not exist: \(missing.sorted())")
+        let order = ["project_new", "media_import", "media_extractAudio", "transcript_run", "script_set", "takes_list", "edit_autoCut", "audio_clean",
+                     "edit_punchIns", "captions_generate", "frame_contactSheet", "rules_check", "export_render", "export_srt", "project_save"]
+        let positions = order.map { text.range(of: $0)?.lowerBound }
+        #expect(positions.allSatisfy { $0 != nil }, "the recipe does not name \(zip(order, positions).filter { $0.1 == nil }.map(\.0))")
+        step("recipe_get {name: talking-head-reel}", sees: "\(await seesClaude("recipe.get", recipe.reply)); the recipe names \(named.count) tools, all of them exist")
+
+        // 1. project.new
+        let name = "Reel di Claude"
+        let made = await claude(link, "project.new", ["name": .string(name), "directory": .string(scratch.path), "kind": "talking-head-reel"])
+        #expect(!made.reply.isError, "project_new: \(made.reply.text)")
+        #expect(await until(5) { store.project?.name == name }, "the window does not show the new project: \(screen())")
+        step("project_new {name: «\(name)», kind: talking-head-reel}", sees: await seesClaude("project.new", made.reply) + "; \(store.nav.workspace) on screen")
+
+        // 2. media.import
+        let imported = await claude(link, "media.import", ["path": .string(take.path)])
+        #expect(!imported.reply.isError, "media_import: \(imported.reply.text)")
+        let asset = try #require(imported.reply.result?.value(at: "asset.id")?.stringValue ?? store.project?.assets.first?.id, "no asset: \(imported.reply.text)")
+        #expect(store.project?.assets.contains { $0.id == asset } == true, "the window's project has no \(asset)")
+        step("media_import ripresa.mov", sees: await seesClaude("media.import", imported.reply) + "; \(store.project?.assets.count ?? 0) file in Media, \(videoClips) clip on V1")
+
+        // 3. media.extractAudio, transcript.run
+        let audio = await claude(link, "media.extractAudio", ["assetId": .string(asset)])
+        #expect(!audio.reply.isError, "media_extractAudio: \(audio.reply.text)")
+        step("media_extractAudio", sees: await seesClaude("media.extractAudio", audio.reply))
+        let transcribed = await claude(link, "transcript.run", ["assetId": .string(asset), "language": "it"])
+        #expect(!transcribed.reply.isError, "transcript_run: \(transcribed.reply.text)")
+        let transcript = store.project?.asset(asset)?.analysis?.transcript
+        #expect(transcript != nil, "the window's project has no transcript")
+        let count = transcript?.words.count ?? 0
+        if let n = transcribed.reply.result?["words"]?.doubleValue ?? transcribed.reply.result?["wordCount"]?.doubleValue {
+            #expect(Int(n) == count, "transcript_run says \(n) words, the window's project has \(count)")
+        }
+        #expect(shows("\(count) parole"), "Media does not show the take's \(count) words: \(screen())")
+        step("transcript_run {language: it}", sees: await seesClaude("transcript.run", transcribed.reply) + "; \(count) words; the job in the status bar while it ran: \(transcribed.seenRunning)")
+
+        // 4. script.set, takes.list, edit.autoCut
+        let script = await claude(link, "script.set", ["text": "Oggi Regista monta il reel.\nLe pause spariscono da sole."])
+        #expect(!script.reply.isError, "script_set: \(script.reply.text)")
+        step("script_set (two lines)", sees: await seesClaude("script.set", script.reply))
+        let takes = await claude(link, "takes.list")
+        #expect(!takes.reply.isError, "takes_list: \(takes.reply.text)")
+        step("takes_list", sees: await seesClaude("takes.list", takes.reply) + "; \(store.project?.takes?.lines.count ?? 0) lines with their takes")
+        let cut = await claude(link, "edit.autoCut")
+        #expect(!cut.reply.isError, "edit_autoCut: \(cut.reply.text)")
+        if let d = cut.reply.result?["duration"]?.doubleValue {
+            #expect(abs(d - (store.project?.duration.seconds ?? 0)) < 0.05, "edit_autoCut says \(d) s, the window's timeline is \(store.project?.duration.seconds ?? 0) s")
+        }
+        if let clips = cut.reply.result?["clips"]?.arrayValue {
+            let onTimeline = store.project?.tracks.flatMap(\.clips).count ?? 0
+            #expect(clips.count <= onTimeline && clips.count > 0, "edit_autoCut lists \(clips.count) clips, the window's timeline has \(onTimeline)")
+        }
+        #expect(shows("\(videoClips) clip · "), "the timeline's footer does not count \(videoClips) clips: \(screen())")
+        step("edit_autoCut", sees: await seesClaude("edit.autoCut", cut.reply) + "; \(videoClips) clips on V1, \(String(format: "%.1f", store.project?.duration.seconds ?? 0)) s")
+
+        // 5. audio.clean (the rig's engines: the cleaner when this Mac has it, else the refusal names what to install)
+        let clean = await claude(link, "audio.clean", timeout: 180)
+        step("audio_clean", sees: await seesClaude("audio.clean", clean.reply) + "; " + (clean.reply.isError ? "refused: \(clean.reply.text.prefix(120))" : "the voice cleaned (\(clean.reply.result?.value(at: "loudness.integrated")?.doubleValue.map { String(format: "%.1f LUFS", $0) } ?? "no level"))"))
+
+        // 6. faces.track (the recipe's step 8), edit.punchIns
+        let faces = await claude(link, "faces.track", ["assetId": .string(asset)], timeout: 180)
+        step("faces_track", sees: await seesClaude("faces.track", faces.reply) + (faces.reply.isError ? "; refused: \(faces.reply.text.prefix(120))" : ""))
+        let punch = await claude(link, "edit.punchIns", ["by": "line"])
+        step("edit_punchIns {by: line}", sees: await seesClaude("edit.punchIns", punch.reply) + (punch.reply.isError ? "; refused: \(punch.reply.text.prefix(160))" : "; \(videoClips) clips on V1"))
+
+        // The person selects the second clip and looks at it in the Inspector: its times are the timeline's.
+        let second = try #require(store.project?.tracks.first { $0.kind == .video }?.clips.last)
+        rig.click(CGPoint(x: try #require(timelineX((second.start.seconds + second.end.seconds) / 2)), y: try #require(laneY("V1"))))
+        await app.settle()
+        #expect(store.selection.contains(second.id), "a click on the clip did not select it")
+        try await tap("Ispettore")
+        let from = timecode(frames: second.start.seconds), to = timecode(frames: second.end.seconds)
+        #expect(await until(3) { shows(from) && shows(to) }, "the Inspector does not show the clip's \(from)–\(to): \(screen())")
+        step("Clicks the second clip, the Inspector", sees: "the clip from \(from) to \(to), as Claude's punch-in left it")
+        try await tap("Claude")
+        #expect(store.nav.rightTab == .claude)
+
+        // 7. captions.generate
+        let captions = await claude(link, "captions.generate", ["style": "talking-head-v1", "keywords": ["REGISTA", "PAUSE"]])
+        #expect(!captions.reply.isError, "captions_generate: \(captions.reply.text)")
+        let chunks = store.project?.tracks.first { $0.captions != nil }?.captions?.chunks.count ?? 0
+        if let n = captions.reply.result?["chunks"]?.doubleValue ?? captions.reply.result?["chunks"]?.arrayValue.map({ Double($0.count) }) {
+            #expect(Int(n) == chunks, "captions_generate says \(n) chunks, the window's project has \(chunks)")
+        }
+        #expect(chunks > 0 && laneY("T1") != nil, "no captions on the timeline: \(screen())")
+        step("captions_generate {style: talking-head-v1}", sees: await seesClaude("captions.generate", captions.reply) + "; \(chunks) caption chunks on T1")
+
+        // 8. frame.contactSheet
+        let sheet = await claude(link, "frame.contactSheet")
+        #expect(!sheet.reply.isError, "frame_contactSheet: \(sheet.reply.text)")
+        let images = sheet.reply.result?["images"]?.arrayValue?.compactMap { $0["path"]?.stringValue } ?? []
+        #expect(!images.isEmpty && images.allSatisfy { FileManager.default.fileExists(atPath: $0) }, "the contact sheet wrote no image: \(sheet.reply.text.prefix(200))")
+        step("frame_contactSheet", sees: await seesClaude("frame.contactSheet", sheet.reply) + "; \(images.count) image(s) for Claude to look at")
+
+        // The recipe's step 14 when the person asks for graphics: an opening title (reel-graphics). It breaks a rule.
+        let title = await claude(link, "title.add", ["text": "OGGI", "start": 0])
+        #expect(!title.reply.isError && store.project?.tracks.contains { $0.role == "titles" && !$0.clips.isEmpty } == true, "title_add: \(title.reply.text.prefix(200))")
+        step("title_add «OGGI» at 0 (the person asked for an opening title)", sees: await seesClaude("title.add", title.reply) + "; the title on its lane and on the picture")
+
+        // 9. rules.check: export.render refuses while a rule fails, rules.fix, then the export.
+        let check = await claude(link, "rules.check")
+        let failing = check.reply.result?["violations"]?.arrayValue?.filter { $0["severity"] == "fail" }.compactMap { $0["check"]?.stringValue } ?? []
+        step("rules_check", sees: await seesClaude("rules.check", check.reply) + "; failing: \(failing.isEmpty ? "nothing" : failing.joined(separator: ", "))")
+        let movie = scratch.appendingPathComponent("claude.mp4")
+        #expect(!failing.isEmpty, "no rule fails with captions under the opening title")
+        if !failing.isEmpty {
+            let refused = await claude(link, "export.render", ["path": .string(movie.path), "preset": "9:16"])
+            #expect(refused.reply.isError && !FileManager.default.fileExists(atPath: movie.path), "export_render did not refuse with rules failing: \(refused.reply.text.prefix(200))")
+            step("export_render while \(failing.joined(separator: ", ")) fails", sees: await seesClaude("export.render", refused.reply) + "; no file")
+            let fixed = await claude(link, "rules.fix", ["all": true])
+            #expect(!fixed.reply.isError && fixed.reply.result?.value(at: "check.pass") == true, "rules_fix: \(fixed.reply.text.prefix(300))")
+            step("rules_fix {all: true}", sees: await seesClaude("rules.fix", fixed.reply) + "; \(fixed.reply.result?["applied"]?.arrayValue?.count ?? 0) fix(es) applied")
+        }
+
+        // A second tab, opened by the person (the + of the tab strip), then back to Claude's.
+        let claudeTab = store.tabID
+        try await tap("Nuova scheda")
+        let otherTab = store.tabID
+        #expect(otherTab != claudeTab, "the + did not open a tab")
+        rig.click(try #require(rig.elements().first { $0.role == "AXStaticText" && $0.name == name && $0.frame.minY < 90 }, "no Claude's tab").centre)
+        await app.settle()
+        #expect(store.tabID == claudeTab, "a click on Claude's tab did not select it")
+
+        // 10. export.render: while it runs, the person clicks the other tab; the export stays with Claude's project.
+        let tabs = { self.rig.elements().filter { $0.role == "AXStaticText" && $0.frame.minY < 90 && ($0.name == name || $0.name == loc("Nuova scheda")) } }
+        let export = await claude(link, "export.render", ["path": .string(movie.path), "preset": "9:16"], timeout: 180) {
+            if let other = tabs().first(where: { $0.name == loc("Nuova scheda") }) {
+                self.rig.click(other.centre)
+                await self.app.idle(0.1)
+            }
+        }
+        #expect(!export.reply.isError && FileManager.default.fileExists(atPath: movie.path), "export_render: \(export.reply.text.prefix(300))")
+        #expect(app.store.bench.activeID == otherTab, "the click on the other tab during the export did not select it")
+        #expect(export.seenRunning, "the export never showed as running in the status bar")
+        let claudeStore = try #require(app.store.bench.tab(claudeTab))
+        #expect(claudeStore.activity.contains { $0.command == "export.render" && $0.isAgent }, "the export is not in Claude's tab's log")
+        #expect(app.store.bench.tab(otherTab)?.project == nil, "the export touched the other tab")
+        let exported = try await Journey.probe(movie)
+        #expect(abs(exported.seconds - (claudeStore.project?.duration.seconds ?? 0)) < 0.1, "exported \(exported.seconds) s of a \(claudeStore.project?.duration.seconds ?? 0) s reel")
+        if let d = export.reply.result?["duration"]?.doubleValue { #expect(abs(d - exported.seconds) < 0.05, "export_render says \(d) s, the file is \(exported.seconds) s") }
+        step("export_render {preset: 9:16}; meanwhile the person clicks the other tab", sees: "the export ran on «\(name)» (\(exported.width)×\(exported.height), \(String(format: "%.2f", exported.seconds)) s), the empty tab on screen; the status bar showed the export: \(export.seenRunning)")
+
+        // 11. export.srt with `project`: the tab not on screen; the visible one stays.
+        let srt = scratch.appendingPathComponent("claude.srt")
+        let subtitles = await claude(link, "export.srt", ["path": .string(srt.path), "project": .string(claudeTab)])
+        #expect(!subtitles.reply.isError && FileManager.default.fileExists(atPath: srt.path), "export_srt: \(subtitles.reply.text.prefix(200))")
+        #expect(app.store.bench.activeID == otherTab, "export_srt with project moved the window to Claude's tab")
+        #expect(claudeStore.activity.contains { $0.command == "export.srt" && $0.isAgent }, "export_srt is not in Claude's tab's log")
+        step("export_srt {project: \(claudeTab)} with the other tab on screen", sees: "the .srt written for «\(name)»; the empty tab still on screen")
+
+        // Back to Claude's tab: 12. project.save
+        rig.click(try #require(tabs().first { $0.name == name }, "no Claude's tab").centre)
+        await app.settle()
+        #expect(store.tabID == claudeTab)
+        let saved = await claude(link, "project.save")
+        #expect(!saved.reply.isError && !store.dirty, "project_save: \(saved.reply.text.prefix(200))")
+        #expect(await until(3) { shows("Salvato") }, "the status bar does not say saved: \(statusBar())")
+        step("project_save", sees: await seesClaude("project.save", saved.reply) + "; «Salvato»")
+
+        // 13. history.undo after the last edit: the window shows the step back; history.redo puts it again.
+        let last = try #require(store.undoNames.last, "nothing to undo")
+        let before = store.project
+        let undo = await claude(link, "history.undo")
+        #expect(!undo.reply.isError && store.project != before && store.redoNames.last == last, "history_undo: \(undo.reply.text.prefix(200))")
+        #expect(store.dirty && shows("Modifiche non salvate"), "the window does not show the step back as unsaved: \(statusBar())")
+        step("history_undo", sees: await seesClaude("history.undo", undo.reply) + "; «\(CommandTitles.title(last))» taken back")
+        let redo = await claude(link, "history.redo")
+        #expect(!redo.reply.isError && store.project == before, "history_redo: \(redo.reply.text.prefix(200))")
+        step("history_redo", sees: await seesClaude("history.redo", redo.reply) + "; the edit as it was")
+
+        // 14. A paid generation: refused without the person's approval; the approval sheet is what the window shows
+        // (the window hosted by the rig draws no sheets: EditorRoot(live: false); the sheet is drawn on its own window).
+        let processes = RigProcesses.started.count
+        let paid = await claude(link, "generate.run", ["provider": "higgsfield", "kind": "image", "prompt": "a red chair"])
+        #expect(paid.reply.isError, "a paid generation ran without approval: \(paid.reply.text.prefix(200))")
+        #expect(await until(3) { store.pendingApproval != nil }, "no approval waits for the person: \(paid.reply.text.prefix(200))")
+        step("generate_run {provider: higgsfield} with no approval", sees: await seesClaude("generate.run", paid.reply) + "; refused: \(paid.reply.text.prefix(100))")
+        let entry = try #require(store.pendingApproval)
+        let approval = MouseRig(ApprovalSheet(entry: entry).environmentObject(store).environmentObject(store.preview).environmentObject(store.preview.playhead)
+                                    .environmentObject(store.media).environmentObject(app.meter).environmentObject(app.recorder)
+                                    .environment(\.colorScheme, .dark),
+                                size: CGSize(width: 460, height: 460), language: "it")
+        defer { approval.close() }
+        approval.pump(0.3)
+        #expect(!approval.elements(containing: "Generazione a pagamento").isEmpty, "the approval sheet does not say what it is")
+        if let rep = approval.host.bitmapImageRepForCachingDisplay(in: approval.host.bounds) {
+            approval.host.cacheDisplay(in: approval.host.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: Journey.folder.appendingPathComponent("8-claude-reel-approval.png"))
+        }
+        try await tap("Rifiuta", in: approval)
+        #expect(await until(3) { store.pendingApproval == nil }, "Rifiuta did not close the approval")
+        let list = await claude(link, "generate.list")
+        let declined = list.reply.text.contains("declined") || list.reply.text.contains("decline")
+        #expect(declined, "generate_list does not show the estimate declined: \(list.reply.text.prefix(300))")
+        let again = await claude(link, "generate.run", ["provider": "higgsfield", "kind": "image", "prompt": "a red chair"])
+        #expect(again.reply.isError, "the paid generation ran after Rifiuta: \(again.reply.text.prefix(200))")
+        #expect(RigProcesses.started.count == processes, "a generation started a process: \(RigProcesses.started.dropFirst(processes))")
+        step("The approval sheet (Generazione a pagamento), Rifiuta; Claude asks again", sees: "declined; generate_run refused again; nothing generated, no provider called")
+    }
+}
+
+private final class LinkBox: @unchecked Sendable { var link: ClaudeLink? }
