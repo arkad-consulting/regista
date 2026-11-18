@@ -24,6 +24,7 @@ Keep these the same everywhere in `*.lproj/Localizable.strings` (scheme and chec
 | copione | script | script | roteiro |
 | ripresa (one take) | take | prise | tomada |
 | Riprese (the V1 footage lane, `track.footage`) | Footage | Rushes | Filmagens |
+| Audio della ripresa (the footage's own sound beside a generated voice, `track.footageSound`) | Footage sound | Son des rushes | Áudio das filmagens |
 | trascrizione / trascrivi | transcript / transcribe | transcription / transcrire | transcrição / transcrever |
 | Ispettore | Inspector | Inspecteur | Inspetor |
 | Claude | Claude | Claude | Claude |

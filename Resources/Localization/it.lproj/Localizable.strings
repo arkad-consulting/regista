@@ -2395,3 +2395,4 @@
 "«%@» non è un colore: scrivilo come #RRGGBB." = "«%@» non è un colore: scrivilo come #RRGGBB.";
 "#RRGGBB" = "#RRGGBB";
 "Il kit «%@» non ha ancora un logo: sceglilo in Impostazioni › Brand kit." = "Il kit «%@» non ha ancora un logo: sceglilo in Impostazioni › Brand kit.";
+"track.footageSound" = "Audio della ripresa";

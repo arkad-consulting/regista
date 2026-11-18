@@ -186,3 +186,67 @@ private func voiceProject(_ store: EditorStore, _ dir: URL, voice: URL) async th
     #expect(titles.last == "Cartelli", "a renamed graphics lane reads «\(titles.last ?? "?")»")
     #expect(!rows.contains { $0.title.range(of: #"^[VAOC]\d+$"#, options: .regularExpression) != nil }, "a lane reads a default name: \(rows.map(\.title))")
 }
+
+/// #95: beside the generated voice (the «Voce» track voice.say makes), a default-named voice lane carries the footage's own
+/// sound and reads «Audio della ripresa», on its lane and in the Audio panel; the footage's sound alone, or the generated
+/// voice alone, reads «Voce» as before, and a name of the person's own stays.
+@MainActor
+@Test func theFootageSoundBesideAGeneratedVoiceSaysWhatItIs() throws {
+    func project(_ audio: [String?]) throws -> Project {
+        let e = Engine(services: .live())
+        _ = try e.execute("project.new", params: ["name": "voci", "directory": .string(tempDir().path)])
+        _ = try e.execute("track.add", params: ["kind": "video"])
+        for _ in audio { _ = try e.execute("track.add", params: ["kind": "audio"]) }
+        var p = try #require(e.project)
+        let ids = p.tracks.filter { $0.kind == .audio }.map(\.id)
+        for (id, name) in zip(ids, audio) { if let name, let i = p.tracks.firstIndex(where: { $0.id == id }) { p.tracks[i].name = name } }
+        return p
+    }
+    /// The lane titles and the Audio panel's names of the audio tracks, in order.
+    func names(_ p: Project) -> (lanes: [String], panel: [String]) {
+        let rows = LaneRow.rows(p)
+        let audio = p.tracks.filter { $0.kind == .audio }
+        return (audio.map { t in rows.first { $0.track?.id == t.id }?.title ?? "?" }, audio.map { AudioMixTab.trackName($0, in: p) })
+    }
+    let both = names(try project([nil, "Voce"]))
+    #expect(both.lanes == ["track.footageSound", "Voce"], "footage sound + generated voice: \(both.lanes)")
+    #expect(both.panel == [loc("track.footageSound"), loc("Voce")] && both.panel[0] != both.panel[1], "the Audio panel: \(both.panel)")
+    let voiceFirst = names(try project(["Voce", nil]))
+    #expect(voiceFirst.lanes == ["Voce", "track.footageSound"], "generated voice first: \(voiceFirst.lanes)")
+    let footage = names(try project([nil]))
+    #expect(footage.lanes == ["Voce"] && footage.panel == [loc("Voce")], "footage sound alone: \(footage)")
+    let generated = names(try project(["Voce"]))
+    #expect(generated.lanes == ["Voce"] && generated.panel == [loc("Voce")], "generated voice alone: \(generated)")
+    let own = names(try project(["Intervista", "Voce"]))
+    #expect(own.lanes == ["Intervista", "Voce"], "a name of the person's own: \(own.lanes)")
+    for language in ["it", "en", "fr", "pt"] {
+        let table = MouseRig.table(language)
+        let word = table.localizedString(forKey: "track.footageSound", value: nil, table: nil)
+        #expect(word != "track.footageSound" && word != table.localizedString(forKey: "Voce", value: nil, table: nil), "\(language): «\(word)»")
+    }
+}
+
+// #95 on screen: the rich reel's voice lane (the footage's sound, a default name) beside a generated-voice «Voce» track,
+// in the window's language: the timeline and the Audio panel read «Audio della ripresa» and «Voce».
+extension MouseSuites {
+@Suite(.serialized) @MainActor struct VoiceLaneNamesMouseTests {
+    @Test func theFootageSoundLaneReadsAsSuchBesideTheVoice() async throws {
+        let j = try await Journey("n23-voice-lanes", project: "rich")
+        defer { j.close() }
+        let added = try await j.store.perform("track.add", ["kind": "audio"])
+        let id = try #require(added.value(at: "track.id")?.stringValue)
+        _ = try await j.store.perform("track.set", ["trackId": .string(id), "name": "Voce"])
+        for language in ["it", "fr", "pt"] {
+            j.language = language
+            await j.open(Navigation(activity: .audio, rightTab: .inspector))
+            await j.app.idle(0.3)
+            let sound = loc("track.footageSound"), voice = loc("Voce")
+            #expect(sound != "track.footageSound", "\(language): no word for the footage sound")
+            // On its lane header and in the Audio panel's list: at least twice each.
+            #expect(j.rig.elements(containing: sound).count >= 2, "\(language): «\(sound)» is not on the lane and in the panel: \(j.screen())")
+            #expect(j.rig.elements().filter { $0.role == "AXStaticText" && $0.value == voice }.count >= 2, "\(language): «\(voice)» is not on the lane and in the panel: \(j.screen())")
+            j.step("\(language): the Audio panel and the timeline of a reel with its footage's sound and a generated voice", sees: "«\(sound)» and «\(voice)»")
+        }
+    }
+}
+}

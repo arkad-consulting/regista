@@ -2395,3 +2395,4 @@
 "«%@» non è un colore: scrivilo come #RRGGBB." = "“%@” não é uma cor: escreva-a como #RRGGBB.";
 "#RRGGBB" = "#RRGGBB";
 "Il kit «%@» non ha ancora un logo: sceglilo in Impostazioni › Brand kit." = "O kit “%@” ainda não tem logo: escolha-o em Ajustes › Kit de marca.";
+"track.footageSound" = "Áudio das filmagens";

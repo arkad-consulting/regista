@@ -55,7 +55,13 @@ struct LaneRow: Identifiable {
         let other = audios.filter { !voice.contains($0) && !music.contains($0) && !sfx.contains($0) }
         var lanes: [(Track?, Role, String, CGFloat)] = []
         if voice.isEmpty { lanes.append((nil, .voice, "Voce", 50)) }
-        for (i, t) in voice.enumerated() { lanes.append((t, i == 0 ? .voice : .extra, i == 0 && !renamed(t) ? "Voce" : t.name, i == 0 ? 50 : 34)) }
+        // The generated voice (voice.say's «Voce» track) beside a default-named voice lane: that lane carries the footage's
+        // own sound, and says so (#95: two lanes read «Voce»).
+        let generated = voice.contains { $0.name == "Voce" }
+        for (i, t) in voice.enumerated() {
+            let title = !renamed(t) && generated ? "track.footageSound" : i == 0 && !renamed(t) ? "Voce" : t.name
+            lanes.append((t, i == 0 ? .voice : .extra, title, i == 0 ? 50 : 34))
+        }
         if music.isEmpty, voice.count < 2 { lanes.append((nil, .music, "Musica", 38)) }
         for t in music { lanes.append((t, .music, "Musica", 38)) }
         if sfx.isEmpty, voice.count < 3 { lanes.append((nil, .sfx, "track.sfx", 30)) }
@@ -554,8 +560,9 @@ struct TrackHeader: View {
                 .frame(width: 26, height: 18)
                 .background(RoundedRectangle(cornerRadius: Ed.Radius.s).fill(row.track == nil ? Color.clear : Ed.raised))
                 .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(row.track == nil ? Ed.line2 : .clear))
+            // «Audio della ripresa» (#95) does not fit one line beside an audio lane's buttons: it takes two.
             Text(verbatim: loc(row.title)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(row.track == nil ? Ed.text3 : Ed.text2)
-                .lineLimit(1).minimumScaleFactor(0.8)
+                .lineLimit(row.title == "track.footageSound" ? 2 : 1).minimumScaleFactor(row.title == "track.footageSound" ? 0.7 : 0.8)
             Spacer(minLength: Ed.Space.xxs)
             if let t = row.track {
                 // The bin shows on hover (also: right click → Elimina pista).

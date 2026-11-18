@@ -213,7 +213,16 @@ extension Journey {
         #expect(voce.clips.count == 2, "\(voce.clips.count) clips for two paragraphs")
         let placed = String(format: loc("%d clip sulla pista Voce · %@"), 2, VoiceFormat.duration(model.placed?.seconds ?? 0))
         #expect(shows(placed), "the panel does not say «\(placed)»: \(screen())")
-        step("«Dopo l'ultima voce», Metti in timeline", sees: "«\(placed)», the clips on «\(voce.name)»")
+        // The two audio lanes tell the footage's sound from the cloned voice (#95), on the timeline and in the Audio panel.
+        let rows = LaneRow.rows(store.project)
+        let footageSound = store.project?.tracks.first { $0.kind == .audio && $0.id != voce.id && !$0.clips.isEmpty }
+        let laneNames = [footageSound, voce].map { t in t.flatMap { t in rows.first { $0.track?.id == t.id }?.title } ?? "?" }
+        #expect(footageSound != nil, "the footage brought no sound of its own: \(store.project?.tracks.map(\.name) ?? [])")
+        #expect(laneNames == ["track.footageSound", "Voce"], "the audio lanes read \(laneNames)")
+        #expect(shows(loc("track.footageSound")) && shows(loc("Voce")), "the timeline does not read «\(loc("track.footageSound"))» and «\(loc("Voce"))»: \(screen())")
+        let panelNames = [footageSound, voce].compactMap { $0 }.map { AudioMixTab.trackName($0, in: store.project) }
+        #expect(panelNames == [loc("track.footageSound"), loc("Voce")], "the Audio panel names the tracks \(panelNames)")
+        step("«Dopo l'ultima voce», Metti in timeline", sees: "«\(placed)», the clips on «\(voce.name)»; the lanes read «\(laneNames.map { loc($0) }.joined(separator: "», «"))»")
 
         // 9. «Al cursore» with the playhead inside the first clip: the track is occupied there, said in words.
         try await tap("Al cursore")
