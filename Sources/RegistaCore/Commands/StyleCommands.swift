@@ -393,7 +393,9 @@ enum EffectsPreview: Command {
         func time(_ k: String) -> MediaTime? { v[k]?.doubleValue.map { MediaTime(seconds: max($0, 0)) } }
         var start = time("start") ?? time("at") ?? at
         let given = v["clipId"]?.stringValue
-        let clipID = given ?? (item.needs == .clip ? start.flatMap { EffectsCatalog.mainClip(at: $0, in: project)?.id } : nil)
+        // The main video's clip under the moment for every item that is not on the whole picture, as the panel's click
+        // does (#90): an effect on a moment needs it; the items' builds decide whether it goes into the params.
+        let clipID = given ?? (item.needs != .picture ? start.flatMap { EffectsCatalog.mainClip(at: $0, in: project)?.id } : nil)
         if start == nil, let cid = clipID { let (t, c) = try Timeline.locate(clip: cid, in: project); start = project.tracks[t].clips[c].start }
         let target = EffectTarget(clipID: item.needs == .picture ? given : clipID, start: (start ?? .zero).snapped(to: project.settings.frameRate),
                                   end: time("end"))

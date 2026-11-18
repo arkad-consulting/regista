@@ -105,6 +105,21 @@ private func panelCommand(_ item: EffectsCatalog.Item, project: Project, at time
     #expect(throws: Never.self) { _ = try CommandParams(validating: try #require(resolved["params"]), for: command.descriptor) }
 }
 
+/// An effect on a moment resolves with the clip under it through effects.catalog, as the panel's click does (#90), and a
+/// sticker (a moment too) still gets no clip.
+@Test func anEffectOnAMomentResolvesWithItsClip() throws {
+    let e = try footageEngine()
+    let main = try #require(e.project?.tracks.first { $0.kind == .video && !$0.clips.isEmpty }?.clips.first)
+    for id in ["zoom-punch", "zoom-shake", "fx-glitch", "fx-flash", "fx-blur", "fx-glow"] {
+        let r = try e.execute("effects.catalog", params: ["item": .string(id), "start": 1.5])
+        #expect(r.value(at: "params.clipId")?.stringValue == main.id, "\(id) resolves without the clip: \(r["params"]?.text() ?? "")")
+        #expect(throws: Never.self, "\(id)") { _ = try e.execute(try #require(r["command"]?.stringValue), params: try #require(r["params"])) }
+    }
+    let sticker = try #require(EffectsCatalog.items.first { $0.command == "sticker.add" && $0.needs == .moment })
+    let r = try e.execute("effects.catalog", params: ["item": .string(sticker.id), "start": 1.5])
+    #expect(r.value(at: "params.clipId") == nil, "a sticker resolves with a clip")
+}
+
 /// Mean absolute difference of two frames, 0…255.
 private func difference(_ a: CGImage, _ b: CGImage) -> Double {
     func rgba(_ i: CGImage) -> [UInt8] {
