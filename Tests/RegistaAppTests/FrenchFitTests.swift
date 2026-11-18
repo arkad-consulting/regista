@@ -113,5 +113,23 @@ extension MouseSuites {
         }
     }
 
+    /// The Claude tab in French: a step whose title is longer than the panel shows it whole, on two lines (#84:
+    /// «Corriger les règles non respecté…»).
+    @Test func aLongStepTitleIsWholeInFrench() async throws {
+        let app = try await AppRig(project: nil)
+        defer { app.close() }
+        var step = EditorStore.Activity(source: "Claude", isAgent: true, command: "rules.fix", params: "")
+        step.status = .ok
+        step.result = "2 correzioni applicate"
+        app.store.bench.activity = [step]
+        app.hostEditor(Navigation(activity: .media, rightTab: .claude), language: "fr")
+        await app.settle()
+        let title = CommandTitles.title("rules.fix")
+        let text = try #require(app.rig.elements().first { $0.visible && $0.role == "AXStaticText" && $0.value == title }, "no «\(title)» in the panel")
+        let font = NSFont.systemFont(ofSize: Ed.TypeSize.body, weight: .medium)
+        let needed = naturalWidth(title, font)
+        #expect(text.frame.width >= needed - 1 || text.frame.height > font.boundingRectForFont.height * 1.5,
+                "«\(title)» is cut: \(text.frame) for \(needed) pt on one line")
+    }
 }
 }

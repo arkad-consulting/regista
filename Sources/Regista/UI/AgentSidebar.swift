@@ -167,8 +167,9 @@ struct ActivityRow: View {
             status.frame(width: 10, height: 14)
             VStack(alignment: .leading, spacing: Ed.Space.xxs) {
                 HStack(spacing: 6) {
+                    // A title longer than the panel goes on a second line rather than being cut (#84, in French).
                     Text(verbatim: a.note ?? CommandTitles.title(a.command)).font(Ed.ui(Ed.TypeSize.body, .medium)).foregroundStyle(a.isAgent ? Ed.text : Ed.text2)
-                        .lineLimit(a.note == nil ? 1 : 3)
+                        .lineLimit(a.note == nil ? 2 : 3).fixedSize(horizontal: false, vertical: true)
                     // Ran in a tab the user was not looking at (S2 #76).
                     if let p = a.project {
                         Text(verbatim: String(format: loc("in «%@»"), p)).font(Ed.ui(Ed.TypeSize.micro)).foregroundStyle(Ed.text3).lineLimit(1).truncationMode(.middle)
