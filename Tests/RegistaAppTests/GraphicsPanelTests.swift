@@ -120,6 +120,14 @@ private func panelCommand(_ item: EffectsCatalog.Item, project: Project, at time
     #expect(r.value(at: "params.clipId") == nil, "a sticker resolves with a clip")
 }
 
+/// A 3D template's font role under a kit whose fonts are installed fonts, not files (#91): the installed font's file.
+@Test func aThreeDTemplateFindsAnInstalledFontsFile() throws {
+    let font = BrandKit.cafeAtelier.font("text")
+    let file = try #require(GraphicsBlender3D.fontFile(font), "«\(font)» did not resolve to a file")
+    #expect(FileManager.default.fileExists(atPath: file))
+    #expect(GraphicsBlender3D.fontFile("NoSuchFont-Regular") == nil)
+}
+
 /// Mean absolute difference of two frames, 0…255.
 private func difference(_ a: CGImage, _ b: CGImage) -> Double {
     func rgba(_ i: CGImage) -> [UInt8] {

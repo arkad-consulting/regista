@@ -1,4 +1,5 @@
 import CryptoKit
+import CoreText
 import Foundation
 
 // Blender 3D templates (issue #34): parametric scenes rendered headless by Blender. A template is ONE Python module in
@@ -121,6 +122,17 @@ enum GraphicsBlender3D: Command {
         .optional("samples", .integer, "EEVEE samples (default 32; 8 for drafts)."),
     ] + Graphics.positionParams + Graphics.animationParams
 
+    /// The file of a font: a path as it is, else the file of the installed font of that name (nil when there is none).
+    static func fontFile(_ font: String) -> String? {
+        let path = EngineConfig.expand(font)
+        if FileManager.default.fileExists(atPath: path) { return path }
+        let descriptor = CTFontDescriptorCreateWithNameAndSize(font as CFString, 12)
+        guard let url = CTFontDescriptorCopyAttribute(descriptor, kCTFontURLAttribute) as? URL,
+              CTFontCopyPostScriptName(CTFontCreateWithFontDescriptor(descriptor, 12, nil)) as String == font,
+              FileManager.default.fileExists(atPath: url.path) else { return nil }
+        return url.path
+    }
+
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         let project = try ctx.requireProject()
         let name = p.requiredString("template")
@@ -149,8 +161,9 @@ enum GraphicsBlender3D: Command {
                 }
                 fields[f.name] = .string(hex)
             case "font":
-                let path = EngineConfig.expand(kit.font(v.stringValue ?? ""))
-                guard FileManager.default.fileExists(atPath: path) else { throw CommandError.notFound("\(id): font \(v.stringValue ?? "") is not a file (\(path))") }
+                let font = kit.font(v.stringValue ?? "")
+                // A kit's role may name a font installed on the Mac (a built-in kit's AvenirNext-Regular): its file (#91).
+                guard let path = Self.fontFile(font) else { throw CommandError.notFound("\(id): font \(v.stringValue ?? "") is neither a file nor an installed font (\(font))") }
                 fields[f.name] = .string(path)
             case "svg":
                 let raw = v.stringValue ?? ""
