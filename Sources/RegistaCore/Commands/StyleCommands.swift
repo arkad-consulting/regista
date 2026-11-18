@@ -95,7 +95,8 @@ public enum EffectsCatalog {
     }
 
     /// The command and params with the agent's field values: `start`/`end`/`clipId` move the target, `intensity` scales,
-    /// every other field overrides the command param of the same name.
+    /// every other field overrides the command param of the same name (`fields.<name>`, a template's field: that name
+    /// inside the `fields` param).
     public static func resolve(_ item: Item, fields: [String: JSONValue], target: EffectTarget, intensity: Double, project: Project) -> (command: String, params: JSONValue) {
         var target = target
         let rate = project.settings.frameRate
@@ -105,7 +106,17 @@ public enum EffectsCatalog {
         let i = fields["intensity"]?.doubleValue ?? intensity
         var (command, params) = resolve(item, target: target, intensity: i, project: project)
         if case .object(var o) = params {
-            for (k, v) in fields where k != "intensity" { o[k] = v }
+            for (k, v) in fields where k != "intensity" {
+                // A template's field is listed as `fields.<name>` (#89): it goes inside the object named before the dot.
+                if let dot = k.firstIndex(of: "."), dot > k.startIndex {
+                    let head = String(k[..<dot])
+                    var inner = o[head]?.objectValue ?? [:]
+                    inner[String(k[k.index(after: dot)...])] = v
+                    o[head] = .object(inner)
+                } else {
+                    o[k] = v
+                }
+            }
             params = .object(o)
         }
         return (command, params)

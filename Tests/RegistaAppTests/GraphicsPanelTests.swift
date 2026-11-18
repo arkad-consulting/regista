@@ -85,6 +85,26 @@ private func panelCommand(_ item: EffectsCatalog.Item, project: Project, at time
     #expect(GraphicsCatalog.unavailable(try #require(EffectsCatalog.named("fx-glow")), project: project, blender: false) == nil)
 }
 
+/// A template's field as the catalogue names it (`fields.rows`) goes inside the command's `fields` (#89): the resolved
+/// motion.add and graphics.blender3d accept it and the clip carries the value.
+@Test func aTemplateFieldNamedByTheCatalogueReachesTheTemplate() throws {
+    MotionLibrary.registerAll()
+    let e = try footageEngine()
+    let rows: JSONValue = ["Uno", "Due", "Tre"]
+    let r = try e.execute("effects.catalog", params: ["item": "checklist", "start": 1, "fields": ["fields.rows": rows]])
+    #expect(r.value(at: "params.fields.rows") == rows, "the field did not land inside fields: \(r["params"]?.text() ?? "")")
+    #expect(r["params"]?["fields.rows"] == nil)
+    let added = try e.execute(try #require(r["command"]?.stringValue), params: try #require(r["params"]))
+    let id = try #require(added.value(at: "clip.id")?.stringValue)
+    #expect(e.project?.tracks.flatMap(\.clips).first { $0.id == id }?.motion?.fields["rows"] == rows)
+    // A 3D template's field too (resolved only: Blender is not needed to read the params).
+    let three = try #require(EffectsCatalog.items.first { $0.command == "graphics.blender3d" })
+    let name = try #require(three.fields.first { $0.name.hasPrefix("fields.") })
+    let resolved = try e.execute("effects.catalog", params: ["item": .string(three.id), "start": 1, "fields": .object([name.name: name.example])])
+    let command = try #require(RegistaCore.Commands.all.first { $0.id == "graphics.blender3d" })
+    #expect(throws: Never.self) { _ = try CommandParams(validating: try #require(resolved["params"]), for: command.descriptor) }
+}
+
 /// Mean absolute difference of two frames, 0…255.
 private func difference(_ a: CGImage, _ b: CGImage) -> Double {
     func rgba(_ i: CGImage) -> [UInt8] {
