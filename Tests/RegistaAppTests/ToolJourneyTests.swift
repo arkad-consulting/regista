@@ -242,3 +242,164 @@ extension Journey {
     }
 }
 
+extension MouseSuites.ClickAudits.ToolJourneyTests {
+    /// 11. A screen tutorial through the tools, the screen-tutorial recipe in its order, from a screen recording made in
+    /// the rig with the capture stand-in (screen + camera, as journey 3 records it): the recording's layout, the automatic
+    /// zoom, the cursor and the keys, a callout, captions, the rules of this kind of video (its sheet, not the reel's;
+    /// «Logo nel video» puts the logo in the corner for the whole video), export 16:9. After each command the window
+    /// agrees with the result.
+    @Test func claudeMakesAScreenTutorial() async throws {
+        let j = try await Journey("11-claude-screen-tutorial", project: nil)
+        defer { j.close() }
+        try await j.claudeScreenTutorial()
+    }
+}
+
+extension Journey {
+    /// Journey 11 (ToolJourneyTests.claudeMakesAScreenTutorial).
+    func claudeScreenTutorial() async throws {
+        // The person records the screen with the camera (journey 3's start, not proven again).
+        app.capture.take = try take()
+        app.capture.screen = true
+        app.followRecorder()
+        await open(Navigation(activity: .home, rightTab: .claude))
+        try await tap("Registra")
+        try await tap("Schermo + volto")
+        #expect(await until { control("Avvia / Ferma registrazione")?.enabled == true }, "Record is not ready: \(screen())")
+        try await tap("Avvia / Ferma registrazione")
+        #expect(await until { app.recorder.isRecording })
+        await app.idle(1)
+        try await tap("Avvia / Ferma registrazione")
+        #expect(await until(40) { app.store.bench.notice != nil && store.project?.recordings?.isEmpty == false }, "the session went nowhere: \(screen())")
+        await app.settle()
+        // The take's session.json, where the recorder left it (the recording's project names it).
+        let session = URL(fileURLWithPath: try #require(store.project?.recordings?.first?.session, "no screen session")).deletingLastPathComponent()
+        step("The person records the screen with the camera (Registra › Schermo + volto)", sees: "the session's project in its tab")
+
+        let link = try await connectClaude()
+        _ = await readRecipe(link, "screen-tutorial", order: ["media_list", "project_new", "recording_import", "layout_apply", "edit_autoZoom", "cursor_style",
+                                                              "keys_overlay", "transcript_run", "audio_clean", "captions_generate", "frame_contactSheet",
+                                                              "rules_check", "export_render", "recording_check", "project_save"])
+
+        // 1. project_new 16:9 (a new tab: the active one holds the recording's project).
+        let name = "Tutorial di Claude"
+        let made = await claude(link, "project.new", ["name": .string(name), "directory": .string(scratch.path), "width": 1920, "height": 1080, "kind": "screen-tutorial"])
+        #expect(!made.reply.isError && store.project?.name == name && store.project?.settings.width == 1920, "project_new: \(made.reply.text.prefix(200))")
+        #expect(await until(3) { shows("Formato 16:9") }, "the toolbar does not say 16:9: \(screen())")
+        step("project_new {1920×1080, kind: screen-tutorial}", sees: await seesClaude("project.new", made.reply) + "; «Formato 16:9»")
+
+        // 2. recording_import: screen, camera above it, microphone, in sync.
+        let imported = await claude(link, "recording.import", ["path": .string(session.path), "faces": true], timeout: 180)
+        #expect(!imported.reply.isError, "recording_import: \(imported.reply.text.prefix(300))")
+        let assets = imported.reply.result?["assets"]
+        #expect(store.project?.recordings?.count == 1 && (store.project?.tracks.flatMap(\.clips).count ?? 0) >= 2, "the window's project has no recording")
+        #expect(drawn.contains { $0.kind == .layoutBox } || store.project?.tracks.contains { $0.role == "camera" } == true, "no camera on the picture")
+        step("recording_import {faces: true}", sees: await seesClaude("recording.import", imported.reply) + "; tracks \(store.project?.tracks.map(\.name).joined(separator: ", ") ?? "")")
+
+        // 3. layout_presets, layout_apply: the bubble in the corner.
+        let presets = await claude(link, "layout.presets")
+        step("layout_presets", sees: await seesClaude("layout.presets", presets.reply))
+        let layout = await claude(link, "layout.apply", ["preset": "bubble", "corner": "bottomRight", "shape": "circle", "size": "M"])
+        #expect(!layout.reply.isError && store.project?.recordings?.first?.layouts?.last?.layout.kind == .bubble, "layout_apply: \(layout.reply.text.prefix(200))")
+        store.preview.seek(1)
+        await app.idle(0.3)
+        let box = drawn.first { $0.kind == .layoutBox }
+        let corner = box.map { $0.center[0] > 960 && $0.center[1] > 540 } ?? false
+        #expect(corner, "the camera's bubble is not in the bottom-right corner: \(String(describing: box?.center))")
+        step("layout_apply {bubble, bottomRight}", sees: await seesClaude("layout.apply", layout.reply) + "; the bubble at \(box.map { "\(Int($0.center[0])),\(Int($0.center[1]))" } ?? "nowhere")")
+
+        // 4. edit_autoZoom, cursor_style, keys_overlay.
+        let zoom = await claude(link, "edit.autoZoom", ["zoom": 1.8])
+        #expect(!zoom.reply.isError, "edit_autoZoom: \(zoom.reply.text.prefix(200))")
+        step("edit_autoZoom {zoom: 1.8}", sees: await seesClaude("edit.autoZoom", zoom.reply))
+        let cursor = await claude(link, "cursor.style", ["scale": 1.5, "clickRipple": true, "hideWhenIdle": true])
+        #expect(!cursor.reply.isError, "cursor_style: \(cursor.reply.text.prefix(200))")
+        step("cursor_style {scale: 1.5, clickRipple, hideWhenIdle}", sees: await seesClaude("cursor.style", cursor.reply))
+        let keys = await claude(link, "keys.overlay")
+        #expect(!keys.reply.isError, "keys_overlay: \(keys.reply.text.prefix(200))")
+        step("keys_overlay", sees: await seesClaude("keys.overlay", keys.reply))
+
+        // 5. A callout on what is clicked.
+        let callout = await claude(link, "callout.add", ["kind": "circle", "start": 1, "duration": 1.5, "rect": [800, 400, 320, 200]])
+        #expect(!callout.reply.isError, "callout_add: \(callout.reply.text.prefix(200))")
+        store.preview.seek(1.5)
+        await app.idle(0.3)
+        let calloutID = callout.reply.result?.value(at: "clip.id")?.stringValue
+        let calloutDrawn = calloutID.map { id in drawn.contains { $0.clipID == id } } ?? false
+        #expect(calloutDrawn, "the callout is not on the picture at 1.5 s")
+        step("callout_add {circle, 1 s}", sees: await seesClaude("callout.add", callout.reply) + "; on the picture")
+
+        // 6. The words (the microphone), the voice, captions.
+        if let mic = assets?["mic"]?.stringValue {
+            let words = await claude(link, "transcript.run", ["assetId": .string(mic), "language": "it"])
+            step("transcript_run {assetId: the microphone}", sees: await seesClaude("transcript.run", words.reply) + (words.reply.isError ? "; refused: \(words.reply.text.prefix(120))" : ""))
+            let clean = await claude(link, "audio.clean", timeout: 180)
+            step("audio_clean", sees: await seesClaude("audio.clean", clean.reply) + (clean.reply.isError ? "; refused: \(clean.reply.text.prefix(120))" : ""))
+            let captions = await claude(link, "captions.generate", ["style": "talking-head-v1", "keywords": ["REGISTA"]])
+            step("captions_generate", sees: await seesClaude("captions.generate", captions.reply) + (captions.reply.isError ? "; refused: \(captions.reply.text.prefix(120))" : ""))
+        } else {
+            Issue.record("the recording has no microphone: \(imported.reply.text.prefix(300))")
+        }
+        let sheet = await claude(link, "frame.contactSheet")
+        step("frame_contactSheet", sees: await seesClaude("frame.contactSheet", sheet.reply))
+
+        // 7. The rules of this kind of video: its own sheet; the logo goes in the corner for the whole video.
+        let check = await claude(link, "rules.check")
+        #expect(check.reply.result?["kind"] == "screen-tutorial", "rules_check used the sheet «\(check.reply.result?["kind"]?.stringValue ?? "none")», not the screen tutorial's")
+        step("rules_check", sees: await seesClaude("rules.check", check.reply) + "; the sheet «\(check.reply.result?["kindTitle"]?.stringValue ?? "?")»")
+        let kit = await claude(link, "brandkit.apply", ["kit": "cafe-atelier"])
+        #expect(!kit.reply.isError, "brandkit_apply: \(kit.reply.text.prefix(200))")
+        step("brandkit_apply {kit: cafe-atelier}", sees: await seesClaude("brandkit.apply", kit.reply))
+        // The screen tutorial keeps «The logo only at the end» from «For every video»: the switch says the logo goes at the
+        // end because of that rule, naming the rule and never the reel (#87).
+        let simple = store.nav.level == .simple
+        if simple { try await openRow(.graphics) } else { try await tap("Grafica"); try await tap("Logo") }
+        let switchRow = { self.rig.elements().first { $0.isControl && $0.visible && $0.label.hasPrefix(loc("Logo nel video")) && ["0", "1"].contains($0.value) } }
+        #expect(await until(3) { switchRow()?.label.contains(LogoSwitch.caption(atEnd: true)) == true },
+                "«Logo nel video» does not name the rule that puts the logo at the end: \(switchRow()?.label ?? "no switch")")
+        #expect(switchRow()?.label.contains("reel") != true, "«Logo nel video» cites the reel in a screen tutorial: \(switchRow()?.label ?? "")")
+        step(simple ? "Semplice › Grafica, «Logo nel video»" : "Grafica › Logo", sees: "«\(switchRow()?.label ?? "")»")
+        // With that rule off for screen tutorials (the person's sheet, written by Claude), the logo is for the whole video.
+        let off = await claude(link, "rules.set", ["kind": "screen-tutorial", "checks": ["logo-end": false]])
+        #expect(!off.reply.isError, "rules_set: \(off.reply.text.prefix(200))")
+        step("rules_set {kind: screen-tutorial, logo-end: off}", sees: await seesClaude("rules.set", off.reply))
+        if simple { try await openRow(.graphics) }
+        #expect(await until(3) { switchRow()?.label.contains(loc("Nell'angolo della marca, per tutto il video.")) == true },
+                "«Logo nel video» does not say the corner for the whole video with the rule off: \(switchRow()?.label ?? "no switch")")
+        rig.click(try #require(switchRow(), "no «Logo nel video»: \(screen())").centre)
+        await app.settle()
+        let logo = store.project?.tracks.first { $0.role == "logo" }?.clips.first
+        let length = store.project?.duration.seconds ?? 0
+        let whole = logo.map { $0.start.seconds < 0.05 && abs($0.end.seconds - length) < 0.1 } ?? false
+        #expect(whole, "the logo is not there for the whole video: \(String(describing: logo.map { "\($0.start.seconds)–\($0.end.seconds)" }))")
+        step("«Logo nel video» with the rule off", sees: "«\(loc("Nell'angolo della marca, per tutto il video."))», the logo from 0 to the end")
+        try await tap("Esporta")
+        #expect(await until { control("Orizzontale")?.selected == true }, "Esporta does not open on 16:9: \(screen())")
+        #expect(await until(6) { shows(loc("Tutorial dello schermo")) }, "the rules card does not name the screen tutorial's sheet: \(screen())")
+        step("Clicks Esporta", sees: "Orizzontale chosen, the rules card of «Tutorial dello schermo»")
+        try await tap("Claude")
+
+        // 8. export_render 16:9, recording_check, project_save.
+        let again = await claude(link, "rules.check")
+        if again.reply.result?["pass"] != true {
+            let fixed = await claude(link, "rules.fix", ["all": true])
+            step("rules_fix {all: true}", sees: await seesClaude("rules.fix", fixed.reply))
+        }
+        let movie = scratch.appendingPathComponent("tutorial-claude.mp4")
+        let export = await claude(link, "export.render", ["path": .string(movie.path), "preset": "16:9"], timeout: 180)
+        #expect(!export.reply.isError && FileManager.default.fileExists(atPath: movie.path), "export_render: \(export.reply.text.prefix(300))")
+        if FileManager.default.fileExists(atPath: movie.path) {
+            let m = try await Journey.probe(movie)
+            let ratio: Double = Double(m.width) / Double(m.height)
+            #expect(abs(ratio - 16.0 / 9) < 0.01, "exported \(m.width)×\(m.height), not 16:9")
+        }
+        step("export_render {preset: 16:9}", sees: await seesClaude("export.render", export.reply))
+        let verify = await claude(link, "recording.check", ["path": .string(movie.path)], timeout: 180)
+        step("recording_check", sees: await seesClaude("recording.check", verify.reply) + (verify.reply.isError ? "; refused: \(verify.reply.text.prefix(160))" : ""))
+        let saved = await claude(link, "project.save")
+        #expect(!saved.reply.isError && !store.dirty, "project_save: \(saved.reply.text.prefix(200))")
+        step("project_save", sees: await seesClaude("project.save", saved.reply))
+        // The shipped sheet back (the rig's rules folder is the test process's).
+        _ = await claude(link, "rules.reset", ["kind": "screen-tutorial"])
+    }
+}
