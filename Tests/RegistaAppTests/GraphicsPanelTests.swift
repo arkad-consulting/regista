@@ -218,3 +218,27 @@ extension MouseSuites {
     }
 }
 }
+
+// #76: Grafica's sections shared one scroll position, so Logo opened scrolled as far as Effetti was, its switch above
+// the top edge. Each section opens at its top.
+extension MouseSuites {
+@Suite(.serialized) @MainActor struct GraphicsSectionScrollMouseTests {
+    @Test func aSectionOpensAtItsTop() async throws {
+        let app = try await AppRig()
+        defer { app.close() }
+        app.hostEditor(Navigation(activity: .graphics, rightTab: .inspector))
+        await app.settle()
+        // Effetti scrolled well down, as a person does to reach Titolo and Etichetta.
+        for _ in 0..<12 { _ = app.rig.scrollContent(at: CGPoint(x: 200, y: 600), by: 120); await app.idle(0.05) }
+        let switchInView = {
+            app.rig.elements().contains { $0.isControl && $0.visible && $0.label.hasPrefix("Logo nel video") && $0.clip.insetBy(dx: -1, dy: -1).contains($0.frame) }
+        }
+        #expect(!switchInView())
+        let chip = try #require(app.rig.elements().first { $0.isControl && $0.visible && $0.title == "Logo" || $0.isControl && $0.visible && $0.label == "Logo" }, "no Logo chip")
+        app.rig.click(chip.centre)
+        await app.settle()
+        #expect(app.store.nav.graphicsSection == .logo, "the chip opened \(app.store.nav.graphicsSection)")
+        #expect(switchInView(), "Logo opened without «Logo nel video» in view: \(app.rig.elements().filter { $0.label.hasPrefix("Logo nel video") }.map { "\($0.frame) in \($0.clip)" })")
+    }
+}
+}

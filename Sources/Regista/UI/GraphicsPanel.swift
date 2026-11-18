@@ -225,6 +225,8 @@ struct GraphicsPanel: View {
                         .padding(Ed.Space.m)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    // Each section opens at its top (#76: Logo kept Effetti's scroll, its switch above the edge).
+                    .id(section)
                     .continuesCue()
                     // A form opened under a row low in the list comes into view whole, its Aggiungi button included.
                     .onChange(of: state.textItem) { _, id in Self.reveal(id, proxy) }
