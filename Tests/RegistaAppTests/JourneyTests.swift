@@ -29,6 +29,8 @@ final class Journey {
     private let started = Date()
     /// Scratch folder of the journey (exports, saved projects).
     let scratch = rigTempDir("journey")
+    /// The window's language (the rig's own setting, never the owner's defaults): the Italian keys by default.
+    var language = "it"
 
     static let folder: URL = {
         let base = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"].map { URL(fileURLWithPath: $0) }
@@ -55,7 +57,7 @@ final class Journey {
 
     /// The window on `nav` (at the default size, else `size`), the keyboard going to it as in the app.
     func open(_ nav: Navigation, size: CGSize = CGSize(width: 1440, height: 900)) async {
-        app.hostEditor(nav, size: size, language: "it")
+        app.hostEditor(nav, size: size, language: language)
         app.store.bench.window = rig.window
         KeyMonitor.install(app.store.bench)
         await app.settle()
@@ -89,11 +91,16 @@ final class Journey {
     /// The visible control named `text`: its label, title or value is `text`, or its label starts with it (a row's
     /// name and detail: "Trascrivi, 10 parole"; a tooltip with its shortcut: "Avvia / Ferma registrazione (⇧⌘R)"), or
     /// one of the parts of its label ("JK, Journey Kit, tuo").
+    /// In a window in another language, `text` (an Italian key) is looked for in that language too.
     func control(_ text: String, in r: MouseRig? = nil) -> RigElement? {
         let all = (r ?? rig).elements().filter { $0.isControl && $0.visible }
-        return all.first { $0.label == text || $0.title == text || $0.value == text }
-            ?? all.first { $0.label.hasPrefix(text + ",") || $0.label.hasPrefix(text + " (") || $0.label.hasPrefix(text + "\n") }
-            ?? all.first { $0.label.components(separatedBy: ", ").contains(text) }
+        func find(_ text: String) -> RigElement? {
+            all.first { $0.label == text || $0.title == text || $0.value == text }
+                ?? all.first { $0.label.hasPrefix(text + ",") || $0.label.hasPrefix(text + " (") || $0.label.hasPrefix(text + "\n") }
+                ?? all.first { $0.label.components(separatedBy: ", ").contains(text) }
+        }
+        let shown = loc(text)
+        return find(text) ?? (shown != text ? find(shown) : nil)
     }
 
     /// Something on screen reads `text`.
@@ -920,7 +927,8 @@ extension Journey {
         // next step).
         let title = step.title()
         let all = rig.elements()
-        guard let doAll = all.first(where: { $0.isControl && $0.label.hasPrefix("Taglia, sceglie le riprese") }) else { return nil }
+        let doAllTip = String(loc("Taglia, sceglie le riprese, pulisce la voce, mette i sottotitoli e una luce più viva, in ordine").prefix(16))
+        guard let doAll = all.first(where: { $0.isControl && $0.label.hasPrefix(doAllTip) }) else { return nil }
         return all.first { $0.role == "AXButton" && $0.frame.minX >= doAll.frame.minX - 4 && $0.frame.maxX <= doAll.frame.maxX + 4
             && ($0.label == title || $0.label.components(separatedBy: ", ").contains(title)) }
     }
@@ -970,7 +978,7 @@ extension Journey {
     func inViewOrCued(_ e: RigElement?) -> Bool {
         guard let e else { return false }
         if e.visible && e.clip.insetBy(dx: -1, dy: -1).contains(e.frame) && e.frame.maxY <= Double(rig.size.height) - Double(Chrome.statusHeight) { return true }
-        return rig.elements().contains { $0.name == "Altro sotto" && $0.frame.minX <= e.centre.x && $0.frame.maxX >= e.centre.x }
+        return rig.elements().contains { $0.name == loc("Altro sotto") && $0.frame.minX <= e.centre.x && $0.frame.maxX >= e.centre.x }
     }
 
     /// A step's main control (named `name`, in view or not) is in view, or its column says it continues; then it is
@@ -984,7 +992,7 @@ extension Journey {
         var cueSeen = false
         if e == nil {
             let rail = stepRow(.cut)?.frame.maxX ?? 0
-            let cues = rig.elements().filter { $0.name == "Altro sotto" }.sorted { ($0.frame.minX > rail ? 0 : 1) < ($1.frame.minX > rail ? 0 : 1) }
+            let cues = rig.elements().filter { $0.name == loc("Altro sotto") }.sorted { ($0.frame.minX > rail ? 0 : 1) < ($1.frame.minX > rail ? 0 : 1) }
             cueSeen = !cues.isEmpty
             for cue in cues where e == nil {
                 for _ in 0..<12 where e == nil {
@@ -1226,7 +1234,7 @@ extension Journey {
 extension Journey {
     /// The Program monitor's «Vai all'inizio» (the Source monitor has the same button, left of it).
     func toStart() async throws {
-        rig.click(try #require(rig.elements().filter { $0.label == "Vai all'inizio" && $0.visible }.max { $0.frame.minX < $1.frame.minX }).centre)
+        rig.click(try #require(rig.elements().filter { $0.label == loc("Vai all'inizio") && $0.visible }.max { $0.frame.minX < $1.frame.minX }).centre)
         await app.settle()
     }
 
