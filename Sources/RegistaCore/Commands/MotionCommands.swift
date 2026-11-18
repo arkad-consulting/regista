@@ -10,7 +10,7 @@ enum MotionAdd: Command {
     static let params: [ParamSpec] = [
         .required("template", .string, "Template id (effects.catalog category templates: orbit-carousel, checklist, counter, …)."),
         .required("start", .time, "Timeline start (land it on the word)."),
-        .optional("duration", .time, "Seconds on screen (default: the template's)."),
+        .optional("duration", .time, "Seconds on screen (default: the template's). Left out, the graphic ends with the main video at the latest: shortened, or started earlier to keep 1 s (the result's timing says so)."),
         .optional("end", .time, "Timeline end instead of duration."),
         .optional("fields", .object, "Template fields (names from effects.catalog; omitted ones keep their example/default)."),
         .optional("band", .oneOf(SafeZones.bandNames), "Vertical band for templates that sit in one (top y 110–640, middle, lower). Without band and position, a template over a face-tracked picture takes the first of its places (its band, then the others; or its point, then the point mirrored) that leaves the face free."),
@@ -50,7 +50,8 @@ enum MotionAdd: Command {
             }
         }
         let defaultDuration = MediaTime(seconds: spec.duration)
-        let (start, end) = try Graphics.range(p, project, defaultDuration: defaultDuration)
+        let span = try Graphics.range(p, project, defaultDuration: defaultDuration, what: "the template")
+        let (start, end) = (span.start, span.end)
         if p.bool("sync") == true {
             guard let list = spec.syncField else { throw CommandError.invalid("\(id): \(name) has nothing to sync to the transcript") }
             let (times, missed) = syncTimes(fields[list]?.arrayValue?.compactMap(\.stringValue) ?? [], project: project, from: start, to: end)
@@ -80,9 +81,11 @@ enum MotionAdd: Command {
         project.tracks[t].clips.append(clip)
         project.tracks[t].sortClips()
         ctx.project = project
+        if let w = span.warning { warnings.append(.string(w)) }
         return ["clip": ProjectState.summary(of: clip), "trackId": .string(project.tracks[t].id), "template": .string(name),
                 "fields": .object(fields), "place": placed.place.map { .string($0) } ?? .null,
-                "faceCheck": placed.faceCheck.map { .string($0) } ?? .null, "warnings": .array(warnings)]
+                "faceCheck": placed.faceCheck.map { .string($0) } ?? .null, "warnings": .array(warnings),
+                "timing": span.note.map { .string($0) } ?? .null]
     }
 
     /// A type problem with a field value, nil when it fits.

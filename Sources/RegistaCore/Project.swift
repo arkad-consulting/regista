@@ -50,6 +50,12 @@ public struct Project: Codable, Hashable, Sendable {
         tracks.filter { $0.kind == .video || $0.kind == .overlay }.flatMap(\.clips).map(\.end).max() ?? .zero
     }
 
+    /// End of the main video (the clips of the video tracks, not the overlays), nil while it has none: graphics added
+    /// with a default length end there at the latest (#72).
+    public var videoEnd: MediaTime? {
+        tracks.filter { $0.kind == .video }.flatMap(\.clips).map(\.end).max()
+    }
+
     /// A generated (cloned) voice clip on a track that is not muted: the video must say so where it is published (EU AI Act
     /// art. 50). export.render returns `aiDisclosure` then; the Export panel shows the note (#25).
     public var hasAudibleGeneratedVoice: Bool {

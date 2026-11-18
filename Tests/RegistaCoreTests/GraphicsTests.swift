@@ -343,3 +343,53 @@ import Testing
         try e.execute("graphics.blender3d", params: ["template": "orbit-ring-3d", "start": 1, "fields": ["center": [540]]])
     }
 }
+
+// MARK: A graphic never makes the reel longer by itself (#72)
+
+@Test func aGraphicWithItsDefaultLengthEndsWithTheVideo() throws {
+    let rate = Rational(30)
+    func fit(_ start: Double, _ length: Double, _ end: Double?) -> Graphics.Span {
+        Graphics.fit(start: t(start), length: t(length), videoEnd: end.map(t), rate: rate, what: "the title")
+    }
+    // Plenty left: the default, nothing said.
+    #expect(fit(1, 2.5, 6) == Graphics.Span(start: t(1), end: t(3.5)))
+    // 1.5 s left: shortened to end with the video.
+    let short = fit(4.5, 2.5, 6)
+    #expect(short.start == t(4.5) && short.end == t(6) && short.note?.contains("shortened to end with the video") == true && short.warning == nil)
+    // 0.4 s left: one second, starting earlier so that it ends with the video.
+    let late = fit(5.6, 2.5, 6)
+    #expect(late.start == t(5) && late.end == t(6) && late.note?.contains("moved to 5.00 s") == true)
+    // Past the end of the video: the same last second.
+    #expect(fit(7, 2.5, 6).start == t(5) && fit(7, 2.5, 6).end == t(6))
+    // An edit shorter than a second: the whole edit.
+    #expect(fit(0.2, 2.5, 0.6) == Graphics.Span(start: .zero, end: t(0.6), note: fit(0.2, 2.5, 0.6).note))
+    // A default shorter than a second keeps its own length.
+    #expect(fit(5.9, 0.5, 6).start == t(5.5) && fit(5.9, 0.5, 6).end == t(6))
+    // An empty timeline (no main video): nothing changes.
+    #expect(fit(0, 2.5, nil) == Graphics.Span(start: .zero, end: t(2.5)))
+    #expect(fit(0, 2.5, 0) == Graphics.Span(start: .zero, end: t(2.5)))
+
+    // Through the commands: title.add, sticker.add, callout.add with no duration end with the 6 s edit; the reel's length
+    // does not change.
+    let e = try editingEngine()
+    try e.execute("timeline.place", params: ["assetId": "a1", "trackId": "t1", "sourceIn": 0, "sourceOut": 6])
+    let title = try e.checkUndoRedo("title.add", ["text": "SEGUICI", "start": 4.5])
+    #expect(title.value(at: "clip.start")?.doubleValue == 4.5 && title.value(at: "clip.end")?.doubleValue == 6)
+    #expect(title["timing"]?.stringValue?.contains("shortened to end with the video") == true)
+    let sticker = try e.execute("sticker.add", params: ["sticker": "fire", "start": 5.7])
+    #expect(sticker.value(at: "clip.start")?.doubleValue == 5 && sticker.value(at: "clip.end")?.doubleValue == 6)
+    let callout = try e.execute("callout.add", params: ["kind": "circle", "start": 5.5, "rect": [300, 600, 400, 200]])
+    #expect(callout.value(at: "clip.end")?.doubleValue == 6 && callout["timing"] != nil)
+    #expect(e.project!.duration == t(6))
+    // An explicit duration is kept, and the result says it runs past the video.
+    let explicit = try e.execute("title.add", params: ["text": "OLTRE", "start": 5, "duration": 2.5])
+    #expect(explicit.value(at: "clip.end")?.doubleValue == 7.5 && explicit["timing"] == nil)
+    #expect(explicit["warnings"]?.arrayValue?.contains { $0.stringValue?.contains("runs past the end of the video") == true } == true)
+    // With room left nothing is said.
+    let early = try e.execute("title.add", params: ["text": "IL REEL", "start": 0])
+    #expect(early.value(at: "clip.end")?.doubleValue == 2.5 && early["timing"] == nil)
+    // An empty timeline: the default length, as before.
+    let empty = try editingEngine()
+    let alone = try empty.execute("title.add", params: ["text": "SOLO", "start": 0])
+    #expect(alone.value(at: "clip.end")?.doubleValue == 2.5 && alone["timing"] == nil && alone["warnings"]?.arrayValue?.contains { $0.stringValue?.contains("past the end") == true } != true)
+}

@@ -416,7 +416,7 @@ enum StickerAdd: Command {
         .optional("emoji", .string, "An emoji instead."),
         .optional("symbol", .string, "An SF Symbol name instead (e.g. checkmark.seal.fill)."),
         .required("start", .time, "Timeline start."),
-        .optional("duration", .time, "Seconds on screen (default 1.4)."),
+        .optional("duration", .time, "Seconds on screen (default 1.4). Left out, the graphic ends with the main video at the latest: shortened, or started earlier to keep 1 s (the result's timing says so)."),
         .optional("end", .time, "Timeline end instead of duration."),
         .optional("size", .number, "Glyph height, px at 1080 wide (default 160)."),
         .optional("color", .string, "Symbol colour (#RRGGBB or a brand colour role)."),
@@ -435,7 +435,8 @@ enum StickerAdd: Command {
         if let v = p.number("size") { guard v > 0 else { throw CommandError.invalid("\(id): size must be > 0") }; sticker.size = v }
         if let c = p.string("color") { sticker.color = kit?.color(c) ?? c }
         if let b = p.string("badge") { sticker.badge = kit?.color(b) ?? b }
-        let (start, end) = try Graphics.range(p, project, defaultDuration: MediaTime(seconds: 1.4))
+        let span = try Graphics.range(p, project, defaultDuration: MediaTime(seconds: 1.4), what: "the sticker")
+        let (start, end) = (span.start, span.end)
         let (placement, rest) = try Graphics.place(p, size: (sticker.box, sticker.box), defaultBand: "top", fit: .native)
         let t = try Graphics.track("overlays", in: &project, start: start, end: end, preferred: p.string("trackId"))
         var clip = Clip(id: project.makeID("c"), assetID: "", sourceIn: .zero, sourceOut: end - start, start: start)
@@ -453,6 +454,7 @@ enum StickerAdd: Command {
             result["box"] = Graphics.boxJSON(box)
             result["warnings"] = .array(Graphics.zoneWarnings(box, project: project, what: "sticker"))
         }
+        Graphics.report(span, into: &result)
         return .object(result)
     }
 }
@@ -464,7 +466,7 @@ enum CalloutAdd: Command {
     static let params: [ParamSpec] = [
         .required("kind", .oneOf(["arrow", "circle", "underline", "box", "highlight"]), "Callout shape."),
         .required("start", .time, "Timeline start."),
-        .optional("duration", .time, "Seconds on screen (default 2)."),
+        .optional("duration", .time, "Seconds on screen (default 2). Left out, the graphic ends with the main video at the latest: shortened, or started earlier to keep 1 s (the result's timing says so)."),
         .optional("end", .time, "Timeline end instead of duration."),
         .optional("rect", .array(.number), "[x, y, w, h] of the thing to mark, pixels of the project frame (circle, underline, box, highlight)."),
         .optional("from", .array(.number), "arrow: tail [x, y], pixels."),
@@ -491,7 +493,8 @@ enum CalloutAdd: Command {
         var shape = ShapeLayer(kind: kind, rect: [px[0] / W, px[1] / H, px[2] / W, px[3] / H], color: color,
                                width: p.number("width") ?? 10, drawOn: max(p.number("drawOn") ?? 0.45, 0))
         if kind == .highlight { shape.width = 0 }
-        let (start, end) = try Graphics.range(p, project, defaultDuration: MediaTime(seconds: 2))
+        let span = try Graphics.range(p, project, defaultDuration: MediaTime(seconds: 2), what: "the callout")
+        let (start, end) = (span.start, span.end)
         let t = try Graphics.track("overlays", in: &project, start: start, end: end, preferred: p.string("trackId"))
         var clip = Clip(id: project.makeID("c"), assetID: "", sourceIn: .zero, sourceOut: end - start, start: start)
         clip.shape = shape
@@ -501,8 +504,10 @@ enum CalloutAdd: Command {
         ctx.project = project
         // Box in pixels (arrow: its bounds) against the caption band.
         let box = [min(px[0], px[0] + px[2]), min(px[1], px[1] + px[3]), abs(px[2]), max(abs(px[3]), 1)]
-        return ["clip": ProjectState.summary(of: clip), "trackId": .string(project.tracks[t].id), "box": Graphics.boxJSON(box),
-                "warnings": .array(Graphics.zoneWarnings(box, project: project, what: "callout"))]
+        var result: [String: JSONValue] = ["clip": ProjectState.summary(of: clip), "trackId": .string(project.tracks[t].id), "box": Graphics.boxJSON(box),
+                                           "warnings": .array(Graphics.zoneWarnings(box, project: project, what: "callout"))]
+        Graphics.report(span, into: &result)
+        return .object(result)
     }
 
     /// Rest, then a 0.25 s fade at the end.

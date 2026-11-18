@@ -292,7 +292,7 @@ Draw attention to something on screen with a hand-drawn callout that draws itsel
 |---|---|---|---|---|
 | `kind` | one of `arrow`, `circle`, `underline`, `box`, `highlight` | yes | – | Callout shape. |
 | `start` | seconds | yes | – | Timeline start. |
-| `duration` | seconds | no | 2 | Seconds on screen (default 2). |
+| `duration` | seconds | no | 2 | Seconds on screen (default 2). Left out, the graphic ends with the main video at the latest: shortened, or started earlier to keep 1 s (the result's timing says so). |
 | `end` | seconds | no | – | Timeline end instead of duration. |
 | `rect` | array of number | no | – | [x, y, w, h] of the thing to mark, pixels of the project frame (circle, underline, box, highlight). |
 | `from` | array of number | no | – | arrow: tail [x, y], pixels. |
@@ -1532,7 +1532,7 @@ Add a motion template — an animated, branded graphic drawn by the compositor: 
 |---|---|---|---|---|
 | `template` | string | yes | – | Template id (effects.catalog category templates: orbit-carousel, checklist, counter, …). |
 | `start` | seconds | yes | – | Timeline start (land it on the word). |
-| `duration` | seconds | no | the template's | Seconds on screen (default: the template's). |
+| `duration` | seconds | no | the template's | Seconds on screen (default: the template's). Left out, the graphic ends with the main video at the latest: shortened, or started earlier to keep 1 s (the result's timing says so). |
 | `end` | seconds | no | – | Timeline end instead of duration. |
 | `fields` | object | no | – | Template fields (names from effects.catalog; omitted ones keep their example/default). |
 | `band` | one of `top`, `middle`, `lower` | no | – | Vertical band for templates that sit in one (top y 110–640, middle, lower). Without band and position, a template over a face-tracked picture takes the first of its places (its band, then the others; or its point, then the point mirrored) that leaves the face free. |
@@ -1555,7 +1555,7 @@ Put a picture over the video: a still (PNG/JPG, SVG rasterized), a PNG sequence 
 |---|---|---|---|---|
 | `path` | string | yes | – | Image, SVG, folder of numbered PNGs, %04d pattern, or video. |
 | `start` | seconds | yes | – | Timeline start. |
-| `duration` | seconds | no | the media length | Seconds on screen (default: the media length; stills 3 s). |
+| `duration` | seconds | no | the media length | Seconds on screen (default: the media length; stills 3 s). Left out, the graphic ends with the main video at the latest: shortened, or started earlier to keep 1 s (the result's timing says so). |
 | `end` | seconds | no | – | Timeline end instead of duration. |
 | `sourceIn` | seconds | no | 0 | Start inside a video/sequence (default 0). |
 | `fullFrame` | boolean | no | – | Fill the whole frame (cropped to 9:16) instead of keeping the native size: inserts. |
@@ -2111,7 +2111,7 @@ Pop an emoji or an SF Symbol over the video: a library sticker (fire, sparkles, 
 | `emoji` | string | no | – | An emoji instead. |
 | `symbol` | string | no | – | An SF Symbol name instead (e.g. checkmark.seal.fill). |
 | `start` | seconds | yes | – | Timeline start. |
-| `duration` | seconds | no | 1.4 | Seconds on screen (default 1.4). |
+| `duration` | seconds | no | 1.4 | Seconds on screen (default 1.4). Left out, the graphic ends with the main video at the latest: shortened, or started earlier to keep 1 s (the result's timing says so). |
 | `end` | seconds | no | – | Timeline end instead of duration. |
 | `size` | number | no | 160 | Glyph height, px at 1080 wide (default 160). |
 | `color` | string | no | – | Symbol colour (#RRGGBB or a brand colour role). |
@@ -2378,7 +2378,7 @@ Add a text layer drawn with Core Text by the compositor: a hook title, a kicker 
 |---|---|---|---|---|
 | `text` | string | yes | – | Text; \n starts a new line. |
 | `start` | seconds | yes | – | Timeline start. |
-| `duration` | seconds | no | 2.5 | Seconds on screen (default 2.5). |
+| `duration` | seconds | no | 2.5 | Seconds on screen (default 2.5). Left out, the graphic ends with the main video at the latest: shortened, or started earlier to keep 1 s (the result's timing says so). |
 | `end` | seconds | no | – | Timeline end instead of duration. |
 | `preset` | string | no | – | Title preset of the applied brand kit (e.g. hook, kicker, card, question). |
 | `font` | string | no | – | Font role of the kit (display, text, mono), a font name, or a .ttf/.otf/.woff2 file. |

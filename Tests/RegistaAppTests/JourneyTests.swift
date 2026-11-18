@@ -1206,6 +1206,8 @@ extension Journey {
     /// Clicks `clipID` on the Program picture at `time` and types `scale` (per cent) in the Inspector's Scala: it is
     /// selected, the Inspector shows its size, and the new size is drawn. Returns the line for the audit table.
     func pickAndScale(_ clipID: String, at time: Double, to scale: Int, _ what: String, sourceLocation: SourceLocation = #_sourceLocation) async throws -> String {
+        // A graphic just added plays once around itself (GraphicsActions.playAround): the person waits for it to stop.
+        _ = await until(4) { !store.preview.isPlaying }
         store.preview.seek(time)
         await app.idle(0.4)
         guard let e = drawn.first(where: { $0.clipID == clipID }), let p = onPicture(e.center[0], e.center[1]) else {
@@ -1261,11 +1263,10 @@ extension Journey {
         await app.idle(0.3)
         let cta = try await addTitle("Etichetta", "SEGUICI")
         let after = try #require(store.project?.duration.seconds)
-        // #72 (open, a decision to take): a title keeps its 2.5 s past the end of the video and the reel gets longer.
-        withKnownIssue("#72: a title added near the end runs past the video") {
-            #expect(abs(after - duration) < 0.05, "the call to action made the reel \(after) s long (it was \(duration) s): \(cta.start.seconds)–\(cta.end.seconds)")
-            #expect(cta.end.seconds <= duration + 0.05, "the call to action runs past the end (\(cta.end.seconds) s of \(duration) s)")
-        }
+        // A title added without a length of its own ends with the video: the reel keeps its length (#72).
+        #expect(abs(after - duration) < 0.05, "the call to action made the reel \(after) s long (it was \(duration) s): \(cta.start.seconds)–\(cta.end.seconds)")
+        #expect(cta.end.seconds <= duration + 0.05, "the call to action runs past the end (\(cta.end.seconds) s of \(duration) s)")
+        #expect(abs(cta.start.seconds - (duration - 1.5)) < 0.05, "the call to action does not start at the playhead (\(cta.start.seconds) s)")
         let ctaLine = try await pickAndScale(cta.id, at: (cta.start.seconds + min(cta.end.seconds, duration)) / 2, to: 120, "the call to action")
         // The Inspector names its track as the lane does (#75: «Titles 2»).
         #expect(shows(" · Titoli") && !shows("Titles"), "the Inspector does not name the call to action's track «Titoli»: \(screen())")

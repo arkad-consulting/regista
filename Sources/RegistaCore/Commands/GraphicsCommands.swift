@@ -185,17 +185,55 @@ enum Graphics {
         return AnimationPreset.combined(in: a, out: b, rest: rest, duration: duration, inDuration: p.number("inDuration"), outDuration: p.number("outDuration"))
     }
 
-    /// Clip range from start + duration/end (frame-snapped).
-    static func range(_ p: CommandParams, _ project: Project, defaultDuration: MediaTime?) throws -> (MediaTime, MediaTime) {
+    /// A graphic's time on the timeline, and what the command's result says about it.
+    struct Span: Equatable {
+        var start: MediaTime
+        var end: MediaTime
+        /// The default length was shortened, or the graphic moved earlier, to end with the video (the result's `timing`).
+        var note: String?
+        /// An explicit length runs past the end of the video (a line of the result's `warnings`).
+        var warning: String?
+    }
+
+    /// The shortest graphic placed at the very end: it starts earlier rather than flash for a few frames.
+    static let shortestAtEnd = MediaTime(seconds: 1)
+
+    /// Where a graphic added at `start` with its default `length` goes (#72): it never makes the reel longer by itself.
+    /// It ends at the latest with the main video (`videoEnd`); with less than a second left it keeps one second (its
+    /// default when shorter) and starts earlier, never before 0. Without a main video nothing changes.
+    static func fit(start: MediaTime, length: MediaTime, videoEnd: MediaTime?, rate: Rational, what: String) -> Span {
+        let end = (start + length).snapped(to: rate)
+        guard let videoEnd, videoEnd > .zero, end > videoEnd else { return Span(start: start, end: end) }
+        let shortest = min(shortestAtEnd, length)
+        if videoEnd - start >= shortest {
+            return Span(start: start, end: videoEnd, note: "\(what) shortened to end with the video (\(String(format: "%.2f", (videoEnd - start).seconds)) s instead of \(String(format: "%.2f", length.seconds)) s)")
+        }
+        let moved = max(.zero, videoEnd - shortest).snapped(to: rate)
+        return Span(start: moved, end: videoEnd,
+                    note: "\(what) moved to \(String(format: "%.2f", moved.seconds)) s to end with the video (\(String(format: "%.2f", (videoEnd - moved).seconds)) s on screen)")
+    }
+
+    /// Clip range from start + duration/end (frame-snapped). Without either, the default length fitted to the video
+    /// (`fit`); an explicit one is kept, with a warning when it runs past the end of the video.
+    static func range(_ p: CommandParams, _ project: Project, defaultDuration: MediaTime?, what: String) throws -> Span {
         let rate = project.settings.frameRate
         let start = p.requiredTime("start").snapped(to: rate)
-        var end: MediaTime
-        if let e = p.time("end") { end = e.snapped(to: rate) }
-        else if let d = p.time("duration") { end = (start + d).snapped(to: rate) }
-        else if let d = defaultDuration { end = (start + d).snapped(to: rate) }
+        var span: Span
+        if let e = p.time("end") { span = Span(start: start, end: e.snapped(to: rate)) }
+        else if let d = p.time("duration") { span = Span(start: start, end: (start + d).snapped(to: rate)) }
+        else if let d = defaultDuration { span = fit(start: start, length: d, videoEnd: project.videoEnd, rate: rate, what: what) }
         else { throw CommandError.invalid("\(p.commandID): pass duration or end") }
-        guard end > start else { throw CommandError.invalid("\(p.commandID): end must be after start") }
-        return (start, end)
+        guard span.end > span.start else { throw CommandError.invalid("\(p.commandID): end must be after start") }
+        if span.note == nil, let videoEnd = project.videoEnd, videoEnd > .zero, span.end > videoEnd {
+            span.warning = "\(what) runs past the end of the video (\(String(format: "%.2f", span.end.seconds)) s, the video ends at \(String(format: "%.2f", videoEnd.seconds)) s): the reel is now longer (left there)"
+        }
+        return span
+    }
+
+    /// The result's `timing` and extra `warnings` for a span.
+    static func report(_ span: Span, into result: inout [String: JSONValue]) {
+        if let n = span.note { result["timing"] = .string(n) }
+        if let w = span.warning { result["warnings"] = .array((result["warnings"]?.arrayValue ?? []) + [.string(w)]) }
     }
 
     /// Layout warnings for a box at rest (output pixels of the project size).
@@ -280,7 +318,7 @@ enum OverlayAdd: Command {
     static let params: [ParamSpec] = [
         .required("path", .string, "Image, SVG, folder of numbered PNGs, %04d pattern, or video."),
         .required("start", .time, "Timeline start."),
-        .optional("duration", .time, "Seconds on screen (default: the media length; stills 3 s)."),
+        .optional("duration", .time, "Seconds on screen (default: the media length; stills 3 s). Left out, the graphic ends with the main video at the latest: shortened, or started earlier to keep 1 s (the result's timing says so)."),
         .optional("end", .time, "Timeline end instead of duration."),
         .optional("sourceIn", .time, "Start inside a video/sequence (default 0)."),
         .optional("fullFrame", .boolean, "Fill the whole frame (cropped to 9:16) instead of keeping the native size: inserts."),
@@ -301,7 +339,8 @@ enum OverlayAdd: Command {
         let sourceIn = (p.time("sourceIn") ?? .zero)
         let available = still ? MediaTime(seconds: 3) : asset.duration - sourceIn
         guard available > .zero else { throw CommandError.invalid("\(id): sourceIn is past the end of \(asset.name)") }
-        let (start, end) = try Graphics.range(p, project, defaultDuration: available)
+        let span = try Graphics.range(p, project, defaultDuration: available, what: "the overlay")
+        let (start, end) = (span.start, span.end)
         let length = end - start
         guard still || sourceIn + length <= asset.duration + MediaTime.frameDuration(at: project.settings.frameRate) else {
             throw CommandError.invalid("\(id): \(asset.name) has \(asset.duration.displaySeconds)s; \(length.displaySeconds)s from \(sourceIn.displaySeconds)s is too long")
@@ -328,6 +367,7 @@ enum OverlayAdd: Command {
         } else if clip.behindSubject == true {
             result["warnings"] = .array(Matte.warnings(clip, project))
         }
+        Graphics.report(span, into: &result)
         return .object(result)
     }
 }
@@ -378,7 +418,7 @@ enum TitleAdd: Command {
     static let params: [ParamSpec] = [
         .required("text", .string, "Text; \\n starts a new line."),
         .required("start", .time, "Timeline start."),
-        .optional("duration", .time, "Seconds on screen (default 2.5)."),
+        .optional("duration", .time, "Seconds on screen (default 2.5). Left out, the graphic ends with the main video at the latest: shortened, or started earlier to keep 1 s (the result's timing says so)."),
         .optional("end", .time, "Timeline end instead of duration."),
         .optional("preset", .string, "Title preset of the applied brand kit (e.g. hook, kicker, card, question)."),
         .optional("font", .string, "Font role of the kit (display, text, mono), a font name, or a .ttf/.otf/.woff2 file."),
@@ -451,7 +491,8 @@ enum TitleAdd: Command {
                            "padding", "radius", "strokeColor", "strokeWidth", "shadow"]
         if styleParams.contains(where: p.has) { presetName = nil }
 
-        let (start, end) = try Graphics.range(p, project, defaultDuration: MediaTime(seconds: 2.5))
+        let span = try Graphics.range(p, project, defaultDuration: MediaTime(seconds: 2.5), what: "the title")
+        let (start, end) = (span.start, span.end)
         let k = Double(project.settings.width) / SafeZones.referenceWidth
         let size = (try? (ctx.services.renderer ?? EstimateRenderer()).titleBox(title, outputWidth: project.settings.width)).map { ($0.width / k, $0.height / k) } ?? (600, 120)
         let (placement, rest) = try Graphics.place(p, size: size, defaultBand: "top", fit: .native)
@@ -475,6 +516,7 @@ enum TitleAdd: Command {
             result["box"] = Graphics.boxJSON(box)
             result["warnings"] = .array(Graphics.zoneWarnings(box, project: project, what: "title") + Matte.warnings(clip, project))
         }
+        Graphics.report(span, into: &result)
         return .object(result)
     }
 }

@@ -685,7 +685,9 @@ struct TitleForm: View {
     @ObservedObject private var state = GraphicsState.shared
     let item: EffectsCatalog.Item
     @State private var text = ""
-    @State private var seconds = 2.5
+    @State private var seconds = TitleForm.defaultSeconds
+    /// title.add's default length.
+    static let defaultSeconds = 2.5
 
     /// The words a new title starts with (a lookup key).
     static func placeholder(_ item: EffectsCatalog.Item) -> String { item.id == "text-kicker" ? "Novità" : "Il tuo titolo" }
@@ -712,7 +714,11 @@ struct TitleForm: View {
     private func add() {
         let words = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !words.isEmpty else { return }
-        GraphicsActions.apply(item.id, store: store, at: playhead.time, overrides: ["text": .string(words), "duration": .number(seconds)])
+        // The slider's own 2.5 s is title.add's default, fitted to what is left of the video (#72); a length the person
+        // chose is theirs and kept.
+        var overrides: [String: JSONValue] = ["text": .string(words)]
+        if seconds != Self.defaultSeconds { overrides["duration"] = .number(seconds) }
+        GraphicsActions.apply(item.id, store: store, at: playhead.time, overrides: overrides)
         state.textItem = nil
     }
 }
