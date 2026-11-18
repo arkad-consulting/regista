@@ -70,7 +70,29 @@ struct FixtureTranscriber: RegistaCore.Transcriber {
     var model = "test"
     func unavailableReason() -> String? { nil }
     func transcribe(_ speech16k: URL, language: String) throws -> RegistaCore.Transcript {
-        RegistaCore.Transcript(engine: id, model: model, language: "it", words: fixtureWords())
+        if let heard = RigHearing.words { return RegistaCore.Transcript(engine: id, model: model, language: language, words: heard) }
+        return RegistaCore.Transcript(engine: id, model: model, language: "it", words: fixtureWords())
+    }
+}
+
+/// What the rig's transcription hears in the next takes instead of the fixture's two lines (a guided reading of the
+/// voice: the consent sentence, then the text), while a test sets it; nil = the fixture's words.
+enum RigHearing {
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var _words: [RegistaCore.Word]?
+    static var words: [RegistaCore.Word]? {
+        get { lock.withLock { _words } }
+        set { lock.withLock { _words = newValue } }
+    }
+
+    /// `sentences` read one after the other from 1 s: 0.35 s a word, 0.8 s between sentences.
+    static func reading(_ sentences: [String]) -> [RegistaCore.Word] {
+        var t = 1.0, out: [RegistaCore.Word] = []
+        for s in sentences {
+            for w in s.split(separator: " ") { out.append(RegistaCore.Word(text: String(w), start: MediaTime(seconds: t), end: MediaTime(seconds: t + 0.3))); t += 0.35 }
+            t += 0.8
+        }
+        return out
     }
 }
 

@@ -943,8 +943,17 @@ extension AVPlayer {
 extension AVAudioPlayer {
     @objc fileprivate func rig_play() -> Bool {
         volume = 0
+        RigPlayers.asked(url)
         return rig_play()
     }
+}
+
+/// The files the code asked an AVAudioPlayer to play (muted: nothing reaches the speakers), in order.
+enum RigPlayers {
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var _played: [String] = []
+    static var played: [String] { lock.withLock { _played } }
+    static func asked(_ url: URL?) { lock.withLock { _played.append(url?.lastPathComponent ?? "?") } }
 }
 
 extension NSWorkspace {
