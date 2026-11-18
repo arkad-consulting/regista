@@ -37,7 +37,8 @@ struct LaneRow: Identifiable {
         }
         for (i, t) in overlays.enumerated().reversed() {
             let byRole = t.kind == .overlay ? roleTitle(t) : nil
-            rows.append(LaneRow(id: t.id, label: "V\(max(videos.count, 1) + 1 + i)", title: byRole ?? (i == 0 ? "Grafica / IA" : t.name),
+            // A default name («O3») is not a name a person reads (#92): every graphics lane without one of its own is Grafica.
+            rows.append(LaneRow(id: t.id, label: "V\(max(videos.count, 1) + 1 + i)", title: byRole ?? (i > 0 && renamed(t) ? t.name : "Grafica / IA"),
                                 role: .graphics, kind: .overlay, track: t, height: 34))
         }
         if videos.isEmpty {
@@ -70,7 +71,7 @@ struct LaneRow: Identifiable {
     /// A main track the user (or a command) gave its own name: the lane shows it instead of "Riprese" / "Voce". A lane's
     /// title is a lookup key (the default names) or the track's own name, which no key matches: TrackHeader draws loc(title).
     static func renamed(_ t: Track) -> Bool {
-        t.name.range(of: #"^[VA]\d+$"#, options: .regularExpression) == nil
+        t.name.range(of: #"^[VAOC]\d+$"#, options: .regularExpression) == nil
     }
 
     /// Spare height goes to the footage and voice lanes (bigger thumbnails and waveforms), up to a limit.

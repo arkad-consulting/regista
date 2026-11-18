@@ -106,12 +106,11 @@ struct AudioMixTab: View {
         }
     }
 
-    private func trackName(_ t: Track) -> String {
-        switch t.role {
-        case "music": loc("Musica")
-        case "sfx": loc("track.sfx")
-        default: loc(t.name)   // a default name ("Voce") in the user's language; a name of the user's own stays
-        }
+    /// The track as its timeline lane names it (#92: never «A1»), in the user's language; a name of the user's own stays.
+    private func trackName(_ t: Track) -> String { Self.trackName(t, in: store.project) }
+
+    static func trackName(_ t: Track, in project: Project?) -> String {
+        loc(LaneRow.rows(project).first { $0.track?.id == t.id }?.title ?? t.name)
     }
 }
 

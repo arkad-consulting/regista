@@ -166,3 +166,23 @@ private func voiceProject(_ store: EditorStore, _ dir: URL, voice: URL) async th
     #expect(effect.volume == 0)
     effect.stop()
 }
+
+/// A track's default name is never what the window reads (#92): the voice track is «Voce» on its lane and in the Audio
+/// panel's list, every graphics lane without a name of its own is «Grafica / IA», a renamed track keeps its name.
+@MainActor
+@Test func defaultTrackNamesReadAsTheirLanes() throws {
+    let e = Engine(services: .live())
+    _ = try e.execute("project.new", params: ["name": "piste", "directory": .string(tempDir().path)])
+    for kind in ["video", "audio", "overlay", "overlay", "overlay"] { _ = try e.execute("track.add", params: ["kind": .string(kind)]) }
+    var p = try #require(e.project)
+    let overlays = p.tracks.filter { $0.kind == .overlay }
+    let renamed = try #require(overlays.last?.id)
+    if let i = p.tracks.firstIndex(where: { $0.id == renamed }) { p.tracks[i].name = "Cartelli" }
+    let rows = LaneRow.rows(p)
+    let voice = try #require(p.tracks.first { $0.kind == .audio })
+    #expect(AudioMixTab.trackName(voice, in: p) == loc("Voce"), "the Audio panel names the voice track «\(AudioMixTab.trackName(voice, in: p))»")
+    let titles = overlays.map { o in rows.first { $0.track?.id == o.id }?.title ?? "?" }
+    #expect(titles.dropLast() .allSatisfy { $0 == "Grafica / IA" }, "graphics lanes read \(titles)")
+    #expect(titles.last == "Cartelli", "a renamed graphics lane reads «\(titles.last ?? "?")»")
+    #expect(!rows.contains { $0.title.range(of: #"^[VAOC]\d+$"#, options: .regularExpression) != nil }, "a lane reads a default name: \(rows.map(\.title))")
+}
