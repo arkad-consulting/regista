@@ -97,7 +97,8 @@ struct ActivityLog: View {
             }
             if !compact {
                 HStack {
-                    RToggle(title: loc("Solo Claude"), isOn: $agentOnly).frame(width: 150)
+                    // As wide as its label in each language (#81: a fixed 150 pt cut «Claude seulement»).
+                    RToggle(title: loc("Solo Claude"), isOn: $agentOnly).fixedSize()
                     Spacer()
                 }
                 .padding(.horizontal, 10)
