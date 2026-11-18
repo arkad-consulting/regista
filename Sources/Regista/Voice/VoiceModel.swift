@@ -234,7 +234,7 @@ final class VoiceModel: ObservableObject {
         jobs.start(kind: "voice", title: loc("Ascolto della voce"), onCancel: { [weak store] in store?.cancelAside() }) { [weak self] h in
             h.update(progress: 0, detail: loc("Carico il modello della voce…"))
             let c = VoiceCalls.preview(say, language: lang, tone: tone)
-            let r = try await self?.timed(h, from: 0, to: 1, seconds: estimate) { try await store.aside(c.id, c.params) }
+            let r = try await self?.timed(h, from: 0, to: 1, seconds: estimate) { try await Self.inWords { try await store.aside(c.id, c.params) } }
             let files = (r?["paragraphs"]?.arrayValue ?? []).compactMap { $0["file"]?.stringValue }.map { URL(fileURLWithPath: $0) }
             h.update(progress: 1, detail: loc("Pronta: la ascolti ora"))
             self?.play(files)
@@ -255,13 +255,13 @@ final class VoiceModel: ObservableObject {
                 let c = VoiceCalls.preview(text, language: lang, tone: tone, paragraph: i)
                 let estimate = VoiceScript.estimatedRenderSeconds(speech: VoiceScript.estimatedSeconds(p), paragraphs: 1)
                 _ = try await self.timed(h, from: Double(i) / Double(n + 1), to: Double(i + 1) / Double(n + 1), seconds: estimate) {
-                    try await store.aside(c.id, c.params)
+                    try await Self.inWords { try await store.aside(c.id, c.params) }
                 }
             }
             try Task.checkCancellation()
             h.update(progress: Double(n) / Double(n + 1), detail: loc("Metto le clip sulla pista Voce e calcolo i tempi delle parole…"))
             let say = VoiceCalls.say(text, language: lang, tone: tone, placement: placement, playhead: store.preview.time)
-            let r = try await store.perform(say.id, say.params)
+            let r = try await Self.inWords { try await store.perform(say.id, say.params) }
             let ids = (r["clips"]?.arrayValue ?? []).compactMap { $0["clipId"]?.stringValue }
             let trackId = r["trackId"]?.stringValue ?? ""
             let end = r["end"]?.doubleValue ?? 0, start = r["clips"]?.arrayValue?.first?["start"]?.doubleValue ?? 0
@@ -282,6 +282,13 @@ final class VoiceModel: ObservableObject {
                 placed?.captioned = true
             } catch { store.errorMessage = VoiceErrors.readable(error) }
         }
+    }
+
+    /// A refused command as the panel's sentence (#94): the job shows it, never the engine's text written for Claude.
+    private static func inWords<T>(_ work: () async throws -> T) async throws -> T {
+        do { return try await work() }
+        catch is CancellationError { throw CancellationError() }
+        catch { throw StepError(message: VoiceErrors.readable(error)) }
     }
 
     /// Progress that moves with time while one long call runs (the model gives no progress of its own).

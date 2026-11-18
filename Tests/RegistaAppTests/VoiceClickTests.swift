@@ -146,6 +146,29 @@ extension MouseSuites {
         #expect(v.store.showVoiceSetup && v.model.windowLanguage == "it", "+ Tono opened \(v.store.showVoiceSetup) on \(v.model.windowLanguage)")
     }
 
+    /// «Metti in timeline» refused (the playhead on a voice clip with «Al cursore»): the job says why in the panel's words,
+    /// never the engine's text (#94), and the edit is unchanged.
+    @Test func aRefusedPlacementSaysWhyInWords() async throws {
+        let v = try await VoiceRig()
+        defer { v.close() }
+        v.model.text = "Ciao a tutti."
+        v.model.placement = .afterVoice
+        v.model.place()
+        #expect(await v.until { v.store.jobs.latest("voice")?.isRunning == false && v.model.placed != nil }, "the first placement did not end")
+        await v.app.idle(0.3)
+        let first = try #require(v.store.project?.tracks.first { $0.id == v.model.placed?.trackId }?.clips.first)
+        let clips = v.app.clips.count
+        v.model.placement = .playhead
+        v.store.preview.seek((first.start.seconds + first.end.seconds) / 2)
+        v.model.place()
+        _ = await v.until { v.store.jobs.latest("voice")?.isRunning == false }
+        await v.app.idle(0.3)
+        let state = (v.store.jobs.latest("voice").map { "\($0.state)" } ?? "").replacingOccurrences(of: "\\'", with: "'")
+        #expect(state.contains(loc("La pista Voce è già occupata al cursore: scegli «Dopo l'ultima voce» o sposta il cursore.")), "the job reads \(state)")
+        #expect(!state.contains("occupied"), "the job shows the engine's text: \(state)")
+        #expect(v.app.clips.count == clips, "the refused placement changed the edit")
+    }
+
     /// The window on the voice: «Registra questo tono» on a tone not recorded yet, Registra, Ferma: the take (the capture
     /// stand-in's synthetic file) is added once (voice.enroll.add). Then «Allena la voce» starts the training once
     /// (voice.enroll.train; the stub trainer writes a checkpoint of placeholder files).
