@@ -185,9 +185,11 @@ private func same(_ a: URL?, _ b: URL) -> Bool { a?.resolvingSymlinksInPath().st
 
 extension MouseSuites {
 @Suite(.serialized) @MainActor struct RecordDestinationMouseTests {
-    private func hostRecord(_ app: AppRig) {
+    private func hostRecord(_ app: AppRig, size: CGSize = CGSize(width: 1440, height: 900), language: String? = nil) {
         let recorder = app.recorder
-        app.hostEditor(Navigation(activity: .record, rightTab: .inspector)) { AnyView($0.environment(\.recordDemo, RecordDemo(sources: recorder.sources))) }
+        app.hostEditor(Navigation(activity: .record, rightTab: .inspector), size: size, language: language) {
+            AnyView($0.environment(\.recordDemo, RecordDemo(sources: recorder.sources)))
+        }
     }
 
     /// On a tab with an edited project: "Nuovo progetto" is chosen; a click on "Questo progetto" chooses it, once, and
@@ -260,6 +262,44 @@ extension MouseSuites {
         #expect(app.rig.click("Chiudi l'avviso"))
         await app.settle()
         #expect(bench.notice == nil && app.rig.elements(containing: "Registrazione salvata in").isEmpty, "× did not close the notice")
+    }
+
+    /// The notice in a narrow main area (the minimum window, both side panels, French: the long language): the line is
+    /// drawn whole (on two lines if it must), «Afficher dans le Finder» gives way to its icon, which shows the file; × still closes it (#80).
+    @Test func theNoticeIsReadInANarrowMainArea() async throws {
+        let app = try await AppRig()
+        defer { app.close() }
+        hostRecord(app, size: RigWindowSize.minimum.size, language: "fr")
+        await app.settle()
+        let bench = app.store.bench
+        bench.recordingStarted()
+        bench.recordingStopped()
+        let file = try cameraTake()
+        let tab = bench.recordingFinished(file, session: false)
+        try await waitFor { bench.notice != nil }
+        await app.settle()
+        await app.idle(0.3)
+        let name = try #require(tab.project?.name)
+        let text = loc("Registrazione salvata in «%@»", name)
+        let line = try #require(app.rig.elements().first { $0.visible && $0.role == "AXStaticText" && $0.value == text }, "no notice on screen")
+        let natural = (text as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: Ed.TypeSize.body, weight: .medium)]).width
+        // Whole: on one line, or on as many lines as its words need in the room it has.
+        let lineHeight = NSFont.systemFont(ofSize: Ed.TypeSize.body, weight: .medium).boundingRectForFont.height
+        let lines = max(1, (line.frame.height / (lineHeight * 0.95)).rounded(.down))
+        #expect(line.frame.width * lines >= natural * 1.05 || line.frame.width >= natural - 1,
+                "the notice is cut: \(line.frame.width)×\(line.frame.height) pt for \(natural) pt on one line")
+        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] { try app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("recording-notice-narrow-fr.png")) }
+        let events = RigGuard.events.count
+        let finder = loc("Mostra il file della registrazione nel Finder")
+        let button = try #require(app.rig.controls().first { $0.label == finder }, "no Finder button: \(app.rig.controls().map(\.description))")
+        #expect(button.frame.width < 40, "the Finder button did not give way to its icon: \(button.frame)")
+        app.rig.click(button.centre)
+        await app.settle()
+        #expect(RigGuard.events.dropFirst(events).contains { $0.kind == .finder && $0.detail == file.lastPathComponent },
+                "the icon did not show the take: \(RigGuard.events.dropFirst(events))")
+        #expect(app.rig.click(loc("Chiudi l'avviso")))
+        await app.settle()
+        #expect(bench.notice == nil, "× did not close the notice")
     }
 }
 }

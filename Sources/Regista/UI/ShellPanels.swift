@@ -163,13 +163,27 @@ struct NoticeBar: View {
         if let n = bench.notice {
             HStack(spacing: Ed.Space.s) {
                 Image(systemName: "checkmark.circle.fill").font(Ed.icon(Ed.TypeSize.body, .semibold)).foregroundStyle(Ed.ok)
-                Text(verbatim: n.text).font(Ed.ui(Ed.TypeSize.body, .medium)).foregroundStyle(Ed.text)
-                    .lineLimit(1).truncationMode(.middle)
-                Spacer(minLength: Ed.Space.s)
-                if let file = n.file {
-                    EdButton(title: "Mostra nel Finder", symbol: "folder") { NSWorkspace.shared.activateFileViewerSelecting([file]) }
-                        .tip("Mostra il file della registrazione nel Finder")
-                        .fixedSize()
+                // The line and the titled button side by side when both fit; else the button gives way to its icon, so the
+                // line is read, on more lines when it must (#80: in a narrow main area it was squeezed to «Enreg....43 »»).
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Ed.Space.s) {
+                        line(n.text).fixedSize()
+                        Spacer(minLength: Ed.Space.s)
+                        if let file = n.file {
+                            EdButton(title: "Mostra nel Finder", symbol: "folder") { NSWorkspace.shared.activateFileViewerSelecting([file]) }
+                                .tip("Mostra il file della registrazione nel Finder")
+                                .fixedSize()
+                        }
+                    }
+                    HStack(spacing: Ed.Space.s) {
+                        line(n.text, lines: 3).fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: Ed.Space.s)
+                        if let file = n.file {
+                            IconButton(symbol: "folder", help: "Mostra il file della registrazione nel Finder") {
+                                NSWorkspace.shared.activateFileViewerSelecting([file])
+                            }
+                        }
+                    }
                 }
                 Button { bench.notice = nil } label: {
                     Image(systemName: "xmark").font(Ed.icon(Ed.TypeSize.micro, .bold)).foregroundStyle(Ed.text3)
@@ -178,11 +192,15 @@ struct NoticeBar: View {
                 .buttonStyle(.plain)
                 .tip("Chiudi l'avviso")
             }
-            .padding(.leading, Ed.Space.m).padding(.trailing, Ed.Space.s)
-            .frame(height: 36)
+            .padding(.leading, Ed.Space.m).padding(.trailing, Ed.Space.s).padding(.vertical, Ed.Space.xs)
+            .frame(minHeight: 36)
             .background(Ed.toolbar)
             .overlay(alignment: .bottom) { Ed.rule2.frame(height: 1) }
         }
+    }
+
+    private func line(_ text: String, lines: Int = 1) -> some View {
+        Text(verbatim: text).font(Ed.ui(Ed.TypeSize.body, .medium)).foregroundStyle(Ed.text).lineLimit(lines).truncationMode(.middle)
     }
 }
 
