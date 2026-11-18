@@ -145,7 +145,6 @@
 "Nascondi questo consiglio" = "Ocultar esta dica";
 "Naturale" = "Natural";
 "Nell'angolo della marca, per tutto il video." = "No canto da marca, durante o vídeo inteiro.";
-"Alla fine del video, come vuole la regola del reel." = "No fim do vídeo, como pede a regra do reel.";
 "Ogni frase è stata detta una volta sola: non c'è niente da scegliere." = "Cada frase foi dita uma vez só: não há nada para escolher.";
 "Ogni lingua ha la sua voce. Comincia da quella dei tuoi video, le altre si aggiungono dopo." = "Cada idioma tem sua voz. Comece pelo idioma dos seus vídeos; os outros você adiciona depois.";
 "Ogni passo è a posto" = "Todos os passos estão prontos";
@@ -2381,3 +2380,4 @@
 "Generazione avviata" = "Geração iniciada";
 "%@ effetti sonori" = "%@ efeitos sonoros";
 "%@ riprese" = "%@ tomadas";
+"Alla fine del video, come vuole la regola «%@»." = "No fim do vídeo, como pede a regra “%@”.";

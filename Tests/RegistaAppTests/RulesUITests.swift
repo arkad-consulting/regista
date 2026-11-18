@@ -346,7 +346,7 @@ extension MouseSuites {
         app.rig.elements().first { $0.isControl && $0.visible && $0.label.hasPrefix("Logo nel video") && ["0", "1"].contains($0.value) }
     }
     private func logos(_ app: AppRig) -> [Clip] { app.store.project?.tracks.filter { $0.role == "logo" }.flatMap(\.clips) ?? [] }
-    private let atEnd = "Alla fine del video, come vuole la regola del reel."
+    private var atEnd: String { LogoSwitch.caption(atEnd: true) }
     private let corner = "Nell'angolo della marca, per tutto il video."
 
     /// Clicks the switch: one command, the switch still there and flipped.

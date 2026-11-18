@@ -484,8 +484,9 @@ private struct StylesSection: View {
 enum LogoSwitch {
     /// With the project's rule «The logo only at the end» on, the closing seconds of the video; else the brand's corner
     /// for the whole video.
+    /// The rule is named, never the kind of video it comes from (#87: «la regola del reel» in a screen tutorial).
     static func caption(atEnd: Bool) -> String {
-        atEnd ? "Alla fine del video, come vuole la regola del reel." : "Nell'angolo della marca, per tutto il video."
+        atEnd ? loc("Alla fine del video, come vuole la regola «%@».", loc("The logo only at the end")) : "Nell'angolo della marca, per tutto il video."
     }
 
     @MainActor

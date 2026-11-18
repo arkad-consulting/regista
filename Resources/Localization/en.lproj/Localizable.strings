@@ -145,7 +145,6 @@
 "Nascondi questo consiglio" = "Hide this tip";
 "Naturale" = "Natural";
 "Nell'angolo della marca, per tutto il video." = "In the brand's corner, for the whole video.";
-"Alla fine del video, come vuole la regola del reel." = "At the end of the video, as the reel's rule wants.";
 "Ogni frase è stata detta una volta sola: non c'è niente da scegliere." = "Every sentence was said only once: there is nothing to choose.";
 "Ogni lingua ha la sua voce. Comincia da quella dei tuoi video, le altre si aggiungono dopo." = "Each language has its own voice. Start with the language of your videos; add the others later.";
 "Ogni passo è a posto" = "Every step is in place";
@@ -2381,3 +2380,4 @@
 "Generazione avviata" = "Generation started";
 "%@ effetti sonori" = "%@ sound effects";
 "%@ riprese" = "%@ takes";
+"Alla fine del video, come vuole la regola «%@»." = "At the end of the video, as the rule “%@” wants.";

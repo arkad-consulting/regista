@@ -1334,9 +1334,9 @@ extension Journey {
         let videoEnd = store.project?.videoEnd?.seconds ?? 0
         #expect(abs(logo.end.seconds - videoEnd) < 0.05 && abs(logo.start.seconds - max(0, videoEnd - 2)) < 0.05,
                 "the logo is \(logo.start.seconds)–\(logo.end.seconds) s, not the closing 2 s of a \(videoEnd) s video")
-        #expect(shows("Alla fine del video, come vuole la regola del reel."), "the switch's caption does not say the logo goes at the end: \(screen())")
+        #expect(shows(LogoSwitch.caption(atEnd: true)), "the switch's caption does not say the logo goes at the end: \(screen())")
         let logoLine = try await pickAndScale(logo.id, at: min(logo.end.seconds - 0.6, max(logo.start.seconds + 1, duration / 2)), to: 60, "the logo")
-        step("Grafica › Logo › Logo nel video", sees: "«Alla fine del video, come vuole la regola del reel.»; the kit's logo in its corner \(String(format: "%.1f–%.1f", logo.start.seconds, logo.end.seconds)) s; \(logoLine)")
+        step("Grafica › Logo › Logo nel video", sees: "«\(LogoSwitch.caption(atEnd: true))»; the kit's logo in its corner \(String(format: "%.1f–%.1f", logo.start.seconds, logo.end.seconds)) s; \(logoLine)")
 
         // Audio › a music, under the voice.
         try await tap("Audio")
