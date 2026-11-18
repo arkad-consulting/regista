@@ -90,5 +90,28 @@ extension MouseSuites {
         #expect(line.frame.width >= needed - 1 || line.frame.height > font.boundingRectForFont.height * 1.5, "«\(line.value)» is cut: \(line.frame) for \(needed) pt")
     }
 
+    /// Testi e sottotitoli › Sottotitoli names the caption style as its chip does, in Italian and French, never by its id
+    /// (#83: «stile elegant-serif»).
+    @Test(arguments: ["it", "fr"])
+    func theCaptionsLineNamesTheStyle(_ language: String) async throws {
+        let app = try await AppRig(project: "rich")
+        defer { app.close() }
+        let store = app.store.bench.active
+        if store.project?.tracks.contains(where: { $0.captions != nil }) != true {
+            _ = try await store.perform("captions.generate", ["style": "talking-head-v1"])
+        }
+        var nav = Navigation(activity: .texts, rightTab: .inspector)
+        nav.textsTab = .captions
+        for style in CaptionStyle.all {
+            _ = try await store.perform("captions.setStyle", ["style": .string(style.id)])
+            app.hostEditor(nav, language: language)
+            await app.settle()
+            let name = captionStyleName(style.id)
+            let line = app.rig.elements().first { $0.visible && $0.role == "AXStaticText" && $0.value.contains(" · ") && $0.value.contains(name) && $0.value != name }
+            #expect(line != nil, "\(language) \(style.id): no line naming «\(name)»: \(app.rig.elements().filter { $0.value.contains(" · ") }.map(\.value))")
+            #expect(!app.rig.elements().contains { $0.visible && $0.value.contains(style.id) }, "\(language): the style's id «\(style.id)» is on screen")
+        }
+    }
+
 }
 }

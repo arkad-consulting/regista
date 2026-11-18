@@ -115,13 +115,19 @@ struct MediaTab: View {
 struct TextsTab: View {
     @EnvironmentObject private var store: EditorStore
 
+    /// «5 blocchi · stile Talking head · 2 parole chiave»: the style named as its chip names it, never its id (#83).
+    static func captionsLine(_ c: RegistaCore.Captions) -> String {
+        let base = CaptionStyle.all.first { c.style.id == $0.id || c.style.id.hasPrefix($0.id + "+") }?.id ?? c.style.id
+        return loc("%@ blocchi · stile %@ · %@ parole chiave", String(c.chunks.count), captionStyleName(base), String(c.keywords.count))
+    }
+
     var body: some View {
         let captions = store.project?.tracks.first { $0.kind == .caption && $0.captions != nil }?.captions
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 section("Sottotitoli") {
                     if let c = captions {
-                        Text(verbatim: loc("%@ blocchi · stile %@ · %@ parole chiave", String(c.chunks.count), c.style.id, String(c.keywords.count)))
+                        Text(verbatim: Self.captionsLine(c))
                             .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
                         // Caption style presets (issue #22): the approved look and the three round-2 styles.
                         RChips(items: CaptionStyle.all.map { .init(id: $0.id, title: captionStyleName($0.id),
