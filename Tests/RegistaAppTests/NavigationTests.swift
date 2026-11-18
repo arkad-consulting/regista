@@ -372,3 +372,23 @@ private func pixel(_ rep: NSBitmapImageRep, _ x: Int, _ y: Int) -> UInt32 {
     #expect(ActivityFeed.summary([user]) == "Tu · Leggi il progetto")
     #expect(ActivityFeed.summary([raw, user]).hasPrefix("Claude · "))
 }
+
+extension MouseSuites {
+@Suite(.serialized) @MainActor struct FacelessVideoKindTests {
+    /// Inizio › «Video senza volto», clicked: a project of the voice-over video's kind, its rules and not a talking-head
+    /// reel's (#93).
+    @Test func theFacelessCardMakesAVoiceOverVideo() async throws {
+        let app = try await AppRig(project: nil)
+        defer { app.close() }
+        app.hostEditor(Navigation(activity: .home, rightTab: .inspector))
+        await app.settle()
+        let card = try #require(app.rig.controls().first { $0.label.hasPrefix(loc("Video senza volto")) }, "no «Video senza volto» card")
+        app.rig.click(card.centre)
+        for _ in 0..<100 where app.store.bench.active.project == nil { await app.idle(0.05) }
+        await app.settle()
+        let store = app.store.bench.active
+        #expect(store.project?.kind == "voice-over-video", "the card made a project of kind \(store.project?.kind ?? "none")")
+        #expect(store.nav.activity == .voice, "the card did not open the Voce panel")
+    }
+}
+}

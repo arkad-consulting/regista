@@ -66,7 +66,8 @@ private struct Content: View {
             StartCard(glyph: .faceless, title: loc("Video senza volto"),
                       text: loc("Scrivi il testo e Regista lo dice con la tua voce clonata: un progetto nuovo in Monta Pro, sul pannello Voce, poi grafica e musica."),
                       action: loc("Nuovo progetto")) {
-                store.newEmptyProject(name: loc("Video senza volto"), activity: .voice)
+                // A voice-over video: its rules, not a talking-head reel's (#93).
+                store.newEmptyProject(name: loc("Video senza volto"), activity: .voice, kind: "voice-over-video")
             }
             StartCard(glyph: .edit, title: loc("Monta un video"),
                       text: loc("Scegli uno o più video già girati: nuovo progetto, e si apre il montaggio Pro."),

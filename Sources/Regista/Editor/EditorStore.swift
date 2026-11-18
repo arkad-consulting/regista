@@ -542,12 +542,15 @@ final class EditorStore: ObservableObject {
 
     /// A new empty project in the projects folder (saved on the first ⌘S), shown in the editor (`activity`: Pro on that
     /// library activity). In this tab when it is empty, otherwise in a new tab.
-    func newEmptyProject(name: String, activity: Navigation.Activity? = nil) {
+    /// `kind`: the kind of video (its rule sheet) when the way in says which it is (Video senza volto: a voice-over video).
+    func newEmptyProject(name: String, activity: Navigation.Activity? = nil, kind: String? = nil) {
         let tab = tabForNewProject()
-        guard tab === self else { return tab.newEmptyProject(name: name, activity: activity) }
+        guard tab === self else { return tab.newEmptyProject(name: name, activity: activity, kind: kind) }
         Task {
             do {
-                try await perform("project.new", GeneralPrefs.newProject(name: Self.freeName(name, in: Self.projectsFolder), directory: Self.projectsFolder))
+                var params = GeneralPrefs.newProject(name: Self.freeName(name, in: Self.projectsFolder), directory: Self.projectsFolder)
+                if let kind, case .object(var o) = params { o["kind"] = .string(kind); params = .object(o) }
+                try await perform("project.new", params)
                 if let activity {
                     workspace = .pro
                     select(activity)
