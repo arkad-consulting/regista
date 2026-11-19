@@ -181,6 +181,44 @@ private func pid(_ file: URL) -> Int32? {
     #expect(kill(kept.pid, 0) != 0 && ComfyServer.started(config) == nil)
 }
 
+/// #123: a server Regista started and kept up (keepRunning) is stopped when the next run, without keepRunning, is refused
+/// by Regista's own check before anything is queued; a refused run with keepRunning leaves it up. Found on a real ComfyUI
+/// (a folder that sees none of the model files): the server stayed up after the refusal until it was stopped by hand.
+@Test func aServerRegistaStartedIsStoppedWhenTheNextRunIsRefusedByItsCheck() throws {
+    let fake = try FakeComfy()
+    fake.up = false
+    let dir = tempDir()
+    var config = EngineConfig()
+    config.cacheDirectory = tempDir().path
+    config.comfyServer = fake.base.absoluteString
+    config.comfyStart = try standInStart(dir).path
+    var provider = ComfyUIProvider(config: config, places: [])
+    provider.poll = 0.05
+    provider.startTimeout = 20
+    // The node list Regista's check reads: none while the server is off, then one that lacks every node of the workflow.
+    let nodes = LockedValue<Data?>(nil)
+    var s = FakeServices().make()
+    s.config = config
+    s.generators = ["comfyui": provider]
+    s.generationState = tempDir()
+    s.comfyServer = { nodes.withLock { $0 } }
+    let e = Engine(prober: FakeProber(), services: s)
+    try e.execute("project.new", params: ["name": "c", "directory": .string(tempDir().path)])
+    Thread.detachNewThread {
+        for _ in 0..<400 where pid(dir.appendingPathComponent("child.pid")) == nil { Thread.sleep(forTimeInterval: 0.05) }
+        fake.up = true
+    }
+    try e.execute("generate.run", params: ["kind": "image", "prompt": "kept", "keepRunning": true])
+    let kept = try #require(ComfyServer.started(config), "the stand-in was not started")
+    nodes.withLock { $0 = Data("{}".utf8) }
+    let prompts = fake.requests("/prompt").count
+    #expect(throws: CommandError.self) { try e.execute("generate.run", params: ["kind": "image", "prompt": "refused, kept", "keepRunning": true]) }
+    #expect(kill(kept.pid, 0) == 0 && ComfyServer.started(config) != nil, "a refused run with keepRunning stopped the server")
+    #expect(throws: CommandError.self) { try e.execute("generate.run", params: ["kind": "image", "prompt": "refused"]) }
+    #expect(fake.requests("/prompt").count == prompts, "a refused run queued something")
+    #expect(kill(kept.pid, 0) != 0 && ComfyServer.started(config) == nil, "the refused run left the server Regista started running")
+}
+
 @Test func whereComfyUIIsFoldersExecutablesAndTheUsualPlaces() throws {
     let home = tempDir()
     let comfy = home.appendingPathComponent("code/comfyui")

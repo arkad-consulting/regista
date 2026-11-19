@@ -147,7 +147,10 @@ enum Generate {
         // ComfyUI: its node packs and model files before anything is queued (#36); a server that is off does not block.
         if provider.id == "comfyui" {
             let location = (provider as? ComfyUIProvider)?.location ?? ctx.services.comfyLocation
-            try ComfyCheck.gate(model: provider.model(for: request), location: location, command: command, fetch: ctx.services.comfyServer)
+            // A refused run ends like any other (#123): a server Regista started and kept up for it is stopped unless the
+            // caller keeps it.
+            do { try ComfyCheck.gate(model: provider.model(for: request), location: location, command: command, fetch: ctx.services.comfyServer) }
+            catch { provider.finish(keepRunning: keepRunning); throw error }
         }
         let request = try prepare(provider, request, command: command)
         let hash = try request.hash()
