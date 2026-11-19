@@ -48,6 +48,17 @@ private func png(_ name: String = "start.png") throws -> URL {
     #expect(fake.requests("/free").count == 1)
 }
 
+/// The cache folder spelled through /private (as /private/tmp is): the fetched file is the result, not removed as a copy of
+/// itself (found by the proof run on a real ComfyUI).
+@Test func aResultInACacheSpelledThroughPrivateIsKept() throws {
+    let fake = try FakeComfy()
+    let real = URL(fileURLWithPath: "/private" + tempDir().path)
+    #expect(real.path.hasPrefix("/private/"))
+    let (e, _) = try comfyEngine(fake, cache: real)
+    let r = try e.execute("generate.run", params: ["kind": "image", "prompt": "kept", "seed": 1])
+    #expect(FileManager.default.contents(atPath: try #require(r["path"]?.stringValue)) == fake.output)
+}
+
 @Test func aClipUploadsItsStartImageAndAsksForTheFramesOfItsSeconds() throws {
     let fake = try FakeComfy()
     let (e, _) = try comfyEngine(fake)

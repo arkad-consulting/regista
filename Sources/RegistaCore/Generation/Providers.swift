@@ -180,7 +180,8 @@ public struct ComfyUIProvider: GeneratorProvider {
         }
         let src = URL(fileURLWithPath: file)
         let dest = job.appendingPathComponent("result.\(src.pathExtension.lowercased())")
-        if src.standardizedFileURL.path != dest.path {
+        // The same file under another spelling (/private/tmp and /tmp) is never removed and copied onto itself.
+        if src.resolvingSymlinksInPath().path != dest.resolvingSymlinksInPath().path {
             try? FileManager.default.removeItem(at: dest)
             do { try FileManager.default.copyItem(at: src, to: dest) }
             catch { throw CommandError(.io, "cannot copy \(file): \(error.localizedDescription)") }
