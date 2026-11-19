@@ -136,7 +136,7 @@ private struct GeneralSettings: View {
         p.canChooseDirectories = true
         p.canChooseFiles = false
         p.canCreateDirectories = true
-        p.directoryURL = Paths.root
+        p.directoryURL = Paths.ensure(Paths.root)
         p.message = loc("La cartella dove Regista mette progetti, registrazioni ed export")
         guard p.runModal() == .OK, let url = p.url else { return }
         folder = url.path

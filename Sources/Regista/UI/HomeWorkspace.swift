@@ -2,7 +2,8 @@ import AppKit
 import RegistaCore
 import SwiftUI
 
-/// Inizio: "Cosa vuoi fare?" with four ways in, the recent projects, and one line about this Mac (RAM, tier, engines).
+/// Inizio: "Cosa vuoi fare?" with four ways in («Per cominciare» above them while something is still missing), the recent
+/// projects, and one line about this Mac (RAM, tier, engines).
 struct HomeWorkspace: View {
     @EnvironmentObject private var store: EditorStore
     var body: some View { Content(recents: store.recents) }
@@ -25,6 +26,8 @@ private struct Content: View {
                         .font(Ed.ui(Ed.TypeSize.control))
                         .foregroundStyle(Ed.text2)
                         .padding(.top, Ed.Space.s)
+                    // What a downloaded app still lacks, only while something is pending (#112): compact, above the ways in.
+                    FirstStepsBlock()
                     starts.padding(.top, 28)
                     recentSection.padding(.top, 46)
                 }

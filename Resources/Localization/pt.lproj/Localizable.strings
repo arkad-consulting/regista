@@ -2426,3 +2426,9 @@
 "Non ho potuto spostare Regista: %@" = "Não foi possível mover o Regista: %@";
 "Regista non è stato spostato" = "O Regista não foi movido";
 "Sposta Regista nella cartella Applicazioni prima di collegare Claude: da dove è aperto ora, il collegamento smetterebbe di funzionare." = "Mova o Regista para a pasta Aplicativos antes de conectar o Claude: de onde ele está aberto agora, a conexão deixaria de funcionar.";
+"Per cominciare" = "Para começar";
+"Serve per trascrivere e fare i sottotitoli" = "Necessário para transcrever e criar legendas";
+"Scarica" = "Baixar";
+"Collega Claude per montare parlando" = "Conecte o Claude para editar falando";
+"Collega…" = "Conectar…";
+"Non uso Claude" = "Não uso o Claude";

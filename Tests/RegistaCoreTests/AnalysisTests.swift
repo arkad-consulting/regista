@@ -185,6 +185,40 @@ import Testing
     #expect(throws: CommandError.self) { try e.execute("transcript.get", params: ["assetId": "a9"]) }
 }
 
+/// #112: a Medium (or Pro) Mac whose Medium engines are not installed yet transcribes with whisper.cpp instead of failing,
+/// and says so; an explicit whisperx still fails with the reason.
+@Test func transcriptRunFallsBackToWhisperCppWhenTheTierEngineIsMissing() throws {
+    for tier in [MachineTier.medium, .pro] {
+        let fakes = FakeServices()
+        var s = fakes.make()
+        s.tier = tier
+        s.transcribers[WhisperXTranscriber.engineID] = FakeTranscriber(id: WhisperXTranscriber.engineID, words: fakes.words, reason: "WhisperX is not installed")
+        #expect(s.defaultTranscription().engine == "whisper.cpp")
+        let e = Engine(prober: FakeProber(), services: s)
+        try e.execute("project.new", params: ["name": "an", "directory": .string(tempDir().path)])
+        try e.execute("media.import", params: ["path": .string(fakeMedia())])
+        let r = try e.execute("transcript.run", params: ["assetId": "a1"])
+        #expect(r["engine"] == "whisper.cpp", "\(tier)")
+        #expect(r["note"]?.stringValue?.contains("WhisperX is not installed") == true, "\(r)")
+        #expect(throws: CommandError.self) { try e.execute("transcript.run", params: ["assetId": "a1", "engine": "whisperx"]) }
+        #expect(try e.execute("engines.status").value(at: "defaults.transcription") == "whisper.cpp")
+    }
+    // Neither runs (a downloaded app before its model): the error is whisper.cpp's, the one the person can fix first.
+    let fakes = FakeServices()
+    var bare = fakes.make()
+    bare.tier = .medium
+    bare.transcribers[WhisperCppTranscriber.engineID] = FakeTranscriber(words: fakes.words, reason: "whisper model not found")
+    bare.transcribers[WhisperXTranscriber.engineID] = FakeTranscriber(id: WhisperXTranscriber.engineID, words: fakes.words, reason: "uv not found")
+    let none = Engine(prober: FakeProber(), services: bare)
+    try none.execute("project.new", params: ["name": "an", "directory": .string(tempDir().path)])
+    try none.execute("media.import", params: ["path": .string(fakeMedia())])
+    #expect { try none.execute("transcript.run", params: ["assetId": "a1"]) } throws: { "\($0)".contains("whisper model not found") }
+    // Installed: the tier's engine, no note.
+    let ok = try analysisEngine()
+    let r = try ok.execute("transcript.run", params: ["assetId": "a1"])
+    #expect(r["engine"] == "whisperx" && r["note"] == nil)
+}
+
 @Test func enginesStatusReportsTierAndEngines() throws {
     var fakes = FakeServices()
     fakes.tier = .base

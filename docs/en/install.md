@@ -41,8 +41,9 @@ fix it.
 
 When a version is published as `Regista-<version>.dmg`, you need neither Terminal nor Apple's tools nor Homebrew: open
 the file, drag Regista to Applications and open it from there (opened from the image or from Downloads, Regista offers
-to move itself). Then, in Regista › Settings › Engines, install the transcription model (1.6 GB): ffmpeg, whisper.cpp
-and DeepFilterNet are already inside the app. Connect Claude in Settings › Claude.
+to move itself). Then Home shows **Getting started** while something is missing: **Download** the transcription model (1.6 GB;
+also from Settings › Engines), and **Connect…** opens Settings › Claude (**I don't use Claude** hides that row).
+ffmpeg, whisper.cpp and DeepFilterNet are already inside the app.
 
 ## The tiers
 

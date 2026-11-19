@@ -41,9 +41,10 @@ La dernière ligne doit dire « Tout est en ordre ». Sinon, sous chaque problè
 
 Quand une version est publiée sous la forme `Regista-<version>.dmg`, il ne faut ni le Terminal, ni les outils d'Apple,
 ni Homebrew : ouvrez le fichier, faites glisser Regista sur Applications et ouvrez-le depuis là (ouvert depuis l'image
-ou depuis Téléchargements, Regista propose de se déplacer tout seul). Puis, dans Regista › Réglages › Moteurs, installez
-le modèle de transcription (1,6 Go) : ffmpeg, whisper.cpp et DeepFilterNet sont déjà dans l'app. Connectez Claude dans
-Réglages › Claude.
+ou depuis Téléchargements, Regista propose de se déplacer tout seul). Puis l'Accueil affiche **Pour commencer** tant qu'il
+manque quelque chose : **Télécharger** le modèle de transcription (1,6 Go ; aussi depuis Réglages › Moteurs), et
+**Connecter…** ouvre Réglages › Claude (**Je n'utilise pas Claude** masque la ligne). ffmpeg, whisper.cpp et
+DeepFilterNet sont déjà dans l'app.
 
 ## Les niveaux
 

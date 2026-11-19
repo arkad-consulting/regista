@@ -4,6 +4,9 @@
 #   - a `python3` first on the PATH that fails like the Command Line Tools stub (and writes down that it was called),
 #   - no Homebrew folder on the PATH,
 #   - every shell step of the installer traced (bash xtrace): a python3 call by absolute path is caught too.
+# With an app that ships its engines, first the first open on that empty home (#112): no engines.json, no folder in
+# Movies, no transcription model — what engines.status and a transcription attempt answer through regista-engine, then
+# again once the model is installed (seeded from --seed, never downloaded by the check).
 # Steps: Settings › Engines' path for one Base engine (`regista-engine install <id>`: the app's EngineInstaller running the
 # installer inside the app, exactly as the Motori screen does), then Settings › Claude's Claude Desktop connection (the
 # same code, `regista-engine claude-desktop set`) on a config that already has another server. With an app that ships
@@ -35,7 +38,7 @@ while [ $# -gt 0 ]; do
     --seed) SEEDS+=("${2:-}"); shift ;;
     --keep) KEEP=1 ;;
     --uv-sync) UV_SYNC=1 ;;
-    -h|--help) sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "unknown option $1 (see --help)" ;;
   esac
   shift
@@ -65,6 +68,8 @@ ln -s python3 "$T/stub/python"
 
 for s in ${SEEDS[@]+"${SEEDS[@]}"}; do
   id="${s%%=*}"; file="${s#*=}"
+  # A seed that is not there would turn into a real download: a check never downloads a model.
+  [ -f "$file" ] || die "--seed $id: no file at $file"
   dest="$T/cache/${id%%:*}/$(lock_get "$id" 7 | sed 's#.*/##')"
   mkdir -p "$(dirname "$dest")"; [ -e "$dest" ] || ln -s "$file" "$dest"
 done
@@ -86,15 +91,59 @@ trace_clean() {
   else ok "$2: $(grep -cE '^\++ ' "$1") traced shell steps, none runs python3, Homebrew or the Command Line Tools"; fi
 }
 
+M="$T/media"; mkdir -p "$M"
+CONFIG_FILE="$H/Library/Application Support/Regista/engines.json"
+# first_open <name> <expectations of the transcription step>: engines.status and a transcription of the synthetic take,
+# headless through regista-engine on the temporary home (what the app's engine answers there).
+first_open() {
+  cat >"$T/$1.json" <<JSON
+{"name": "$1", "description": "The first open of a downloaded app on an empty home (#112).", "steps": [
+  {"command": "engines.status", "expect": {$2}, "show": ["result.configLoaded", "result.tier", "result.defaults.transcription"]},
+  {"command": "project.new", "params": {"name": "$1", "directory": "\${WORK}"}},
+  {"command": "media.import", "params": {"path": "$M/take.mov"}, "capture": {"raw": "result.asset.id"}},
+  {"command": "media.extractAudio", "params": {"assetId": "\${raw}"}},
+  {"command": "transcript.run", "params": {"assetId": "\${raw}", "language": "en"}, $3}
+]}
+JSON
+  bare "$HELPER_BIN" run "$T/$1.json" --work "$T/work-$1" >"$T/logs/$1.log" 2>&1
+}
+
+if [ "$SHIPPED" = 1 ]; then
+  step "0. First open on an empty home (log: $T/logs/first-open.log)"
+  if [ ! -e "$CONFIG_FILE" ] && [ ! -e "$H/Movies/Regista" ] && [ -z "$(find "$H/Library/Application Support/Regista" -name 'ggml-*.bin' 2>/dev/null)" ]; then
+    ok "the home is empty: no engines.json, no folder in Movies, no transcription model"
+  else bad "the temporary home is not empty"; rc=1; fi
+  # A voice in a file (say writes the file, nothing is played), a picture and the take made by the shipped ffmpeg.
+  /usr/bin/say -o "$M/speech.aiff" "Hello. This is a short test of Regista on a new Mac. The captions come from the voice." \
+    || die "say could not write the speech file"
+  dur="$(bare "$APP/Contents/Helpers/ffprobe" -v error -show_entries format=duration -of csv=p=0 "$M/speech.aiff" 2>/dev/null | grep -E '^[0-9]' | head -1)"
+  bare "$APP/Contents/Helpers/ffmpeg" -nostdin -hide_banner -loglevel error -y -f lavfi -i "testsrc2=s=1080x1920:r=30:d=${dur:-6}" \
+    -i "$M/speech.aiff" -c:v h264_videotoolbox -b:v 4M -pix_fmt yuv420p -c:a aac -b:a 128k -shortest "$M/take.mov" >>"$T/logs/reel.log" 2>&1 \
+    && ok "synthetic take made by the shipped ffmpeg (${dur:-?} s, H.264 VideoToolbox + AAC)" || { bad "the shipped ffmpeg could not make the take"; rc=1; }
+  if first_open first-open '"result.configLoaded": false, "result.defaults.transcription": "whisper.cpp", "result.engines": {"includes": [{"id": "whisper-model", "state": "missing"}, {"id": "whisper.cpp", "shipped": true}]}' \
+       '"expectError": "whisper model not found"'; then
+    ok "engines.status: no engines.json, the model missing, whisper.cpp the engine to use; a transcription attempt fails with «whisper model not found at …» (no other engine named)"
+  else bad "the first open answered otherwise:"; grep -vE '^\++ ' "$T/logs/first-open.log" | tail -12 | sed 's/^/      /'; rc=1; fi
+  grep -E 'configLoaded|tier|transcription' "$T/logs/first-open.log" | head -3 | sed 's/^/  /'
+fi
+
 step "1. Settings › Engines: install $ENGINE (log: $T/logs/install.log)"
 case "$(bare /usr/bin/printenv PATH)" in *homebrew*) die "Homebrew on the PATH of the check" ;; esac
 irc=0; bare "$HELPER_BIN" install "$ENGINE" >"$T/logs/install.log" 2>&1 || irc=$?
 grep -vE '^\++ ' "$T/logs/install.log" | sed 's/^/  /' | tail -12
 if [ "$irc" = 0 ]; then ok "regista-engine install $ENGINE finished"; else bad "regista-engine install $ENGINE failed (exit $irc)"; rc=1; fi
 trace_clean "$T/logs/install.log" "the installer"
-CONFIG_FILE="$H/Library/Application Support/Regista/engines.json"
 if [ -f "$CONFIG_FILE" ]; then ok "engines.json written: $(tr -d '\n' <"$CONFIG_FILE" | sed 's/  */ /g' | cut -c1-160)"
 else bad "no engines.json in the temporary home"; rc=1; fi
+
+if [ "$SHIPPED" = 1 ] && [ "$ENGINE" = whisper-model ]; then
+  step "1b. The same first open once the model is there (log: $T/logs/after-model.log)"
+  if first_open after-model '"result.engines": {"includes": [{"id": "whisper-model", "state": "installed"}]}, "result.defaults.transcription": "whisper.cpp"' \
+       '"expect": {"result.engine": "whisper.cpp", "result.words": {"min": 8}}, "show": ["result.engine", "result.note", "result.text"]'; then
+    ok "engines.status: the model installed; the transcription without an engine named ran with whisper.cpp"
+  else bad "after the model:"; grep -vE '^\++ ' "$T/logs/after-model.log" | tail -12 | sed 's/^/      /'; rc=1; fi
+  grep -E 'result\.(engine|note|text)' "$T/logs/after-model.log" | head -3 | cut -c1-200 | sed 's/^/  /'
+fi
 
 step "2. Settings › Claude: connect Claude Desktop (the same code as the app's button)"
 CFG="$H/Library/Application Support/Claude/claude_desktop_config.json"
@@ -109,14 +158,6 @@ else bad "Claude Desktop connection: $(cat "$CFG")"; rc=1; fi
 
 if [ "$SHIPPED" = 1 ]; then
   step "3. A first reel with the shipped helpers only (log: $T/logs/reel.log)"
-  M="$T/media"; mkdir -p "$M"
-  # A voice in a file (say writes the file, nothing is played), a picture and the take made by the shipped ffmpeg.
-  /usr/bin/say -o "$M/speech.aiff" "Hello. This is a short test of Regista on a new Mac. The captions come from the voice." \
-    || die "say could not write the speech file"
-  dur="$(bare "$APP/Contents/Helpers/ffprobe" -v error -show_entries format=duration -of csv=p=0 "$M/speech.aiff" 2>/dev/null | grep -E '^[0-9]' | head -1)"
-  bare "$APP/Contents/Helpers/ffmpeg" -nostdin -hide_banner -loglevel error -y -f lavfi -i "testsrc2=s=1080x1920:r=30:d=${dur:-6}" \
-    -i "$M/speech.aiff" -c:v h264_videotoolbox -b:v 4M -pix_fmt yuv420p -c:a aac -b:a 128k -shortest "$M/take.mov" >>"$T/logs/reel.log" 2>&1 \
-    && ok "synthetic take made by the shipped ffmpeg (${dur:-?} s, H.264 VideoToolbox + AAC)" || { bad "the shipped ffmpeg could not make the take"; rc=1; }
   cat >"$T/reel.json" <<JSON
 {"name": "bare-mac-reel", "description": "A first reel on a bare Mac, shipped helpers only.", "steps": [
   {"command": "engines.status", "expect": {"result.engines.0.id": "ffmpeg", "result.engines.0.shipped": true, "result.engines.1.shipped": true, "result.engines.2.shipped": true, "result.engines.5.id": "deepfilternet", "result.engines.5.shipped": true}},

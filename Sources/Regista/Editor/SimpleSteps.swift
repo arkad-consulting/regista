@@ -79,9 +79,10 @@ struct SimpleEngines: Equatable {
     static let transcribeMissing = "Manca il motore che trascrive il parlato: si installa da Impostazioni › Motori."
     static let cleanMissing = "Manca il motore che pulisce la voce: si installa da Impostazioni › Motori."
 
-    /// What this Mac can run: the default transcriber (the tier's) and the voice cleaner.
+    /// What this Mac can run: the default transcriber (the tier's, or whisper.cpp when that one is not installed, #112)
+    /// and the voice cleaner.
     static func of(_ s: EngineServices) -> SimpleEngines {
-        let engine = s.tier.defaultTranscriber(s.config)
+        let engine = s.defaultTranscription().engine
         let transcriber = s.transcribers[engine]
         let canTranscribe = transcriber != nil && s.tier >= EngineServices.minimumTier(transcriber: engine) && transcriber?.unavailableReason() == nil
         return SimpleEngines(transcribe: canTranscribe ? nil : transcribeMissing, clean: s.cleaner.unavailableReason() == nil ? nil : cleanMissing)

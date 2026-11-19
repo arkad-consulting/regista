@@ -2426,3 +2426,9 @@
 "Non ho potuto spostare Regista: %@" = "Could not move Regista: %@";
 "Regista non è stato spostato" = "Regista was not moved";
 "Sposta Regista nella cartella Applicazioni prima di collegare Claude: da dove è aperto ora, il collegamento smetterebbe di funzionare." = "Move Regista to the Applications folder before connecting Claude: from where it is open now, the connection would stop working.";
+"Per cominciare" = "Getting started";
+"Serve per trascrivere e fare i sottotitoli" = "Needed to transcribe and make captions";
+"Scarica" = "Download";
+"Collega Claude per montare parlando" = "Connect Claude to edit by talking";
+"Collega…" = "Connect…";
+"Non uso Claude" = "I don't use Claude";

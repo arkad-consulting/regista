@@ -257,7 +257,8 @@ enum Panels {
         let p = NSOpenPanel()
         p.allowsMultipleSelection = true
         p.allowedContentTypes = [.movie, .audio, .image]
-        p.directoryURL = Paths.root
+        // Regista's folder, made now when nothing made it yet (a downloaded app has no installer to make it, #112).
+        p.directoryURL = Paths.ensure(Paths.root)
         guard p.runModal() == .OK else { return }
         store.importMedia(p.urls, newProject: newProject)
         if let level { store.workspace = level } else if newProject { store.showEditor() }

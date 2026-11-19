@@ -196,7 +196,8 @@ final class AppRig {
     private var recorderLink: AnyCancellable?
 
     /// `project`: nil = no project (Inizio's world), "empty" = a new empty project, "rich" = the fixture project.
-    init(project: String? = "rich") async throws {
+    /// `services`: changes the rig's services of every tab (a test's own engine state: a missing model…).
+    init(project: String? = "rich", services adjust: (@MainActor (inout EngineServices) -> Void)? = nil) async throws {
         _ = NSApplication.shared
         _ = rigKitsDirectory
         _ = rigFolder
@@ -206,7 +207,8 @@ final class AppRig {
         setenv("REGISTA_ENGINE_SOCKET", FileManager.default.temporaryDirectory.appendingPathComponent("rg-\(UUID().uuidString.prefix(8)).sock").path, 1)
         defaultsName = "regista-rig-\(UUID().uuidString)"
         defaults = UserDefaults(suiteName: defaultsName)!
-        store = EditorStore(defaults: defaults, seedFolders: [], services: RigServices.factory())
+        let factory = RigServices.factory()
+        store = EditorStore(defaults: defaults, seedFolders: [], services: adjust.map { adjust in { var s = factory(); adjust(&s); return s } } ?? factory)
         capture = RigCapture()
         recorder = Recorder(defaults: defaults, hardware: capture)
         store.bench.recorder = recorder
@@ -234,12 +236,13 @@ final class AppRig {
     /// The app launched again on `old`'s defaults and the same scratch support folder: `old`'s window closes (its defaults
     /// kept, this rig owns them now), then a workbench is built as the app's AppState builds it, with no tab of its own,
     /// and its tabs come back as at launch (`Workbench.restoreTabs`).
-    init(relaunching old: AppRig) async throws {
+    init(relaunching old: AppRig, services adjust: (@MainActor (inout EngineServices) -> Void)? = nil) async throws {
         old.close(keepingDefaults: true)
         setenv("REGISTA_ENGINE_SOCKET", FileManager.default.temporaryDirectory.appendingPathComponent("rg-\(UUID().uuidString.prefix(8)).sock").path, 1)
         defaultsName = old.defaultsName
         defaults = UserDefaults(suiteName: defaultsName)!
-        let bench = Workbench(defaults: defaults, seedFolders: [], services: RigServices.factory())
+        let factory = RigServices.factory()
+        let bench = Workbench(defaults: defaults, seedFolders: [], services: adjust.map { adjust in { var s = factory(); adjust(&s); return s } } ?? factory)
         capture = RigCapture()
         recorder = Recorder(defaults: defaults, hardware: capture)
         bench.recorder = recorder

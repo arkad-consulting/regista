@@ -199,7 +199,7 @@ enum EnginesStatus: Command {
             "memoryGB": .number((Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824).rounded()),
             "configFile": .string(EngineConfig.defaultFile.path),
             "configLoaded": .bool(fm.fileExists(atPath: EngineConfig.defaultFile.path) && s.configWarning == nil),
-            "defaults": ["transcription": .string(s.tier.defaultTranscriber(c))],
+            "defaults": ["transcription": .string(s.defaultTranscription().engine)],
             "engines": .array(scripts(engines)),
             "components": .array(scripts(components)),
         ]
@@ -299,7 +299,7 @@ enum MediaMeasureLoudness: Command {
 
 enum TranscriptRun: Command {
     static let id = "transcript.run"
-    static let summary = "Transcribe an asset with word timings (extracts its audio first if needed): needed by takes.list, captions and text-based editing. Engines: whisper.cpp (Base tier) or whisperx (Medium tier and up, more precise word timings); the default depends on the RAM tier. Cached by audio hash. Returns word count, engine and the text."
+    static let summary = "Transcribe an asset with word timings (extracts its audio first if needed): needed by takes.list, captions and text-based editing. Engines: whisper.cpp (Base tier) or whisperx (Medium tier and up, more precise word timings); the default depends on the RAM tier (whisper.cpp, with a note, when the tier's engine is not installed). Cached by audio hash. Returns word count, engine, the text and a note when the engine was not the one expected."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .required("assetId", .string, "Asset to transcribe."),
@@ -312,7 +312,10 @@ enum TranscriptRun: Command {
         var project = try ctx.requireProject()
         let i = try Analysis.assetIndex(p.requiredString("assetId"), in: project, command: id)
         let s = ctx.services
-        var engine = p.string("engine") ?? s.tier.defaultTranscriber(s.config)
+        // No engine asked for: the tier's default, or whisper.cpp when the default is not installed here (#112).
+        let fallback = s.defaultTranscription()
+        var engine = p.string("engine") ?? fallback.engine
+        var note = p.string("engine") == nil ? fallback.note : nil
         guard var transcriber = s.transcribers[engine] else { throw CommandError.notFound("\(id): no engine '\(engine)'") }
         let needed = EngineServices.minimumTier(transcriber: engine)
         guard s.tier >= needed else {
@@ -332,7 +335,6 @@ enum TranscriptRun: Command {
         }
         // WhisperX aligns with the pinned aligner of the language; without it (Italian / French are opt-in, #20) the
         // default falls back to whisper.cpp and says so, an explicit engine "whisperx" fails with the reason.
-        var note: String?
         if let wx = transcriber as? WhisperXTranscriber, let why = wx.alignerReason(language) {
             guard p.string("engine") == nil, let cpp = s.transcribers[WhisperCppTranscriber.engineID], cpp.unavailableReason() == nil else {
                 throw CommandError(.io, "\(id): \(why)")

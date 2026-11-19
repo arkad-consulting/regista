@@ -39,8 +39,9 @@ L'ultima riga deve dire «Tutto a posto». Altrimenti, sotto ogni problema c'è 
 
 Quando una versione è pubblicata come `Regista-<versione>.dmg`, non servono né il Terminale né gli strumenti di Apple
 né Homebrew: apri il file, trascina Regista su Applicazioni e aprilo da lì (aperto dall'immagine o da Download, Regista
-propone di spostarsi da solo). Poi, in Regista › Impostazioni › Motori, installa il modello di trascrizione (1,6 GB):
-ffmpeg, whisper.cpp e DeepFilterNet sono già nell'app. Collega Claude in Impostazioni › Claude.
+propone di spostarsi da solo). Poi Inizio mostra **Per cominciare** finché manca qualcosa: **Scarica** il modello di trascrizione
+(1,6 GB; anche da Impostazioni › Motori) e **Collega…** apre Impostazioni › Claude (**Non uso Claude** nasconde la riga).
+ffmpeg, whisper.cpp e DeepFilterNet sono già nell'app.
 
 ## I livelli
 

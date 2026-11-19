@@ -274,4 +274,22 @@ public struct EngineServices {
     public static func minimumTier(transcriber id: String) -> MachineTier {
         EngineManifest.shared.minimumTier(id)
     }
+
+    /// The transcription engine used when none is asked for: the tier's default, or whisper.cpp when that one cannot run
+    /// here (a Medium or Pro Mac whose Medium engines are not installed yet, #112), with the reason. When whisper.cpp
+    /// cannot run either, it is still the one named: its reason (the missing model) is what the person can fix first.
+    public func defaultTranscription() -> (engine: String, note: String?) {
+        let engine = tier.defaultTranscriber(config)
+        let cppID = WhisperCppTranscriber.engineID
+        guard engine != cppID, let cpp = transcribers[cppID] else { return (engine, nil) }
+        let why: String?
+        if let t = transcribers[engine] {
+            let needed = Self.minimumTier(transcriber: engine)
+            why = tier < needed ? "\(engine) needs the \(needed.rawValue) tier" : t.unavailableReason()
+        } else {
+            why = "no engine '\(engine)'"
+        }
+        guard let why else { return (engine, nil) }
+        return (cppID, cpp.unavailableReason() == nil ? "transcribed with whisper.cpp (word timings less precise): \(why)" : nil)
+    }
 }

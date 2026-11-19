@@ -70,6 +70,14 @@ final class EnginesModel: ObservableObject {
     /// what it started. A failed install leaves what was there.
     func install(_ row: EngineCatalog.Row, store: EditorStore) {
         guard let installer else { return }
+        Self.install(row.id, name: row.name, installer: installer, store: store) { [weak self, weak store] in
+            if let store { Task { await self?.reload(store) } }
+        }
+    }
+
+    /// The install job itself, also started by Inizio's «Per cominciare» for the transcription model (#112): the same
+    /// kind, title, progress and failure line wherever it starts. `finished` runs after it ends, whatever the outcome.
+    static func install(_ id: String, name: String, installer: EngineInstaller, store: EditorStore, finished: @escaping @MainActor () -> Void) {
         final class Ref: @unchecked Sendable { var id: UUID? }
         let ref = Ref()
         let jobs = store.jobs
@@ -81,18 +89,18 @@ final class EnginesModel: ObservableObject {
                 }
             }
         }
-        let id = jobs.start(kind: Self.jobKind(row.id), title: String(format: loc("Installo %@"), loc(row.name)), tab: loc("Motori"),
-                            onCancel: { command.cancel() }) { [weak self, weak store] _ in
-            defer { if let store { Task { await self?.reload(store) } } }
+        let job = jobs.start(kind: Self.jobKind(id), title: String(format: loc("Installo %@"), loc(name)), tab: loc("Motori"),
+                             onCancel: { command.cancel() }) { _ in
+            defer { finished() }
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
                 Thread.detachNewThread {
-                    let r = Result { try CommandJob.$current.withValue(command) { try installer.install(row.id) } }
+                    let r = Result { try CommandJob.$current.withValue(command) { try installer.install(id) } }
                     cont.resume(with: r)
                 }
             }
             if command.isCancelled { throw CancellationError() }
         }
-        ref.id = id
+        ref.id = job
     }
 
     /// Deletes the engine's files in Regista's engines folder (the confirmation was shown by the view).
@@ -210,6 +218,15 @@ struct EnginesSettings: View {
         }
     }
 
+    /// The manifest's "0.21 GB" / "81 MB" in the user's numbers and units ("0,21 Go" in French).
+    static func localDisk(_ text: String) -> String {
+        let parts = text.split(separator: " ")
+        guard parts.count == 2, let value = Double(parts[0]), ["GB", "MB"].contains(String(parts[1])) else { return text }
+        let digits = parts[0].split(separator: ".").dropFirst().first?.count ?? 0
+        let number = value.formatted(.number.precision(.fractionLength(digits)))
+        return parts[1] == "GB" ? loc("%@ GB", number) : loc("%@ MB", number)
+    }
+
     static func tierName(_ t: MachineTier) -> String {
         switch t {
         case .base: loc("Base")
@@ -320,17 +337,8 @@ private struct EngineRowView: View {
     }
 
     private var facts: String {
-        let disk = row.disk == "–" ? loc("niente da scaricare") : row.disk == "?" ? loc("spazio variabile") : Self.localDisk(row.disk)
+        let disk = row.disk == "–" ? loc("niente da scaricare") : row.disk == "?" ? loc("spazio variabile") : EnginesSettings.localDisk(row.disk)
         return "\(disk) · \(loc(row.licence))"
-    }
-
-    /// The manifest's "0.21 GB" / "81 MB" in the user's numbers and units ("0,21 Go" in French).
-    static func localDisk(_ text: String) -> String {
-        let parts = text.split(separator: " ")
-        guard parts.count == 2, let value = Double(parts[0]), ["GB", "MB"].contains(String(parts[1])) else { return text }
-        let digits = parts[0].split(separator: ".").dropFirst().first?.count ?? 0
-        let number = value.formatted(.number.precision(.fractionLength(digits)))
-        return parts[1] == "GB" ? loc("%@ GB", number) : loc("%@ MB", number)
     }
 
     private var steps: [String]? {

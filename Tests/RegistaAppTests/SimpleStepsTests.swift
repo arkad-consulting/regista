@@ -270,6 +270,20 @@ private let base = StepSettings(language: "it")
     #expect(SimpleCalls.doEverythingSteps(hasScriptText: false, engines: .ready).contains(.clean))
 }
 
+/// #112: on a Medium Mac whose WhisperX is not installed yet, the window's transcription is available (whisper.cpp runs
+/// it); with neither engine it is not.
+@MainActor
+@Test func aMediumMacWithoutWhisperXStillTranscribes() {
+    func services(_ transcribers: [RegistaCore.Transcriber]) -> EngineServices {
+        EngineServices(config: EngineConfig(), tier: .medium, audio: FFmpegAudio(config: EngineConfig()),
+                       transcribers: transcribers, cleaner: MissingCleaner(), faces: nil)
+    }
+    let fallback = services([FixtureTranscriber(), MissingTranscriber(id: WhisperXTranscriber.engineID)])
+    #expect(SimpleEngines.of(fallback).transcribe == nil, "the window's transcription is refused on a Medium Mac without WhisperX")
+    let neither = services([MissingTranscriber(), MissingTranscriber(id: WhisperXTranscriber.engineID)])
+    #expect(SimpleEngines.of(neither).transcribe == SimpleEngines.transcribeMissing)
+}
+
 /// A clip with picture and sound, without reading the file (the missing-engine test never decodes it).
 private struct StubProber: MediaProber {
     func probe(_ url: URL) throws -> ProbedMedia {

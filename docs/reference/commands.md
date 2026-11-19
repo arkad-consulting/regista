@@ -2521,7 +2521,7 @@ Returns: {words, text}.
 
 **Transcribe** · MCP tool: `transcript_run` · undo: yes — one undo step · takes `project`
 
-Transcribe an asset with word timings (extracts its audio first if needed): needed by takes.list, captions and text-based editing. Engines: whisper.cpp (Base tier) or whisperx (Medium tier and up, more precise word timings); the default depends on the RAM tier. Cached by audio hash. Returns word count, engine and the text.
+Transcribe an asset with word timings (extracts its audio first if needed): needed by takes.list, captions and text-based editing. Engines: whisper.cpp (Base tier) or whisperx (Medium tier and up, more precise word timings); the default depends on the RAM tier (whisper.cpp, with a note, when the tier's engine is not installed). Cached by audio hash. Returns word count, engine, the text and a note when the engine was not the one expected.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -2530,7 +2530,7 @@ Transcribe an asset with word timings (extracts its audio first if needed): need
 | `language` | string | no | "it" | Spoken language code (default "it"); "auto" detects it (whisper.cpp; with whisperx the language is detected first, then aligned). |
 | `cache` | boolean | no | true | Reuse a cached transcript of the same audio and engine (default true). |
 
-Returns: word count, engine and the text.
+Returns: word count, engine, the text and a note when the engine was not the one expected.
 
 ### `transcript.timeline`
 

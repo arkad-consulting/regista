@@ -297,18 +297,23 @@ struct EngineSummary: Equatable {
     var tier: String
     var ready: Int
     var total: Int
+    /// The Base transcription engine has no model (engines.status `whisper-model` missing): Inizio's «Per cominciare»
+    /// offers its download (#112).
+    var modelMissing = false
 
-    init(memoryGB: Int, tier: String, ready: Int, total: Int) {
+    init(memoryGB: Int, tier: String, ready: Int, total: Int, modelMissing: Bool = false) {
         self.memoryGB = memoryGB
         self.tier = tier
         self.ready = ready
         self.total = total
+        self.modelMissing = modelMissing
     }
 
     /// "Ready" = available and allowed by the tier (engines.status `enabled`).
     init?(status: JSONValue) {
         guard let tier = status["tier"]?.stringValue, let engines = status["engines"]?.arrayValue else { return nil }
         self.init(memoryGB: Int(status["memoryGB"]?.doubleValue ?? 0), tier: tier,
-                  ready: engines.filter { $0["enabled"] == true }.count, total: engines.count)
+                  ready: engines.filter { $0["enabled"] == true }.count, total: engines.count,
+                  modelMissing: engines.contains { $0["id"] == "whisper-model" && $0["state"] == "missing" })
     }
 }

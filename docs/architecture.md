@@ -282,7 +282,9 @@ source `scripts/lib.sh`, and both speak the macOS language — Italian, English,
   a prebuilt app, see its header). `scripts/bare-mac.sh --app <Regista.app>` checks what a downloaded app does on a Mac
   without the Command Line Tools and Homebrew (#106): a `python3` that fails like the Command Line Tools stub first on the
   PATH, no Homebrew folder, every installer step traced; Settings › Engines' path for one Base engine and Settings ›
-  Claude's Claude Desktop connection. Inside the app the installer asks `Contents/MacOS/regista-engine` (`manifest`,
+  Claude's Claude Desktop connection; with an app that ships its engines, first the first open on the empty home
+  (#112: what `engines.status` and a transcription attempt answer before and after the model, seeded with `--seed`, which
+  refuses a file that is not there rather than download). Inside the app the installer asks `Contents/MacOS/regista-engine` (`manifest`,
   `config`, `claude-desktop`) for what Python helpers did; `scripts/engines.py` stays for a developer's clone
   (`validate`, `docs`, and the queries before an app is built). Foundation ignores `$HOME`, so a fresh-user simulation also sets `CFFIXED_USER_HOME`:
 

@@ -317,6 +317,9 @@ struct ClaudeSettings: View {
                         for (exe, args) in steps { try Subprocess.check(exe, args, environment: environment, currentDirectory: home) }
                         // The skill the app ships, as scripts/install.sh installs it (#108).
                         if t == .code { try ClaudeClients.installSkill() }
+                        // The folder Claude reads footage from (media.list's default root, ~/Movies/Regista): the installer
+                        // of a source folder made it, a downloaded app makes it here (#112).
+                        Paths.ensure(home.appendingPathComponent("Movies/Regista", isDirectory: true))
                     })
                 }
             }

@@ -43,6 +43,8 @@ echo "Build $BUILD_ID ($BUILD_DATE)"
 # the #filePath fallbacks to the source folder, so only the bundle's own copies are used.
 SWIFT_FLAGS=""
 [ "${REGISTA_RELEASE:-}" = 1 ] && SWIFT_FLAGS="-Xswiftc -DREGISTA_RELEASE"
+# REGISTA_BUILD_JOBS caps the compile jobs (as for scripts/build-engines.sh): a build on someone's work machine.
+[ -z "${REGISTA_BUILD_JOBS:-}" ] || SWIFT_FLAGS="$SWIFT_FLAGS -j $REGISTA_BUILD_JOBS"
 # shellcheck disable=SC2086
 swift build -c release $SWIFT_FLAGS --product Regista
 REGISTA_SWIFT_BUILD_FLAGS="$SWIFT_FLAGS" scripts/build-mcp.sh >/dev/null   # same stamp: the MCP server Claude launches matches this app
