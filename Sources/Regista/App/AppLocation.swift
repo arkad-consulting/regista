@@ -131,13 +131,13 @@ private struct MovePromptModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .alert(prompt.title, isPresented: prompt.isPresented) {
-                Button("Sposta e riapri") { prompt.move() }
-                Button("Non ora", role: .cancel) { prompt.location = nil }
+                Button(loc("Sposta e riapri")) { prompt.move() }
+                Button(loc("Non ora"), role: .cancel) { prompt.location = nil }
             } message: {
                 Text(verbatim: prompt.message)
             }
             .alert(loc("Regista non è stato spostato"), isPresented: Binding(get: { prompt.error != nil }, set: { if !$0 { prompt.error = nil } })) {
-                Button("OK") { prompt.error = nil }
+                Button(loc("OK")) { prompt.error = nil }
             } message: {
                 Text(verbatim: prompt.error ?? "")
             }

@@ -19,10 +19,10 @@ private struct Content: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("Cosa vuoi fare?")
+                    Text(loc("Cosa vuoi fare?"))
                         .font(Ed.display(Ed.TypeSize.hero, .medium))
                         .foregroundStyle(Ed.text)
-                    Text("Scegli da dove partire: Registra, gli strumenti di montaggio ed Esporta restano sempre nella barra a sinistra.")
+                    Text(loc("Scegli da dove partire: Registra, gli strumenti di montaggio ed Esporta restano sempre nella barra a sinistra."))
                         .font(Ed.ui(Ed.TypeSize.control))
                         .foregroundStyle(Ed.text2)
                         .padding(.top, Ed.Space.s)
@@ -95,7 +95,7 @@ private struct Content: View {
             if recents.infos.isEmpty {
                 VStack(spacing: Ed.Space.s) {
                     Image(systemName: "clock.arrow.circlepath").font(Ed.icon(Ed.TypeSize.heading, .light)).foregroundStyle(Ed.text3)
-                    Text("Nessun progetto recente. I progetti che apri o salvi compaiono qui.")
+                    Text(loc("Nessun progetto recente. I progetti che apri o salvi compaiono qui."))
                         .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3)
                 }
                 .frame(maxWidth: .infinity)
@@ -280,7 +280,7 @@ private struct RecentRow: View {
         .buttonStyle(.plain)
         .onHover { h in withAnimation(.easeOut(duration: 0.12)) { hover = h } }
         .contextMenu {
-            Button("Mostra nel Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: info.path)]) }
+            Button(loc("Mostra nel Finder")) { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: info.path)]) }
         }
         .tip(info.path)
     }

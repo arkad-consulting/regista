@@ -11,7 +11,9 @@ Green only when, for Sources/Regista:
      tuples), and every other literal that reads as UI text (a space, a capital or an accented letter);
   2. no literal that reads as UI text is interpolated (`"Clip \\(n)"` bypasses the table: use a format key);
   3. no `Text(<expression>)` without `verbatim:` (a String drawn that way is silently verbatim: say `Text(verbatim:)` for
-     data, `Text(loc(…))` for a key) and no `Text(verbatim: "<words>")`;
+     data, `Text(loc(…))` for a key) and no `Text(verbatim: "<words>")`; no literal key in `Text`, `Button`, `Toggle`,
+     `Label`, `Picker`, `Section`, `TextField`, `Menu`, `LabeledContent`, `alert`, `confirmationDialog` (#120: SwiftUI looks
+     a literal key up in the process's bundle, so a window laid out in another language shows it in Italian: `X(loc("…"))`);
   4. the tables have the same keys, every value is non-empty, each translation of a format key has the key's
      placeholders, a semantic key has a real Italian value, and a translated text is never another key with a different
      translation (so `loc` may run twice on a text: Words.swift);
@@ -54,6 +56,9 @@ NOT_UI_BEFORE = re.compile(r'(systemName:|forKey:|forKeyPath:|named:|suiteName:|
                            r'CommandError\([^,]*,|Notification\.Name\(|NSImage\(named:|Image\(|case |== |!= |'
                            r'UTType\(|identifier:|NSUserInterfaceItemIdentifier\(|dateFormat = |\.string\(|split\(separator:|'
                            r'replacingOccurrences\(of:|components\(separatedBy:|\.custom\(|family:|(?<=[A-Za-z0-9_)\]?!])\[)\s*$')
+# The SwiftUI initialisers that take a literal key: refused (an empty literal is no key).
+LITKEY = re.compile(r'(?<![A-Za-z_.])(Text|Button|Toggle|Label|Picker|Section|TextField|Menu|LabeledContent|alert|confirmationDialog)'
+                    r'\(\s*"((?:[^"\\]|\\.)+)"')
 UNITS = re.compile(r'\b(LUFS|dBTP|dB|px|fps|min|ms|s|h|x|pt|GB|MB|kB|KB|TP|M|S|I|LRA|Hz|kHz|kbps|Mbps)\b')
 
 
@@ -153,6 +158,11 @@ def scan():
                     problems.append(interp % lit[:70])
                 else:
                     keys.setdefault(unescape(lit), where)
+            # A literal key (#120): SwiftUI looks it up in the process's own bundle, not through loc, so a window laid out in
+            # another language (the mouse rig's) shows it in Italian. X(loc("…")) instead.
+            for m in LITKEY.finditer(code):
+                problems.append(f'{where}: {m.group(1)}("{m.group(2)[:50]}") is a literal key SwiftUI looks up by itself: '
+                                f'{m.group(1)}(loc("…")) goes through the one lookup (#120)')
             # Text(<expression>) without verbatim:.
             if re.search(r'(?<![A-Za-z_.])Text\(\s*(?!verbatim:|"|loc\(|LocalizedStringKey\(|\)|[A-Za-z_.]+(?:\([^()]*\))?\s*,\s*(?:format|style):)', code):
                 problems.append(f'{where}: Text(<expression>) draws a String verbatim without saying so: '

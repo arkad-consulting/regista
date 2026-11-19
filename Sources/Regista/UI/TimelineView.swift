@@ -596,9 +596,9 @@ struct TrackHeader: View {
                     Button(t.hidden ? loc("Mostra la pista") : loc("Nascondi la pista")) { store.setTrack(t.id, "hidden", !t.hidden) }
                 }
                 Button(t.locked ? loc("Sblocca la pista") : loc("Blocca la pista")) { store.setTrack(t.id, "locked", !t.locked) }
-                Button("Rinomina…") { rename(t) }
+                Button(loc("Rinomina…")) { rename(t) }
                 Divider()
-                Button("Elimina pista", role: .destructive) { delete(t) }
+                Button(loc("Elimina pista"), role: .destructive) { delete(t) }
             }
         }
     }

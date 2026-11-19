@@ -102,9 +102,9 @@ struct MediaTab: View {
                 .font(Ed.ui(Ed.TypeSize.body)).padding(6).background(RoundedRectangle(cornerRadius: Ed.Radius.m).fill(Ed.control))
         }
         .contextMenu {
-            Button("Mostra in Sorgente") { store.sourceAssetID = a.id }
-            Button("Metti in timeline al cursore") { store.placeAtPlayhead(asset: a.id) }
-            Button("Mostra nel Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: a.path)]) }
+            Button(loc("Mostra in Sorgente")) { store.sourceAssetID = a.id }
+            Button(loc("Metti in timeline al cursore")) { store.placeAtPlayhead(asset: a.id) }
+            Button(loc("Mostra nel Finder")) { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: a.path)]) }
         }
         .groupTip(a.origin.map { loc("Generato (%@) da %@", $0.process, $0.assetID) } ?? a.path)
     }

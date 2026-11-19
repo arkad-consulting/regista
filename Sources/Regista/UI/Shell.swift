@@ -106,8 +106,8 @@ struct EditorRoot: View {
         .sheet(isPresented: Binding(get: { live && store.showVoiceSetup }, set: { store.showVoiceSetup = $0 })) {
             VoiceSetupSheet()
         }
-        .alert("Comando non riuscito", isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
-            Button("OK", role: .cancel) {}
+        .alert(loc("Comando non riuscito"), isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
+            Button(loc("OK"), role: .cancel) {}
         } message: {
             Text(verbatim: store.errorMessage ?? "")
         }
@@ -599,7 +599,7 @@ struct ApprovalSheet: View {
     var body: some View {
         let e = entry.estimate
         VStack(alignment: .leading, spacing: 14) {
-            Text("Generazione a pagamento").font(Ed.display(Ed.TypeSize.heading, .semibold)).foregroundStyle(Ed.text)
+            Text(loc("Generazione a pagamento")).font(Ed.display(Ed.TypeSize.heading, .semibold)).foregroundStyle(Ed.text)
             Text(verbatim: loc("%@ chiede di generare con %@. Approva solo lo scatto finale: per le prove c'è ComfyUI, gratis.",
                                store.agentName, e.provider.capitalized))
                 .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
@@ -610,7 +610,7 @@ struct ApprovalSheet: View {
                 row("Budget", remaining == 1 ? loc("resta 1 chiamata su %@", String(cap(e.provider)))
                                              : loc("restano %@ chiamate su %@", String(remaining), String(cap(e.provider))))
             }
-            Text("Prompt").font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text3)
+            Text(loc("Prompt")).font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text3)
             ScrollView {
                 Text(verbatim: e.prompt).font(Ed.mono(Ed.TypeSize.small)).foregroundStyle(Ed.text).textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(10)
@@ -625,7 +625,7 @@ struct ApprovalSheet: View {
                 }
             }
             if remaining == 0 {
-                Text("Budget esaurito: nessuna altra chiamata a pagamento.").font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.danger)
+                Text(loc("Budget esaurito: nessuna altra chiamata a pagamento.")).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.danger)
             }
         }
         .padding(22)

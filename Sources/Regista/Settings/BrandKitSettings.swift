@@ -42,7 +42,7 @@ struct BrandKitSettings: View {
                         .help(loc(current.map { BrandKit.builtInIDs.contains($0.id) ? "Ripristina l'originale" : "Elimina" } ?? "Elimina"))
                         .disabled(current.map { !BrandKitLibrary.isUserKit($0.id) } ?? true)
                     Spacer()
-                    Button("Importa…") { importKit() }
+                    Button(loc("Importa…")) { importKit() }
                 }
                 .buttonStyle(.borderless)
                 .padding(.horizontal, 8).frame(height: 30)
@@ -150,30 +150,30 @@ private struct KitForm: View {
                     KitPreviewImage(image: library.previews["settings"], busy: library.rendering.contains("settings"), radius: 8)
                         .frame(width: 96)
                     VStack(alignment: .leading, spacing: 8) {
-                        TextField("Nome del kit", text: $name)
+                        TextField(loc("Nome del kit"), text: $name)
                             .labelsHidden()
                             .textFieldStyle(.roundedBorder)
                             .font(.title3)
                             .onSubmit { commitName() }
                         Text(verbatim: loc(BrandKitLibrary.isUserKit(kit.id) ? "tuo" : "integrato")).font(.caption).foregroundStyle(.secondary)
                         if builtInOnly {
-                            Text("Le modifiche creano la tua copia di questo kit").font(.caption).foregroundStyle(.secondary)
+                            Text(loc("Le modifiche creano la tua copia di questo kit")).font(.caption).foregroundStyle(.secondary)
                         }
                         HStack {
-                            Button("Duplica") { onDuplicate() }
-                            Button("Esporta…") { onExport() }
+                            Button(loc("Duplica")) { onDuplicate() }
+                            Button(loc("Esporta…")) { onExport() }
                         }
                         .disabled(demo)
                     }
                 }
             }
-            Section("Colori") {
+            Section(loc("Colori")) {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading), count: 2), alignment: .leading, spacing: 8) {
                     ForEach(BrandKitSettings.roleNames, id: \.0) { role, label in
                         HStack(spacing: 6) {
                             ColorPicker(selection: colorBinding(role), supportsOpacity: false) { Text(verbatim: loc(label)) }
                             // The brand's exact colour, typed as its guidelines give it (#96: the well alone takes no code here).
-                            TextField("#RRGGBB", text: hexBinding(role))
+                            TextField(loc("#RRGGBB"), text: hexBinding(role))
                                 .labelsHidden().textFieldStyle(.roundedBorder).font(.system(.caption, design: .monospaced)).frame(width: 82)
                                 .onSubmit { commitHex(role) }
                                 .focused($hexFocus, equals: role)
@@ -183,7 +183,7 @@ private struct KitForm: View {
                     }
                 }
             }
-            Section("Caratteri") {
+            Section(loc("Caratteri")) {
                 ForEach(BrandKitSettings.fontNames, id: \.0) { role, label in
                     LabeledContent {
                         HStack(spacing: 8) {
@@ -191,12 +191,12 @@ private struct KitForm: View {
                             Text(verbatim: URL(fileURLWithPath: kit.fonts[role] ?? "—").lastPathComponent)
                                 .foregroundStyle(fallback ? Color.red : .secondary).lineLimit(1).truncationMode(.middle)
                                 .help(fallback ? loc("File mancante: uso %@", kit.font(role)) : (kit.fonts[role] ?? ""))
-                            Button("Scegli…") { chooseFont(role) }.disabled(demo)
+                            Button(loc("Scegli…")) { chooseFont(role) }.disabled(demo)
                         }
                     } label: { Text(verbatim: loc(label)) }
                 }
             }
-            Section("Logo") {
+            Section(loc("Logo")) {
                 ForEach(BrandKitSettings.logoNames, id: \.0) { variant, label in
                     LabeledContent {
                         HStack(spacing: 8) {
@@ -205,15 +205,15 @@ private struct KitForm: View {
                                     .padding(3)
                                     .background(RoundedRectangle(cornerRadius: 4).fill(variant == "onLight" ? Color.white : Color.black.opacity(0.85)))
                             } else {
-                                Text("Nessun logo").foregroundStyle(.secondary)
+                                Text(loc("Nessun logo")).foregroundStyle(.secondary)
                             }
-                            Button("Scegli…") { chooseLogo(variant) }.disabled(demo)
+                            Button(loc("Scegli…")) { chooseLogo(variant) }.disabled(demo)
                         }
                     } label: { Text(verbatim: loc(label)) }
                 }
             }
-            Section("Posizione del logo") {
-                Picker("Angolo", selection: Binding(get: { placement.corner }, set: { updatePlacement(["corner": .string($0)]) })) {
+            Section(loc("Posizione del logo")) {
+                Picker(loc("Angolo"), selection: Binding(get: { placement.corner }, set: { updatePlacement(["corner": .string($0)]) })) {
                     ForEach(LogoPlacement.corners, id: \.self) { c in Text(verbatim: loc(Self.cornerName(c))).tag(c) }
                 }
                 LabeledContent {
@@ -221,7 +221,7 @@ private struct KitForm: View {
                         if !editing { updatePlacement(["width": .number(width)]) }
                     }
                 } label: { Text(verbatim: loc("Grandezza") + " · " + String(Int(width)) + " px") }
-                Picker("Animazione", selection: Binding(get: { placement.animation ?? "fade" }, set: { updatePlacement(["animation": .string($0)]) })) {
+                Picker(loc("Animazione"), selection: Binding(get: { placement.animation ?? "fade" }, set: { updatePlacement(["animation": .string($0)]) })) {
                     ForEach([("fade", "Dissolve"), ("pop", "Pop"), ("pulse", "Respiro"), ("orbit", "Orbita")], id: \.0) { id, label in
                         Text(verbatim: loc(label)).tag(id)
                     }
@@ -234,7 +234,7 @@ private struct KitForm: View {
             }
             Section {
                 HStack {
-                    Text("Ogni modifica è un passo annullabile (⌘Z). La marca del progetto si sceglie in Monta, dal pulsante Marca.")
+                    Text(loc("Ogni modifica è un passo annullabile (⌘Z). La marca del progetto si sceglie in Monta, dal pulsante Marca."))
                         .font(.caption).foregroundStyle(.secondary)
                     Spacer()
                     Button(loc("menu.undo")) { store.undo() }

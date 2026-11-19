@@ -836,7 +836,7 @@ struct PrompterEditorView: View {
             VStack(alignment: .leading, spacing: Ed.Space.l) {
                 Text(verbatim: Self.counts(takes: p.prompt.sentences.count, words: p.wordCount))
                     .font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text2)
-                Text("In modalità **Voce** il gobbo ti ascolta: avanza mentre leggi, si ferma se parli d'altro e, se ricominci una frase, torna al suo inizio e segna una nuova ripresa. Una riga numerata = una ripresa; \" / \" = pausa, *parola* = parola chiave. La finestra non compare mai nelle registrazioni dello schermo.")
+                Text(LocalizedStringKey(loc("In modalità **Voce** il gobbo ti ascolta: avanza mentre leggi, si ferma se parli d'altro e, se ricominci una frase, torna al suo inizio e segna una nuova ripresa. Una riga numerata = una ripresa; \" / \" = pausa, *parola* = parola chiave. La finestra non compare mai nelle registrazioni dello schermo.")))
                     .font(Ed.ui(Ed.TypeSize.small))
                     .foregroundStyle(Ed.text2)
                     .lineSpacing(2)

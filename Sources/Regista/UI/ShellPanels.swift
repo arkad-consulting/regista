@@ -390,13 +390,13 @@ struct ProjectTab: View {
             TabLabel(info: info, onSelect: { bench.select(tab.tabID) }, onClose: { Task { await bench.close(tab) } },
                      onDrop: { bench.move($0, to: tab.tabID) })
                 .contextMenu {
-                    Button("Salva") { Panels.save(tab) }.disabled(tab.project == nil)
-                    Button("Salva con nome…") { Panels.saveAs(tab) }.disabled(tab.project == nil)
-                    Button("Mostra nel Finder") { if let u = tab.projectURL { NSWorkspace.shared.activateFileViewerSelecting([u]) } }
+                    Button(loc("Salva")) { Panels.save(tab) }.disabled(tab.project == nil)
+                    Button(loc("Salva con nome…")) { Panels.saveAs(tab) }.disabled(tab.project == nil)
+                    Button(loc("Mostra nel Finder")) { if let u = tab.projectURL { NSWorkspace.shared.activateFileViewerSelecting([u]) } }
                         .disabled(tab.projectURL == nil)
                     Divider()
-                    Button("Chiudi") { Task { await bench.close(tab) } }.disabled(bench.tabs.count == 1 && tab.isEmpty)
-                    Button("Chiudi le altre") { Task { await bench.closeOthers(tab) } }.disabled(bench.tabs.count == 1)
+                    Button(loc("Chiudi")) { Task { await bench.close(tab) } }.disabled(bench.tabs.count == 1 && tab.isEmpty)
+                    Button(loc("Chiudi le altre")) { Task { await bench.closeOthers(tab) } }.disabled(bench.tabs.count == 1)
                 }
         }
     }

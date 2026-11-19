@@ -157,14 +157,14 @@ struct ClaudeSettings: View {
         Form {
             Section {
                 ObservingBench(bench: store.bench) { bench in
-                    LabeledContent("Collegamento") {
+                    LabeledContent(loc("Collegamento")) {
                         HStack(spacing: 6) {
                             Circle().fill(bench.agentConnected ? Color.green : Color.secondary.opacity(0.4)).frame(width: 7, height: 7)
                             Text(verbatim: bench.agentConnected ? String(format: loc("%@ è collegato a Regista"), bench.agentName) : loc("Nessun Claude collegato ora"))
                         }
                     }
-                    LabeledContent("Build di questa app") { Text(verbatim: Self.appBuild).font(.callout.monospaced()).textSelection(.enabled) }
-                    LabeledContent("Server MCP di questa app") {
+                    LabeledContent(loc("Build di questa app")) { Text(verbatim: Self.appBuild).font(.callout.monospaced()).textSelection(.enabled) }
+                    LabeledContent(loc("Server MCP di questa app")) {
                         Text(verbatim: ClaudeClients.bundledMCP(bundle: appBundle) ?? loc(ReleaseWords.pick("Non incluso in questa build: installa l'app con scripts/install.sh", bundle: appBundle)))
                             .font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(2).truncationMode(.middle).textSelection(.enabled)
                     }
@@ -180,19 +180,19 @@ struct ClaudeSettings: View {
                         }
                     }
                 }
-            } header: { Text("Stato") } footer: {
-                Text("Claude lavora nell'app aperta tramite il server regista-mcp: quando l'app e il server vengono da build diverse, alcuni comandi non si trovano.")
+            } header: { Text(loc("Stato")) } footer: {
+                Text(loc("Claude lavora nell'app aperta tramite il server regista-mcp: quando l'app e il server vengono da build diverse, alcuni comandi non si trovano."))
             }
-            Section("Claude Desktop") {
+            Section(loc("Claude Desktop")) {
                 clientRow(clients.desktop, installed: ClaudeClients.desktopInstalled, target: .desktop)
             }
-            Section("Claude Code") {
+            Section(loc("Claude Code")) {
                 clientRow(clients.code, installed: ClaudeClients.claudeCLI() != nil, target: .code)
             }
             Section {
-                Text("1. In Claude Desktop crea un progetto «Regista» e incolla queste istruzioni nelle sue istruzioni (in Claude Code basta scriverle nella prima richiesta).")
+                Text(loc("1. In Claude Desktop crea un progetto «Regista» e incolla queste istruzioni nelle sue istruzioni (in Claude Code basta scriverle nella prima richiesta)."))
                     .fixedSize(horizontal: false, vertical: true)
-                Text("2. Apri Regista, poi chiedi per esempio: «monta questo video: ~/Movies/Regista/Registrazioni/<file>.mov con il copione <copione>.md». Vedi ogni passo dal vivo nell'app.")
+                Text(loc("2. Apri Regista, poi chiedi per esempio: «monta questo video: ~/Movies/Regista/Registrazioni/<file>.mov con il copione <copione>.md». Vedi ogni passo dal vivo nell'app."))
                     .fixedSize(horizontal: false, vertical: true)
                 ScrollView {
                     Text(verbatim: StartPrompt.text).font(Ed.mono(11)).textSelection(.enabled)
@@ -202,20 +202,20 @@ struct ClaudeSettings: View {
                 .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.04)))
                 HStack {
                     Spacer()
-                    if copied { Text("Copiate").foregroundStyle(.secondary) }
-                    Button("Copia le istruzioni") {
+                    if copied { Text(loc("Copiate")).foregroundStyle(.secondary) }
+                    Button(loc("Copia le istruzioni")) {
                         pasteboard.clearContents()
                         pasteboard.setString(StartPrompt.text, forType: .string)
                         copied = true
                     }
                 }
-            } header: { Text("Come usarlo") }
+            } header: { Text(loc("Come usarlo")) }
         }
         .formStyle(.grouped)
         .onAppear { clients = ClaudeClients.read() }
         .alert(confirmTitle, isPresented: Binding(get: { confirm != nil }, set: { if !$0 { confirm = nil } })) {
-            Button("Collega") { if let t = confirm { connect(t) }; confirm = nil }
-            Button("Annulla", role: .cancel) { confirm = nil }
+            Button(loc("Collega")) { if let t = confirm { connect(t) }; confirm = nil }
+            Button(loc("Annulla"), role: .cancel) { confirm = nil }
         } message: {
             Text(verbatim: confirmMessage)
         }
@@ -242,7 +242,7 @@ struct ClaudeSettings: View {
                 Text(verbatim: command).font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(2).truncationMode(.middle).textSelection(.enabled)
             }
             if exists {
-                Text("Claude usa un server regista-mcp che non è quello di questa app (per esempio una build di sviluppo): i comandi nuovi possono mancare. Ricollegalo a questa app.")
+                Text(loc("Claude usa un server regista-mcp che non è quello di questa app (per esempio una build di sviluppo): i comandi nuovi possono mancare. Ricollegalo a questa app."))
                     .font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
             }
             connectButton(target, installed: installed, repoint: true)

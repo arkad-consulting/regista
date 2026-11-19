@@ -180,7 +180,7 @@ struct EnginesSettings: View {
             } else {
                 VStack(spacing: 10) {
                     ProgressView().controlSize(.small)
-                    Text("Controllo dei motori…").foregroundStyle(.secondary)
+                    Text(loc("Controllo dei motori…")).foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -188,7 +188,7 @@ struct EnginesSettings: View {
         .task { if demo == nil { await model.reload(store) } }
         .onDisappear { focus = "" }
         .confirmationDialog(confirmTitle, isPresented: Binding(get: { confirmRemove != nil }, set: { if !$0 { confirmRemove = nil } })) {
-            Button("Rimuovi", role: .destructive) {
+            Button(loc("Rimuovi"), role: .destructive) {
                 if let r = confirmRemove { model.remove(r.id, store: store) }
                 confirmRemove = nil
             }
@@ -196,7 +196,7 @@ struct EnginesSettings: View {
             Text(verbatim: confirmMessage)
         }
         .confirmationDialog(licenceTitle, isPresented: Binding(get: { confirmLicence != nil }, set: { if !$0 { confirmLicence = nil } })) {
-            Button("Accetto la licenza e installo") {
+            Button(loc("Accetto la licenza e installo")) {
                 if let r = confirmLicence { model.install(r, store: store) }
                 confirmLicence = nil
             }
@@ -218,8 +218,8 @@ struct EnginesSettings: View {
 
     private func mac(_ c: EngineCatalog) -> some View {
         Section {
-            LabeledContent("Memoria") { Text(verbatim: String(format: loc("%d GB di RAM"), c.memoryGB)) }
-            LabeledContent("Livello") {
+            LabeledContent(loc("Memoria")) { Text(verbatim: String(format: loc("%d GB di RAM"), c.memoryGB)) }
+            LabeledContent(loc("Livello")) {
                 HStack(spacing: 6) {
                     Text(verbatim: Self.tierName(c.tier)).fontWeight(.medium)
                     if let d = c.detected, d != c.tier {
@@ -227,14 +227,14 @@ struct EnginesSettings: View {
                     }
                 }
             }
-            LabeledContent("Spazio libero") { Text(verbatim: Self.freeDisk()) }
-            Picker("Forza livello", selection: Binding(get: { shownTier.map(\.rawValue) ?? "" }, set: { v in model.setForcedTier(MachineTier(rawValue: v)) })) {
-                Text("Automatico").tag("")
+            LabeledContent(loc("Spazio libero")) { Text(verbatim: Self.freeDisk()) }
+            Picker(loc("Forza livello"), selection: Binding(get: { shownTier.map(\.rawValue) ?? "" }, set: { v in model.setForcedTier(MachineTier(rawValue: v)) })) {
+                Text(loc("Automatico")).tag("")
                 ForEach(MachineTier.allCases, id: \.self) { t in Text(verbatim: Self.tierName(t)).tag(t.rawValue) }
             }
             .disabled(demo != nil)
-        } header: { Text("Questo Mac") } footer: {
-            Text("Automatico sceglie il livello dalla RAM. Un livello più alto mostra e installa motori che possono rallentare il Mac o fermarsi per mancanza di memoria; uno più basso li nasconde. Vale per questa schermata subito, per il resto dell'app alla prossima apertura di Regista.")
+        } header: { Text(loc("Questo Mac")) } footer: {
+            Text(loc("Automatico sceglie il livello dalla RAM. Un livello più alto mostra e installa motori che possono rallentare il Mac o fermarsi per mancanza di memoria; uno più basso li nasconde. Vale per questa schermata subito, per il resto dell'app alla prossima apertura di Regista."))
         }
     }
 
@@ -263,20 +263,20 @@ struct EnginesSettings: View {
 
     private func groupHeader(_ g: EngineCatalog.Group) -> some View {
         switch g {
-        case .base: Text("Base · da 8 GB")
-        case .medium: Text("Medio · da 16 GB")
-        case .pro: Text("Pro · da 32 GB")
-        case .cloud: Text("Nel cloud")
-        case .planned: Text("In arrivo")
+        case .base: Text(loc("Base · da 8 GB"))
+        case .medium: Text(loc("Medio · da 16 GB"))
+        case .pro: Text(loc("Pro · da 32 GB"))
+        case .cloud: Text(loc("Nel cloud"))
+        case .planned: Text(loc("In arrivo"))
         }
     }
 
     @ViewBuilder private func groupFooter(_ g: EngineCatalog.Group) -> some View {
         switch g {
-        case .base: Text("Registrare, tagliare, sottotitoli, pulire la voce, grafica ed export.")
-        case .medium: Text("In più: voce clonata da un riferimento (circa 8 GB mentre lavora), titoli 3D, grafica HTML, tempi delle parole più precisi.")
-        case .pro: Text("In più: allenamento della voce (circa 2 ore), immagini, clip e musica generate in locale.")
-        case .cloud: Text("Generazione a pagamento: il costo è mostrato e approvato ogni volta.")
+        case .base: Text(loc("Registrare, tagliare, sottotitoli, pulire la voce, grafica ed export."))
+        case .medium: Text(loc("In più: voce clonata da un riferimento (circa 8 GB mentre lavora), titoli 3D, grafica HTML, tempi delle parole più precisi."))
+        case .pro: Text(loc("In più: allenamento della voce (circa 2 ore), immagini, clip e musica generate in locale."))
+        case .cloud: Text(loc("Generazione a pagamento: il costo è mostrato e approvato ogni volta."))
         case .planned: EmptyView()
         }
     }
@@ -336,7 +336,7 @@ private struct EngineRowView: View {
             if let job, job.isRunning {
                 HStack(spacing: 8) {
                     if let p = job.progress { ProgressView(value: p) } else { ProgressView().progressViewStyle(.linear) }
-                    Button("Annulla", action: cancel).controlSize(.small)
+                    Button(loc("Annulla"), action: cancel).controlSize(.small)
                 }
                 if !job.detail.isEmpty { Text(verbatim: job.detail).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
             } else if let job, case .failed(let why) = job.state {
@@ -350,7 +350,7 @@ private struct EngineRowView: View {
             }
             // Its helper scripts differ from the app's and could not be replaced (#61): normally they are, at launch.
             if row.state == .installed, !row.scriptsCurrent {
-                Text("I file di supporto di questo motore sono più vecchi di quelli dell'app: rimuovilo e installalo di nuovo.")
+                Text(loc("I file di supporto di questo motore sono più vecchi di quelli dell'app: rimuovilo e installalo di nuovo."))
                     .font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -392,14 +392,14 @@ private struct EngineRowView: View {
                 if row.comfy != nil, case .nothing = row.action { Button(loc("Imposta")) { expanded.toggle() } }
                 switch row.action {
                 case .install:
-                    Button("Installa", action: install).disabled(busy || !canInstall)
+                    Button(loc("Installa"), action: install).disabled(busy || !canInstall)
                         .help(canInstall ? "" : loc(ReleaseWords.pick("Questa copia di Regista non contiene l'installatore: usa scripts/install.sh", bundle: appBundle)))
                 case .remove:
-                    Button("Rimuovi…", action: remove).disabled(busy || removing)
+                    Button(loc("Rimuovi…"), action: remove).disabled(busy || removing)
                 case .howTo:
                     Button(row.method == "cloud" ? loc("Come attivarlo") : loc("Come installarlo")) { expanded.toggle() }
                 case .firstUse:
-                    Button("Come arriva") { expanded.toggle() }
+                    Button(loc("Come arriva")) { expanded.toggle() }
                 case .nothing:
                     EmptyView()
                 }
@@ -432,7 +432,7 @@ private struct EngineRowView: View {
                 }
             }
             if case .howTo = row.action {
-                Button("Controlla di nuovo", action: checkAgain).controlSize(.small)
+                Button(loc("Controlla di nuovo"), action: checkAgain).controlSize(.small)
             }
         }
         .padding(10)

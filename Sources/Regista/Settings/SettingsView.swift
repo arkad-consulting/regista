@@ -90,7 +90,7 @@ private struct GeneralSettings: View {
     var body: some View {
         Form {
             Section {
-                Picker("Lingua dell'interfaccia", selection: Binding(get: { interface }, set: { v in
+                Picker(loc("Lingua dell'interfaccia"), selection: Binding(get: { interface }, set: { v in
                     interface = v
                     guard !demo else { return }
                     GeneralPrefs.setInterfaceLanguage(v)
@@ -98,32 +98,32 @@ private struct GeneralSettings: View {
                 })) {
                     ForEach(GeneralPrefs.interfaceLanguages, id: \.self) { code in Text(verbatim: languageLabel(code)).tag(code) }
                 }
-                Picker("Lingua del parlato", selection: demo ? .constant(spoken) : $spoken) {
+                Picker(loc("Lingua del parlato"), selection: demo ? .constant(spoken) : $spoken) {
                     ForEach(StepSettings.languages, id: \.self) { code in Text(verbatim: StepSettings.languageName(code)).tag(code) }
                 }
-            } header: { Text("Lingue") } footer: {
+            } header: { Text(loc("Lingue")) } footer: {
                 Text(verbatim: changedInterface ? loc("La nuova lingua dell'interfaccia vale dalla prossima apertura di Regista.")
                      : loc("La lingua del parlato è quella da cui parte la trascrizione di un video nuovo: si cambia anche nei passi di Testi e sottotitoli."))
             }
             Section {
-                LabeledContent("Cartella di Regista") {
+                LabeledContent(loc("Cartella di Regista")) {
                     HStack(spacing: 8) {
                         Text(verbatim: (Paths.root.path as NSString).abbreviatingWithTildeInPath).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                        Button("Scegli…") { choose() }.disabled(demo)
-                        if !folder.isEmpty { Button("Predefinita") { folder = "" }.disabled(demo) }
+                        Button(loc("Scegli…")) { choose() }.disabled(demo)
+                        if !folder.isEmpty { Button(loc("Predefinita")) { folder = "" }.disabled(demo) }
                     }
                 }
-                Picker("Formato dei progetti nuovi", selection: demo ? .constant(format) : $format) {
+                Picker(loc("Formato dei progetti nuovi"), selection: demo ? .constant(format) : $format) {
                     ForEach(GeneralPrefs.formats, id: \.id) { f in Text(verbatim: GeneralPrefs.formatName(f.id)).tag(f.id) }
                 }
-                Toggle("Salvataggio automatico", isOn: demo ? .constant(autoSave) : $autoSave)
-            } header: { Text("Progetti") } footer: {
-                Text("I progetti, le registrazioni e gli export vanno nella cartella di Regista. Con il salvataggio automatico, ogni minuto Regista salva i progetti aperti che hanno già una cartella; quelli mai salvati li salvi tu con ⌘S. Una registrazione dello schermo resta sempre in 16:9.")
+                Toggle(loc("Salvataggio automatico"), isOn: demo ? .constant(autoSave) : $autoSave)
+            } header: { Text(loc("Progetti")) } footer: {
+                Text(loc("I progetti, le registrazioni e gli export vanno nella cartella di Regista. Con il salvataggio automatico, ogni minuto Regista salva i progetti aperti che hanno già una cartella; quelli mai salvati li salvi tu con ⌘S. Una registrazione dello schermo resta sempre in 16:9."))
             }
             Section {
-                Toggle("Colore dell'app dal kit", isOn: demo ? .constant(accentFollows) : $accentFollows)
-            } header: { Text("Aspetto") } footer: {
-                Text("Evidenziazioni e pulsanti nel colore del brand")
+                Toggle(loc("Colore dell'app dal kit"), isOn: demo ? .constant(accentFollows) : $accentFollows)
+            } header: { Text(loc("Aspetto")) } footer: {
+                Text(loc("Evidenziazioni e pulsanti nel colore del brand"))
             }
         }
         .formStyle(.grouped)
@@ -149,12 +149,12 @@ private struct ShortcutsSettings: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TextField("Cerca un comando o un tasto", text: $query)
+            TextField(loc("Cerca un comando o un tasto"), text: $query)
                 .textFieldStyle(.roundedBorder)
                 .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, 4)
             Form {
                 let groups = AppShortcuts.search(query)
-                if groups.isEmpty { Text("Nessuna scorciatoia trovata").foregroundStyle(.secondary) }
+                if groups.isEmpty { Text(loc("Nessuna scorciatoia trovata")).foregroundStyle(.secondary) }
                 ForEach(groups, id: \.group) { g in
                     Section(g.group.title) {
                         ForEach(g.items) { s in
@@ -215,9 +215,9 @@ private struct ProfileSettingsForm: View {
         Form {
             Section {
                 if let name = model.snapshot.profile, !model.snapshot.profileLocked {
-                    LabeledContent("Profilo attivo") { Text(verbatim: name) }
+                    LabeledContent(loc("Profilo attivo")) { Text(verbatim: name) }
                     if model.snapshot.languages.isEmpty {
-                        Text("Nessuna voce ancora: registra il blocco neutro del copione (circa 10 minuti) e Regista parlerà con la tua voce.")
+                        Text(loc("Nessuna voce ancora: registra il blocco neutro del copione (circa 10 minuti) e Regista parlerà con la tua voce."))
                             .foregroundStyle(.secondary)
                     }
                     ForEach(model.snapshot.languages) { l in
@@ -234,49 +234,49 @@ private struct ProfileSettingsForm: View {
                         Text(verbatim: VoicePanelState.engineReason(model.snapshot, lookup: loc)).foregroundStyle(.secondary)
                     }
                 } else {
-                    Text("Nessun profilo su questo Mac: crea il tuo per registrare e clonare la tua voce.")
+                    Text(loc("Nessun profilo su questo Mac: crea il tuo per registrare e clonare la tua voce."))
                         .foregroundStyle(.secondary)
                 }
                 HStack {
-                    TextField("Il tuo nome", text: $newName)
-                    Button("Crea profilo") { act(VoiceCalls.createProfile(newName)) { newName = "" } }
+                    TextField(loc("Il tuo nome"), text: $newName)
+                    Button(loc("Crea profilo")) { act(VoiceCalls.createProfile(newName)) { newName = "" } }
                         .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
-            } header: { Text("La tua voce") } footer: {
-                Text("La voce resta su questo Mac, nel tuo profilo: non è mai nel pacchetto che condividi. Chi installa Regista parte senza profilo e clona la propria voce.")
+            } header: { Text(loc("La tua voce")) } footer: {
+                Text(loc("La voce resta su questo Mac, nel tuo profilo: non è mai nel pacchetto che condividi. Chi installa Regista parte senza profilo e clona la propria voce."))
             }
             if rows.count > 1 || rows.contains(where: \.locked) {
-                Section("Profili su questo Mac") {
+                Section(loc("Profili su questo Mac")) {
                     ForEach(rows) { e in
                         HStack {
                             Text(verbatim: e.name)
-                            if e.locked { Text("creato su un altro Mac").foregroundStyle(.secondary) }
+                            if e.locked { Text(loc("creato su un altro Mac")).foregroundStyle(.secondary) }
                             Spacer()
                             if e.locked {
-                                Button("È mio: usalo qui") { act(.init(id: "profile.adopt", params: ["id": .string(e.id)])) }
+                                Button(loc("È mio: usalo qui")) { act(.init(id: "profile.adopt", params: ["id": .string(e.id)])) }
                             } else if !e.active {
-                                Button("Usa questo profilo") { act(.init(id: "profile.switch", params: ["id": .string(e.id)])) }
+                                Button(loc("Usa questo profilo")) { act(.init(id: "profile.switch", params: ["id": .string(e.id)])) }
                             }
-                            Button("Elimina…", role: .destructive) { deleting = e }
+                            Button(loc("Elimina…"), role: .destructive) { deleting = e }
                         }
                     }
                 }
             } else if let a = rows.first {
                 Section {
-                    Button("Elimina il mio profilo e la mia voce…", role: .destructive) { deleting = a }
+                    Button(loc("Elimina il mio profilo e la mia voce…"), role: .destructive) { deleting = a }
                 }
             }
             if let error { Text(verbatim: error).foregroundStyle(.red) }
         }
         .formStyle(.grouped)
         .task { await reload() }
-        .confirmationDialog("Eliminare il profilo e la sua voce?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
-            Button("Sposta nel Cestino", role: .destructive) {
+        .confirmationDialog(loc("Eliminare il profilo e la sua voce?"), isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
+            Button(loc("Sposta nel Cestino"), role: .destructive) {
                 if let d = deleting { act(.init(id: "profile.delete", params: ["id": .string(d.id)])) }
                 deleting = nil
             }
         } message: {
-            Text("Registrazioni, clip e modelli della voce vanno nel Cestino.")
+            Text(loc("Registrazioni, clip e modelli della voce vanno nel Cestino."))
         }
     }
 

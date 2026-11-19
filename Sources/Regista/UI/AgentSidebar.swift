@@ -174,7 +174,7 @@ struct ActivityRow: View {
                     if let p = a.project {
                         Text(verbatim: String(format: loc("in «%@»"), p)).font(Ed.ui(Ed.TypeSize.micro)).foregroundStyle(Ed.text3).lineLimit(1).truncationMode(.middle)
                     }
-                    if !a.isAgent { Text("tu").font(Ed.ui(Ed.TypeSize.micro)).foregroundStyle(Ed.text3) }
+                    if !a.isAgent { Text(loc("tu")).font(Ed.ui(Ed.TypeSize.micro)).foregroundStyle(Ed.text3) }
                     Spacer(minLength: Ed.Space.xs)
                     Text(verbatim: a.status == .running ? "…" : (a.seconds >= 0.1 ? String(format: "%.1f s", a.seconds) : ""))
                         .font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.text3)
@@ -344,7 +344,7 @@ struct TakesView: View {
                     }
                 }
                 HStack(spacing: Ed.Space.s) {
-                    Text("Dopo una scelta: rifai il taglio").font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).lineLimit(1)
+                    Text(loc("Dopo una scelta: rifai il taglio")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).lineLimit(1)
                     Spacer()
                     EdButton(title: loc("Rifai il taglio"), symbol: "scissors", disabled: store.runningStepJob != nil) {
                         store.runStep(.cut, settings: StepSettings.saved(project: store.project))
@@ -369,7 +369,7 @@ struct TakesView: View {
             }
             HStack(spacing: Ed.Space.xs) {
                 Color.clear.frame(width: 16, height: 1)
-                if line.takes.isEmpty { Text("mai letta").font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.danger) }
+                if line.takes.isEmpty { Text(loc("mai letta")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.danger) }
                 ForEach(Array(line.takes.enumerated()), id: \.offset) { k, take in chip(n, k, take, line) }
                 Spacer(minLength: Ed.Space.xs)
                 if let c = line.chosen {
