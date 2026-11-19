@@ -49,6 +49,27 @@ private func guide(_ lang: String, _ g: HelpGuide) -> String {
     #expect(problems.isEmpty, "\(problems.joined(separator: "\n"))")
 }
 
+/// #119: the install guide opens with what a person who downloaded the disk image needs — the app from the image, what
+/// is already in it, «Per cominciare» with the transcription model and «Collega…» — and the source install, unchanged,
+/// below it.
+@Test func theInstallGuideLeadsWithTheDownloadedApp() {
+    for lang in HelpLibrary.languages {
+        let text = guide(lang, .install)
+        let t = table(lang)
+        let sections = text.components(separatedBy: "\n## ")
+        let first = sections.count > 1 ? sections[1] : ""
+        #expect(first.contains("Regista-<") && first.contains(".dmg") && first.contains("whisper.cpp"), "\(lang): the opening is not the downloaded app")
+        for key in ["Per cominciare", "Scarica", "Collega…", "Non uso Claude", "Modello per trascrivere e fare i sottotitoli"] {
+            #expect(first.contains("**\(t[key] ?? key)**"), "\(lang): the opening does not name «\(t[key] ?? key)»")
+        }
+        #expect(!first.contains("git clone") && !first.contains("xcode-select"), "\(lang): the opening asks for developer tools")
+        // The source install follows, once; the opening is the only place that tells the first open.
+        let clone = text.range(of: "git clone https://github.com/arkad-consulting/regista.git ~/code/regista && ~/code/regista/scripts/install.sh")
+        #expect(clone != nil && clone!.lowerBound > text.range(of: first)!.upperBound, "\(lang): the source install is not below the opening")
+        #expect(text.components(separatedBy: "**\(t["Per cominciare"] ?? "")**").count == 2, "\(lang): «Per cominciare» is told twice")
+    }
+}
+
 @Test func linksInTheGuidesLeadSomewhere() {
     let link = try! NSRegularExpression(pattern: #"\]\(([^)\s]+)\)"#)
     var problems: [String] = []

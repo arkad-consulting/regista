@@ -56,6 +56,12 @@ Keep these the same everywhere in `*.lproj/Localizable.strings` (scheme and chec
 | loudness, LUFS, dBTP | loudness | loudness | loudness |
 | tipo di video (the rule sheet a project follows) | kind of video | type de vidéo | tipo de vídeo |
 | Segui il formato del progetto (no kind of its own: the kind comes from the format) | Follow the project's format | Suivre le format du projet | Seguir o formato do projeto |
+| Per cominciare (Inizio's block while something is missing, #112) | Getting started | Pour commencer | Para começar |
+| modello di trascrizione (the whisper model file) | transcription model | modèle de transcription | modelo de transcrição |
+| immagine disco (the published `.dmg`) | disk image | image disque | imagem de disco |
+| Applicazioni (the folder) | Applications | Applications | Aplicativos |
+| collegare Claude / Collega… | connect Claude / Connect… | connecter Claude / Connecter… | conectar o Claude / Conectar… |
+| codice sorgente (the repository a developer clones) | source code | code source | código-fonte |
 
 Names never translated: Regista, Claude, Claude Code, Claude Desktop, MCP, ComfyUI, Higgsfield, WhisperX, VoxCPM2,
 HyperFrames, Blender, Shotcut, FFmpeg, macOS, Arkad, WeSites, the shortcut glyphs (⌘ ⌥ ⇧ ⌃).

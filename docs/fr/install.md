@@ -1,5 +1,24 @@
 # Installation et moteurs
 
+## L'app téléchargée
+
+Il faut un Mac avec puce Apple (M1 ou plus récent) et macOS 15 ou plus récent. Il ne faut ni le Terminal, ni les outils
+d'Apple, ni Homebrew. Ouvrez le fichier `Regista-<version>.dmg`, faites glisser Regista sur Applications et ouvrez-le
+depuis là : ouvert depuis l'image disque ou depuis Téléchargements, Regista propose de se déplacer tout seul
+(**Déplacer et rouvrir**).
+
+ffmpeg, whisper.cpp et DeepFilterNet sont déjà dans l'app : enregistrer, couper, nettoyer la voix, les graphismes et
+l'export fonctionnent tout de suite. Tant qu'il manque quelque chose, l'Accueil l'affiche dans **Pour commencer**, une
+ligne pour chaque chose :
+
+- **Modèle pour transcrire et créer les sous-titres** : **Télécharger** télécharge le modèle de transcription (1,6 Go ;
+  aussi depuis **Réglages › Moteurs**). Une fois le téléchargement terminé, la ligne disparaît toute seule.
+- **Connectez Claude pour monter en parlant** : **Connecter…** ouvre **Réglages › Claude**. **Je n'utilise pas Claude**
+  masque la ligne pour de bon : Regista fonctionne aussi sans Claude, à la main.
+
+Pour installer depuis le code source (si vous développez Regista, ou pour une version pas encore publiée en image
+disque), suivez les étapes ci-dessous.
+
 ## Ce qu'il faut
 
 - Un Mac avec puce Apple (M1 ou plus récent) et macOS 15 ou plus récent.
@@ -36,15 +55,6 @@ Pour vérifier l'installation à tout moment :
 ```
 
 La dernière ligne doit dire « Tout est en ordre ». Sinon, sous chaque problème, une ligne explique comment le corriger.
-
-## Depuis une image disque
-
-Quand une version est publiée sous la forme `Regista-<version>.dmg`, il ne faut ni le Terminal, ni les outils d'Apple,
-ni Homebrew : ouvrez le fichier, faites glisser Regista sur Applications et ouvrez-le depuis là (ouvert depuis l'image
-ou depuis Téléchargements, Regista propose de se déplacer tout seul). Puis l'Accueil affiche **Pour commencer** tant qu'il
-manque quelque chose : **Télécharger** le modèle de transcription (1,6 Go ; aussi depuis Réglages › Moteurs), et
-**Connecter…** ouvre Réglages › Claude (**Je n'utilise pas Claude** masque la ligne). ffmpeg, whisper.cpp et
-DeepFilterNet sont déjà dans l'app.
 
 ## Les niveaux
 

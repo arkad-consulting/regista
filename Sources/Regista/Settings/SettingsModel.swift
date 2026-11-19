@@ -47,9 +47,16 @@ enum SettingsRoute {
 
     /// Selects the tab (and the engine row) the next time Settings shows, then opens it.
     @MainActor static func open(_ tab: SettingsTab, engine: String? = nil, with openSettings: OpenSettingsAction) {
+        open(tab, engine: engine, opening: { openSettings() })
+    }
+
+    /// The same route, with the way the Settings window is brought up (`opening`: the scene's openSettings in the app; a
+    /// hosted view has no Settings scene, so a test gives its own and checks the tab a Settings view shows afterwards).
+    /// A Settings window already open on another tab follows the stored tab at once.
+    @MainActor static func open(_ tab: SettingsTab, engine: String? = nil, opening: () -> Void) {
         UserDefaults.standard.set(tab.rawValue, forKey: tabKey)
         if let engine { UserDefaults.standard.set(engine, forKey: engineKey) } else { UserDefaults.standard.removeObject(forKey: engineKey) }
-        openSettings()
+        opening()
         NSApp.activate()
     }
 

@@ -23,9 +23,33 @@ import Testing
 
 /// The rig's services with the transcription model missing (a path nothing is at) or present (an empty file).
 @MainActor private func model(present: Bool) -> @MainActor (inout EngineServices) -> Void {
+    model(at: modelFile(present: present))
+}
+
+/// A model file in a scratch folder, there or not.
+@MainActor private func modelFile(present: Bool) -> URL {
     let file = rigTempDir("first-steps-model").appendingPathComponent("ggml-large-v3-turbo.bin")
     if present { FileManager.default.createFile(atPath: file.path, contents: Data()) }
-    return { $0.config.whisperModel = file.path }
+    return file
+}
+
+/// The rig's services reading the transcription model at `file`.
+@MainActor private func model(at file: URL) -> @MainActor (inout EngineServices) -> Void {
+    { $0.config.whisperModel = file.path }
+}
+
+/// An installer of the test's own (scripts/install.sh in a scratch folder, run as the app runs its own): it writes down
+/// its arguments, then writes the model file where the configuration expects it, or fails with its «✗» line.
+@MainActor private func installer(writing model: URL, fails: Bool = false) throws -> (installer: EngineInstaller, calls: URL) {
+    let dir = rigTempDir("first-steps-installer")
+    let calls = dir.appendingPathComponent("calls.log")
+    let script = dir.appendingPathComponent("scripts/install.sh")
+    try FileManager.default.createDirectory(at: script.deletingLastPathComponent(), withIntermediateDirectories: true)
+    let work = fails ? "echo \"✗ the model could not be downloaded (test installer)\"\nexit 1"
+        : "printf 'model' > \"\(model.path)\"\necho \"✓ whisper-model installed (test installer)\""
+    try "#!/bin/bash\necho \"$@\" >> \"\(calls.path)\"\n\(work)\n".write(to: script, atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: script.path)
+    return (EngineInstaller(script: script), calls)
 }
 
 extension MouseSuites {
@@ -41,12 +65,14 @@ extension MouseSuites {
     /// No Claude client connected to any Regista server (a Mac the app was just downloaded on).
     static let noClient = ClaudeClients(desktop: .notConnected, code: .notConnected)
 
-    /// Inizio hosted as the window shows it, with `bundle` as this app, the Settings tabs «Collega…» opens recorded, and
-    /// `clients` as the Claude clients' state (nil: the rig's own — Claude Code runs the test process's server).
+    /// Inizio hosted as the window shows it, with `bundle` as this app, `clients` as the Claude clients' state (nil: the
+    /// rig's own — Claude Code runs the test process's server) and `installer` as the one «Scarica» runs (nil: the
+    /// rig's, which installs nothing). The Settings window «Collega…» brings up is a count (no Settings scene here).
     static func host(_ app: AppRig, bundle: Bundle = .main, language: String? = nil, clients: ClaudeClients? = noClient,
-                     opened: @escaping (SettingsTab) -> Void = { _ in }) async {
-        app.host(HomeWorkspace().environment(\.appBundle, bundle).environment(\.settingsOpener, opened)
+                     installer: EngineInstaller? = nil, raised: @escaping () -> Void = {}) async {
+        app.host(HomeWorkspace().environment(\.appBundle, bundle).environment(\.settingsWindowOpener, raised)
             .environment(\.claudeClientsReader, clients.map { c in { c } })
+            .environment(\.firstStepsInstaller, installer.map { i in { i } })
             .frame(width: size.width, height: size.height), size: size, language: language)
         await app.settle()
         _ = app.rig.wait(5) { app.store.engineSummary != nil }
@@ -108,18 +134,90 @@ extension MouseSuites {
         #expect(app.rig.element(Self.word("Scarica", language)) != nil, "the row did not come back to «Scarica»")
     }
 
-    /// «Collega…» opens Settings › Claude, once; the row stays (nothing is connected yet).
-    @Test func connectOpensTheClaudeTabOnce() async throws {
+    /// #119: «Collega…» takes the route of every «open Settings on a tab» (SettingsRoute.open): a Settings window already
+    /// open on Generale beside Inizio shows the Claude tab after the click, and the window is brought up once; the row
+    /// stays (nothing is connected yet).
+    @Test func connectShowsTheClaudeTabInSettings() async throws {
+        let saved = (UserDefaults.standard.object(forKey: SettingsRoute.tabKey), UserDefaults.standard.object(forKey: SettingsRoute.engineKey))
+        defer {
+            UserDefaults.standard.set(saved.0, forKey: SettingsRoute.tabKey)
+            UserDefaults.standard.set(saved.1, forKey: SettingsRoute.engineKey)
+        }
+        UserDefaults.standard.set(SettingsTab.general.rawValue, forKey: SettingsRoute.tabKey)
         let app = try await AppRig(project: nil, services: model(present: true))
         defer { app.close() }
-        var opened: [SettingsTab] = []
-        await Self.host(app, bundle: try shippedApp(), opened: { opened.append($0) })
+        var raised = 0
+        let size = CGSize(width: Self.size.width + SettingsView.size.width, height: Self.size.height)
+        app.host(HStack(alignment: .top, spacing: 0) {
+            HomeWorkspace().frame(width: Self.size.width, height: Self.size.height)
+            SettingsView()
+        }
+        .environment(\.appBundle, try shippedApp()).environment(\.settingsWindowOpener, { raised += 1 })
+        .environment(\.claudeClientsReader, { Self.noClient }), size: size)
+        await app.settle()
+        _ = app.rig.wait(5) { app.store.engineSummary != nil }
+        await app.settle()
         #expect(app.rig.element("Scarica") == nil, "the model row with the model there")
+        #expect(!app.rig.elements(containing: "Lingua dell'interfaccia").isEmpty, "Settings does not start on Generale")
+        #expect(app.rig.elements(containing: "Build di questa app").isEmpty, "Settings shows Claude before the click")
         let connect = try #require(app.rig.element("Collega…"), "no «Collega…»")
         app.rig.click(connect.centre)
         await app.settle()
-        #expect(opened == [.claude], "opened \(opened)")
+        _ = app.rig.wait(3) { !app.rig.elements(containing: "Build di questa app").isEmpty }
+        #expect(raised == 1, "the Settings window was brought up \(raised) times")
+        #expect(UserDefaults.standard.string(forKey: SettingsRoute.tabKey) == SettingsTab.claude.rawValue)
+        #expect(!app.rig.elements(containing: "Build di questa app").isEmpty, "Settings does not show the Claude tab after the click")
+        #expect(app.rig.elements(containing: "Lingua dell'interfaccia").isEmpty, "Settings still shows Generale")
         #expect(app.rig.element("Collega…") != nil)
+    }
+
+    /// #119: «Scarica» with an installer that really writes the model file where the configuration expects it: when the
+    /// job ends the row leaves the view tree (the whole block, the Claude row being hidden) and the engine summary of the
+    /// status line counts the model, without opening the app again.
+    @Test func aRealDownloadTakesTheRowAway() async throws {
+        let file = modelFile(present: false)
+        let (stand, calls) = try installer(writing: file)
+        let bundle = try shippedApp()
+        let app = try await AppRig(project: nil, services: model(at: file))
+        defer { app.close() }
+        app.store.bench.defaults.set(true, forKey: FirstSteps.noClaudeKey)
+        await Self.host(app, bundle: bundle, installer: stand)
+        let before = try #require(app.store.engineSummary)
+        #expect(before.modelMissing, "the model is not missing before the download")
+        let download = try #require(app.rig.element("Scarica"), "no «Scarica»")
+        app.rig.click(download.centre)
+        _ = app.rig.wait(10) { app.store.jobs.latest(EnginesModel.jobKind("whisper-model"))?.isRunning == false }
+        _ = app.rig.wait(5) { app.store.engineSummary?.modelMissing == false }
+        await app.settle()
+        #expect((try? String(contentsOf: calls, encoding: .utf8))?.contains("--only whisper-model") == true, "the installer was not run for the model")
+        #expect(app.store.jobs.latest(EnginesModel.jobKind("whisper-model"))?.state == .done)
+        #expect(FileManager.default.fileExists(atPath: file.path))
+        let after = try #require(app.store.engineSummary)
+        #expect(!after.modelMissing && after.ready > before.ready, "the engine summary did not follow: \(before) → \(after)")
+        #expect(app.rig.element("Scarica") == nil && app.rig.elements(containing: "Modello per trascrivere e fare i sottotitoli").isEmpty,
+                "the model row is still there")
+        #expect(app.rig.elements(containing: Self.label(nil)).isEmpty, "«Per cominciare» with nothing pending")
+    }
+
+    /// #119: the installer fails: the row stays, with the installer's own reason under it, and «Scarica» again.
+    @Test(arguments: ["it", "fr"])
+    func aFailedDownloadKeepsTheRowWithItsReason(_ language: String) async throws {
+        let file = modelFile(present: false)
+        let (stand, _) = try installer(writing: file, fails: true)
+        let app = try await AppRig(project: nil, services: model(at: file))
+        defer { app.close() }
+        await Self.host(app, bundle: try shippedApp(), language: language, installer: stand)
+        let download = try #require(app.rig.element(Self.word("Scarica", language)), "no «Scarica»")
+        app.rig.click(download.centre)
+        _ = app.rig.wait(10) { app.store.jobs.latest(EnginesModel.jobKind("whisper-model"))?.isRunning == false }
+        await app.settle()
+        #expect(!FileManager.default.fileExists(atPath: file.path))
+        #expect(!app.rig.elements(containing: "the model could not be downloaded (test installer)").isEmpty, "\(language): the reason is not shown")
+        let failed = String(format: Self.word("Installazione non riuscita: %@", language), "")
+        #expect(!app.rig.elements(containing: failed.trimmingCharacters(in: .whitespaces)).isEmpty, "\(language): no «\(failed)»")
+        #expect(app.rig.element(Self.word("Scarica", language)) != nil, "the row lost «Scarica»")
+        #expect(app.store.engineSummary?.modelMissing == true)
+        try Self.snapshot(app, "n27-home-first-steps-failed-\(language).png")
     }
 
     /// «Non uso Claude» hides the row (and the whole block, nothing else being pending) and it stays hidden in a new store

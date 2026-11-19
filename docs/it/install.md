@@ -1,5 +1,22 @@
 # Installazione e motori
 
+## L'app scaricata
+
+Serve un Mac con chip Apple (M1 o successivo) e macOS 15 o successivo. Non servono né il Terminale né gli strumenti di
+Apple né Homebrew. Apri il file `Regista-<versione>.dmg`, trascina Regista su Applicazioni e aprilo da lì: aperto
+dall'immagine disco o da Download, Regista propone di spostarsi da solo (**Sposta e riapri**).
+
+Nell'app ci sono già ffmpeg, whisper.cpp e DeepFilterNet: registrare, tagliare, pulire la voce, la grafica e l'export
+funzionano subito. Finché manca qualcosa, Inizio lo mostra in **Per cominciare**, una riga per ogni cosa:
+
+- **Modello per trascrivere e fare i sottotitoli**: **Scarica** scarica il modello di trascrizione (1,6 GB; anche da
+  **Impostazioni › Motori**). A download finito la riga sparisce da sola.
+- **Collega Claude per montare parlando**: **Collega…** apre **Impostazioni › Claude**. **Non uso Claude** nasconde la riga
+  per sempre: Regista funziona anche senza Claude, a mano.
+
+Per installare dal codice sorgente (chi sviluppa Regista, o una versione non ancora pubblicata come immagine disco)
+segui i passi qui sotto.
+
 ## Cosa serve
 
 - Un Mac con chip Apple (M1 o successivo) e macOS 15 o successivo.
@@ -34,14 +51,6 @@ Per controllare l'installazione in qualsiasi momento:
 ```
 
 L'ultima riga deve dire «Tutto a posto». Altrimenti, sotto ogni problema c'è una riga che dice come risolverlo.
-
-## Da un'immagine disco
-
-Quando una versione è pubblicata come `Regista-<versione>.dmg`, non servono né il Terminale né gli strumenti di Apple
-né Homebrew: apri il file, trascina Regista su Applicazioni e aprilo da lì (aperto dall'immagine o da Download, Regista
-propone di spostarsi da solo). Poi Inizio mostra **Per cominciare** finché manca qualcosa: **Scarica** il modello di trascrizione
-(1,6 GB; anche da Impostazioni › Motori) e **Collega…** apre Impostazioni › Claude (**Non uso Claude** nasconde la riga).
-ffmpeg, whisper.cpp e DeepFilterNet sono già nell'app.
 
 ## I livelli
 

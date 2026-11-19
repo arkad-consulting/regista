@@ -1,5 +1,22 @@
 # Instalação e motores
 
+## O app baixado
+
+Você precisa de um Mac com chip Apple (M1 ou mais novo) e macOS 15 ou mais novo. Não precisa do Terminal, nem das
+ferramentas da Apple, nem do Homebrew. Abra o arquivo `Regista-<versão>.dmg`, arraste o Regista para Aplicativos e
+abra-o de lá: aberto a partir da imagem de disco ou de Downloads, o Regista propõe mover-se sozinho (**Mover e reabrir**).
+
+ffmpeg, whisper.cpp e DeepFilterNet já estão no app: gravar, cortar, limpar a voz, os gráficos e a exportação funcionam
+na hora. Enquanto faltar algo, o Início mostra em **Para começar**, uma linha para cada coisa:
+
+- **Modelo para transcrever e criar legendas**: **Baixar** baixa o modelo de transcrição (1,6 GB; também em
+  **Ajustes › Motores**). Quando o download termina, a linha some sozinha.
+- **Conecte o Claude para editar falando**: **Conectar…** abre **Ajustes › Claude**. **Não uso o Claude** esconde a linha
+  de vez: o Regista também funciona sem o Claude, à mão.
+
+Para instalar a partir do código-fonte (se você desenvolve o Regista, ou para uma versão ainda não publicada como imagem
+de disco), siga os passos abaixo.
+
 ## O que você precisa
 
 - Um Mac com chip Apple (M1 ou mais novo) e macOS 15 ou mais novo.
@@ -35,14 +52,6 @@ Para conferir a instalação a qualquer momento:
 ```
 
 A última linha deve dizer "Está tudo em ordem". Se não, embaixo de cada problema há uma linha dizendo como resolver.
-
-## A partir de uma imagem de disco
-
-Quando uma versão é publicada como `Regista-<versão>.dmg`, você não precisa do Terminal, nem das ferramentas da Apple,
-nem do Homebrew: abra o arquivo, arraste o Regista para Aplicativos e abra-o de lá (aberto a partir da imagem ou de
-Downloads, o Regista propõe mover-se sozinho). Depois, o Início mostra **Para começar** enquanto faltar algo: **Baixar** o modelo de transcrição
-(1,6 GB; também em Ajustes › Motores), e **Conectar…** abre Ajustes › Claude (**Não uso o Claude** esconde a linha).
-ffmpeg, whisper.cpp e DeepFilterNet já estão no app.
 
 ## Os níveis
 

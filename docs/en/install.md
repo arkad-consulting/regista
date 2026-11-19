@@ -1,5 +1,22 @@
 # Installation and engines
 
+## The downloaded app
+
+You need a Mac with Apple silicon (M1 or later) and macOS 15 or later. You need neither Terminal nor Apple's tools nor
+Homebrew. Open the `Regista-<version>.dmg` file, drag Regista to Applications and open it from there: opened from the
+disk image or from Downloads, Regista offers to move itself (**Move and reopen**).
+
+ffmpeg, whisper.cpp and DeepFilterNet are already inside the app: recording, cutting, cleaning the voice, graphics and
+export work right away. While something is missing, Home shows it under **Getting started**, one row for each:
+
+- **Model to transcribe and make captions**: **Download** gets the transcription model (1.6 GB; also from
+  **Settings › Engines**). When the download ends, the row goes away by itself.
+- **Connect Claude to edit by talking**: **Connect…** opens **Settings › Claude**. **I don't use Claude** hides the row for
+  good: Regista also works without Claude, by hand.
+
+To install from the source code (if you develop Regista, or for a version not yet published as a disk image), follow
+the steps below.
+
 ## What you need
 
 - A Mac with Apple silicon (M1 or later) and macOS 15 or later.
@@ -36,14 +53,6 @@ To check the installation at any time:
 
 The last line should say "All good". Otherwise, under each problem there is a line that says how to
 fix it.
-
-## From a disk image
-
-When a version is published as `Regista-<version>.dmg`, you need neither Terminal nor Apple's tools nor Homebrew: open
-the file, drag Regista to Applications and open it from there (opened from the image or from Downloads, Regista offers
-to move itself). Then Home shows **Getting started** while something is missing: **Download** the transcription model (1.6 GB;
-also from Settings › Engines), and **Connect…** opens Settings › Claude (**I don't use Claude** hides that row).
-ffmpeg, whisper.cpp and DeepFilterNet are already inside the app.
 
 ## The tiers
 

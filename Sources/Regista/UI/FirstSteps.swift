@@ -27,18 +27,26 @@ enum FirstSteps {
     }
 }
 
-/// How «Collega…» opens a Settings tab: SettingsRoute.open by default (a test records the tab instead: a hosted view has
-/// no Settings scene).
-private struct SettingsOpenerKey: EnvironmentKey { static let defaultValue: ((SettingsTab) -> Void)? = nil }
+/// How «Collega…» brings the Settings window up once SettingsRoute has chosen the tab: the scene's openSettings by default
+/// (a hosted view has no Settings scene: a test gives its own and looks at the tab a Settings view shows).
+private struct SettingsWindowOpenerKey: EnvironmentKey { static let defaultValue: (() -> Void)? = nil }
+
+/// The installer «Scarica» runs: the one next to the app (EngineInstaller.locate) by default; a test gives one of its own
+/// that writes the model file, or fails.
+private struct FirstStepsInstallerKey: EnvironmentKey { static let defaultValue: (() -> EngineInstaller?)? = nil }
 
 /// How the block reads the Claude clients' configuration: ClaudeClients.read by default (a test gives its own state: the
 /// test process shares one configuration folder).
 private struct ClaudeClientsReaderKey: EnvironmentKey { static let defaultValue: (() -> ClaudeClients)? = nil }
 
 extension EnvironmentValues {
-    var settingsOpener: ((SettingsTab) -> Void)? {
-        get { self[SettingsOpenerKey.self] }
-        set { self[SettingsOpenerKey.self] = newValue }
+    var settingsWindowOpener: (() -> Void)? {
+        get { self[SettingsWindowOpenerKey.self] }
+        set { self[SettingsWindowOpenerKey.self] = newValue }
+    }
+    var firstStepsInstaller: (() -> EngineInstaller?)? {
+        get { self[FirstStepsInstallerKey.self] }
+        set { self[FirstStepsInstallerKey.self] = newValue }
     }
     var claudeClientsReader: (() -> ClaudeClients)? {
         get { self[ClaudeClientsReaderKey.self] }
@@ -50,11 +58,14 @@ struct FirstStepsBlock: View {
     @EnvironmentObject private var store: EditorStore
     @Environment(\.appBundle) private var appBundle
     @Environment(\.openSettings) private var openSettings
-    @Environment(\.settingsOpener) private var opener
+    @Environment(\.settingsWindowOpener) private var opener
     @Environment(\.claudeClientsReader) private var reader
+    @Environment(\.firstStepsInstaller) private var locateInstaller
     @State private var clients = ClaudeClients.read()
     @State private var noClaude = false
-    @State private var installer = EngineInstaller.locate()
+    @State private var located = EngineInstaller.locate()
+
+    private var installer: EngineInstaller? { locateInstaller.map { $0() } ?? located }
 
     var body: some View {
         ObservingJobs(jobs: store.jobs) { jobs in
@@ -143,9 +154,8 @@ struct FirstStepsBlock: View {
                     noClaude = true
                 }
                 .fixedSize()
-                EdButton(title: "Collega…") {
-                    if let opener { opener(.claude) } else { SettingsRoute.open(.claude, with: openSettings) }
-                }
+                // The route every «open Settings on a tab» takes (the menu's Scorciatoie, the Motori buttons).
+                EdButton(title: "Collega…") { SettingsRoute.open(.claude, opening: opener ?? { openSettings() }) }
                 .fixedSize()
             }
         }
