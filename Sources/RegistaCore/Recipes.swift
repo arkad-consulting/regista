@@ -102,6 +102,10 @@ public enum Recipes {
         12. Export: rules_check first (fix what fails), then export_render {path: <exportsDirectory>/<name>.mp4, preset: "9:16"} (check frames, duration and
             loudness in the result: −15 ±0.5 LUFS, true peak ≤ −1.5), export_srt {path: …/<name>.srt},
             export_mlt {path: …/<name>.mlt} (Shotcut project), then project_save.
+            Cover (once per reel): cover_set {time: a frame with the face and the point, title: 3–5 words — ask the user
+            or take the hook's words, place} then cover_make {} (the PNG next to the exports, <name>-cover.png); when its
+            check fails, the cover_set it names (another place, or fewer words). export_render {appendCover: true} holds
+            it for the last 3 frames when the user picks the thumbnail in the phone app.
         13. Verify the file: captions_checkTiming {path: <mp4>} (pass, words on their frame, band inside),
             captions_checkFaces and faces_checkFraming (pass), and media_checkSync {path: <mp4>} (lag < 1 frame). Finish with a short report: takes kept, keywords,
             fixes, what you corrected after looking, the numbers, and the paths of the mp4 / srt / mlt.

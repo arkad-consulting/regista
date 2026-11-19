@@ -179,6 +179,9 @@ enum CommandLines {
 
         // Files out
         case "export.render": return loc("Esportato %@ · %@", file(r["path"]), time(r["duration"]))
+        case "cover.set": return loc("Copertina a %@", time(r["cover"]?["time"]))
+        case "cover.make": return loc("Copertina salvata: %@", file(r["path"]))
+        case "cover.check": return r["check"]?["pass"] == true ? loc("Copertina nei ritagli") : loc("Titolo della copertina fuori dai ritagli")
         case "export.srt": return loc("Esportato %@", file(r["path"])) + " · " + count(int(r["cues"]) ?? 0, "1 blocco", "%@ blocchi")
         case "export.mlt": return loc("Esportato %@ per Shotcut", file(r["path"]))
 

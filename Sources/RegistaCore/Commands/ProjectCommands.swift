@@ -231,6 +231,7 @@ enum ProjectState: Command {
             "brand": project.brand.map { .string($0.id) } ?? .null,
             "kind": .string(ctx.services.rules.kind(of: project).kind), "kindSet": .bool(project.kind != nil),
             "grade": project.grade.map(EffectsJSON.grade) ?? .null,
+            "cover": project.cover?.json ?? .null,
             "recordings": .array((project.recordings ?? []).map { r in
                 ["id": .string(r.id), "session": .string(r.session), "screen": r.screen.map { .string($0) } ?? .null,
                  "camera": r.camera.map { .string($0) } ?? .null, "mic": r.mic.map { .string($0) } ?? .null,

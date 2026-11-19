@@ -91,6 +91,11 @@ lo stesso progetto: quello che cambi in uno lo vedi nell'altro.
 - **Esporta**: il formato (**Reel 9:16**, **Feed 4:5**, **Quadrato**, **Orizzontale**), **Sottotitoli impressi**, il
   **Bit rate**, i **Controlli** e i file: **Esporta video…**, **Sottotitoli .srt…** e **Progetto Shotcut…** (per finire
   il montaggio in Shotcut).
+- **Copertina**, in **Esporta** (solo per i video verticali 9:16): porta la testina sul fotogramma giusto e premi
+  **Usa questo fotogramma**, scrivi il titolo (3–5 parole) e scegli dove sta: **In alto**, **Al centro** o **In basso**.
+  Le due cornici tratteggiate sono i ritagli della griglia di Instagram (3:4) e dello scaffale degli Shorts (2:3): se il
+  titolo ne esce, sotto c'è scritto di quanti pixel e cosa scegliere. **Salva copertina…** scrive il PNG da caricare
+  come copertina. La copertina non ha sottotitoli; carattere e colori del titolo vengono dal kit della **Marca**.
 - **Ispettore**, nel pannello destro: le regolazioni della clip selezionata (tempi, posizione, colore, volume,
   velocità).
 

@@ -90,6 +90,11 @@ project: what you change in one, you see in the other.
 - **Export**: the format (**Reel 9:16**, **Feed 4:5**, **Square**, **Landscape**), **Burned-in captions**, the
   **Bit rate**, the **Checks** and the files: **Export video…**, **Captions .srt…** and **Shotcut project…** (to finish
   the edit in Shotcut).
+- **Cover**, in **Export** (vertical 9:16 videos only): move the playhead to the right frame and click
+  **Use this frame**, type the title (3–5 words) and choose where it sits: **Top**, **Middle** or **Bottom**. The two
+  dashed frames are the crops of the Instagram grid (3:4) and of the Shorts shelf (2:3): if the title leaves them, the
+  line underneath says by how many pixels and what to choose. **Save cover…** writes the PNG to upload as the cover.
+  The cover has no captions; the title's font and colours come from the **Brand** kit.
 - **Inspector**, in the right panel: the settings of the selected clip (timing, position, colour, volume, speed).
 
 ### Moving captions and graphics

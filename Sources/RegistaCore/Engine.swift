@@ -107,7 +107,7 @@ public enum Commands {
         ScriptPrepare.self, TakesLive.self, TeleprompterSimulate.self,
         EditPunchIns.self, TranscriptTimeline.self, TranscriptDeleteWords.self, TranscriptEditText.self,
         CaptionsGenerate.self, CaptionsGet.self, CaptionsSetKeywords.self, CaptionsSetStyle.self, ExportSRT.self,
-        ExportRender.self, FrameRender.self, FrameContactSheet.self, ExportMLT.self,
+        ExportRender.self, FrameRender.self, FrameContactSheet.self, ExportMLT.self, CoverSet.self, CoverMake.self, CoverCheckCommand.self,
         MediaProbe.self, MediaCompare.self, CaptionsCheckTiming.self, MediaCheckSync.self, CaptionsCheckFaces.self, FacesCheckFraming.self,
         UIScreenshot.self, PreviewFrame.self,
         OverlayAdd.self, ClipKeyframe.self, LayoutSpeaker.self, HandsTrack.self, ClipFollow.self, StatusAdd.self, MetersAdd.self, TitleAdd.self, EffectAdd.self, EffectRemove.self, TransitionAdd.self, TransitionRemove.self,

@@ -56,7 +56,9 @@ extension Recipes {
             lands on the right element, captions are readable and clear of the face, no black frame. Fix, look again.
         12. Export: rules_check first (fix what fails), then export_render {path: <exportsDirectory>/<name>.mp4, preset: "16:9" | "9:16"} (expect −15 ±0.5
             LUFS when there is a voice), export_srt if there are captions, then recording_check {path: <mp4>}
-            (sync, face in its box, zoom on the clicks) and project_save.
+            (sync, face in its box, zoom on the clicks) and project_save. When the project is 9:16, the cover: cover_set {time:
+            the frame that shows the result, title: 3–5 words, place} then cover_make {}; when its check fails, the
+            cover_set it names.
         13. Another format from the same edit: project_format {preset: "9:16" | "4:5" | "1:1" | "16:9"} lays the
             face and the frame out again and recomputes zoom and badges; look (step 11) and export again under
             another file name.

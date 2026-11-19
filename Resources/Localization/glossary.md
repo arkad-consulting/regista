@@ -62,6 +62,7 @@ Keep these the same everywhere in `*.lproj/Localizable.strings` (scheme and chec
 | Applicazioni (the folder) | Applications | Applications | Aplicativos |
 | collegare Claude / Collega… | connect Claude / Connect… | connecter Claude / Connecter… | conectar o Claude / Conectar… |
 | codice sorgente (the repository a developer clones) | source code | code source | código-fonte |
+| copertina (a reel's cover image, `cover.*`) | cover | couverture | capa |
 
 Names never translated: Regista, Claude, Claude Code, Claude Desktop, MCP, ComfyUI, Higgsfield, WhisperX, VoxCPM2,
 HyperFrames, Blender, Shotcut, FFmpeg, macOS, Arkad, WeSites, the shortcut glyphs (⌘ ⌥ ⇧ ⌃).

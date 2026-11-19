@@ -121,6 +121,10 @@ struct ExportSettingsPanel: View {
                         }
                     }
                 }
+                // The reel's cover (#42), used once per video: one compact row, vertical projects only.
+                if rulesDemo == nil, let s = store.project?.settings, Cover.isVertical(s) {
+                    CoverRow()
+                }
                 if let last = store.activity.last(where: { $0.command.hasPrefix("export.") }) {
                     section("Ultimo export") {
                         ActivityRow(a: last, compact: false)

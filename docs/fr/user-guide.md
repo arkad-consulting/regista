@@ -97,6 +97,12 @@ montrent le même projet : ce que vous changez dans l'un, vous le voyez dans l'a
 - **Exporter** : le format (**Reel 9:16**, **Feed 4:5**, **Carré**, **Paysage**), **Sous-titres incrustés**, le
   **Débit**, les **Vérifications** et les fichiers : **Exporter la vidéo…**, **Sous-titres .srt…** et
   **Projet Shotcut…** (pour finir le montage dans Shotcut).
+- **Couverture**, dans **Exporter** (vidéos verticales 9:16 seulement) : placez la tête de lecture sur la bonne image
+  et cliquez sur **Utiliser cette image**, tapez le titre (3 à 5 mots) et choisissez où il se place : **En haut**,
+  **Au centre** ou **En bas**. Les deux cadres en pointillé sont les recadrages de la grille d'Instagram (3:4) et de
+  l'étagère des Shorts (2:3) : si le titre en sort, la ligne en dessous dit de combien de pixels et quoi choisir.
+  **Enregistrer la couverture…** écrit le PNG à envoyer comme couverture. La couverture n'a pas de sous-titres ; la
+  police et les couleurs du titre viennent du kit de **Marque**.
 - **Inspecteur**, dans le panneau de droite : les réglages du clip sélectionné (temps, position, couleur, volume,
   vitesse).
 

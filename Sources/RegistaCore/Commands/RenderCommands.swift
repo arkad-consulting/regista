@@ -43,10 +43,11 @@ enum ExportRender: Command {
         .optional("ceiling", .number, "True-peak ceiling of the mix, dBTP (default \(LoudnessTarget.text(LoudnessTarget.truePeak)))."),
         .optional("loudness", .number, "Integrated loudness target of the final mix, LUFS (e.g. -15 once music and SFX are added): the mix is measured and re-made with one static gain before the limiter. Default: no correction (the voice is already at -15)."),
         .optional("exportAnyway", .boolean, "Export although an editing rule fails. Only when the user said to export anyway, after being told what fails; never on your own."),
+        .optional("appendCover", .boolean, "Hold the reel's cover (cover.set) for the last \(Cover.appendedFrames) frames, silent, so that it can be picked as the thumbnail frame in a phone app (default false). The rules read the edit without it."),
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
-        let project = try ctx.requireProject()
+        var project = try ctx.requireProject()
         let renderer = try Render.renderer(ctx, command: id)
         guard project.duration > .zero else { throw CommandError.conflict("\(id): the timeline is empty") }
         // The editing rules (#31): no delivery while a check fails, unless the person said to export anyway.
@@ -58,6 +59,17 @@ enum ExportRender: Command {
                 + failures.map { "- " + $0.line }.joined(separator: "\n")
                 + "\nFix them first — rules.fix {all: true} applies every safe fix in one undo step; the others need an edit — then export "
                 + "again. Pass exportAnyway: true only if the user, told what fails, said to export anyway.")
+        }
+        // The cover held at the end (#42): drawn after the rules, which read the edit as it is.
+        var coverPNG: URL?
+        defer { if let coverPNG { try? FileManager.default.removeItem(at: coverPNG) } }
+        if p.bool("appendCover") == true {
+            try Cover.requireVertical(project, command: id)
+            guard let cover = project.cover else { throw CommandError.conflict("\(id): appendCover needs the reel's cover: cover.set {time, title} first") }
+            let png = FileManager.default.temporaryDirectory.appendingPathComponent("regista-cover-end-\(UUID().uuidString.prefix(8)).png")
+            coverPNG = png
+            _ = try CoverRender.render(project, cover, to: png, ctx, command: id)
+            project = CoverRender.appended(project, cover: png)
         }
         let preset = ExportPreset.named(p.string("preset"), project: project)
         let job = RenderJob(project: project, preset: preset, captions: p.bool("captions") ?? true)
@@ -106,6 +118,7 @@ enum ExportRender: Command {
         }
         // Said, not hidden: the first attempt stopped moving before the first second and the export started again once.
         if let frame = report.restartedAtFrame { result["restartedAtFrame"] = .number(Double(frame)) }
+        if coverPNG != nil { result["coverFrames"] = .number(Double(Cover.appendedFrames)) }
         if masterGain != 0 { result["masterGain"] = .number((masterGain * 100).rounded() / 100) }
         if wav != nil { result["loudness"] = try ctx.services.audio.loudness(of: [AudioSpan(url: output, channels: 2)]).json }
         return .object(result)

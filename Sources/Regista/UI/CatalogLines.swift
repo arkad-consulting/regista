@@ -44,6 +44,7 @@ enum CatalogLines {
         "fx-chroma": "Toglie lo sfondo verde da una clip sovrapposta.",
         "text-hook": "Un titolo grande nello stile della marca, in alto.",
         "text-kicker": "Una piccola etichetta: una data, una fonte, un tema.",
+        "text-cover": "Questo fotogramma come copertina del reel, per lo scaffale degli Shorts e la griglia di Instagram.",
         "text-3d": "Un vero titolo in 3D, fatto con Blender.",
         "callout-circle": "Un cerchio disegnato a mano attorno a qualcosa.",
         "callout-underline": "Una linea disegnata a mano sotto una parola.",

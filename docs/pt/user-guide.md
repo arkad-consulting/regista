@@ -91,6 +91,11 @@ projeto: o que você muda em um, vê no outro.
 - **Exportar**: o formato (**Reel 9:16**, **Feed 4:5**, **Quadrado**, **Horizontal**), **Legendas embutidas**, a
   **Taxa de bits**, as **Verificações** e os arquivos: **Exportar vídeo…**, **Legendas .srt…** e
   **Projeto do Shotcut…** (para terminar a edição no Shotcut).
+- **Capa**, em **Exportar** (só vídeos verticais 9:16): leve o indicador de reprodução até o quadro certo e clique em
+  **Usar este quadro**, digite o título (3 a 5 palavras) e escolha onde ele fica: **Em cima**, **No centro** ou
+  **Embaixo**. As duas molduras tracejadas são os recortes da grade do Instagram (3:4) e da prateleira dos Shorts (2:3):
+  se o título sair delas, a linha embaixo diz quantos pixels e o que escolher. **Salvar capa…** grava o PNG para enviar
+  como capa. A capa não tem legendas; a fonte e as cores do título vêm do kit da **Marca**.
 - **Inspetor**, no painel da direita: os ajustes do clipe selecionado (tempos, posição, cor, volume, velocidade).
 
 ### Mover legendas e gráficos

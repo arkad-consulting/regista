@@ -239,6 +239,13 @@ public enum EffectsCatalog {
             if p.brand?.titles["kicker"] != nil { o["preset"] = "kicker" }
             return o
         }
+        // The reel's cover (#42): this frame, then its title and place in Esporta or with cover.set; cover.make renders it.
+        add("text-cover", .text, "Copertina", "This frame as the reel's cover.", "cover.set", .moment, "photo.on.rectangle",
+            fields: [Field("time", "time", 1.2, "Timeline second of the frame the cover shows."),
+                     Field("title", "text", "Tre parole chiare", "The cover's words, 3–5 read best; \\n starts a new line."),
+                     Field("place", "choice", "center", "Where the title sits.", choices: Cover.Place.allCases.map(\.rawValue))]) { t, _, _ in
+            ["time": s(t.start)]
+        }
         // Optional 3D (Blender installed, Medium tier+): an extruded title for the hook; the 2D titles above are the fallback.
         add("text-3d", .text, "Titolo 3D", "A real 3D title (Blender, ~1–2 min the first time, cached); for the hook only.", "graphics.blenderTitle",
             .moment, "cube", engine: "blender",
