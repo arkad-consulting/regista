@@ -166,8 +166,10 @@ enum EnginesStatus: Command {
                           path: c.voxcpmProject, available: why == nil, reason: why)
             }
             if g.id == "comfyui" {
-                e = entry(g.id, "generation (\(g.title): Z-Image stills, Wan 2.2 clips, ACE-Step music, ESRGAN/RIFE upscale)",
-                          path: c.comfyGen, available: why == nil, reason: why ?? g.unavailableReason(.upscale))
+                // Where ComfyUI is: the folder (or start command) Regista starts when nothing answers at its address.
+                let location = (g as? ComfyUIProvider)?.location ?? s.comfyLocation
+                e = entry(g.id, "generation (\(g.title): Z-Image stills, Wan 2.2 clips, ACE-Step music, ESRGAN/RIFE upscale; server \(location.server.absoluteString))",
+                          path: location.start?.path, available: why == nil, reason: why)
             }
             return e
         }
@@ -236,7 +238,7 @@ enum EnginesStatus: Command {
         case "voxcpm-weights": return file("\(c.voxcpmModel)/model.safetensors")
         case "voxcpm": return file(c.voxcpmScript)
         case "voice-training": return file("\(c.voxcpmProject)/train_voxcpm_finetune.py")
-        case "comfyui": return file(c.comfyGen)
+        case "comfyui": return (s.comfyLocation.start?.path, s.comfyLocation.start != nil ? "installed" : "missing")
         case "shotcut":
             let apps = ["/Applications/Shotcut.app", "~/Applications/Shotcut.app"]
             return file(apps.first { fm.fileExists(atPath: EngineConfig.expand($0)) } ?? apps[0])

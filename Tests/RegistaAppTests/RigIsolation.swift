@@ -119,8 +119,10 @@ enum RigServices {
         s.config.voxcpmProject = vox.path
         s.config.voxcpmScript = vox.appendingPathComponent("vox_say.py").path
         s.config.voxcpmModel = vox.appendingPathComponent("VoxCPM2").path
-        s.config.comfyGen = none.appendingPathComponent("comfy-gen").path
-        s.config.comfyRun = none.appendingPathComponent("comfy_run.py").path
+        // ComfyUI: an address where nothing listens, no folder set, none looked for in the person's home.
+        s.config.comfyServer = "http://127.0.0.1:9"
+        s.config.comfyStart = nil
+        s.comfyPlaces = []
         s.config.higgsfield = none.appendingPathComponent("higgsfield").path
         // Blender and the HyperFrames CLI (apps of their own, minutes of work per click) are not found either.
         s.config.blender = none.appendingPathComponent("Blender").path
@@ -137,7 +139,7 @@ enum RigServices {
         s.generationState = folder.appendingPathComponent("generation", isDirectory: true)
         s.rules = RuleBook(directory: folder.appendingPathComponent("rules", isDirectory: true))
         s.generators = [:]
-        for g in [ComfyUIProvider(config: s.config), HiggsfieldProvider(config: s.config)] as [GeneratorProvider] {
+        for g in [ComfyUIProvider(config: s.config, places: []), HiggsfieldProvider(config: s.config)] as [GeneratorProvider] {
             s.generators[g.id] = RigGenerator(real: g)
         }
         // VoxCPM2 is the real provider on the rig's environment: its process is the stub uv.

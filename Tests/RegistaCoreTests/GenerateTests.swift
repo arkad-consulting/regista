@@ -196,12 +196,11 @@ struct GenerateFixture {
 }
 
 @Test func providersCommandArgumentsMatchTheCLIs() throws {
-    var config = EngineConfig()
-    config.comfyGen = "/usr/bin/true"
-    let comfy = ComfyUIProvider(config: config)
+    let config = EngineConfig()
+    let comfy = ComfyUIProvider(config: config, places: [])
     let job = tempDir()
-    let video = try comfy.process(GenerationRequest(provider: "comfyui", kind: .video, prompt: "slow push", refs: ["/tmp/s.png"], duration: 3, seed: 5), job: job)
-    #expect(video.arguments == ["video", "--image", "/tmp/s.png", "--prompt", "slow push", "--seconds", "3", "--size", "464x832", "--seed", "5"])
+    // ComfyUI runs in this process (#6): the request is checked before anything runs (ComfyTests drive a stand-in server).
+    #expect(try comfy.process(GenerationRequest(provider: "comfyui", kind: .video, prompt: "slow push", refs: ["/tmp/s.png"], duration: 3, seed: 5), job: job).work != nil)
     #expect(throws: CommandError.self) { try comfy.process(GenerationRequest(provider: "comfyui", kind: .video, prompt: "x"), job: job) }
     #expect(throws: CommandError.self) { try comfy.process(GenerationRequest(provider: "comfyui", kind: .image, prompt: "x", width: 1000, height: 1000), job: job) }
     let hf = HiggsfieldProvider(config: config)
@@ -308,24 +307,27 @@ final class FakeSegmenter: PersonSegmenter {
     let dir = tempDir()
     var config = EngineConfig()
     config.cacheDirectory = dir.path
-    config.comfyGen = "/usr/bin/true"
-    config.comfyRun = dir.appendingPathComponent("missing/comfy_run.py").path
-    config.python3 = "/usr/bin/true"
-    func engine(_ tier: MachineTier) throws -> Engine {
+    config.comfyServer = "http://127.0.0.1:9"   // nothing answers there
+    func engine(_ tier: MachineTier, start: String? = nil) throws -> Engine {
         var s = FakeServices(tier: tier).make()
+        var config = config
+        config.comfyStart = start
         s.config = config
-        s.generators = ["comfyui": ComfyUIProvider(config: config)]
+        s.generators = ["comfyui": ComfyUIProvider(config: config, places: [])]
         s.generationState = tempDir()
         let e = Engine(prober: FakeProber(), services: s)
         try e.execute("project.new", params: ["name": "g", "directory": .string(tempDir().path)])
         return e
     }
-    let e = try engine(.pro)
+    // Regista knows no ComfyUI: every kind waits for the setup, with the engine to set up.
+    let unset = try #require(try engine(.pro).execute("generate.providers")["providers"]?.arrayValue?.first)
+    #expect(unset.value(at: "kinds.music.available") == false)
+    #expect(unset.value(at: "kinds.music.why") == "setup")
+    #expect(unset.value(at: "kinds.music.engine") == "comfyui")
+    // A start command set: Regista starts the server when it runs, every kind is available.
+    let e = try engine(.pro, start: "/usr/bin/true")
     let comfy = try #require(try e.execute("generate.providers")["providers"]?.arrayValue?.first)
-    #expect(comfy.value(at: "kinds.image.available") == true)
-    #expect(comfy.value(at: "kinds.music.available") == false)
-    #expect(comfy.value(at: "kinds.music.why") == "setup")
-    #expect(comfy.value(at: "kinds.music.engine") == "comfyui")
+    #expect(comfy.value(at: "kinds.image.available") == true && comfy.value(at: "kinds.music.available") == true)
     #expect(comfy.value(at: "formats.image")?.arrayValue?.first?["name"] == "9:16")
     #expect(comfy.value(at: "formats.image")?.arrayValue?.first?["size"] == [720, 1280])
     #expect(comfy.value(at: "formats.video")?.arrayValue?.map { $0["name"]?.stringValue ?? "" } == ["9:16", "4:5", "1:1", "16:9"])
@@ -341,8 +343,6 @@ final class FakeSegmenter: PersonSegmenter {
     #expect(throws: CommandError.self) { try e.execute("generate.estimate", params: ["provider": "comfyui", "kind": "image"]) }
 
     // Upscale: the clip by asset id, no prompt; the time follows its length. The same request generate.upscale runs.
-    try FileManager.default.createDirectory(at: dir.appendingPathComponent("missing"), withIntermediateDirectories: true)
-    try Data().write(to: URL(fileURLWithPath: config.comfyRun))
     try e.execute("media.import", params: ["path": .string(fakeMedia())])
     let up = try e.execute("generate.estimate", params: ["provider": "comfyui", "kind": "upscale", "refs": ["a1"]])
     let asset = try #require(e.project?.asset("a1"))

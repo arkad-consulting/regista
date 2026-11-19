@@ -41,8 +41,9 @@ import Testing
     #expect(s.rules.directory.path.hasPrefix(tmp) && RuleBook.defaultDirectory.path.hasPrefix(tmp))
     #expect(Set(s.generators.keys) == ["comfyui", "higgsfield", "voxcpm"])
     #expect(s.generators["comfyui"] is RigGenerator && s.generators["higgsfield"] is RigGenerator && s.generators["voxcpm"] is VoxCPMProvider)
-    #expect(s.comfyServer() == nil)
-    for path in [s.config.comfyGen, s.config.higgsfield ?? "", s.config.blender, s.config.node, s.config.whisperXProject] {
+    #expect(s.comfyServer() == nil && s.comfyPlaces.isEmpty && s.comfyLocation.start == nil)
+    #expect(URL(string: s.config.comfyServer)?.port == 9, "the rig's ComfyUI address: nothing listens there")
+    for path in [s.config.higgsfield ?? "", s.config.blender, s.config.node, s.config.whisperXProject] {
         #expect(path.hasPrefix(tmp) && !FileManager.default.fileExists(atPath: path))
     }
     // The voice's environment: in the scratch folder, its uv the rig's stub (a script there, never the real uv).

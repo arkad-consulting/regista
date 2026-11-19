@@ -139,16 +139,26 @@ public struct GenerationOutput: Codable, Hashable, Sendable {
     public var cost: Double? = nil
 }
 
-/// A process to run for a job: executable, arguments, extra environment.
+/// A process to run for a job: executable, arguments, extra environment. Or work done in this process instead of a
+/// child (ComfyUI over its HTTP API, #6): `work` gets the job folder and the Cancel to honour, and returns what a child
+/// would print on stdout (the result line `collect` reads).
 public struct GenerationProcess: Sendable {
+    public typealias Work = @Sendable (_ job: URL, _ cancellation: GenerationCancellation?) throws -> String
     public var executable: URL
     public var arguments: [String]
     public var environment: [String: String]
+    public var work: Work?
 
     public init(_ executable: URL, _ arguments: [String], environment: [String: String] = [:]) {
         self.executable = executable
         self.arguments = arguments
         self.environment = environment
+    }
+
+    /// In-process work, named for the error lines (`executable` is only that name).
+    public init(name: String, work: @escaping Work) {
+        self.init(URL(fileURLWithPath: name), [])
+        self.work = work
     }
 }
 
@@ -264,10 +274,19 @@ public struct GenerationJobDir {
         return o
     }
 
-    /// nil while the process runs.
+    /// The process that runs in-process work (pid and start time): its end without an exit file means the work died with it.
+    public var hostFile: URL { url.appendingPathComponent("host") }
+
+    /// nil while the process runs. In-process work whose host process ended before it finished (a one-shot
+    /// `regista-engine exec … wait: false`) gets exit 1 and says so.
     public var exitStatus: Int32? {
-        guard let s = try? String(contentsOf: exitFile, encoding: .utf8) else { return nil }
-        return Int32(s.trimmingCharacters(in: .whitespacesAndNewlines))
+        if let s = try? String(contentsOf: exitFile, encoding: .utf8) { return Int32(s.trimmingCharacters(in: .whitespacesAndNewlines)) }
+        guard let host = try? String(contentsOf: hostFile, encoding: .utf8) else { return nil }
+        let parts = host.split(whereSeparator: { $0 == " " || $0 == "\n" }).compactMap { UInt64($0) }
+        guard parts.count == 2, ComfyServer.startTime(Int32(parts[0])) != parts[1] else { return nil }
+        try? "the process that ran this job ended before the job finished: run it again\n".write(to: stderrFile, atomically: true, encoding: .utf8)
+        try? "1\n".write(to: exitFile, atomically: true, encoding: .utf8)
+        return 1
     }
 
     public var stdout: String { (try? String(contentsOf: stdoutFile, encoding: .utf8)) ?? "" }
@@ -281,8 +300,9 @@ public struct GenerationJobDir {
     public func launch(_ p: GenerationProcess, wait: Bool, cancellation: GenerationCancellation? = nil) throws {
         if wait, cancellation?.isCancelled == true { throw CommandError(.io, "cancelled") }
         let fm = FileManager.default
-        for f in [exitFile, outputFile, stdoutFile, stderrFile] { try? fm.removeItem(at: f) }
+        for f in [exitFile, outputFile, stdoutFile, stderrFile, hostFile] { try? fm.removeItem(at: f) }
         try fm.createDirectory(at: url, withIntermediateDirectories: true)
+        if let work = p.work { return try perform(work, wait: wait, cancellation: cancellation) }
         // `exec mv`: the status is written by the wrapper's own process, never by a child of it, which a Cancel (it stops
         // every process under the wrapper) could kill before the folder says the run ended.
         let script = #""$0" "$@" > stdout.txt 2> stderr.txt; echo $? > exit.tmp && exec mv exit.tmp exit"#
@@ -308,6 +328,32 @@ public struct GenerationJobDir {
             if cancellation.isCancelled { GenerationCancellation.terminateChildren(of: pid) }
         }
         process.waitUntilExit()
+    }
+}
+
+extension GenerationJobDir {
+    /// In-process work with the same folder contract as a child: stdout.txt (empty while it runs), stderr.txt, then
+    /// `exit`. Waited for on this thread; otherwise on a thread of its own, the host process recorded in `host`.
+    func perform(_ work: @escaping GenerationProcess.Work, wait: Bool, cancellation: GenerationCancellation?) throws {
+        try Data().write(to: stdoutFile)
+        let me = getpid()
+        try "\(me) \(ComfyServer.startTime(me) ?? 0)\n".write(to: hostFile, atomically: true, encoding: .utf8)
+        let dir = self
+        let body: @Sendable () -> Void = {
+            var status = "0"
+            do {
+                let out = try work(dir.url, cancellation)
+                try? out.write(to: dir.stdoutFile, atomically: true, encoding: .utf8)
+            } catch {
+                status = cancellation?.isCancelled == true ? "130" : "1"
+                let text = (error as? CommandError)?.message ?? "\(error)"
+                try? (text + "\n").write(to: dir.stderrFile, atomically: true, encoding: .utf8)
+            }
+            try? (status + "\n").write(to: dir.exitFile, atomically: true, encoding: .utf8)
+            try? FileManager.default.removeItem(at: dir.hostFile)
+        }
+        if wait { body(); return }
+        Thread.detachNewThread(body)
     }
 }
 

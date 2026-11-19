@@ -67,58 +67,61 @@ private let zimage: JSONValue = [
     #expect(value.node == "KSampler" && value.input == "sampler_name" && value.value == "res_multistep_v2")
     let gguf = try #require(missing.first { $0.node == "UnetLoaderGGUF" })
     #expect(gguf.kind == "node" && gguf.hint.contains("ComfyUI-GGUF") && gguf.hint.contains("https://github.com/city96/ComfyUI-GGUF"))
-    #expect(missing.first { $0.node == "SomeCustomNode" }?.hint.contains("ComfyUI Manager") == true)
+    #expect(missing.first { $0.node == "SomeCustomNode" }?.hint.contains("install the node pack") == true)
     #expect(missing.count == 4)
 }
 
-/// A comfy-gen setup in a temp dir: an executable runner and its workflows folder with the z-image workflow.
-private func fakeComfy(workflow: JSONValue? = zimage) throws -> EngineConfig {
-    let dir = tempDir()
-    let gen = dir.appendingPathComponent("comfy_gen.py")
-    try Data("#!/bin/sh\n".utf8).write(to: gen)
-    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: gen.path)
-    try FileManager.default.createDirectory(at: dir.appendingPathComponent("workflows"), withIntermediateDirectories: true)
-    if let workflow { try workflow.data().write(to: dir.appendingPathComponent("workflows/zimage-turbo.json")) }
-    var c = EngineConfig()
-    c.comfyGen = gen.path
-    c.comfyRun = dir.appendingPathComponent("no-runner/comfy_run.py").path
-    return c
+/// The full node list a ComfyUI with every pack and model file of Regista's four workflows would give.
+private func completeObjectInfo() -> JSONValue {
+    var info: [String: JSONValue] = [:]
+    for w in ComfyCheck.workflows {
+        for (_, n) in w.graph.objectValue ?? [:] {
+            guard let cls = n["class_type"]?.stringValue else { continue }
+            var required = info[cls]?.value(at: "input.required")?.objectValue ?? [:]
+            for (name, v) in n["inputs"]?.objectValue ?? [:] {
+                guard let text = v.stringValue else { continue }
+                let had = required[name]?.arrayValue?.first?.arrayValue ?? []
+                required[name] = [.array(had + [.string(text)])]
+            }
+            info[cls] = ["input": ["required": .object(required)]]
+        }
+    }
+    return .object(info)
 }
 
-@Test func comfyCheckStatesWithTheServerOffOrOnAndWithoutASetup() throws {
-    let config = try fakeComfy()
-    let info = try objectInfo.data()
-    // Server on: z-image ready; music has no runner here → missing with the setup steps.
-    let on = ComfyCheck.run(config: config, objectInfo: info)
+@Test func comfyCheckReadsTheShippedWorkflowsWithTheServerOnOrOff() throws {
+    let info = completeObjectInfo().data()
+    let found = ComfyServer.Location(server: URL(string: "http://127.0.0.1:9")!, start: .executable(URL(fileURLWithPath: "/usr/bin/true")), configured: true, startProblem: nil)
+    // Server on, every node and file there: the four shipped workflows are ready.
+    let on = ComfyCheck.run(location: found, objectInfo: info)
     #expect(on.map(\.model) == ComfyCheck.models)
-    #expect(on.first { $0.model == "z-image-turbo" }?.state == "ready")
-    let wan = try #require(on.first { $0.model == "wan2.2-i2v-14b-lightning" })
-    #expect(wan.state == "missing" && wan.missing.first?.kind == "file" && wan.missing.first?.hint.contains("workflow") == true)
-    let music = try #require(on.first { $0.model == "ace-step-1.5-turbo" })
-    #expect(music.state == "missing" && music.summary.contains("comfy_run.py not found") && music.summary.contains("1. "))
-    // Server off: never started, the files checked, the rest "not checked".
-    let off = try #require(ComfyCheck.run(model: "z-image-turbo", config: config, objectInfo: nil).first)
-    #expect(off.state == "notChecked" && off.reason?.contains("ComfyUI is off") == true)
+    #expect(on.allSatisfy { $0.state == "ready" }, "\(on.map(\.summary))")
+    // Server off: never started, the rest "not checked", and where Regista would start it from.
+    let off = try #require(ComfyCheck.run(model: "z-image-turbo", location: found, objectInfo: nil).first)
+    #expect(off.state == "notChecked" && off.reason?.contains("ComfyUI is off") == true && off.reason?.contains("/usr/bin/true") == true)
     #expect(ComfyCheck.lastResult("z-image-turbo") == off, "generate.providers shows the last result")
-    // No setup at all: the guided steps of the manifest, no developer path.
-    var none = EngineConfig()
-    none.comfyGen = tempDir().appendingPathComponent("comfy-gen").path
-    let missing = try #require(ComfyCheck.run(model: "z-image-turbo", config: none, objectInfo: info).first)
-    #expect(missing.state == "missing" && missing.summary.contains("ComfyUI is not set up on this Mac"))
+    // Off and nowhere to start from: the guided steps of the manifest.
+    var none = found
+    none.start = nil
+    none.configured = false
+    let missing = try #require(ComfyCheck.run(model: "ace-step-1.5-turbo", location: none, objectInfo: nil).first)
+    #expect(missing.state == "missing" && missing.summary.contains("does not know where it is") && missing.summary.contains("1. "))
     #expect(ComfyCheck.setupSteps.hasPrefix("1. ") && ComfyCheck.setupSteps.contains("generate.check"))
 }
 
 @Test func generateRunFailsFastOnAMissingComfyFileAndNotWhenTheServerIsOff() throws {
-    var broken = zimage.objectValue!
-    broken["3"] = ["class_type": "VAELoader", "inputs": ["vae_name": "gone.safetensors"]]
-    let config = try fakeComfy(workflow: .object(broken))
-    let info = try objectInfo.data()
-    #expect(throws: CommandError.self) { try ComfyCheck.gate(model: "z-image-turbo", config: config, command: "generate.run", fetch: { info }) }
-    do { try ComfyCheck.gate(model: "z-image-turbo", config: config, command: "generate.run", fetch: { info }) } catch {
-        #expect("\(error)".contains("gone.safetensors") && "\(error)".contains("models/vae") && "\(error)".contains("Nothing was queued"))
+    var info = completeObjectInfo().objectValue!
+    info["VAELoader"] = ["input": ["required": ["vae_name": [["other.safetensors"]]]]]
+    let data = JSONValue.object(info).data()
+    let location = ComfyServer.Location(server: URL(string: "http://127.0.0.1:9")!, start: nil, configured: false, startProblem: nil)
+    do {
+        try ComfyCheck.gate(model: "z-image-turbo", location: location, command: "generate.run", fetch: { data })
+        Issue.record("a missing model file did not stop the run")
+    } catch {
+        #expect("\(error)".contains("ae.safetensors") && "\(error)".contains("models/vae") && "\(error)".contains("Nothing was queued"))
     }
-    try ComfyCheck.gate(model: "z-image-turbo", config: config, command: "generate.run", fetch: { nil })   // off: comfy-gen starts it
-    try ComfyCheck.gate(model: "z_image", config: config, command: "generate.run", fetch: { info })        // not a ComfyUI model
+    try ComfyCheck.gate(model: "z-image-turbo", location: location, command: "generate.run", fetch: { nil })   // off: Regista starts it
+    try ComfyCheck.gate(model: "z_image", location: location, command: "generate.run", fetch: { data })        // not a ComfyUI model
     // The command is registered and validates its model.
     #expect(Engine(prober: FakeProber(), services: FakeServices().make()).registry["generate.check"] != nil)
 }

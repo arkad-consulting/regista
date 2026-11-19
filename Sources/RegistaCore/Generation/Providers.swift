@@ -1,15 +1,24 @@
 import Foundation
 
-// The two real providers: local ComfyUI (free, Pro tier) and Higgsfield (paid, hard budget). Both are CLIs run as
-// separate processes in the job folder.
+// The two real providers: local ComfyUI (free, Pro tier) over its HTTP API, run in this process, and Higgsfield (paid,
+// hard budget), a CLI run as a separate process in the job folder.
 
-/// Local ComfyUI through `comfy-gen` (Z-Image Turbo stills, Wan 2.2 14B lightning image-to-video) and the
-/// `comfy_run.py` runner (ACE-Step 1.5 music, Real-ESRGAN x4plus + RIFE 4.26 upscale to 1080×1920 at 30 fps).
-/// Free and unlimited, but heavy (Wan 14B, ACE-Step; sizes in scripts/engines.manifest.json): Pro tier only, and the server is stopped after
-/// each waited-for run unless the caller chains more jobs (`keepRunning`).
+/// Local ComfyUI, driven over its own HTTP API (#6): Z-Image Turbo stills, Wan 2.2 14B lightning image-to-video,
+/// ACE-Step 1.5 music, Real-ESRGAN x4plus + RIFE 4.26 upscale to 1080×1920 at 30 fps. The workflows ship in the app
+/// (`ComfyCheck.workflows`). Free and unlimited, but heavy (sizes in scripts/engines.manifest.json): Pro tier only. A
+/// server Regista started is stopped after each waited-for run unless the caller chains more jobs (`keepRunning`).
 public struct ComfyUIProvider: GeneratorProvider {
     public let config: EngineConfig
-    public init(config: EngineConfig) { self.config = config }
+    /// Where a ComfyUI folder is looked for when `comfyStart` is not set (the tests' rig: none).
+    public var places: [String]
+    /// Seconds a server Regista starts has to answer, and between two looks at a running prompt.
+    var startTimeout: TimeInterval = 300
+    var poll: TimeInterval = 1
+
+    public init(config: EngineConfig, places: [String] = ComfyServer.usualPlaces) {
+        self.config = config
+        self.places = places
+    }
 
     public let id = "comfyui"
     public let title = "ComfyUI (local, free)"
@@ -22,20 +31,14 @@ public struct ComfyUIProvider: GeneratorProvider {
         GeneratorModel("realesrgan-x4plus+rife-4.26", .upscale, "Real-ESRGAN x4plus + RIFE to 1080×1920 at 30 fps (generate.upscale); ~4 min per 3 s clip", isDefault: true),
     ]
 
-    var comfyGen: URL { config.url(config.comfyGen) }
-    var comfyRun: URL { config.url(config.comfyRun) }
+    /// The server, and what Regista would start when it does not answer.
+    public var location: ComfyServer.Location { ComfyServer.locate(config, places: places) }
 
     public func unavailableReason(_ kind: GenerationKind) -> String? {
-        let fm = FileManager.default
-        switch kind {
-        case .image, .video:
-            return fm.isExecutableFile(atPath: comfyGen.path) ? nil : "comfy-gen not found at \(comfyGen.path): ComfyUI is not set up on this Mac (Pro tier, set up by hand). Steps:\n\(ComfyCheck.setupSteps)"
-        case .music, .upscale:
-            if !fm.fileExists(atPath: comfyRun.path) { return "comfy_run.py not found at \(comfyRun.path): set comfyRun in engines.json to the runner of the ComfyUI setup (Pro tier, set up by hand). Steps:\n\(ComfyCheck.setupSteps)" }
-            return fm.isExecutableFile(atPath: config.url(config.python3).path) ? nil : "python3 not found at \(config.python3)"
-        case .voice:
-            return "ComfyUI makes no voice-over: use the voxcpm provider"
-        }
+        if kind == .voice { return "ComfyUI makes no voice-over: use the voxcpm provider" }
+        let loc = location
+        if loc.start != nil || ComfyClient(base: loc.server).answers(timeout: 1) { return nil }
+        return ComfyServer.notRunning(loc)
     }
 
     public func estimate(_ request: GenerationRequest) throws -> Double { 0 }
@@ -45,7 +48,7 @@ public struct ComfyUIProvider: GeneratorProvider {
     public func seconds(_ r: GenerationRequest, sourceSeconds: Double?) -> Double? {
         switch r.kind {
         case .image: return 10 + 25 * Double((r.width ?? 720) * (r.height ?? 1280)) / 1_000_000
-        case .video: return 100 * Double(min(max(Int((r.duration ?? 3).rounded()), 1), 5))
+        case .video: return 100 * Double(Self.clipSeconds(r))
         case .music: return 30 + 0.9 * (r.duration ?? 45)
         case .upscale: return sourceSeconds.map { 80 * max($0, 1) }
         case .voice: return nil
@@ -61,34 +64,105 @@ public struct ComfyUIProvider: GeneratorProvider {
         }
     }
 
-    static func size(_ r: GenerationRequest, default d: (Int, Int)) throws -> String {
+    static func size(_ r: GenerationRequest, default d: (Int, Int)) throws -> (Int, Int) {
         let w = r.width ?? d.0, h = r.height ?? d.1
         guard w > 0, h > 0, w % 16 == 0, h % 16 == 0 else { throw CommandError.invalid("ComfyUI sizes must be multiples of 16 (got \(w)×\(h))") }
-        return "\(w)x\(h)"
+        return (w, h)
+    }
+
+    static func clipSeconds(_ r: GenerationRequest) -> Int { min(max(Int((r.duration ?? 3).rounded()), 1), 5) }
+
+    /// The shipped workflow with this request's values in its inputs (by node id and input name), and the files to upload
+    /// (input name → local file) for the start image or the clip.
+    func workflow(_ r: GenerationRequest) throws -> (ComfyCheck.Workflow, JSONValue, uploads: [(node: String, input: String, file: String)]) {
+        let model = model(for: r)
+        guard let w = ComfyCheck.workflow(model) else { throw CommandError.invalid("ComfyUI has no model \(model) (generate.providers lists them)") }
+        let seed = r.seed ?? GenerationRequest.defaultSeed(r.prompt)
+        var size = (0, 0)
+        switch r.kind {
+        case .image: size = try Self.size(r, default: (720, 1280))
+        case .video:
+            guard r.refs.first != nil else {
+                throw CommandError.invalid("ComfyUI video is image-to-video: generate the start frame first (kind image, same 9:16 aspect) and pass it in refs")
+            }
+            size = try Self.size(r, default: (464, 832))
+        case .upscale: guard r.refs.first != nil else { throw CommandError.invalid("upscale needs the clip (refs[0])") }
+        case .music: break
+        case .voice: throw CommandError.invalid("ComfyUI makes no voice-over: use the voxcpm provider")
+        }
+        var graph = w.graph.objectValue ?? [:]
+        var uploads: [(String, String, String)] = []
+        for f in w.fills {
+            let value: JSONValue
+            switch f.value {
+            case .prompt: value = .string(r.prompt)
+            case .width: value = .number(Double(size.0))
+            case .height: value = .number(Double(size.1))
+            case .seed: value = .number(Double(seed))
+            case .bpm: value = .number(Double(Int(r.options?["bpm"] ?? "") ?? 100))
+            case .seconds: value = .number(r.duration ?? 45)
+            case .frames: value = .number(Double(Self.clipSeconds(r) * 16 + 1))
+            case .startImage, .inputClip: uploads.append((f.node, f.input, r.refs[0])); continue
+            }
+            guard var node = graph[f.node]?.objectValue, var inputs = node["inputs"]?.objectValue else {
+                throw CommandError(.io, "the shipped workflow of \(model) has no node \(f.node) with inputs")
+            }
+            inputs[f.input] = value
+            node["inputs"] = .object(inputs)
+            graph[f.node] = .object(node)
+        }
+        return (w, .object(graph), uploads)
     }
 
     public func process(_ r: GenerationRequest, job: URL) throws -> GenerationProcess {
-        let seed = String(r.seed ?? GenerationRequest.defaultSeed(r.prompt))
-        let python = config.url(config.python3)
-        switch r.kind {
-        case .image:
-            return GenerationProcess(comfyGen, ["image", "--prompt", r.prompt, "--size", try Self.size(r, default: (720, 1280)), "--seed", seed])
-        case .video:
-            guard let start = r.refs.first else {
-                throw CommandError.invalid("ComfyUI video is image-to-video: generate the start frame first (kind image, same 9:16 aspect) and pass it in refs")
+        let (w, prepared, uploads) = try workflow(r)
+        let seed: Int? = r.kind == .upscale ? nil : r.seed ?? GenerationRequest.defaultSeed(r.prompt)
+        let (config, places, startTimeout, poll) = (config, places, startTimeout, poll)
+        let timeout: TimeInterval = [.image: 15, .video: 45, .music: 15, .upscale: 60][r.kind, default: 30] * 60
+        return GenerationProcess(name: "ComfyUI") { job, cancellation in
+            let began = Date()
+            let client = try ComfyServer.ensure(config, places: places, timeout: startTimeout, cancellation: cancellation)
+            var graph = prepared.objectValue ?? [:]
+            for u in uploads {
+                let file = URL(fileURLWithPath: u.file)
+                let name = "\(try FileDigest.sha256(file).prefix(16)).\(file.pathExtension.lowercased())"
+                let value = try client.upload(file, as: name, subfolder: "regista")
+                var node = graph[u.node]?.objectValue ?? [:]
+                var inputs = node["inputs"]?.objectValue ?? [:]
+                inputs[u.input] = .string(value)
+                node["inputs"] = .object(inputs)
+                graph[u.node] = .object(node)
             }
-            let seconds = min(max(Int((r.duration ?? 3).rounded()), 1), 5)
-            return GenerationProcess(comfyGen, ["video", "--image", start, "--prompt", r.prompt, "--seconds", String(seconds),
-                                                "--size", try Self.size(r, default: (464, 832)), "--seed", seed])
-        case .music:
-            let seconds = r.duration ?? 45
-            return GenerationProcess(python, ["-I", comfyRun.path, "music", "--prompt", r.prompt, "--seconds", String(format: "%.1f", seconds),
-                                              "--bpm", r.options?["bpm"] ?? "100", "--seed", seed, "--out", job.path])
-        case .upscale:
-            guard let clip = r.refs.first else { throw CommandError.invalid("upscale needs the clip (refs[0])") }
-            return GenerationProcess(python, ["-I", comfyRun.path, "upscale", clip, "--out", job.path])
-        case .voice:
-            throw CommandError.invalid("ComfyUI makes no voice-over: use the voxcpm provider")
+            let promptID = UUID().uuidString.lowercased()
+            try promptID.write(to: job.appendingPathComponent("comfyui-prompt"), atomically: true, encoding: .utf8)
+            func cancelled() -> Bool { cancellation?.isCancelled == true || CommandJob.current?.isCancelled == true }
+            if cancelled() { throw CommandError(.io, "cancelled") }
+            try client.queue(.object(graph), promptID: promptID)
+            var entry: JSONValue?, misses = 0
+            while entry == nil {
+                if cancelled() { client.cancel(promptID); throw CommandError(.io, "cancelled") }
+                if Date().timeIntervalSince(began) > timeout {
+                    client.cancel(promptID)
+                    throw CommandError(.io, "ComfyUI did not finish \(w.model) within \(Int(timeout / 60)) min: Regista interrupted it")
+                }
+                do { entry = try client.history(promptID); misses = 0 } catch {
+                    misses += 1   // a busy server can miss a beat; one that stays silent is gone
+                    if misses >= 10 { throw CommandError(.io, "ComfyUI stopped answering while it ran \(w.model): \((error as? CommandError)?.message ?? "\(error)")") }
+                }
+                if entry == nil { Thread.sleep(forTimeInterval: poll) }
+            }
+            guard entry!.value(at: "status.status_str")?.stringValue == "success" else { throw CommandError(.io, ComfyErrors.execution(entry!)) }
+            let files = (entry!.value(at: "outputs.\(w.output)")?.objectValue ?? [:]).values.flatMap { $0.arrayValue ?? [] }
+                .filter { $0["filename"]?.stringValue != nil && ($0["type"]?.stringValue ?? "output") == "output" }
+            guard let f = files.first, let filename = f["filename"]?.stringValue else {
+                throw CommandError(.io, "ComfyUI finished \(w.model) without an output file (node \(w.output))")
+            }
+            let dest = job.appendingPathComponent("result.\((filename as NSString).pathExtension.lowercased())")
+            try client.download(filename: filename, subfolder: f["subfolder"]?.stringValue ?? "", type: "output", to: dest)
+            var out: [String: JSONValue] = ["files": [.string(dest.path)], "model": .string(w.model),
+                                            "seconds_taken": .number((Date().timeIntervalSince(began) * 10).rounded() / 10)]
+            if let seed { out["seed"] = .number(Double(seed)) }
+            return JSONValue.object(out).text()
         }
     }
 
@@ -103,14 +177,15 @@ public struct ComfyUIProvider: GeneratorProvider {
             do { try FileManager.default.copyItem(at: src, to: dest) }
             catch { throw CommandError(.io, "cannot copy \(file): \(error.localizedDescription)") }
         }
-        return GenerationOutput(file: dest.path, model: json["model"]?.stringValue.map { m in m.contains("z-image") ? "z-image-turbo" : m } ?? model(for: r),
+        return GenerationOutput(file: dest.path, model: json["model"]?.stringValue ?? model(for: r),
                                 seed: json["seed"]?.doubleValue.map { Int($0) } ?? (r.kind == .upscale ? nil : r.seed ?? GenerationRequest.defaultSeed(r.prompt)),
-                                remoteID: nil, seconds: json["seconds_taken"]?.doubleValue ?? json["wall_seconds"]?.doubleValue)
+                                remoteID: nil, seconds: json["seconds_taken"]?.doubleValue)
     }
 
+    /// The server Regista started is stopped (its process group); one someone else started only gets `POST /free`.
     public func finish(keepRunning: Bool) {
-        guard !keepRunning, FileManager.default.isExecutableFile(atPath: comfyGen.path) else { return }
-        _ = try? Subprocess.run(comfyGen, ["stop"])
+        guard !keepRunning else { return }
+        ComfyServer.finish(config)
     }
 }
 

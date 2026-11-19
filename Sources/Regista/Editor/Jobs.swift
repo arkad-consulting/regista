@@ -139,3 +139,11 @@ final class JobCenter: ObservableObject {
         return s
     }
 }
+
+/// A line of detail an engine sends (English, from RegistaCore) in the person's words; any other line as it came.
+enum JobWords {
+    static func detail(_ raw: String) -> String {
+        if raw.hasPrefix("starting ComfyUI") { return loc("Avvio ComfyUI e aspetto che risponda…") }  // l10n-ignore (the engine's words, matched)
+        return raw
+    }
+}

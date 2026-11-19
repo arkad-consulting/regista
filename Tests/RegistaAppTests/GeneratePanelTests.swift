@@ -185,14 +185,13 @@ private struct Fixture {
     for tier in [MachineTier.medium, .pro] {
         var config = EngineConfig()
         config.cacheDirectory = tempDir().path
-        config.comfyGen = dir.appendingPathComponent("missing/comfy-gen").path
-        config.comfyRun = dir.appendingPathComponent("missing/comfy_run.py").path
+        config.comfyServer = "http://127.0.0.1:9"   // nothing answers, no ComfyUI folder set or looked for
         config.higgsfield = dir.appendingPathComponent("missing/higgsfield").path   // set and missing: no PATH search, no call
         var s = EngineServices.live()
         s.config = config
         s.tier = tier
         let standIn = StandIn(id: "local-test", paid: false, source: try png(in: tempDir()), runs: dir.appendingPathComponent("runs"))
-        s.generators = ["comfyui": ComfyUIProvider(config: config), "higgsfield": HiggsfieldProvider(config: config),
+        s.generators = ["comfyui": ComfyUIProvider(config: config, places: []), "higgsfield": HiggsfieldProvider(config: config),
                         "voxcpm": VoxCPMProvider(config: config, profiles: ProfileStore(directory: tempDir())), standIn.id: standIn]
         s.generationState = tempDir()
         let json = try Engine(services: s).execute("generate.providers")

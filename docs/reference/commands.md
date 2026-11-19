@@ -927,13 +927,13 @@ Returns: the single-use approval token (valid 2 h, for exactly that request).
 
 **Check ComfyUI** · MCP tool: `generate_check` · undo: no — reads only · takes `project`
 
-Check that ComfyUI can run a model before generating (generate.run also does it first): each ComfyUI model's workflow against the running server's node list and model files. Never starts ComfyUI: when it is off, only the runner and workflow files are checked and the rest is "not checked". Returns per model ready / missing (each missing node pack, model file or value with its ComfyUI folder and how to fix it) / notChecked, and the setup steps when ComfyUI is not set up.
+Check that ComfyUI can run a model before generating (generate.run also does it first): each ComfyUI model's workflow (shipped in Regista) against the running server's node list and model files. Never starts ComfyUI: when it is off, says which ComfyUI Regista would start (the folder set in Settings › Motori, or one found in the usual places) and the rest is "not checked". Returns the server address, where ComfyUI is, per model ready / missing (each missing node pack, model file or value with its ComfyUI folder and how to fix it) / notChecked, and the setup steps when Regista knows no ComfyUI.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `model` | one of `z-image-turbo`, `wan2.2-i2v-14b-lightning`, `ace-step-1.5-turbo`, `realesrgan-x4plus+rife-4.26` | no | all four | One ComfyUI model (default: all four). |
 
-Returns: per model ready / missing (each missing node pack, model file or value with its ComfyUI folder and how to fix it) / notChecked, and the setup steps when ComfyUI is not set up.
+Returns: the server address, where ComfyUI is, per model ready / missing (each missing node pack, model file or value with its ComfyUI folder and how to fix it) / notChecked, and the setup steps when Regista knows no ComfyUI.
 
 ### `generate.estimate`
 
@@ -994,7 +994,7 @@ Generate a still, a clip, a music bed or a voice-over (kind voice: the owner's c
 | `options` | object | no | – | Provider flags as strings, e.g. {"resolution": "480p", "generate_audio": "false"} (Higgsfield) or {"bpm": "100"} (ACE-Step). Voice: {"voice": "ada", "language": "fr", "tone": "neutral"} (voice.list shows them; voice and language may be left out when there is only one). |
 | `approval` | string | no | – | Paid providers: the approval token the human got from generate.approve for this exact request. |
 | `wait` | boolean | no | true | Wait for the result (default true); false = background job, poll generate.status. |
-| `keepRunning` | boolean | no | false: stopped after use | ComfyUI: keep the server up for the next job (default false: stopped after use). |
+| `keepRunning` | boolean | no | false: stopped after use | ComfyUI: keep the server Regista started up for the next job (default false: stopped after use; a server someone else started keeps running and only frees its memory). |
 
 Returns: the job and the asset.
 

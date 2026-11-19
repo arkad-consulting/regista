@@ -714,7 +714,6 @@
 "Fiordo" = "Fjord";
 "Fluidità" = "Smoothing";
 "Foglio dei fotogrammi" = "Contact sheet";
-"Put the comfy-gen command (images and clips) in ~/.local/bin, or set comfyGen in engines.json to where it is; for music and upscale, set comfyRun in engines.json to the comfy_run.py runner. Both read their ComfyUI workflows from a workflows folder beside them." = "Put the comfy-gen command (images and clips) in ~/.local/bin, or set comfyGen in engines.json to where it is; for music and upscale, set comfyRun in engines.json to the comfy_run.py runner. Both read their ComfyUI workflows from a workflows folder beside them.";
 "Forma" = "Shape";
 "Forma d'onda" = "Waveform";
 "Formato" = "Format";
@@ -2437,3 +2436,5 @@
 "Questa copia di Regista non contiene l'installatore: installala di nuovo dalla sua immagine disco" = "This copy of Regista has no installer: install it again from its disk image";
 "L'app e il server MCP collegato vengono da copie diverse di Regista: in Impostazioni › Claude ricollega Claude a questa app, poi riavvia la sessione di Claude." = "The app and the connected MCP server come from different copies of Regista: reconnect Claude to this app in Settings › Claude, then restart the Claude session.";
 "Check it: ask Claude for generate.check. It lists every missing node pack and model file, with the ComfyUI folder it goes in." = "Check it: ask Claude for generate.check. It lists every missing node pack and model file, with the ComfyUI folder it goes in.";
+"Tell Regista where it is: Settings › Engines › ComfyUI › ComfyUI folder (Regista starts it when a generation needs it and stops it afterwards). If you start ComfyUI yourself, or use its desktop app, set its Address there instead (the desktop app does not listen on 8188)." = "Tell Regista where it is: Settings › Engines › ComfyUI › ComfyUI folder (Regista starts it when a generation needs it and stops it afterwards). If you start ComfyUI yourself, or use its desktop app, set its Address there instead (the desktop app does not listen on 8188).";
+"Avvio ComfyUI e aspetto che risponda…" = "Starting ComfyUI and waiting for it to answer…";

@@ -20,7 +20,8 @@ public final class CommandJob: @unchecked Sendable {
     private var estimating = false
     private let sink: @Sendable (_ fraction: Double?, _ detail: String?, _ estimated: Bool) -> Void
 
-    /// `sink` receives the progress of the whole job, 0…1 (nil: unknown), and a line of detail; any thread.
+    /// `sink` receives the progress of the whole job, 0…1 (nil: unknown, or with a detail only: a line of detail, the bar
+    /// unchanged), and a line of detail; any thread.
     public convenience init(_ sink: @escaping @Sendable (_ fraction: Double?, _ detail: String?) -> Void = { _, _ in }) {
         self.init(estimates: { fraction, detail, _ in sink(fraction, detail) })
     }
@@ -148,6 +149,9 @@ public final class CommandJob: @unchecked Sendable {
     }
 
     public static func report(_ fraction: Double?, detail: String? = nil) { current?.report(fraction, detail: detail) }
+
+    /// A line of detail for the job's line (what the work waits for), leaving its bar as it is (#6).
+    public static func say(_ detail: String) { current?.sink(nil, detail, false) }
 
     // MARK: Engine output
 

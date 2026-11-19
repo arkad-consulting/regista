@@ -37,11 +37,13 @@ public struct EngineConfig: Codable, Hashable, Sendable {
     public var hyperframes = "\(EngineConfig.managedDirectory)/hyperframes/node_modules/hyperframes/bin/hyperframes.mjs"
     /// npx for graphics.hyperframes when the installed CLI above is missing (nil: searched in PATH, fnm and Homebrew).
     public var npx: String?
-    /// ComfyUI CLI `comfy-gen`: Z-Image stills and Wan 2.2 image-to-video (generate.run, Pro tier, manual setup).
-    public var comfyGen = "~/.local/bin/comfy-gen"
-    /// ComfyUI workflow runner: Real-ESRGAN + RIFE upscale to 1080×1920 30 fps, ACE-Step 1.5 music (Pro tier, manual setup).
-    public var comfyRun = "\(EngineConfig.managedDirectory)/comfy/comfy_run.py"
-    public var python3 = "/usr/bin/python3"
+    /// The ComfyUI server Regista talks to over its HTTP API (generate.run's stills, clips, music and upscale; Pro tier,
+    /// set up by hand). ComfyUI's desktop app listens on another port: set it here.
+    public var comfyServer = ComfyServer.defaultAddress
+    /// What starts ComfyUI when nothing answers at `comfyServer` (nil: a running server, else a ComfyUI folder found in
+    /// `ComfyServer.usualPlaces`): a ComfyUI folder (its `main.py` with the folder's own Python environment) or an
+    /// executable that starts the server.
+    public var comfyStart: String?
     /// Higgsfield CLI (paid; nil: searched in PATH, fnm's default alias, ~/.local/bin, Homebrew).
     public var higgsfield: String?
     /// The only HyperFrames CLI version graphics.hyperframes runs (supply-chain rule: pinned, ≥ 2 weeks old; not configurable;
@@ -130,9 +132,9 @@ public struct EngineConfig: Codable, Hashable, Sendable {
         node = try c.decodeIfPresent(String.self, forKey: .node) ?? d.node
         hyperframes = try c.decodeIfPresent(String.self, forKey: .hyperframes) ?? d.hyperframes
         npx = try c.decodeIfPresent(String.self, forKey: .npx)
-        comfyGen = try c.decodeIfPresent(String.self, forKey: .comfyGen) ?? d.comfyGen
-        comfyRun = try c.decodeIfPresent(String.self, forKey: .comfyRun) ?? d.comfyRun
-        python3 = try c.decodeIfPresent(String.self, forKey: .python3) ?? d.python3
+        // An old file's comfyGen / comfyRun / python3 (the outside runners before #6) are read without error and ignored.
+        comfyServer = try c.decodeIfPresent(String.self, forKey: .comfyServer) ?? d.comfyServer
+        comfyStart = try c.decodeIfPresent(String.self, forKey: .comfyStart)
         higgsfield = try c.decodeIfPresent(String.self, forKey: .higgsfield)
         voxcpmProject = try c.decodeIfPresent(String.self, forKey: .voxcpmProject) ?? d.voxcpmProject
         voxcpmScript = try c.decodeIfPresent(String.self, forKey: .voxcpmScript) ?? d.voxcpmScript

@@ -32,7 +32,9 @@ public enum StdioTransport {
             return
         }
         let state = ProgressState()
-        let job = CommandJob(estimates: { fraction, _, estimated in state.set(fraction, estimated: estimated) })
+        let job = CommandJob(estimates: { fraction, detail, estimated in
+            if fraction == nil, let detail { state.say(detail) } else { state.set(fraction, estimated: estimated) }   // a detail alone: what it waits for
+        })
         let started = Date()
         let timer = DispatchSource.makeTimerSource(queue: DispatchQueue(label: "regista.mcp.progress"))
         timer.schedule(deadline: .now() + interval, repeating: interval)
@@ -40,6 +42,7 @@ public enum StdioTransport {
             var text = "working for \(Int(Date().timeIntervalSince(started))) s"
             // The number the app's jobs list shows; an estimate (an engine that prints no progress, #13) says so.
             if let p = state.progress { text += " · \(Int((p.0 * 100).rounded())) %" + (p.1 ? " (estimate)" : "") }
+            if let d = state.detail { text += " · \(d)" }
             // Sent under the state's lock: once the reply is out, no notification follows it.
             state.tick { n in
                 let note: JSONValue = ["jsonrpc": "2.0", "method": "notifications/progress",
@@ -69,6 +72,10 @@ public enum StdioTransport {
         private var done = false
         var progress: (Double, Bool)? { lock.withLock { latest.map { ($0, estimated) } } }
         func set(_ f: Double?, estimated e: Bool) { lock.withLock { latest = f; estimated = e } }   // nil: an engine that reports nothing runs now
+        /// The last line of detail (what the command waits for, e.g. ComfyUI starting).
+        private var said: String?
+        var detail: String? { lock.withLock { said } }
+        func say(_ d: String) { lock.withLock { said = d } }
         /// Calls `send` with the next progress value, unless the reply already went out.
         func tick(_ send: (Int) -> Void) {
             lock.withLock {

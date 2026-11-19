@@ -232,9 +232,15 @@ public struct EngineServices {
     public var enginesFolder: URL?
     /// The host's Cancel for waited-for generation runs (the app's jobs engine has one; nil elsewhere).
     public var cancellation: GenerationCancellation?
-    /// The local ComfyUI server's node list (`/object_info`; nil when it is off), read by generate.check and before a
-    /// ComfyUI run.
-    public var comfyServer: () -> Data? = { ComfyCheck.fetchObjectInfo() }
+    /// The ComfyUI server's node list (`/object_info` at `comfyServer` of the config; nil when it is off), read by
+    /// generate.check and before a ComfyUI run. Nil outside the standard set, so a test never reaches a real server.
+    public var comfyServer: () -> Data? = { nil }
+    /// Where a ComfyUI folder is looked for when `comfyStart` is not set (`ComfyServer.usualPlaces` in the standard set;
+    /// none otherwise, so a test never finds the person's ComfyUI).
+    public var comfyPlaces: [String] = []
+
+    /// What generate.check and engines.status say about ComfyUI: the server and what Regista would start.
+    public var comfyLocation: ComfyServer.Location { ComfyServer.locate(config, places: comfyPlaces) }
 
     public init(config: EngineConfig, configWarning: String? = nil, tier: MachineTier, audio: AudioToolkit,
                 transcribers: [Transcriber], cleaner: VoiceCleaner, faces: FaceTracker?, renderer: VideoRenderer? = nil,
@@ -260,7 +266,9 @@ public struct EngineServices {
                                transcribers: [WhisperCppTranscriber(config: config), WhisperXTranscriber(config: config)],
                                cleaner: DeepFilterVoiceCleaner(config: config, audio: ffmpeg), faces: faces, renderer: renderer,
                                images: images, library: library)
-        let generators: [GeneratorProvider] = [ComfyUIProvider(config: config), HiggsfieldProvider(config: config),
+        s.comfyPlaces = ComfyServer.usualPlaces
+        s.comfyServer = { ComfyCheck.fetchObjectInfo(ComfyServer.address(config)) }
+        let generators: [GeneratorProvider] = [ComfyUIProvider(config: config, places: s.comfyPlaces), HiggsfieldProvider(config: config),
                                              VoxCPMProvider(config: config, profiles: ProfileStore(directory: ProfileStore.defaultDirectory))]
         for g in generators { s.generators[g.id] = g }
         s.generationState = Generation.defaultStateDirectory

@@ -25,9 +25,8 @@ Where the engines live. The installer writes `~/Library/Application Support/Regi
 | `node` | `~/Library/Application Support/Regista/engines/node/node-v24.22.1-darwin-arm64/bin/node` | Node.js binary for HyperFrames (HTML motion graphics), installed in the engines folder. |
 | `hyperframes` | `~/Library/Application Support/Regista/engines/hyperframes/node_modules/hyperframes/bin/hyperframes.mjs` | The HyperFrames command-line tool in the engines folder. |
 | `npx` | not set | npx used for HyperFrames when the installed tool is missing (not set: searched in PATH, fnm and Homebrew). |
-| `comfyGen` | `~/.local/bin/comfy-gen` | The comfy-gen command (ComfyUI stills and clips; Pro tier, set up by hand). |
-| `comfyRun` | `~/Library/Application Support/Regista/engines/comfy/comfy_run.py` | The ComfyUI workflow runner (upscale and music; Pro tier, set up by hand). |
-| `python3` | `/usr/bin/python3` | Python 3 used by helper scripts. |
+| `comfyServer` | `http://127.0.0.1:8188` | The address of the ComfyUI server Regista talks to over its HTTP API (local stills, clips, music and upscale; Pro tier, set up by hand). ComfyUI's desktop app listens on another port: set it here. Settings › Engines › ComfyUI › Address writes it. |
+| `comfyStart` | not set | What starts ComfyUI when nothing answers at comfyServer: a ComfyUI folder (Regista runs its main.py with the folder's own Python environment) or an executable that starts the server. Not set: a running server, else a ComfyUI folder in the usual places. Settings › Engines › ComfyUI › ComfyUI folder writes it. |
 | `higgsfield` | not set | Higgsfield command-line tool for paid generation (not set: searched in PATH, fnm, ~/.local/bin and Homebrew). |
 | `voxcpmProject` | `~/Library/Application Support/Regista/engines/voxcpm` | The uv project folder of VoxCPM2 (cloned voice, voice-over from text). |
 | `voxcpmScript` | `~/Library/Application Support/Regista/engines/voxcpm/vox_say.py` | The VoxCPM2 voice-over script in that folder. |

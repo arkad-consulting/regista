@@ -11,6 +11,10 @@ let package = Package(
         // The default editing-rule sheets (#31), one per kind and interface language, are compiled in too.
         .target(name: "RegistaCore", resources: [.embedInCode("Engines/Manifest/engines.manifest.json"),
                                                  .embedInCode("Engines/Manifest/engines.lock")]
+                    // The ComfyUI workflows generate.run sends (#6), one per model, in ComfyUI's API format.
+                    + ["z-image-turbo", "wan2.2-i2v-14b-lightning", "ace-step-1.5-turbo", "realesrgan-x4plus+rife-4.26"].map {
+                        Resource.embedInCode("Generation/Workflows/\($0).json")
+                    }
                     + ["every-video", "talking-head-reel", "screen-tutorial", "voice-over-video", "reel-graphics"].flatMap { kind in
                         ["it", "en", "fr", "pt"].map { Resource.embedInCode("Rules/Sheets/\(kind).\($0).md") }
                     }),

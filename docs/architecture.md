@@ -1278,10 +1278,19 @@ kind, prompt, seed, cost, unit, created, job, source asset, remote id. Then it i
 | `generate.status` | jobs; collects a finished background job into the bin |
 | `generate.list` | generated assets with metadata, jobs, budget, recent approvals (tokens of approved ones) |
 
-**ComfyUI** (free, **Pro tier**, in `engines.status`): `comfy-gen image` (Z-Image Turbo, default 720×1280),
-`comfy-gen video` (Wan 2.2 I2V 14B lightning from a start frame = `refs[0]`, 1–5 s at 464×832), the
-`comfy_run.py music` runner (ACE-Step 1.5, FLAC) and `upscale`. Paths in engines.json: `comfyGen`, `comfyRun`, `python3`.
-ComfyUI is stopped after every waited-for run (`comfy-gen stop`) unless `keepRunning: true` (chains).
+**ComfyUI** (free, **Pro tier**, in `engines.status`): Regista calls ComfyUI's own HTTP API in its own process (#6):
+`/system_stats`, `/object_info`, `/upload/image` (the start image, the clip to upscale, into `input/regista/`), `/prompt`
+(with Regista's own prompt id), `/history/<id>`, `/view`, `/interrupt` + `/queue` delete (Cancel), `/free`. The four
+workflows ship in the app in ComfyUI's API format (`Sources/RegistaCore/Generation/Workflows/<model>.json`: Z-Image Turbo,
+default 720×1280; Wan 2.2 I2V 14B lightning from a start frame = `refs[0]`, 1–5 s at 464×832; ACE-Step 1.5, FLAC; Real-ESRGAN
+x4plus + RIFE 4.26 upscale); what Regista fills per request is one table, `ComfyCheck.workflows` (node id + input name).
+The provider's job is in-process work with the job folder's usual contract (`GenerationProcess.work`: stdout.txt, stderr.txt,
+`exit`; a background job records its host process in `host`, and reads as failed if that process ended first).
+engines.json: `comfyServer` (default `http://127.0.0.1:8188`) and `comfyStart` (a ComfyUI folder — its `main.py` with the
+folder's `.venv`/`venv` Python, `--listen 127.0.0.1 --port <port>` — or an executable that starts the server). When nothing
+answers and `comfyStart` is not set, Regista looks for a ComfyUI folder in `ComfyServer.usualPlaces`. A server Regista
+started (its process group, recorded in `<cache>/comfyui/started.json`, log beside it) is stopped after a waited-for run
+unless `keepRunning: true` (chains) or another prompt still runs in it; a server someone else started only gets `/free`.
 Typical times on an M5 Pro: still 84 s cold, a 3 s clip ~5 min, upscale 7 min.
 
 **Higgsfield** (paid): `higgsfield generate cost|create … --wait --json` (CLI found in PATH, fnm, ~/.local/bin, Homebrew;

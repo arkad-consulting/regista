@@ -302,13 +302,13 @@
     },
     {
       "id": "comfyui", "name": "ComfyUI",
-      "role": "local generation server (comfy-gen CLI and workflow runner)",
+      "role": "local generation server, driven by Regista over its HTTP API",
       "unlocks": ["local images, clips, music and upscale (free)"],
       "minRamGB": 32, "ramInUseGB": null, "diskBytes": 1664643006,
       "licence": "GPL-3.0", "nonCommercial": false,
       "install": {"method": "manual", "steps": [
         "Install ComfyUI by following its own instructions (https://docs.comfy.org), in a Python environment of its own, and put the model files generate.check lists in ComfyUI's models folders (Regista's workflows name each file exactly).",
-        "Put the comfy-gen command (images and clips) in ~/.local/bin, or set comfyGen in engines.json to where it is; for music and upscale, set comfyRun in engines.json to the comfy_run.py runner. Both read their ComfyUI workflows from a workflows folder beside them.",
+        "Tell Regista where it is: Settings › Engines › ComfyUI › ComfyUI folder (Regista starts it when a generation needs it and stops it afterwards). If you start ComfyUI yourself, or use its desktop app, set its Address there instead (the desktop app does not listen on 8188).",
         "Check it: ask Claude for generate.check (or run scripts/install.sh --with comfyui). It lists every missing node pack and model file, with the ComfyUI folder it goes in."
       ]},
       "optional": true, "dependsOn": [], "status": "available",

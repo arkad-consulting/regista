@@ -145,7 +145,10 @@ enum Generate {
         let provider = try Self.provider(request.provider, ctx, command: command)
         try check(provider, request.kind, ctx, command: command)
         // ComfyUI: its node packs and model files before anything is queued (#36); a server that is off does not block.
-        if provider.id == "comfyui" { try ComfyCheck.gate(model: provider.model(for: request), config: ctx.services.config, command: command, fetch: ctx.services.comfyServer) }
+        if provider.id == "comfyui" {
+            let location = (provider as? ComfyUIProvider)?.location ?? ctx.services.comfyLocation
+            try ComfyCheck.gate(model: provider.model(for: request), location: location, command: command, fetch: ctx.services.comfyServer)
+        }
         let request = try prepare(provider, request, command: command)
         let hash = try request.hash()
         let dir = jobDir(ctx, provider.id, hash)
@@ -272,7 +275,7 @@ enum GenerateProviders: Command {
 
 enum GenerateCheck: Command {
     static let id = "generate.check"
-    static let summary = "Check that ComfyUI can run a model before generating (generate.run also does it first): each ComfyUI model's workflow against the running server's node list and model files. Never starts ComfyUI: when it is off, only the runner and workflow files are checked and the rest is \"not checked\". Returns per model ready / missing (each missing node pack, model file or value with its ComfyUI folder and how to fix it) / notChecked, and the setup steps when ComfyUI is not set up."
+    static let summary = "Check that ComfyUI can run a model before generating (generate.run also does it first): each ComfyUI model's workflow (shipped in Regista) against the running server's node list and model files. Never starts ComfyUI: when it is off, says which ComfyUI Regista would start (the folder set in Settings › Motori, or one found in the usual places) and the rest is \"not checked\". Returns the server address, where ComfyUI is, per model ready / missing (each missing node pack, model file or value with its ComfyUI folder and how to fix it) / notChecked, and the setup steps when Regista knows no ComfyUI."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [
         .optional("model", .oneOf(ComfyCheck.models), "One ComfyUI model (default: all four)."),
@@ -281,13 +284,20 @@ enum GenerateCheck: Command {
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         let s = ctx.services
         let minimum = EngineManifest.shared.minimumTier("comfyui")
-        let results = ComfyCheck.run(model: p.string("model"), config: s.config, objectInfo: s.comfyServer())
+        let location = (s.generators["comfyui"] as? ComfyUIProvider)?.location ?? s.comfyLocation
+        let info = s.comfyServer()
+        let results = ComfyCheck.run(model: p.string("model"), location: location, objectInfo: info)
         var o: [String: JSONValue] = [
             "models": .array(results.map(\.json)),
             "ready": .bool(results.allSatisfy { $0.state == "ready" }),
             "summary": .string(results.map(\.summary).joined(separator: "\n")),
+            "server": .string(location.server.absoluteString),
+            "running": .bool(info != nil),
         ]
-        if results.contains(where: { $0.missing.contains { $0.kind == "file" } }) { o["setupSteps"] = .string(ComfyCheck.setupSteps) }
+        // Where ComfyUI is (what Regista starts when nothing answers): the folder set in Settings, or the one found.
+        if let start = location.start { o["comfyui"] = .string(start.path); o["found"] = .string(location.configured ? "set in Regista" : "found in the usual places") }
+        if let problem = location.startProblem { o["startProblem"] = .string(problem) }
+        if info == nil, location.start == nil { o["setupSteps"] = .string(ComfyCheck.setupSteps); o["searched"] = .array(location.configured ? [] : (s.generators["comfyui"] as? ComfyUIProvider)?.places.map { .string($0) } ?? s.comfyPlaces.map { .string($0) }) }
         if s.tier < minimum { o["tierReason"] = .string("ComfyUI needs the \(minimum.rawValue) tier (this Mac: \(s.tier.rawValue))") }
         return .object(o)
     }
@@ -382,7 +392,7 @@ enum GenerateRun: Command {
     static let params: [ParamSpec] = Generate.requestParams + [
         .optional("approval", .string, "Paid providers: the approval token the human got from generate.approve for this exact request."),
         .optional("wait", .boolean, "Wait for the result (default true); false = background job, poll generate.status."),
-        .optional("keepRunning", .boolean, "ComfyUI: keep the server up for the next job (default false: stopped after use)."),
+        .optional("keepRunning", .boolean, "ComfyUI: keep the server Regista started up for the next job (default false: stopped after use; a server someone else started keeps running and only frees its memory)."),
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {

@@ -591,15 +591,19 @@ step "$(t step_optional)"
 install_blender ask
 install_shotcut ask
 
-COMFY_GEN=""
+COMFY=""
 if [ "$TIER" = pro ]; then
   comfy_bytes="$(manifest comfy-bytes)"
   if wants comfyui || ask "$(t ask_comfy "$(human "$comfy_bytes")")" n; then
     echo "  $(t comfy_steps "$(human "$comfy_bytes")")"
     manifest steps comfyui | awk '{ printf "    %d. %s\n", NR, $0 }'
   fi
-  COMFY_GEN="$(json_get "$CONFIG" comfyGen)"; COMFY_GEN="${COMFY_GEN:-~/.local/bin/comfy-gen}"; COMFY_GEN="${COMFY_GEN/#\~/$HOME}"
-  if [ -x "$COMFY_GEN" ]; then found "ComfyUI (comfy-gen)" "$COMFY_GEN"; else COMFY_GEN=""; optional "ComfyUI" "$(t comfy_missing)"; fi
+  # Regista talks to ComfyUI over its HTTP API (#6): a server that answers, or the folder Regista starts it from.
+  COMFY_SERVER="$(json_get "$CONFIG" comfyServer)"; COMFY_SERVER="${COMFY_SERVER:-http://127.0.0.1:8188}"
+  COMFY_START="$(json_get "$CONFIG" comfyStart)"
+  if curl -fsS -m 2 "${COMFY_SERVER%/}/system_stats" >/dev/null 2>&1; then COMFY="$COMFY_SERVER"; found "ComfyUI" "$COMFY_SERVER"
+  elif [ -n "$COMFY_START" ]; then COMFY="$COMFY_START"; found "ComfyUI" "$COMFY_START"
+  else COMFY=""; optional "ComfyUI" "$(t comfy_missing)"; fi
 fi
 
 # ---------------------------------------------------------------- build the app and the MCP server
@@ -714,7 +718,7 @@ fi
 step "$(t step_smoke)"
 REGISTA_ENGINES="$CONFIG" "$PY" -I scripts/mcp_smoke.py mcp "$MCP" | sed 's/^/  /' \
   || die "the MCP smoke check failed — run scripts/doctor.sh"
-if [ -n "$COMFY_GEN" ]; then
+if [ -n "$COMFY" ]; then
   # The Pro tier proof (#36): every ComfyUI model's node packs and model files (ComfyUI must be running to check them all).
   echo "  generate.check:"
   REGISTA_ENGINES="$CONFIG" REGISTA_ENGINE=local "$APP_DIR/Regista.app/Contents/MacOS/regista-engine" exec generate.check '{}' 2>&1 \

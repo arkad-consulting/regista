@@ -11,11 +11,13 @@ extension EditorStore {
     func startJob(kind: String, title: String, _ work: @escaping @MainActor (JobCenter.Handle, CommandJob) async throws -> Void) -> UUID {
         final class Ref: @unchecked Sendable { var id: UUID? }
         let ref = Ref()
-        let command = CommandJob(estimates: { [weak jobs] fraction, _, estimated in
+        let command = CommandJob(estimates: { [weak jobs] fraction, detail, estimated in
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
                     guard let id = ref.id else { return }
-                    if let fraction { jobs?.update(id, progress: fraction, detail: nil, estimated: estimated) } else { jobs?.progressUnknown(id) }
+                    if let fraction { jobs?.update(id, progress: fraction, detail: nil, estimated: estimated) }
+                    else if let detail { jobs?.update(id, progress: nil, detail: JobWords.detail(detail)) }   // what it waits for; the bar stays
+                    else { jobs?.progressUnknown(id) }
                 }
             }
         })

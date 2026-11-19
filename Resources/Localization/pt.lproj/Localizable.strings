@@ -714,7 +714,6 @@
 "Fiordo" = "Fiorde";
 "Fluidità" = "Suavização";
 "Foglio dei fotogrammi" = "Folha de contato";
-"Put the comfy-gen command (images and clips) in ~/.local/bin, or set comfyGen in engines.json to where it is; for music and upscale, set comfyRun in engines.json to the comfy_run.py runner. Both read their ComfyUI workflows from a workflows folder beside them." = "Coloque o comando comfy-gen (imagens e clipes) em ~/.local/bin ou defina comfyGen em engines.json com o caminho dele; para música e upscale, defina comfyRun em engines.json com o programa comfy_run.py. Ambos leem os fluxos de trabalho do ComfyUI de uma pasta workflows ao lado deles.";
 "Forma" = "Forma";
 "Forma d'onda" = "Forma de onda";
 "Formato" = "Formato";
@@ -2437,3 +2436,5 @@
 "Questa copia di Regista non contiene l'installatore: installala di nuovo dalla sua immagine disco" = "Esta cópia do Regista não contém o instalador: instale-a de novo a partir da imagem de disco";
 "L'app e il server MCP collegato vengono da copie diverse di Regista: in Impostazioni › Claude ricollega Claude a questa app, poi riavvia la sessione di Claude." = "O app e o servidor MCP conectado vêm de cópias diferentes do Regista: reconecte o Claude a este app em Ajustes › Claude e reinicie a sessão do Claude.";
 "Check it: ask Claude for generate.check. It lists every missing node pack and model file, with the ComfyUI folder it goes in." = "Para verificar: peça ao Claude o generate.check. Ele lista cada pacote de nós e arquivo de modelo que falta, com a pasta do ComfyUI onde vai.";
+"Tell Regista where it is: Settings › Engines › ComfyUI › ComfyUI folder (Regista starts it when a generation needs it and stops it afterwards). If you start ComfyUI yourself, or use its desktop app, set its Address there instead (the desktop app does not listen on 8188)." = "Diga ao Regista onde ele está: Ajustes › Motores › ComfyUI › Pasta do ComfyUI (o Regista o inicia quando uma geração precisa e o para depois). Se você inicia o ComfyUI por conta própria, ou usa o app de desktop dele, defina ali o Endereço (o app de desktop não escuta na 8188).";
+"Avvio ComfyUI e aspetto che risponda…" = "Iniciando o ComfyUI e esperando que responda…";
