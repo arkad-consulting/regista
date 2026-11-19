@@ -28,8 +28,10 @@ let package = Package(
         .testTarget(name: "RegistaCoreTests", dependencies: ["RegistaCore"]),
         .testTarget(name: "RegistaMCPTests", dependencies: ["RegistaMCP"]),
         .testTarget(name: "RegistaEnginesTests", dependencies: ["RegistaEngines"]),
+        // The test process's main event queue, made on its main thread while the test bundle loads (#118).
+        .target(name: "RigBootstrap", path: "Tests/RigBootstrap", linkerSettings: [.linkedFramework("Carbon")]),
         // App-level checks that need AppKit windows (the teleprompter panel).
-        .testTarget(name: "RegistaAppTests", dependencies: ["Regista"]),
+        .testTarget(name: "RegistaAppTests", dependencies: ["Regista", "RigBootstrap"]),
     ],
     swiftLanguageModes: [.v5]
 )
