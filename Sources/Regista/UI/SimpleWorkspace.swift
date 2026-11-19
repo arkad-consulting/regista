@@ -55,22 +55,22 @@ struct SimpleWorkspace: View {
         @ObservedObject var jobs: JobCenter
         @ObservedObject var voice: VoiceModel
         let demo: SimpleDemoValue?
-        /// The step the user opened; until then the next one to do.
-        @State private var chosen: SimpleStep?
 
         var body: some View {
             let snap = demo?.snapshot ?? store.simpleSnapshot
-            let open = demo?.open ?? chosen ?? SimpleStep.allCases.first { snap[$0].status == .running } ?? snap.next ?? .cut
+            // The step the person opened in this tab (the store keeps it across Pro and back, #104); until then the one
+            // running, else the next one to do.
+            let open = demo?.open ?? store.simpleOpen ?? SimpleStep.allCases.first { snap[$0].status == .running } ?? snap.next ?? .cut
             VStack(spacing: 0) {
                 GeometryReader { g in
                     let stage = SimpleLayout.stage(width: g.size.width)
                     let compact = stage != .full
                     HStack(spacing: 0) {
-                        SimpleRail(snap: snap, open: open, compact: compact) { chosen = $0 }
+                        SimpleRail(snap: snap, open: open, compact: compact) { store.simpleOpen = $0 }
                             .frame(width: compact ? SimpleLayout.compactRail : SimpleLayout.rail)
                         if stage == .stacked {
                             VStack(spacing: 0) {
-                                SimplePanel(snap: snap, step: open, showsAllJob: true) { chosen = $0 }
+                                SimplePanel(snap: snap, step: open, showsAllJob: true) { store.simpleOpen = $0 }
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 SimplePreview(tight: true)
                                     .frame(height: SimpleLayout.stackedPreview(height: g.size.height))
@@ -78,7 +78,7 @@ struct SimpleWorkspace: View {
                             }
                             .frame(maxWidth: .infinity)
                         } else {
-                            SimplePanel(snap: snap, step: open, showsAllJob: compact) { chosen = $0 }
+                            SimplePanel(snap: snap, step: open, showsAllJob: compact) { store.simpleOpen = $0 }
                                 .frame(width: SimpleLayout.panel)
                             SimplePreview().frame(minWidth: 0, maxWidth: .infinity)
                         }

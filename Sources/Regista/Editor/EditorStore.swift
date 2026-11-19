@@ -125,6 +125,9 @@ final class EditorStore: ObservableObject {
     var clipboard: [String] = []
     /// Asset shown in the Source monitor.
     @Published var sourceAssetID: String?
+    /// The Semplice step the person opened in this tab, kept while the tab is open (#104): «Pro» and back to «Semplice»
+    /// rebuild the level's views, and the step left open must be the one that comes back. Nil until a step is opened.
+    @Published var simpleOpen: SimpleStep?
     /// Where a recording started from this tab goes, as chosen on Registra (nil: the default), kept while the tab is open.
     @Published var recordingChoice: RecordingDestination?
     /// Instagram UI guides on the Program monitor: off until asked for (they are guides, not a crop).

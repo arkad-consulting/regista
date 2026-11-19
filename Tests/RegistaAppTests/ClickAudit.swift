@@ -28,7 +28,7 @@ struct AuditState {
         ui = [
             "tool": s.tool.rawValue, "selection": s.selection.sorted().joined(separator: ","),
             "captionPick": s.captionPick.map { "\($0)" } ?? "", "canvasSelection": s.canvasSelection ?? "",
-            "sourceAsset": s.sourceAssetID ?? "", "safeZones": "\(s.safeZones)", "zoom": String(format: "%.2f", s.pxPerSec),
+            "sourceAsset": s.sourceAssetID ?? "", "simpleOpen": s.simpleOpen?.rawValue ?? "", "safeZones": "\(s.safeZones)", "zoom": String(format: "%.2f", s.pxPerSec),
             "autoFit": "\(s.autoFit)", "words": s.wordSelection.map { "\($0)" } ?? "", "captionScope": "\(s.captionScope)",
             "brandKits": "\(s.showBrandKits)", "voiceSetup": "\(s.showVoiceSetup)", "error": s.errorMessage ?? "",
             "playing": "\(s.preview.isPlaying)", "playhead": String(format: "%.3f", s.preview.playhead.time),
@@ -371,6 +371,8 @@ struct ClickAudit {
         s.tool = EditorStore.Tool(rawValue: base.ui["tool"] ?? "select") ?? .select
         s.selection = Set((base.ui["selection"] ?? "").split(separator: ",").map(String.init))
         s.captionPick = nil
+        // The Semplice step opened (kept by the tab, #104) comes back as the screen started.
+        s.simpleOpen = SimpleStep(rawValue: base.ui["simpleOpen"] ?? "")
         s.canvasSelection = nil
         s.wordSelection = nil
         s.showBrandKits = false
