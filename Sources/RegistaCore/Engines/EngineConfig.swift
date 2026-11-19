@@ -93,6 +93,19 @@ public struct EngineConfig: Codable, Hashable, Sendable {
     }
 
     public static func expand(_ path: String) -> String { (path as NSString).expandingTildeInPath }
+
+    /// The PATH an engine Regista starts runs with (#109, #115): the folders in `first`, then the folder of Regista's own
+    /// ffmpeg (a Python or Node engine that calls a bare `ffmpeg` — WhisperX, VoxCPM2's audio loading, HyperFrames — finds
+    /// the app's on a Mac without Homebrew), then this process's PATH, then the system's.
+    public func enginePath(first: [String] = []) -> String {
+        let inherited = ProcessInfo.processInfo.environment["PATH"].flatMap { $0.isEmpty ? nil : $0 }
+        return (first + [url(ffmpeg).deletingLastPathComponent().path] + (inherited.map { [$0] } ?? []) + ["/usr/bin:/bin:/usr/sbin:/sbin"])
+            .joined(separator: ":")
+    }
+
+    /// The environment of a uv engine (WhisperX, VoxCPM2 and its training): `enginePath`, and only the pinned Python the
+    /// installer put beside uv (never a download of another one at run time).
+    public var uvEnvironment: [String: String] { ["PATH": enginePath(), "UV_PYTHON_DOWNLOADS": "never"] }
     public func url(_ path: String) -> URL { URL(fileURLWithPath: Self.expand(path)) }
 
     // Every key optional in the file.

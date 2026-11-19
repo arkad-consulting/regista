@@ -179,7 +179,8 @@ enum GraphicsHyperframes: Command {
                         "--output", frames.path, "--fps", String(Int(ctx.project!.settings.frameRate.doubleValue.rounded())), "--quiet"]
             if let c = composition { args += ["--composition", c] }
             if let v = p.json("variables") { args += ["--variables", String(decoding: v.data(), as: UTF8.self)] }
-            let path = runner!.executable.deletingLastPathComponent().path + ":" + (ProcessInfo.processInfo.environment["PATH"] ?? "/usr/bin:/bin")
+            // Its Node.js first, then Regista's own ffmpeg (the CLI encodes with a bare `ffmpeg`, #115).
+            let path = ctx.services.config.enginePath(first: [runner!.executable.deletingLastPathComponent().path])
             let started = Date()
             let r = try Subprocess.run(runner!.executable, args, environment: ["npm_config_ignore_scripts": "true", "PATH": path], currentDirectory: dir)
             renderSeconds = Date().timeIntervalSince(started)

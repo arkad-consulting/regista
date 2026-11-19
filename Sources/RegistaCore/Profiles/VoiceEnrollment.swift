@@ -397,7 +397,7 @@ public enum VoiceEnrollment {
         try job.launch(GenerationProcess(config.url(config.uv),
                                          ["run", "--frozen", "--project", config.url(config.voxcpmProject).path, "python", "-I",
                                           trainer.path, "--config_path", cfgFile.path],
-                                         environment: ["HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1"]), wait: false)
+                                         environment: VoxCPMProvider.environment(config)), wait: false)
         let minutes = estimatedTrainingMinutes(seconds: seconds)
         return ["status": "running", "language": .string(language), "steps": .number(Double(steps)), "gradAccum": .number(Double(accum)),
                 "clips": .number(Double(clips.count)), "audioMinutes": .number((seconds / 6).rounded() / 10),

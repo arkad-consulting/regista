@@ -16,21 +16,29 @@
 # deep-filter, exported 9:16, and the export probed by the shipped ffprobe. Then the Medium tier's uv step (#109): the
 # pinned uv and Python installed through Settings › Engines' path, `--check` of WhisperX and VoxCPM2, and with --uv-sync
 # one real `uv sync` of the WhisperX environment (about 1 GB of packages, its own download cache in the temporary folder).
-# Nothing outside the temporary folder is written; the owner's support folder, caches and Claude configs are not read.
+# With --medium-run (#115), on AC power only: the Medium engines used, not only installed — WhisperX installed through
+# Settings › Engines' path (its ~1 GB of Python packages downloaded into the temporary folder; the speech model and the
+# aligners linked read-only from --wx-models), then one short transcription through regista-engine with WhisperX; the
+# HyperFrames CLI installed (Node.js and its lockfile) and its own doctor run with the PATH the app gives it (the app's
+# ffmpeg first). VoxCPM2's 2 GB voice model is never downloaded by the check: its `--check` above is what runs.
+# Nothing outside the temporary folder is written; the owner's support folder, caches and Claude configs are not read
+# (--seed and --wx-models files are only read, through links).
 #
-#   scripts/bare-mac.sh --app <Regista.app> [--engine <id>] [--seed <lock id>=<file>]... [--uv-sync] [--keep]
+#   scripts/bare-mac.sh --app <Regista.app> [--engine <id>] [--seed <lock id>=<file>]... [--uv-sync]
+#                       [--medium-run --wx-models <the models folder of an installed WhisperX>] [--keep]
 #
 #   --app     a built Regista.app (scripts/build-app.sh --no-open → build.noindex/Regista.app)
 #   --engine  the Base engine to install (default: deepfilternet, a 28 MB pinned download; whisper-model with an app that
 #             ships its engines: the one Base download left, give it with --seed ggml-large-v3-turbo=<file>)
 #   --seed    an already downloaded file for the temporary download cache (still sha256-checked by the installer)
 #   --uv-sync also build the WhisperX environment for real with the pinned uv (downloads its packages)
+#   --medium-run  run the Medium engines (above); --wx-models gives the speech model and aligners it links
 #   --keep    keep the temporary folder (printed)
 # Exit 0 when every step passes.
 set -uo pipefail
 . "$(dirname "$0")/lib.sh"
 
-APP_SRC=""; ENGINE=""; SEEDS=(); KEEP=0; UV_SYNC=0
+APP_SRC=""; ENGINE=""; SEEDS=(); KEEP=0; UV_SYNC=0; MEDIUM=0; WX_MODELS=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --app) APP_SRC="${2:-}"; shift ;;
@@ -38,7 +46,9 @@ while [ $# -gt 0 ]; do
     --seed) SEEDS+=("${2:-}"); shift ;;
     --keep) KEEP=1 ;;
     --uv-sync) UV_SYNC=1 ;;
-    -h|--help) sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --medium-run) MEDIUM=1 ;;
+    --wx-models) WX_MODELS="${2:-}"; shift ;;
+    -h|--help) sed -n '2,42p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "unknown option $1 (see --help)" ;;
   esac
   shift
@@ -47,6 +57,14 @@ done
 APP="$(cd "$APP_SRC" && pwd)"
 HELPER_BIN="$APP/Contents/MacOS/regista-engine"
 SHIPPED=0; [ -x "$APP/Contents/Helpers/ffmpeg" ] && SHIPPED=1
+if [ "$MEDIUM" = 1 ]; then
+  [ "$SHIPPED" = 1 ] || die "--medium-run needs an app that ships its engines (scripts/build-app.sh --no-open --bundle-engines)"
+  [ -f "$WX_MODELS/ct2-whisper-large-v3-turbo/model.bin" ] || die "--medium-run needs --wx-models <models folder of an installed WhisperX> (no model is downloaded by the check)"
+  WX_MODELS="$(cd "$WX_MODELS" && pwd)"
+  # The aligners as already downloaded files of the temporary cache (the installer still checks each sha256).
+  SEEDS+=("wav2vec2-base-960h-en=$WX_MODELS/torchaudio/wav2vec2_fairseq_base_ls960_asr_ls960.pth")
+  for id in $(lock_ids | grep '^ptalign:'); do SEEDS+=("$id=$WX_MODELS/wav2vec2-large-xlsr-53-portuguese/${id#ptalign:}"); done
+fi
 if [ -z "$ENGINE" ]; then if [ "$SHIPPED" = 1 ]; then ENGINE=whisper-model; else ENGINE=deepfilternet; fi; fi
 
 T="$(mktemp -d "${TMPDIR:-/tmp}/regista-bare-mac.XXXXXX")"
@@ -204,7 +222,57 @@ if [ "$UV_SYNC" = 1 ] && [ -n "$UVB" ]; then
   else bad "uv sync of WhisperX failed (log: $T/logs/uv.log)"; rc=1; fi
 fi
 
-step "5. python3 calls"
+if [ "$MEDIUM" = 1 ]; then
+  if ! pmset -g batt | head -1 | grep -q "'AC Power'"; then
+    warn "6. the Medium engines: skipped, this Mac is on battery (the run needs AC power)"
+  else
+    step "6. The Medium engines used: WhisperX transcribes (log: $T/logs/whisperx.log)"
+    s0=$(date +%s); wrc=0
+    bare env REGISTA_CT2_MODEL="$WX_MODELS/ct2-whisper-large-v3-turbo" "$HELPER_BIN" install whisperx >"$T/logs/whisperx.log" 2>&1 || wrc=$?
+    grep -vE '^\++ ' "$T/logs/whisperx.log" | grep -E '✓|✗' | sed 's/^/  /'
+    if [ "$wrc" = 0 ]; then ok "regista-engine install whisperx: $(( $(date +%s) - s0 )) s, $(du -sh "$H/.cache/uv" 2>/dev/null | cut -f1) of packages in the temporary cache"
+    else bad "regista-engine install whisperx failed (exit $wrc)"; rc=1; fi
+    trace_clean "$T/logs/whisperx.log" "the WhisperX step"
+    if [ "$wrc" = 0 ]; then
+      cat >"$T/whisperx.json" <<JSON
+{"name": "medium-whisperx", "description": "One short transcription with WhisperX on a bare Mac (#115).", "steps": [
+  {"command": "engines.status", "expect": {"result.engines": {"includes": [{"id": "whisperx", "available": true}]}}},
+  {"command": "project.new", "params": {"name": "medium", "directory": "\${WORK}"}},
+  {"command": "media.import", "params": {"path": "$M/take.mov"}, "capture": {"raw": "result.asset.id"}},
+  {"command": "media.extractAudio", "params": {"assetId": "\${raw}"}},
+  {"command": "transcript.run", "params": {"assetId": "\${raw}", "language": "en", "engine": "whisperx"},
+   "expect": {"result.engine": "whisperx", "result.words": {"min": 8}}, "show": ["result.seconds", "result.text"]}
+]}
+JSON
+      s0=$(date +%s)
+      if bare "$HELPER_BIN" run "$T/whisperx.json" --work "$T/work-medium" >>"$T/logs/whisperx.log" 2>&1; then
+        ok "transcript.run with WhisperX: $(( $(date +%s) - s0 )) s for the whole run (model load included)"
+      else bad "the WhisperX transcription failed:"; grep -vE '^\++ ' "$T/logs/whisperx.log" | tail -15 | sed 's/^/      /'; rc=1; fi
+      grep -E 'result\.(seconds|text)' "$T/logs/whisperx.log" | cut -c1-200 | sed 's/^/  /'
+    fi
+
+    step "7. HyperFrames with the app's ffmpeg first on its PATH (log: $T/logs/hyperframes.log)"
+    hrc=0; bare "$HELPER_BIN" install hyperframes >"$T/logs/hyperframes.log" 2>&1 || hrc=$?
+    grep -vE '^\++ ' "$T/logs/hyperframes.log" | grep -E '✓|✗' | sed 's/^/  /'
+    if [ "$hrc" = 0 ]; then ok "regista-engine install hyperframes finished"; else bad "regista-engine install hyperframes failed (exit $hrc)"; rc=1; fi
+    trace_clean "$T/logs/hyperframes.log" "the HyperFrames step"
+    NODE_BIN="$(find "$H/Library/Application Support/Regista/engines/node" -path '*/bin/node' -type f 2>/dev/null | head -1)"
+    HF="$H/Library/Application Support/Regista/engines/hyperframes/node_modules/hyperframes/bin/hyperframes.mjs"
+    if [ -x "$NODE_BIN" ] && [ -f "$HF" ]; then
+      # The PATH graphics.hyperframes gives it (EngineConfig.enginePath): its Node.js, then the app's ffmpeg, then launchd's.
+      HP="$(dirname "$NODE_BIN"):$APP/Contents/Helpers:/usr/bin:/bin:/usr/sbin:/sbin"
+      # No usage data sent from a check (the app runs it the same way).
+      out="$(cd "$T" && bare env PATH="$HP" npm_config_ignore_scripts=true HYPERFRAMES_NO_TELEMETRY=1 DO_NOT_TRACK=1 "$NODE_BIN" "$HF" doctor 2>&1)"; drc=$?
+      printf '%s\n' "$out" | grep -E 'Version|Node.js|FFmpeg|FFprobe|Chrome' | sed 's/^/  /'
+      if printf '%s\n' "$out" | grep -E '✓ FFmpeg' | grep -qF "$APP/Contents/Helpers/ffmpeg"; then
+        ok "hyperframes doctor (exit $drc: Docker and the optional Python fallbacks are missing) uses the app's ffmpeg from its PATH"
+      else bad "hyperframes doctor does not find the app's ffmpeg"; rc=1; fi
+      printf '%s\n' "$out" | grep -q '✓ Chrome' && warn "its renders use the Chrome of this Mac; a Mac without Chrome is not covered by this check (a render downloads one)"
+    else bad "no Node.js or HyperFrames CLI in the engines folder"; rc=1; fi
+  fi
+fi
+
+step "8. python3 calls"
 if [ -s "$T/logs/python3-calls.log" ]; then bad "python3 was called:"; sed 's/^/      /' "$T/logs/python3-calls.log"; rc=1
 else ok "python3 never called"; fi
 

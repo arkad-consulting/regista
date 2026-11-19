@@ -227,7 +227,13 @@ public struct VoxCPMProvider: GeneratorProvider {
         return GenerationProcess(config.url(config.uv),
                           ["run", "--frozen", "--project", config.url(config.voxcpmProject).path, "python", "-I",
                            config.url(config.voxcpmScript).path, try input(r, job: job)],
-                          environment: ["HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1"])
+                          environment: Self.environment(config))
+    }
+
+    /// The environment VoxCPM2 and its training run with (#115): Regista's ffmpeg first on the PATH, the pinned Python
+    /// only, offline.
+    public static func environment(_ config: EngineConfig) -> [String: String] {
+        config.uvEnvironment.merging(["HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1"]) { $1 }
     }
 
     public func collect(_ r: GenerationRequest, job: URL, stdout: String) throws -> GenerationOutput {

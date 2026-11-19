@@ -284,7 +284,10 @@ source `scripts/lib.sh`, and both speak the macOS language — Italian, English,
   PATH, no Homebrew folder, every installer step traced; Settings › Engines' path for one Base engine and Settings ›
   Claude's Claude Desktop connection; with an app that ships its engines, first the first open on the empty home
   (#112: what `engines.status` and a transcription attempt answer before and after the model, seeded with `--seed`, which
-  refuses a file that is not there rather than download). Inside the app the installer asks `Contents/MacOS/regista-engine` (`manifest`,
+  refuses a file that is not there rather than download); with `--medium-run --wx-models <models folder>` on AC power, the
+  Medium engines used (#115): WhisperX installed through Settings › Engines' path (its packages downloaded into the
+  temporary folder, the models linked read-only) and one short transcription, then the HyperFrames CLI's doctor with
+  the PATH the app gives it (`EngineConfig.enginePath`: the app's ffmpeg first, as for WhisperX and VoxCPM2). Inside the app the installer asks `Contents/MacOS/regista-engine` (`manifest`,
   `config`, `claude-desktop`) for what Python helpers did; `scripts/engines.py` stays for a developer's clone
   (`validate`, `docs`, and the queries before an app is built). Foundation ignores `$HOME`, so a fresh-user simulation also sets `CFFIXED_USER_HOME`:
 
