@@ -2454,3 +2454,4 @@
 "La cartella di ComfyUI, o un programma che avvia ComfyUI" = "La cartella di ComfyUI, o un programma che avvia ComfyUI";
 "Regista avvia ComfyUI quando una generazione ne ha bisogno e lo ferma dopo." = "Regista avvia ComfyUI quando una generazione ne ha bisogno e lo ferma dopo.";
 "Trovata in un posto consueto: Regista avvia ComfyUI da qui quando serve. Sceglila per fissarla." = "Trovata in un posto consueto: Regista avvia ComfyUI da qui quando serve. Sceglila per fissarla.";
+"ripartito una volta dal fotogramma %@" = "ripartito una volta dal fotogramma %@";

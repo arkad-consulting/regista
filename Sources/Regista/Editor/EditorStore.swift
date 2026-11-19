@@ -773,6 +773,9 @@ enum Summary {
             if parts.count == 3 { break }
         }
         if let l = o["loudness"], let i = l["integrated"]?.doubleValue { parts.append(String(format: "%.1f LUFS", i)) }
+        // An export whose first attempt stalled before the first second and started again (#116): said here, one hover
+        // away, and nowhere else (the export ended as asked; nothing for the person to do).
+        if let f = o["restartedAtFrame"]?.doubleValue { parts.append(String(format: loc("ripartito una volta dal fotogramma %@"), String(Int(f)))) }
         return parts.joined(separator: " · ")
     }
 }

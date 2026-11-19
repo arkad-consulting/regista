@@ -1,5 +1,6 @@
 import AppKit
 import RegistaCore
+@testable import RegistaEngines
 import SwiftUI
 import Testing
 @testable import Regista
@@ -164,5 +165,82 @@ extension MouseSuites {
         #expect(app.rig.window.frame.origin == origin && app.rig.window.alphaValue == 1, "the rig's window was not put back")
         #expect(!NSScreen.screens.contains { $0.frame.intersects(app.rig.window.frame) }, "the rig's window stayed on a display")
     }
+
+    /// #116 from the app: a frame that never comes once, before the first second, does not cost the person the export. The
+    /// Esporta button's export (the save panel answered) stops the first attempt after the start timeout, starts again
+    /// once and ends done with its file. Nothing new shows while it works (the job's card and its progress, as always);
+    /// the only trace is the export's row in the activity (also under «Ultimo export»), whose details, one hover away,
+    /// say it started again and at which frame.
+    @Test func anExportStuckOnceFromTheEsportaButtonStartsAgainAndEndsDone() async throws {
+        let app = try await AppRig()
+        defer { app.close() }
+        let name = try #require(app.store.project?.name)
+        let release = DispatchSemaphore(value: 0)
+        let held = HeldOnce()
+        TimelineCompositor.testHook.set(name) { t in
+            guard t >= MediaTime(seconds: 0.5), held.first() else { return }
+            release.wait()   // only the first attempt's frame at 0.5 s never comes
+        }
+        defer {
+            TimelineCompositor.testHook.set(name, nil)
+            for _ in 0..<64 { release.signal() }
+        }
+        app.hostEditor(Navigation(activity: .export, rightTab: .inspector))
+        await app.settle()
+        let out = rigTempDir("restart-export").appendingPathComponent("restart.mp4")
+        RigGuard.panelAnswer = [out]
+        defer { RigGuard.panelAnswer = nil }
+        let n = app.store.activity.count, events = RigGuard.events.count
+        let button = try #require(app.rig.element("Esporta lo stesso") ?? app.rig.element("Esporta video…"), "no export button on Esporta")
+        let began = Date()
+        app.rig.click(button.centre)
+        for _ in 0..<1200 where !(FileManager.default.fileExists(atPath: out.path) && app.store.jobs.latest("export")?.isRunning == false) {
+            await app.idle(0.1)
+        }
+        let seconds = Date().timeIntervalSince(began)
+        await app.settle()
+        #expect(held.happened, "the frame at 0.5 s was never asked for")
+        #expect(app.store.jobs.latest("export")?.state == .done && FileManager.default.fileExists(atPath: out.path),
+                "the export did not end done with its file (\(String(describing: app.store.jobs.latest("export")?.state)), \(Int(seconds)) s)")
+        #expect(seconds < 90, "the export took \(Int(seconds)) s")
+        let run = try #require(app.store.activity.dropFirst(n).first { $0.command == "export.render" }, "no export.render in the activity")
+        #expect(run.status == .ok)
+        let phrase = loc("ripartito una volta dal fotogramma %@").replacingOccurrences(of: "%@", with: "")
+        #expect(run.result.contains("restart.mp4") && !run.result.contains(phrase), "the row's line is not the usual one: «\(run.result)»")
+        let after = try #require(run.details.range(of: phrase), "the details do not say the export started again: «\(run.details)»")
+        let frame = Int(run.details[after.upperBound...].prefix { $0.isNumber }) ?? 99
+        #expect(frame < 30, "restarted at frame \(frame), after the first second")
+        #expect(RigGuard.events.dropFirst(events).allSatisfy { $0.kind == .panel }, "something besides the save panel showed: \(RigGuard.events.dropFirst(events))")
+        print("ClickCoverageTests: the stuck export ended done in \(String(format: "%.1f", seconds)) s; activity details «\(run.details)»")
+    }
+
+    /// #119 in the help window: the install guide opens, in Italian and in French, on what a person who downloaded the
+    /// disk image needs — its first section's heading and its «Per cominciare» are on screen at the window's own size,
+    /// in that language. REGISTA_UI_SNAPSHOTS keeps the renders (help-install-<lang>.png) for a look.
+    @Test(arguments: ["it", "fr"]) func theInstallGuideOpensOnTheDownloadedApp(_ lang: String) async throws {
+        let app = try await AppRig(project: nil)
+        defer { app.close() }
+        let center = HelpCenter()
+        center.guide = .install
+        app.host(HelpView(center: center, language: lang), size: HelpView.size, language: lang)
+        await app.settle()
+        let text = try #require(HelpLibrary.text(.install, language: lang), "no install guide in \(lang)")
+        let heading = try #require(text.components(separatedBy: "\n## ").dropFirst().first?.components(separatedBy: "\n").first, "no first section")
+        let start = MouseRig.table(lang).localizedString(forKey: "Per cominciare", value: "Per cominciare", table: nil)
+        let shown = app.rig.elements().filter { $0.visible && $0.frame.minX >= HelpView.listWidth }.map(\.name)
+        #expect(shown.contains { $0.contains(heading) }, "\(lang): the first section «\(heading)» is not on screen: \(shown.prefix(12))")
+        #expect(shown.contains { $0.contains(start) }, "\(lang): «\(start)» is not on screen at the window's size")
+        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+            try app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("help-install-\(lang).png"))
+        }
+    }
 }
+}
+
+/// The first caller gets true, every later one false (a frame held once, whichever thread asks first).
+final class HeldOnce: @unchecked Sendable {
+    private let lock = NSLock()
+    private var done = false
+    func first() -> Bool { lock.lock(); defer { lock.unlock() }; if done { return false }; done = true; return true }
+    var happened: Bool { lock.lock(); defer { lock.unlock() }; return done }
 }

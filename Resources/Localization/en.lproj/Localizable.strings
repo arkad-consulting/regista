@@ -2454,3 +2454,4 @@
 "La cartella di ComfyUI, o un programma che avvia ComfyUI" = "The ComfyUI folder, or a program that starts ComfyUI";
 "Regista avvia ComfyUI quando una generazione ne ha bisogno e lo ferma dopo." = "Regista starts ComfyUI when a generation needs it and stops it afterwards.";
 "Trovata in un posto consueto: Regista avvia ComfyUI da qui quando serve. Sceglila per fissarla." = "Found in a usual place: Regista starts ComfyUI from here when needed. Choose it to keep it.";
+"ripartito una volta dal fotogramma %@" = "started again once from frame %@";
