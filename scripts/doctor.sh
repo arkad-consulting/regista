@@ -21,14 +21,22 @@ check_scripts() {
 }
 run_fix() { t fix_run "$1"; }
 
+# The installed app, and whether it ships its engines (#107): then neither the Command Line Tools nor Homebrew is needed
+# for the Base tier, and its own ffmpeg / ffprobe / whisper-cli / deep-filter are the ones checked.
+APP=""
+for d in "$APP_DIR" "$HOME/Applications" /Applications; do [ -d "$d/Regista.app" ] && { APP="$d/Regista.app"; break; }; done
+HELPERS=""; [ -n "$APP" ] && [ -x "$APP/Contents/Helpers/ffmpeg" ] && HELPERS="$APP/Contents/Helpers"
+
 step "System"
 macos="$(sw_vers -productVersion)"
 if [ "${macos%%.*}" -ge 15 ] && [ "$(uname -m)" = arm64 ]; then ok "macOS $macos, Apple Silicon"
 else problem "macOS $macos on $(uname -m): Regista needs macOS 15+ on Apple Silicon" "$(t fix_update_macos)"; fi
 if xcode-select -p >/dev/null 2>&1; then ok "Command Line Tools"
+elif [ -n "$HELPERS" ]; then ok "Command Line Tools: not needed (the app ships its engines)"
 else problem "Command Line Tools missing" "$(run_fix 'xcode-select --install')"; fi
 BREW="$(command -v brew || { [ -x /opt/homebrew/bin/brew ] && echo /opt/homebrew/bin/brew; } || true)"
 if [ -n "$BREW" ]; then BREW_BIN="$("$BREW" --prefix)/bin"; ok "Homebrew"
+elif [ -n "$HELPERS" ]; then BREW_BIN=/opt/homebrew/bin; ok "Homebrew: not needed for the Base tier (the app ships its engines)"
 else BREW_BIN=/opt/homebrew/bin; problem "Homebrew missing" "$(t fix_brew)"; fi
 TIER="$(json_get "$CONFIG" tier)"; TIER="${TIER:-$(detect_tier)}"
 ok "RAM $(ram_gb) GB → tier $TIER$( [ -n "$(json_get "$CONFIG" tier)" ] && echo ' (set in engines.json)')"
@@ -66,12 +74,22 @@ tool() {
   if version_ge "$have" "$3"; then ok "$1 $have ($2)"
   else problem "$1 $have is older than $3" "$(run_fix "brew upgrade $1")"; fi
 }
-tool ffmpeg "$(cfg ffmpeg "$BREW_BIN/ffmpeg")" "$(lock_get ffmpeg 2)" -version 3
-tool ffprobe "$(cfg ffprobe "$BREW_BIN/ffprobe")" "$(lock_get ffmpeg 2)" -version 3
+# shipped <name> <file>: a helper the app ships answers.
+shipped() {
+  if "$HELPERS/$2" "$3" >/dev/null 2>&1; then ok "$1 (shipped in the app: $HELPERS/$2)"
+  else problem "$1 shipped in the app does not run ($HELPERS/$2)" "$REINSTALL"; fi
+}
+if [ -n "$HELPERS" ]; then
+  shipped ffmpeg ffmpeg -version; shipped ffprobe ffprobe -version
+else
+  tool ffmpeg "$(cfg ffmpeg "$BREW_BIN/ffmpeg")" "$(lock_get ffmpeg 2)" -version 3
+  tool ffprobe "$(cfg ffprobe "$BREW_BIN/ffprobe")" "$(lock_get ffmpeg 2)" -version 3
+fi
 
 w="$(cfg whisperCpp "$WHISPER_BIN")"
 info="$(dirname "$(dirname "$w")")/BUILD-INFO.txt"
-if [ ! -x "$w" ]; then problem "whisper.cpp not built ($w)" "$(run_fix scripts/build-whisper.sh)"
+if [ -n "$HELPERS" ]; then shipped whisper.cpp whisper-cli --help
+elif [ ! -x "$w" ]; then problem "whisper.cpp not built ($w)" "$(run_fix scripts/build-whisper.sh)"
 elif ! grep -q "source sha256 $(lock_get whisper-src 5)" "$info" 2>/dev/null; then
   problem "whisper.cpp at $w was not built from the pinned source" "$(run_fix 'scripts/build-whisper.sh --force')"
 else ok "whisper.cpp $WHISPER_VERSION ($w, source sha256 ok)"; fi
@@ -85,8 +103,11 @@ checked() {
 }
 checked "ggml large-v3-turbo" "$(cfg whisperModel "$GGML_MODEL")" ggml-large-v3-turbo 1
 df="$(cfg deepFilter "$DEEP_FILTER")"
-checked "DeepFilterNet" "$df" deep-filter 0
-[ ! -f "$df" ] || [ -x "$df" ] || problem "DeepFilterNet is not executable ($df)" "$(run_fix "chmod +x \"$df\"")"
+if [ -n "$HELPERS" ]; then shipped DeepFilterNet deep-filter --version
+else
+  checked "DeepFilterNet" "$df" deep-filter 0
+  [ ! -f "$df" ] || [ -x "$df" ] || problem "DeepFilterNet is not executable ($df)" "$(run_fix "chmod +x \"$df\"")"
+fi
 
 CHECKED="ffmpeg,ffprobe,whisper.cpp,whisper-model,deepfilternet,blender"
 if medium_up; then
@@ -160,8 +181,6 @@ b="$(cfg blender "$HOME/Applications/Blender.app/Contents/MacOS/Blender")"
 if [ -x "$b" ]; then ok "Blender ($b)"; elif medium_up; then warn "Blender not installed (optional, 3D titles): scripts/install.sh --with blender"; fi
 
 step "App and MCP server"
-APP=""
-for d in "$APP_DIR" "$HOME/Applications" /Applications; do [ -d "$d/Regista.app" ] && { APP="$d/Regista.app"; break; }; done
 COPIES=(); for d in /Applications "$HOME/Applications"; do [ -d "$d/Regista.app" ] && COPIES+=("$d/Regista.app"); done
 if [ "${#COPIES[@]}" -gt 1 ]; then
   warn "${#COPIES[@]} copies of Regista.app (${COPIES[*]}): the Dock or Spotlight may open an old one. scripts/build-app.sh --install keeps one and moves the other to the Trash"
@@ -179,8 +198,12 @@ else
   else signer="ad-hoc: privacy permissions are asked again after each build; the next scripts/build-app.sh --install signs with the dedicated identity"; fi
   if codesign -v "$APP" 2>/dev/null; then ok "Regista.app ($APP, build $build, signature ok, $signer)"
   else problem "Regista.app signature invalid" "$REINSTALL"; fi
+  # A downloaded app carries the quarantine of its download: fine when Gatekeeper accepts it (a notarised release);
+  # a problem only when it does not (a build signed on another Mac).
   if xattr -p com.apple.quarantine "$APP" >/dev/null 2>&1; then
-    problem "Regista.app is quarantined (copied from a download?)" "$(run_fix "xattr -dr com.apple.quarantine \"$APP\"")"; fi
+    if spctl --assess --type execute "$APP" >/dev/null 2>&1; then ok "Regista.app was downloaded (quarantine) and Gatekeeper accepts it"
+    else problem "Regista.app is quarantined and Gatekeeper does not accept it (not notarised: a build from another Mac?)" "$(run_fix "xattr -dr com.apple.quarantine \"$APP\"")"; fi
+  fi
   # The app's own server (M3 #60): both Claude configs must run it, never a copy in a source folder.
   MCP="$(bundled_mcp "$APP")"
   if [ -x "$MCP" ]; then ok "regista-mcp inside the app ($MCP)"
@@ -188,8 +211,10 @@ else
   # The installed app's helper reads Claude Desktop's config below (no python3, #106).
   [ -n "$HELPER" ] || [ ! -x "$APP/Contents/MacOS/regista-engine" ] || HELPER="$APP/Contents/MacOS/regista-engine"
   # An app built from an older commit than this folder: Claude would use old tools.
+  # Only for an app built from a source folder: a release (RegistaRelease) is compared with nothing here.
   app_sha="$(defaults read "$APP/Contents/Info" RegistaBuildSHA 2>/dev/null || true)"
-  head_sha="$(git rev-parse --short=7 HEAD 2>/dev/null || true)"
+  [ "$(defaults read "$APP/Contents/Info" RegistaRelease 2>/dev/null || echo 0)" = 1 ] && app_sha=""
+  head_sha="$(git -C "$REPO" rev-parse --short=7 HEAD 2>/dev/null || true)"
   if [ -n "$app_sha" ] && [ -n "$head_sha" ] && [ "${app_sha:0:7}" != "$head_sha" ]; then
     problem "Regista.app was built from commit ${app_sha:0:7}, this folder is at $head_sha (the app and Claude's tools are older)" "$REINSTALL"
   fi

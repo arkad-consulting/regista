@@ -18,11 +18,13 @@ public enum EngineScripts {
     /// both copied by scripts/build-app.sh), else the repository this file was built from (a development run).
     public static var source: URL? {
         let env = ProcessInfo.processInfo.environment["REGISTA_INSTALLER"].flatMap { $0.isEmpty ? nil : $0 }
-        let candidates = [env.map { URL(fileURLWithPath: EngineConfig.expand($0)) },
-                          Bundle.main.resourceURL?.appendingPathComponent("Installer"),
-                          // Sources/RegistaCore/Engines/EngineScripts.swift → the repository.
-                          URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-                              .deletingLastPathComponent().deletingLastPathComponent()]
+        var candidates = [env.map { URL(fileURLWithPath: EngineConfig.expand($0)) },
+                          Bundle.main.resourceURL?.appendingPathComponent("Installer")]
+        #if !REGISTA_RELEASE   // a release build carries no path of the Mac that built it (#108)
+        // Sources/RegistaCore/Engines/EngineScripts.swift → the repository.
+        candidates.append(URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent())
+        #endif
         return candidates.compactMap { $0?.appendingPathComponent("engines", isDirectory: true) }
             .first { FileManager.default.fileExists(atPath: $0.path) }
     }

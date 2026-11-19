@@ -507,11 +507,15 @@ EOF
 fi
 
 # ---------------------------------------------------------------- the full install
+# A prebuilt app that ships its engines (#107, #108): nothing is built here, so neither the Command Line Tools nor, for
+# the Base tier, Homebrew is needed.
+SHIPPED=0
+[ -n "$APP_BUNDLE" ] && [ -x "$APP_BUNDLE/Contents/Helpers/ffmpeg" ] && [ -x "$APP_BUNDLE/Contents/Helpers/whisper-cli" ] && SHIPPED=1
 step "$(t step_preflight)"
 preflight_platform
-preflight_clt
-preflight_brew
+[ -n "$APP_BUNDLE" ] || preflight_clt
 resolve_tier
+if [ "$SHIPPED" = 0 ] || medium_up; then preflight_brew; fi
 
 FREE="$(free_gb "$SUPPORT")"
 # What this tier installs + a margin, from scripts/engines.manifest.json (scripts/engines.py disk <tier> itemises it).
@@ -523,16 +527,24 @@ ok "$(t disk_ok "$FREE" "$TIER" "$NEED")"
 [ "$TIER" != pro ] || ok "$(t disk_comfy "$(human "$(manifest comfy-bytes)")")"
 mkdir -p "$ENGINES_DIR" "$CACHE" "$LOGS" "$HOME/Movies/Regista"   # the folder Claude reads videos from
 
-step "$(t step_brew)"
-install_ffmpeg
-install_cmake
-if medium_up; then install_uv; fi
+if [ "$SHIPPED" = 1 ]; then
+  step "$(t step_base)"
+  found "ffmpeg, ffprobe, whisper.cpp, DeepFilterNet" "shipped inside $APP_BUNDLE (Contents/Helpers)"
+  if medium_up; then install_uv; fi
+  install_model
+  install_sfx_bank
+else
+  step "$(t step_brew)"
+  install_ffmpeg
+  install_cmake
+  if medium_up; then install_uv; fi
 
-step "$(t step_base)"
-install_whisper_cpp
-install_model
-install_deepfilter
-install_sfx_bank
+  step "$(t step_base)"
+  install_whisper_cpp
+  install_model
+  install_deepfilter
+  install_sfx_bank
+fi
 
 WX_OK=0
 if medium_up; then
@@ -628,7 +640,10 @@ if [ "$DO_CODE" = 1 ] && [ "$HAS_CODE" = 1 ]; then
   ok "claude mcp: regista → $MCP"
   CODE_STATE="added"
   # The regista skill (handoff/skill/regista): when to reach for the tools and the rules that always hold.
-  SKILL_SRC="$REPO/handoff/skill/regista/SKILL.md"; SKILL_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/regista"
+  # The app's own copy (#108: the skill that matches the app), else the source folder's.
+  SKILL_SRC="$APP_DIR/Regista.app/Contents/Resources/Skill/regista/SKILL.md"
+  [ -f "$SKILL_SRC" ] || SKILL_SRC="$REPO/handoff/skill/regista/SKILL.md"
+  SKILL_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/regista"
   if [ -f "$SKILL_SRC" ]; then
     mkdir -p "$SKILL_DIR" && cp "$SKILL_SRC" "$SKILL_DIR/SKILL.md" && ok "Claude Code skill: $SKILL_DIR/SKILL.md"
   fi

@@ -4,6 +4,10 @@
 # Both ship inside the app (Contents/MacOS, M3 #60): Claude Desktop and Claude Code run the app's own regista-mcp, so the
 # server always matches the app and nothing points into a source folder.
 # Usage: scripts/build-app.sh [--install] [--no-open] [--bundle-engines]
+# REGISTA_RELEASE=1 (scripts/release.sh): the hardened runtime on the app and every helper, CFBundleVersion from
+# REGISTA_BUNDLE_VERSION, RegistaRelease in Info.plist, and the source folder's path kept out of the binaries
+# (-DREGISTA_RELEASE). REGISTA_SIGN_IDENTITY: sign with that identity (a Developer ID) and a secure timestamp instead of
+# the local one; never ad hoc then.
 # --bundle-engines ships ffmpeg, ffprobe, whisper-cli and deep-filter inside the app (Contents/Helpers, #107), from
 # scripts/build-engines.sh (built once, then cached under ~/Library/Caches/Regista/engines-build), with their licence texts
 # in Contents/Resources/Licenses; they are signed with the app. Without it (a developer's build) the app uses the tools
@@ -35,8 +39,13 @@ if [ "$BUNDLE_ENGINES" = 1 ]; then ENGINES_OUT="$(scripts/build-engines.sh --qui
 read -r BUILD_ID BUILD_SHA BUILD_DIRTY _ < <(scripts/build-stamp.sh)
 BUILD_DATE="$(date -u '+%Y-%m-%d %H:%M UTC')"
 echo "Build $BUILD_ID ($BUILD_DATE)"
-swift build -c release --product Regista
-scripts/build-mcp.sh >/dev/null   # same stamp: the MCP server Claude launches matches this app
+# A release keeps the source folder's path (the build Mac's user name) out of the binaries: REGISTA_RELEASE compiles out
+# the #filePath fallbacks to the source folder, so only the bundle's own copies are used.
+SWIFT_FLAGS=""
+[ "${REGISTA_RELEASE:-}" = 1 ] && SWIFT_FLAGS="-Xswiftc -DREGISTA_RELEASE"
+# shellcheck disable=SC2086
+swift build -c release $SWIFT_FLAGS --product Regista
+REGISTA_SWIFT_BUILD_FLAGS="$SWIFT_FLAGS" scripts/build-mcp.sh >/dev/null   # same stamp: the MCP server Claude launches matches this app
 BIN="$(swift build -c release --show-bin-path)/Regista"
 
 # build.noindex: Spotlight and Launchpad skip folders named *.noindex, so a build copy never shows up as a second
@@ -53,6 +62,8 @@ PB=/usr/libexec/PlistBuddy
 "$PB" -c "Add :RegistaBuildID string $BUILD_ID" -c "Add :RegistaBuildSHA string $BUILD_SHA" \
       -c "Add :RegistaBuildDirty bool $([ "$BUILD_DIRTY" = 1 ] && echo true || echo false)" \
       -c "Add :RegistaBuildDate string $BUILD_DATE" "$APP/Contents/Info.plist"
+[ -z "${REGISTA_BUNDLE_VERSION:-}" ] || "$PB" -c "Set :CFBundleVersion $REGISTA_BUNDLE_VERSION" "$APP/Contents/Info.plist"
+[ "${REGISTA_RELEASE:-}" != 1 ] || "$PB" -c "Add :RegistaRelease bool true" "$APP/Contents/Info.plist"
 cp -R Resources/Fonts Resources/Brand Resources/Blender Resources/SFX "$APP/Contents/Resources/"
 # UI languages: English (also for every system language without its own) and Italian, the language of the source.
 cp -R Resources/Localization/*.lproj "$APP/Contents/Resources/"
@@ -70,6 +81,8 @@ mkdir -p "$INST/scripts"
 cp scripts/install.sh scripts/lib.sh scripts/i18n.sh scripts/engines.lock scripts/engines.manifest.json \
    scripts/build-whisper.sh scripts/doctor.sh scripts/mcp_smoke.py "$INST/scripts/"
 git ls-files engines | while IFS= read -r f; do mkdir -p "$INST/$(dirname "$f")"; cp "$f" "$INST/$f"; done
+# The Claude Code skill (handoff/skill/regista): Settings › Claude and the installer install it from the app (#108).
+mkdir -p "$APP/Contents/Resources/Skill/regista"; cp handoff/skill/regista/SKILL.md "$APP/Contents/Resources/Skill/regista/"
 # The shipped engines (#107) and their licences.
 if [ "$BUNDLE_ENGINES" = 1 ]; then
   mkdir -p "$APP/Contents/Helpers" "$APP/Contents/Resources/Licenses"
@@ -90,21 +103,30 @@ sign() {
   done
   codesign --force "$@" --entitlements Config/Regista.entitlements "$APP"
 }
+RUNTIME=""; [ "${REGISTA_RELEASE:-}" = 1 ] && RUNTIME="--options runtime"
 why=""
-if ! scripts/signing-identity.sh --quiet 2>build.noindex/signing.log; then
+if [ -n "${REGISTA_SIGN_IDENTITY:-}" ]; then
+  # A Developer ID from the keychain (scripts/release.sh): a failure stops the build, nothing is signed ad hoc.
+  # shellcheck disable=SC2086
+  with_timeout 120 sign $RUNTIME --timestamp --sign "$REGISTA_SIGN_IDENTITY" 2>build.noindex/codesign.log \
+    || { cat build.noindex/codesign.log >&2; die "codesign with $REGISTA_SIGN_IDENTITY failed"; }
+  echo "Signed with $REGISTA_SIGN_IDENTITY${RUNTIME:+ (hardened runtime)}"
+elif ! scripts/signing-identity.sh --quiet 2>build.noindex/signing.log; then
   why="$(sed $'s/\033\\[[0-9;]*m//g' build.noindex/signing.log | grep -v '^[[:space:]]*$' | tail -1 | sed 's/^[^[:alnum:]]*//')"
 elif ! HASH="$(sign_hash)"; then
   why="no certificate in $SIGN_KEYCHAIN"
 else
-  rc=0; with_timeout 60 sign --keychain "$SIGN_KEYCHAIN" --sign "$HASH" 2>build.noindex/codesign.log || rc=$?
+  # shellcheck disable=SC2086
+  rc=0; with_timeout 60 sign $RUNTIME --keychain "$SIGN_KEYCHAIN" --sign "$HASH" 2>build.noindex/codesign.log || rc=$?
   if [ "$rc" = 0 ]; then
-    echo "Signed with the dedicated Regista identity $HASH (stable: privacy permissions survive rebuilds)"
+    echo "Signed with the dedicated Regista identity $HASH (stable: privacy permissions survive rebuilds)${RUNTIME:+, hardened runtime}"
   elif [ "$rc" = 124 ]; then why="codesign did not finish in 60 s"
   else why="codesign: $(tail -1 build.noindex/codesign.log)"; fi
   find "$APP" -name '*.cstemp' -delete   # left behind by a codesign that was stopped
 fi
 if [ -n "$why" ]; then
   warn "ad-hoc signature, because the dedicated signing identity could not be used ($why): macOS will ask camera, microphone and screen permission again after this build"
+  [ "${REGISTA_RELEASE:-}" != 1 ] || die "a release is never signed ad hoc ($why)"
   sign --sign -
 fi
 

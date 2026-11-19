@@ -328,6 +328,25 @@ source `scripts/lib.sh`, and both speak the macOS language — Italian, English,
   `tools/list`, `engines_status` over stdio, headless (`REGISTA_ENGINE=local`); `mcp_smoke.py socket <path>` says
   whether the app is listening.
 
+### Release build (#108)
+
+`scripts/release.sh` makes the file to hand over, from a commit (a tree with changes is refused): the app with its
+engines (`build-app.sh --bundle-engines`, `REGISTA_RELEASE=1`), the hardened runtime (`--options runtime`) on the app
+and every helper, the entitlements of `Config/Regista.entitlements` only (camera and microphone; the code loads no
+library and compiles nothing at run time, so nothing else is asked), `CFBundleVersion` = the number of commits,
+`RegistaRelease` in Info.plist, the source folder's path kept out of the binaries (`-DREGISTA_RELEASE` compiles out the `#filePath` fallbacks), then
+`dist/Regista-<version>.dmg` (with the Applications shortcut, `hdiutil`) and its `.sha256`. The version is
+`CFBundleShortVersionString` in `Config/Info.plist`, bumped by a commit. `REGISTA_SIGN_IDENTITY` (a Developer ID
+Application identity in the keychain) signs the helpers, the app and the image with a secure timestamp;
+`REGISTA_NOTARY_PROFILE` (a `xcrun notarytool store-credentials` profile) submits the app, then the image, waits and
+staples both. Without them the image is signed with this Mac's local identity and opens on this Mac only. The script
+never tags, publishes or uploads anything, and no credential is ever written in the repository. Inside the app:
+`Contents/Helpers` (the engines), `Contents/Resources/Installer` (what Settings › Engines runs, with no Python helper),
+`Contents/Resources/Skill` (the Claude Code skill Settings › Claude and the installer install), `Contents/Resources/Licenses`.
+`scripts/doctor.sh` accepts a downloaded app (its quarantine is fine when Gatekeeper accepts it; a release is not compared
+with a git checkout); `install.sh --app-bundle` with an app that ships its engines needs neither the Command Line Tools nor,
+on the Base tier, Homebrew.
+
 ### Pre-commit hook
 
 `.githooks/pre-commit` first runs two repository guards: `scripts/check-voice-data.sh` (no voice data) and

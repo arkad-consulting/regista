@@ -37,6 +37,14 @@ Pour vérifier l'installation à tout moment :
 
 La dernière ligne doit dire « Tout est en ordre ». Sinon, sous chaque problème, une ligne explique comment le corriger.
 
+## Depuis une image disque
+
+Quand une version est publiée sous la forme `Regista-<version>.dmg`, il ne faut ni le Terminal, ni les outils d'Apple,
+ni Homebrew : ouvrez le fichier, faites glisser Regista sur Applications et ouvrez-le depuis là (ouvert depuis l'image
+ou depuis Téléchargements, Regista propose de se déplacer tout seul). Puis, dans Regista › Réglages › Moteurs, installez
+le modèle de transcription (1,6 Go) : ffmpeg, whisper.cpp et DeepFilterNet sont déjà dans l'app. Connectez Claude dans
+Réglages › Claude.
+
 ## Les niveaux
 
 Regista choisit un niveau selon la mémoire du Mac. Chaque niveau s'ajoute au précédent.

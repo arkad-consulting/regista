@@ -194,14 +194,17 @@ public struct BrandKit: Codable, Hashable, Sendable {
     public static func bundled(_ path: String) -> String {
         var roots: [URL] = []
         if let r = Bundle.main.resourceURL { roots.append(r) }
+        #if !REGISTA_RELEASE   // a release build carries no path of the Mac that built it (#108)
         // Sources/RegistaCore/Graphics/BrandKit.swift → repository root.
         roots.append(URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Resources"))
+        #endif
         for r in roots {
             let f = r.appendingPathComponent(path)
             if FileManager.default.fileExists(atPath: f.path) { return f.path }
         }
-        return roots[min(1, roots.count - 1)].appendingPathComponent(path).path
+        guard let last = roots.last else { return path }
+        return last.appendingPathComponent(path).path
     }
 
     // MARK: Captions

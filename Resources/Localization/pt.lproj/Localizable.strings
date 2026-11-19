@@ -2415,3 +2415,4 @@
 "%d tolti" = "%d removidos";
 "1 invariato" = "1 inalterado";
 "%d invariati" = "%d inalterados";
+"Copio anche la skill di Regista in %@." = "Também vou copiar a skill do Regista para %@.";

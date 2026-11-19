@@ -89,6 +89,34 @@ struct ClaudeClients: Equatable {
             .first { FileManager.default.isExecutableFile(atPath: $0) }
     }
 
+    /// The Claude Code skill this app ships (`Contents/Resources/Skill/regista/SKILL.md`, scripts/build-app.sh), nil in a
+    /// build without it (#108).
+    static func bundledSkill(bundle: Bundle = .main) -> URL? {
+        guard let url = bundle.resourceURL?.appendingPathComponent("Skill/regista/SKILL.md"),
+              FileManager.default.fileExists(atPath: url.path) else { return nil }
+        return url
+    }
+
+    /// Where Claude Code reads Regista's skill: `$CLAUDE_CONFIG_DIR/skills/regista/SKILL.md`, else `~/.claude/…` (with
+    /// `REGISTA_CLAUDE_HOME`, under that folder only).
+    static var skillDestination: URL {
+        let env = ProcessInfo.processInfo.environment["CLAUDE_CONFIG_DIR"].flatMap { $0.isEmpty ? nil : $0 }
+        let config = homeOverride == nil ? env.map { URL(fileURLWithPath: EngineConfig.expand($0), isDirectory: true) } : nil
+        return (config ?? home.appendingPathComponent(".claude", isDirectory: true)).appendingPathComponent("skills/regista/SKILL.md")
+    }
+
+    /// Copies the shipped skill where Claude Code reads it (what scripts/install.sh does from a source folder); false
+    /// when this build ships none.
+    @discardableResult
+    static func installSkill(bundle: Bundle = .main) throws -> Bool {
+        guard let source = bundledSkill(bundle: bundle) else { return false }
+        let dest = skillDestination
+        try FileManager.default.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? FileManager.default.removeItem(at: dest)
+        try FileManager.default.copyItem(at: source, to: dest)
+        return true
+    }
+
     /// The entry "Collega Claude Desktop" writes, shown before it is written.
     static func desktopEntry(_ mcp: String) -> String {
         "\"regista\": {\"command\": \"\(mcp)\", \"args\": []}"  // l10n-ignore
@@ -241,7 +269,8 @@ struct ClaudeSettings: View {
             return String(format: loc("In %@ aggiungo, tenendo tutto il resto e con una copia di sicurezza prima:"), ClaudeClients.desktopConfig.path)
                 + "\n\n" + ClaudeClients.desktopEntry(mcp)
         case .code:
-            return loc("Eseguo:") + "\n\nclaude mcp add --scope user regista -- \(mcp)"  // l10n-ignore
+            let skill = ClaudeClients.bundledSkill() == nil ? "" : "\n\n" + String(format: loc("Copio anche la skill di Regista in %@."), ClaudeClients.skillDestination.path)
+            return loc("Eseguo:") + "\n\nclaude mcp add --scope user regista -- \(mcp)" + skill  // l10n-ignore
         case nil: return ""
         }
     }
@@ -272,6 +301,8 @@ struct ClaudeSettings: View {
                             guard r.status == 0 else { throw RegistaError(r.out.trimmingCharacters(in: .whitespacesAndNewlines)) }
                         }
                         for (exe, args) in steps { try Subprocess.check(exe, args, environment: environment, currentDirectory: home) }
+                        // The skill the app ships, as scripts/install.sh installs it (#108).
+                        if t == .code { try ClaudeClients.installSkill() }
                     })
                 }
             }

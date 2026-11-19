@@ -61,9 +61,14 @@ enum HelpLibrary {
         return candidates.compactMap { $0 }.first { FileManager.default.fileExists(atPath: $0.appendingPathComponent(HelpGuide.userGuide.file).path) }
     }
 
-    /// docs/ of the source tree this file was built from (only useful on the machine that built it).
+    /// docs/ of the source tree this file was built from (only useful on the machine that built it; a release build
+    /// carries no path of the Mac that built it, #108).
+    #if REGISTA_RELEASE
+    static let repositoryDocs = URL(fileURLWithPath: "/nonexistent/docs", isDirectory: true)
+    #else
     static let repositoryDocs = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
         .deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("docs", isDirectory: true)
+    #endif
 
     /// The Markdown of a guide in `language` (English when that language has no copy), nil when no copy is found.
     static func text(_ guide: HelpGuide, language: String = language) -> String? {

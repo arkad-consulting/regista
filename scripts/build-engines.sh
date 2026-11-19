@@ -40,7 +40,7 @@ DF_VERSION="$(lock_get deep-filter 2)"; DF_SHA="$(lock_get deep-filter 5)"
 # What Regista uses (inventory 2026-11-19), and the common inputs from phones, cameras and screen recorders.
 FF_FLAGS=(
   --cc=clang --arch=arm64 --target-os=darwin
-  "--extra-cflags=-mmacosx-version-min=$MIN_MACOS" "--extra-ldflags=-mmacosx-version-min=$MIN_MACOS"
+  "--extra-cflags=-mmacosx-version-min=$MIN_MACOS -ffile-prefix-map=@WORK@=/regista-build" "--extra-ldflags=-mmacosx-version-min=$MIN_MACOS"
   --disable-autodetect --enable-videotoolbox --enable-audiotoolbox --enable-zlib
   --disable-everything --disable-doc --disable-debug --disable-network --disable-ffplay
   --enable-ffmpeg --enable-ffprobe --enable-static --disable-shared
@@ -58,6 +58,9 @@ WH_FLAGS=(
   -DGGML_NATIVE=OFF -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON -DGGML_OPENMP=OFF -DGGML_CCACHE=OFF
   -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_SERVER=OFF -DWHISPER_SDL2=OFF -DWHISPER_CURL=OFF
   "-DCMAKE_IGNORE_PREFIX_PATH=/opt/homebrew;/usr/local"
+  # The source paths compiled into assertions point at a fixed folder, not at the build Mac's home (#108).
+  "-DCMAKE_C_FLAGS=-ffile-prefix-map=@WORK@=/regista-build" "-DCMAKE_CXX_FLAGS=-ffile-prefix-map=@WORK@=/regista-build"
+  "-DCMAKE_OBJC_FLAGS=-ffile-prefix-map=@WORK@=/regista-build"
 )
 CC_VERSION="$(/usr/bin/clang --version | head -1)"
 RECIPE="regista engines recipe 1
@@ -79,7 +82,8 @@ fi
 CMAKE="$(command -v cmake || true)"; [ -n "$CMAKE" ] || { [ -x /opt/homebrew/bin/cmake ] && CMAKE=/opt/homebrew/bin/cmake; } || true
 [ -n "$CMAKE" ] || die "cmake is needed to build whisper.cpp on this Mac (brew install cmake): a build tool only, nothing of it ships"
 
-WORK="$ROOT/work-$KEY"; PART="$OUT.part"
+# Compiled outside the home folder: the configure line ffmpeg prints names no user (#108).
+WORK="$(cd "${TMPDIR:-/tmp}" && pwd -P)/regista-engines-work-$KEY"; PART="$OUT.part"
 rm -rf "$WORK" "$PART"; mkdir -p "$WORK" "$PART/bin" "$PART/licenses"
 trap 'rm -rf "$WORK"' EXIT
 LOG="$WORK/logs"; mkdir -p "$LOG"
@@ -95,7 +99,8 @@ start=$(date +%s)
 say "==> ffmpeg $FF_VERSION (nice, $JOBS jobs)"
 tar -xJf "$FF_TAR" -C "$WORK"
 FF_SRC="$WORK/ffmpeg-$FF_VERSION"
-(cd "$FF_SRC" && clean_env nice -n 10 ./configure "${FF_FLAGS[@]}" >"$LOG/ffmpeg-configure.log" 2>&1) \
+FF_ARGS=(); for f in "${FF_FLAGS[@]}"; do FF_ARGS+=("${f//@WORK@/$WORK}"); done
+(cd "$FF_SRC" && clean_env nice -n 10 ./configure "${FF_ARGS[@]}" >"$LOG/ffmpeg-configure.log" 2>&1) \
   || { tail -20 "$LOG/ffmpeg-configure.log" >&2; die "ffmpeg configure failed"; }
 if grep -q "did not match anything" "$LOG/ffmpeg-configure.log"; then
   grep "did not match anything" "$LOG/ffmpeg-configure.log" >&2; die "ffmpeg configure: a component above does not exist in $FF_VERSION"
@@ -111,7 +116,8 @@ ff_end=$(date +%s)
 say "==> whisper.cpp $WHISPER_VERSION (no GGML_NATIVE, Metal embedded; nice, $JOBS jobs)"
 tar -xzf "$WH_TAR" -C "$WORK"
 WH_SRC="$WORK/whisper.cpp-$WHISPER_VERSION"
-(cd "$WH_SRC" && clean_env nice -n 10 "$CMAKE" -S . -B build "${WH_FLAGS[@]}" >"$LOG/whisper-cmake.log" 2>&1 \
+WH_ARGS=(); for f in "${WH_FLAGS[@]}"; do WH_ARGS+=("${f//@WORK@/$WORK}"); done
+(cd "$WH_SRC" && clean_env nice -n 10 "$CMAKE" -S . -B build "${WH_ARGS[@]}" >"$LOG/whisper-cmake.log" 2>&1 \
    && clean_env nice -n 10 "$CMAKE" --build build --config Release --target whisper-cli -j "$JOBS" >"$LOG/whisper-build.log" 2>&1) \
   || { tail -30 "$LOG/whisper-build.log" "$LOG/whisper-cmake.log" >&2 2>/dev/null; die "whisper.cpp build failed"; }
 cp "$WH_SRC/build/bin/whisper-cli" "$PART/bin/"
@@ -124,6 +130,7 @@ mkdir -p "$PART/licenses/DeepFilterNet"; cp Resources/Licenses/DeepFilterNet/LIC
 
 say "==> checks"
 for t in $TOOLS; do
+  [ "$t" = deep-filter ] || ! strings "$PART/bin/$t" | grep -qE "/Users/|$HOME" || die "$t carries a path of a home folder"
   bad_libs="$(otool -L "$PART/bin/$t" | tail -n +2 | awk '{print $1}' | grep -vE '^(/usr/lib/|/System/Library/)' || true)"
   [ -z "$bad_libs" ] || die "$t links libraries outside macOS: $bad_libs"
   minos="$(otool -l "$PART/bin/$t" | awk '/LC_BUILD_VERSION/ {f=1} f && $1 == "minos" {print $2; exit}')"
