@@ -184,7 +184,31 @@ install_ffmpeg() {
   KV+=(ffmpeg "$BREW_BIN/ffmpeg" ffprobe "$BREW_BIN/ffprobe")
 }
 install_cmake() { brew_tool cmake cmake --version 3; }
-install_uv() { brew_tool uv uv --version 2; KV+=(uv "$BREW_BIN/uv"); }
+# uv and the one Python its environments use (#109): the pinned release in the engines folder, sha256-checked; the Python
+# from a local mirror of its verified download, installed into the engines folder with no link in ~/.local/bin.
+install_uv() {
+  local tgz part name mirror
+  if [ ! -x "$UV_BIN" ] || [ "$("$UV_BIN" --version 2>/dev/null | awk '{print $2}')" != "$UV_VERSION" ]; then
+    tgz="$CACHE/uv-bin/$(lock_get uv-bin 7 | sed 's#.*/##')"
+    fetch uv-bin "$tgz"
+    part="$ENGINES_DIR/uv/.part"; rm -rf "$part"; mkdir -p "$part"
+    tar -xzf "$tgz" -C "$part" || { rm -rf "$part"; die "cannot extract $tgz"; }
+    mkdir -p "$(dirname "$UV_BIN")"; mv "$part/uv-aarch64-apple-darwin/uv" "$UV_BIN"; rm -rf "$part"
+  fi
+  found "uv $UV_VERSION" "$UV_BIN (sha256 ok)"
+  local have_py="" d
+  for d in "$UV_PY_DIR"/cpython-"$PY_PIN"-macos-aarch64-*; do [ -x "$d/bin/python3" ] && have_py=1; done
+  if [ -z "$have_py" ]; then
+    name="$(lock_get uv-python 7 | sed 's#.*/##')"
+    fetch uv-python "$CACHE/uv-python/$name"
+    mirror="$CACHE/uv-python/mirror"; mkdir -p "$mirror/${PY_BUILD##*+}"
+    clone "$CACHE/uv-python/$name" "$mirror/${PY_BUILD##*+}/$(printf '%s' "$name" | sed 's/%2B/+/g')"
+    UV_PYTHON_INSTALL_DIR="$UV_PY_DIR" UV_PYTHON_INSTALL_MIRROR="file://$(printf '%s' "$mirror" | sed 's/ /%20/g')" UV_OFFLINE=1 \
+      "$UV_BIN" python install "$PY_PIN" --no-bin >/dev/null 2>&1 || die "uv could not install Python $PY_PIN from its verified download"
+  fi
+  found "Python $PY_PIN" "$UV_PY_DIR (build ${PY_BUILD##*+}, sha256 ok)"
+  KV+=(uv "$UV_BIN")
+}
 
 # ---------------------------------------------------------------- engines, Base tier
 install_whisper_cpp() {
@@ -250,7 +274,7 @@ install_whisperx() {
   mkdir -p "$WX_DIR"
   for f in pyproject.toml uv.lock wx_align.py textnorm.py; do cp "engines/whisperx/$f" "$WX_DIR/$f"; done
   printf '  … uv sync --frozen (first run installs %s of Python packages)\n' "$(human "$(manifest size whisperx)")"
-  "$BREW_BIN/uv" sync --frozen --quiet --project "$WX_DIR" || die "uv sync failed in $WX_DIR"
+  uv_env "$UV_BIN" sync --frozen --quiet --project "$WX_DIR" || die "uv sync failed in $WX_DIR"
   ok "uv environment $WX_DIR/.venv (engines/whisperx/uv.lock)"
 
   if [ ! -f "$WX_PUNKT/.sha256" ] || [ "$(cat "$WX_PUNKT/.sha256")" != "$(lock_get punkt_tab 5)" ]; then
@@ -280,7 +304,7 @@ install_whisperx() {
     src="$CACHE/oai"
     for id in $(lock_ids | grep '^oai:'); do fetch "$id" "$src/${id#oai:}"; done
     rm -rf "$WX_CT2.tmp"
-    "$BREW_BIN/uv" run --frozen --quiet --project "$WX_DIR" python -I -m ctranslate2.converters.transformers \
+    uv_env "$UV_BIN" run --frozen --quiet --project "$WX_DIR" python -I -m ctranslate2.converters.transformers \
       --model "$src" --output_dir "$WX_CT2.tmp" --quantization float16 \
       --copy_files tokenizer.json preprocessor_config.json >"$LOGS/convert-ct2.log" 2>&1 \
       || { tail -20 "$LOGS/convert-ct2.log"; die "CTranslate2 conversion failed (log: $LOGS/convert-ct2.log)"; }
@@ -364,7 +388,7 @@ install_voxcpm() {
   for f in pyproject.toml uv.lock vox_say.py train_voxcpm_finetune.py; do cp "engines/voxcpm/$f" "$VOX_DIR/$f"; done
   cp engines/voxcpm/scripts/*.md "$VOX_DIR/scripts/"
   printf '  … uv sync --frozen (first run installs %s of Python packages: PyTorch)\n' "$(human "$(manifest size voxcpm)")"
-  "$BREW_BIN/uv" sync --frozen --quiet --project "$VOX_DIR" >"$LOGS/voxcpm-sync.log" 2>&1 \
+  uv_env "$UV_BIN" sync --frozen --quiet --project "$VOX_DIR" >"$LOGS/voxcpm-sync.log" 2>&1 \
     || { tail -20 "$LOGS/voxcpm-sync.log"; die "uv sync failed in $VOX_DIR (log: $LOGS/voxcpm-sync.log)"; }
   ok "uv environment $VOX_DIR/.venv (engines/voxcpm/uv.lock)"
   # Weights: installed and verified, or an existing verified copy referenced in place, or a download.
@@ -455,7 +479,7 @@ EOF
   plan=""; needs=""
   case "$method" in
     homebrew) plan="brew install $formula (Homebrew)"; needs="brew"
-              case "$formula" in ffmpeg) run=install_ffmpeg ;; cmake) run=install_cmake ;; uv) run=install_uv ;;
+              case "$formula" in ffmpeg) run=install_ffmpeg ;; cmake) run=install_cmake ;;
                 *) die "$ONLY: no Homebrew step for formula $formula" ;; esac ;;
     installer)
       case "$ONLY" in
@@ -463,9 +487,10 @@ EOF
         whisper-model) plan="download the transcription model (sha256-checked)"; run=install_model ;;
         deepfilternet) plan="download DeepFilterNet (sha256-checked)"; run=install_deepfilter ;;
         sfx-bank) plan="the sound-effect bank in Resources/SFX (sha256-checked), copied into Regista.app by the app build"; run=install_sfx_bank ;;
-        whisperx|faster-whisper-model|punkt-tab) plan="the WhisperX step: Python environment, sentence splitter, aligners, speech model"
-                                                 needs="brew uv"; run=install_whisperx ;;
-        voxcpm|voxcpm-weights|voice-training) plan="the VoxCPM2 step: Python environment and voice model"; needs="brew uv"; run=install_voxcpm ;;
+        uv) plan="uv $UV_VERSION and Python $PY_PIN (pinned, sha256-checked) into the engines folder"; run=install_uv ;;
+        whisperx|faster-whisper-model|punkt-tab) plan="the WhisperX step: Python environment (uv $UV_VERSION, Python $PY_PIN), sentence splitter, aligners, speech model"
+                                                 needs="uv"; run=install_whisperx ;;
+        voxcpm|voxcpm-weights|voice-training) plan="the VoxCPM2 step: Python environment (uv $UV_VERSION, Python $PY_PIN) and voice model"; needs="uv"; run=install_voxcpm ;;
         node|hyperframes) plan="Node.js $NODE_VERSION (sha256-checked) and HyperFrames $(lock_get hyperframes-env 2) from its lockfile (npm ci --ignore-scripts)"; run=install_node ;;
         aligner-pt) plan="download the Portuguese aligner (pinned revision, sha256-checked)"; run=install_aligner_pt ;;
         aligner-it|aligner-fr)

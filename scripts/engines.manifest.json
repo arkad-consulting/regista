@@ -155,10 +155,11 @@
       "id": "uv", "name": "uv",
       "role": "builds the pinned Python environments",
       "unlocks": ["precise word timings", "cloned voice"],
-      "minRamGB": 16, "ramInUseGB": null, "diskBytes": 44425216,
+      "minRamGB": 16, "ramInUseGB": null, "diskBytes": 96468992,
       "licence": "Apache-2.0 OR MIT", "nonCommercial": false,
-      "install": {"method": "homebrew", "formula": "uv"}, "artifacts": ["uv"],
-      "optional": false, "dependsOn": [], "status": "available"
+      "install": {"method": "installer", "step": "medium-uv"}, "artifacts": ["uv-bin", "uv-python"], "files": ["uv", "python"],
+      "optional": false, "dependsOn": [], "status": "available",
+      "notes": "the pinned uv and the one Python 3.12 build its environments use, both in the engines folder (no Homebrew, #109); diskBytes = du of the two folders (2026-11-19)"
     },
     {
       "id": "whisperx", "name": "WhisperX",

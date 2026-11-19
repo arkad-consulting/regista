@@ -181,6 +181,14 @@ WX_ALIGNER="$WX_DIR/models/torchaudio/wav2vec2_voxpopuli_base_10k_asr_it.pt"
 WX_ALIGNER_FR="$WX_DIR/models/torchaudio/wav2vec2_voxpopuli_base_10k_asr_fr.pt"
 WX_ALIGNER_EN="$WX_DIR/models/torchaudio/wav2vec2_fairseq_base_ls960_asr_ls960.pth"
 WX_ALIGNER_PT="$WX_DIR/models/wav2vec2-large-xlsr-53-portuguese"   # a folder: the ptalign: rows of engines.lock
+# uv and the Python of the Medium tier's environments (#109): the pinned builds, in the engines folder (no Homebrew).
+UV_VERSION="$(lock_get uv-bin 2)"
+UV_BIN="$ENGINES_DIR/uv/uv-$UV_VERSION/uv"
+PY_BUILD="$(lock_get uv-python 2)"   # 3.12.16+20261026
+PY_PIN="${PY_BUILD%%+*}"
+UV_PY_DIR="$ENGINES_DIR/python"
+# uv_env <command…>: uv with the pinned Python only, from the engines folder (never a download of another one).
+uv_env() { UV_PYTHON_INSTALL_DIR="$UV_PY_DIR" UV_PYTHON_DOWNLOADS=never UV_PYTHON="$PY_PIN" "$@"; }
 # Node.js (official build, extracted) and the HyperFrames CLI from engines/hyperframes/package-lock.json (Medium tier).
 NODE_VERSION="$(lock_get node 2)"
 NODE_HOME="$ENGINES_DIR/node/node-v$NODE_VERSION-darwin-arm64"

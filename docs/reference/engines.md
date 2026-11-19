@@ -16,8 +16,8 @@ The `id` is the one engines.status and `scripts/install.sh --only <id>` use.
 | Tier | RAM | Installer installs | Disk they take | Free disk the installer asks for | Everything on this tier, optional and manual included |
 |---|---|---|---|---|---|
 | Base | 8 GB | 7 items | 1.96 GB | 4 GB | 13 items, 2.54 GB + unknown: Your sound effects, Higgsfield |
-| Medium | 16 GB | 17 items | 13.25 GB | 16 GB | 26 items, 15.54 GB + unknown: Your sound effects, Higgsfield |
-| Pro | 32 GB | 18 items | 13.25 GB | 16 GB | 32 items, 86.09 GB + unknown: Your sound effects, Higgsfield |
+| Medium | 16 GB | 17 items | 13.31 GB | 16 GB | 26 items, 15.59 GB + unknown: Your sound effects, Higgsfield |
+| Pro | 32 GB | 18 items | 13.31 GB | 16 GB | 32 items, 86.15 GB + unknown: Your sound effects, Higgsfield |
 
 The free disk asked for = what the installer installs on that tier + a margin of 2 GB (headroom for the install itself: the 1.6 GB source of the faster-whisper conversion (deleted afterwards), the download cache and logs).
 
@@ -43,7 +43,7 @@ The free disk asked for = what the installer installs on that tier + a margin of
 
 | Engine | What it unlocks | RAM while running | Disk | Licence | How it is installed | Id |
 |---|---|---|---|---|---|---|
-| uv | precise word timings; cloned voice | – | 44 MB | Apache-2.0 OR MIT | Homebrew | `uv` |
+| uv | precise word timings; cloned voice | – | 96 MB | Apache-2.0 OR MIT | installer | `uv` |
 | WhisperX | precise word timings; tighter cuts and captions | – | 1.04 GB | BSD-2-Clause | installer | `whisperx` |
 | Whisper large-v3-turbo (CTranslate2) | precise word timings | – | 1.62 GB | MIT | installer | `faster-whisper-model` |
 | Italian aligner (wav2vec2 VoxPopuli) | precise word timings in Italian | – | 0.38 GB | CC-BY-NC-4.0 — **non-commercial** | installer, asked | `aligner-it` |

@@ -141,6 +141,9 @@ public struct WhisperXTranscriber: Transcriber {
     public let uv: URL
     public let project: URL
     public let script: URL
+    /// The folder of the ffmpeg Regista uses: WhisperX runs a bare `ffmpeg` from the PATH to read audio, so on a Mac
+    /// without Homebrew it must find the app's own (#109).
+    public let ffmpegFolder: String
     /// Its speed on this Mac, for the estimate that fills the job until WhisperX prints its first number (#13).
     public var speeds = EngineSpeeds()
 
@@ -148,6 +151,15 @@ public struct WhisperXTranscriber: Transcriber {
         uv = config.url(config.uv)
         project = config.url(config.whisperXProject)
         script = config.url(config.whisperXScript)
+        ffmpegFolder = config.url(config.ffmpeg).deletingLastPathComponent().path
+    }
+
+    /// The PATH WhisperX runs with: Regista's ffmpeg first, then this process's, then the system's.
+    var environment: [String: String] {
+        let inherited = ProcessInfo.processInfo.environment["PATH"].flatMap { $0.isEmpty ? nil : $0 }
+        return ["PATH": ([ffmpegFolder] + (inherited.map { [$0] } ?? []) + ["/usr/bin:/bin:/usr/sbin:/sbin"]).joined(separator: ":"),
+                // Only the pinned Python the installer put beside uv: never a download of another one at run time.
+                "UV_PYTHON_DOWNLOADS": "never"]
     }
 
     public func unavailableReason() -> String? {
@@ -198,7 +210,7 @@ public struct WhisperXTranscriber: Transcriber {
         try CommandJob.estimating(speeds.expected(Self.engineID, audio: audio)) {
             try Subprocess.check(uv, ["run", "--frozen", "--project", project.path, "python", "-I", "-u", script.path,
                                       speech16k.path, out.path, "--lang", language, "--chunk", "8"],
-                                 currentDirectory: project, progress: .whisperX)
+                                 environment: environment, currentDirectory: project, progress: .whisperX)
         }
         speeds.record(Self.engineID, seconds: Date().timeIntervalSince(started), audio: audio)
         guard let data = FileManager.default.contents(atPath: out.path) else { throw CommandError(.io, "wx_align.py wrote no JSON") }

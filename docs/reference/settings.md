@@ -14,7 +14,7 @@ Where the engines live. The installer writes `~/Library/Application Support/Regi
 | `whisperModel` | `~/Library/Application Support/Regista/engines/models/ggml-large-v3-turbo.bin` | The ggml Whisper large-v3-turbo model whisper.cpp uses. |
 | `whisperModelSha256` | `1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69` | Expected SHA-256 of that model (from engines.lock), checked by engines.status. |
 | `whisperThreads` | `8` | CPU threads whisper.cpp uses. |
-| `uv` | `/opt/homebrew/bin/uv` | uv, which runs the Python environments of WhisperX and VoxCPM2 (Medium tier and up). |
+| `uv` | `~/Library/Application Support/Regista/engines/uv/uv-0.13.6/uv` | uv, which runs the Python environments of WhisperX and VoxCPM2 (Medium tier and up). |
 | `whisperXProject` | `~/Library/Application Support/Regista/engines/whisperx` | The uv project folder of WhisperX (precise word timings). |
 | `whisperXScript` | `~/Library/Application Support/Regista/engines/whisperx/wx_align.py` | The WhisperX alignment script in that folder. |
 | `deepFilter` | `~/Library/Application Support/Regista/engines/deepfilternet/deep-filter-0.5.6-aarch64-apple-darwin` | DeepFilterNet3 binary (voice cleaning). A release build ships its own, which wins over this key. |

@@ -111,7 +111,7 @@ step "4. What only a real new macOS account can confirm"
 cat <<'EOF'
   - Gatekeeper and TCC: the first launch from Finder, the camera / microphone / screen prompts, and that macOS keeps
     them across rebuilds with that account's own signing identity (created at its first build, in its own keychain).
-  - Homebrew from zero (here the Mac's own Homebrew and its ffmpeg / cmake / uv are reused), and the Command Line Tools
+  - Homebrew from zero (here the Mac's own Homebrew and its ffmpeg / cmake are reused; uv is the pinned one), and the Command Line Tools
     prompt on a Mac without them.
   - Downloading every model for real on that account's network (here the big ones come from --seed or are --check only).
   - Claude Desktop (a real install, signed in) reading the new config after ⌘Q, asking per tool, and driving the

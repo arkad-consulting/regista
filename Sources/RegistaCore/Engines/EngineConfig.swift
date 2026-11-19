@@ -16,7 +16,8 @@ public struct EngineConfig: Codable, Hashable, Sendable {
     public var whisperModelSha256 = EngineManifest.shared.artifact("ggml-large-v3-turbo")!.sha256
     public var whisperThreads = 8
     /// WhisperX runs in the uv environment of engines/whisperx, set up by the installer (Medium tier and up).
-    public var uv = "/opt/homebrew/bin/uv"
+    /// The pinned uv the installer puts in the engines folder (#109: no Homebrew), with the pinned Python beside it.
+    public var uv = "\(EngineConfig.managedDirectory)/uv/uv-\(EngineManifest.shared.artifact("uv-bin")!.version)/uv"
     public var whisperXProject = "\(EngineConfig.managedDirectory)/whisperx"
     public var whisperXScript = "\(EngineConfig.managedDirectory)/whisperx/wx_align.py"
     /// DeepFilterNet3 release binary (model embedded; version and hash from engines.lock). The release publishes no

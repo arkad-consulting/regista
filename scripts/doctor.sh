@@ -115,7 +115,7 @@ if medium_up; then
   wx="$(cfg whisperXProject "$WX_DIR")"
   if [ ! -f "$wx/pyproject.toml" ]; then problem "WhisperX not installed (tier $TIER)" "$REINSTALL"
   else
-    if [ -x "$(cfg uv "$BREW_BIN/uv")" ] && [ -x "$wx/.venv/bin/python" ]; then ok "WhisperX env ($wx/.venv)"
+    if [ -x "$(cfg uv "$UV_BIN")" ] && [ -x "$wx/.venv/bin/python" ]; then ok "WhisperX env ($wx/.venv)"
     else problem "WhisperX env missing in $wx" "$REINSTALL"; fi
     if [ "$wx" = "$WX_DIR" ]; then
       if cmp -s engines/whisperx/uv.lock "$wx/uv.lock"; then ok "WhisperX env matches the repo"

@@ -295,6 +295,13 @@ source `scripts/lib.sh`, and both speak the macOS language — Italian, English,
   and the Claude Desktop entry goes to `$HOME/Library/Application Support/Claude/` in the temp folder too (put a fake
   config there first to test the merge). The package is tested the same way: unzip it in a temp folder and run
   `bash <dir>/INSTALLA.command </dev/null` with the same environment.
+- **uv and its Python (#109).** The Medium tier's environments (WhisperX, VoxCPM2) are built with the uv release pinned
+  in `engines.lock` (`uv-bin`, Astral's own build and checksum), extracted into `<support>/engines/uv/uv-<version>/`, and
+  run on one exact Python build (`uv-python`, python-build-standalone with its published sha256): the installer serves
+  that verified download to uv from a local mirror (`UV_PYTHON_INSTALL_MIRROR=file://…`, offline), installs it into
+  `<support>/engines/python` with no link in `~/.local/bin`, and every `uv sync` / `uv run` uses it with
+  `UV_PYTHON_DOWNLOADS=never`. Homebrew's uv is neither needed nor used; `engines.json` names the pinned one. WhisperX
+  runs a bare `ffmpeg` from the PATH: the app puts its own ffmpeg's folder first.
 - **Claude connections.** `--claude desktop|code|both|none` (default: whichever is installed — `claude` in PATH for
   Claude Code; `Claude.app` in /Applications or ~/Applications, or an existing config, for Claude Desktop; `--no-claude`
   = `none`). Claude Code: `claude mcp add --scope user regista` (replaces a previous user-scope entry). Claude Desktop:

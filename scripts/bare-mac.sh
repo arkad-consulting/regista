@@ -10,28 +10,32 @@
 # its engines (scripts/build-app.sh --bundle-engines, #107), a first reel too, headless through regista-engine with the
 # shipped helpers only: a synthetic take (macOS's `say` into a file, nothing plays; the picture and the file made by the
 # shipped ffmpeg) imported, transcribed by the shipped whisper-cli, captioned, its voice cleaned by the shipped
-# deep-filter, exported 9:16, and the export probed by the shipped ffprobe.
+# deep-filter, exported 9:16, and the export probed by the shipped ffprobe. Then the Medium tier's uv step (#109): the
+# pinned uv and Python installed through Settings › Engines' path, `--check` of WhisperX and VoxCPM2, and with --uv-sync
+# one real `uv sync` of the WhisperX environment (about 1 GB of packages, its own download cache in the temporary folder).
 # Nothing outside the temporary folder is written; the owner's support folder, caches and Claude configs are not read.
 #
-#   scripts/bare-mac.sh --app <Regista.app> [--engine <id>] [--seed <lock id>=<file>]... [--keep]
+#   scripts/bare-mac.sh --app <Regista.app> [--engine <id>] [--seed <lock id>=<file>]... [--uv-sync] [--keep]
 #
 #   --app     a built Regista.app (scripts/build-app.sh --no-open → build.noindex/Regista.app)
 #   --engine  the Base engine to install (default: deepfilternet, a 28 MB pinned download; whisper-model with an app that
 #             ships its engines: the one Base download left, give it with --seed ggml-large-v3-turbo=<file>)
 #   --seed    an already downloaded file for the temporary download cache (still sha256-checked by the installer)
+#   --uv-sync also build the WhisperX environment for real with the pinned uv (downloads its packages)
 #   --keep    keep the temporary folder (printed)
 # Exit 0 when every step passes.
 set -uo pipefail
 . "$(dirname "$0")/lib.sh"
 
-APP_SRC=""; ENGINE=""; SEEDS=(); KEEP=0
+APP_SRC=""; ENGINE=""; SEEDS=(); KEEP=0; UV_SYNC=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --app) APP_SRC="${2:-}"; shift ;;
     --engine) ENGINE="${2:-}"; shift ;;
     --seed) SEEDS+=("${2:-}"); shift ;;
     --keep) KEEP=1 ;;
-    -h|--help) sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --uv-sync) UV_SYNC=1 ;;
+    -h|--help) sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "unknown option $1 (see --help)" ;;
   esac
   shift
@@ -77,7 +81,7 @@ rc=0
 trace_clean() {
   local hits
   # A command in command position (assignments such as PY=… are not runs).
-  hits="$(grep -E '^\++ (([^ =]*/)?(python3?|xcrun|xcode-select|brew|cmake|uv|swift|clang)|/opt/homebrew/\S*|/usr/local/\S*)( |$)' "$1" || true)"
+  hits="$(grep -E '^\++ (([^ =]*/)?(python3?|xcrun|xcode-select|brew|cmake|swift|clang)|/opt/homebrew/\S*|/usr/local/\S*)( |$)' "$1" || true)"
   if [ -n "$hits" ]; then bad "$2 ran developer tools:"; printf '%s\n' "$hits" | head -10 | sed 's/^/      /'; rc=1
   else ok "$2: $(grep -cE '^\++ ' "$1") traced shell steps, none runs python3, Homebrew or the Command Line Tools"; fi
 }
@@ -136,7 +140,30 @@ JSON
   grep -E "transcript|words|chunks" "$T/logs/reel.log" | head -4 | sed 's/^/  /'
 fi
 
-step "4. python3 calls"
+step "4. The Medium tier's uv step (log: $T/logs/uv.log)"
+urc=0; bare "$HELPER_BIN" install uv >"$T/logs/uv.log" 2>&1 || urc=$?
+grep -vE '^\++ ' "$T/logs/uv.log" | grep -E '✓|✗' | sed 's/^/  /'
+if [ "$urc" = 0 ]; then ok "regista-engine install uv finished"; else bad "regista-engine install uv failed (exit $urc)"; rc=1; fi
+trace_clean "$T/logs/uv.log" "the uv step"
+UVB="$(find "$H/Library/Application Support/Regista/engines/uv" -name uv -type f -perm +111 2>/dev/null | head -1)"
+[ -n "$UVB" ] && ok "uv: $("$UVB" --version) ($(du -sh "$(dirname "$UVB")" | cut -f1)), Python: $(find "$H/Library/Application Support/Regista/engines/python" -maxdepth 1 -name 'cpython-*' -type d | sed 's#.*/##' | tr '\n' ' ')($(du -sh "$H/Library/Application Support/Regista/engines/python" | cut -f1))" \
+  || { bad "no uv in the engines folder"; rc=1; }
+[ ! -e "$H/.local/bin/python3.12" ] || { bad "a Python link was left in ~/.local/bin"; rc=1; }
+for id in whisperx voxcpm; do
+  out="$(bare /bin/bash "$APP/Contents/Resources/Installer/scripts/install.sh" --only "$id" --check --tier medium 2>&1)" \
+    && ok "--only $id --check: $(printf '%s\n' "$out" | grep -vE '^\++ ' | tail -1)" || { bad "--only $id --check: $out"; rc=1; }
+done
+if [ "$UV_SYNC" = 1 ] && [ -n "$UVB" ]; then
+  W="$T/wx"; mkdir -p "$W"
+  cp "$APP/Contents/Resources/Installer/engines/whisperx/pyproject.toml" "$APP/Contents/Resources/Installer/engines/whisperx/uv.lock" "$W/"
+  s0=$(date +%s)
+  if bare env UV_PYTHON_INSTALL_DIR="$H/Library/Application Support/Regista/engines/python" UV_PYTHON_DOWNLOADS=never \
+       UV_PYTHON="$(lock_get uv-python 2 | cut -d+ -f1)" UV_CACHE_DIR="$T/uv-cache" "$UVB" sync --frozen --quiet --project "$W" >>"$T/logs/uv.log" 2>&1; then
+    ok "uv sync --frozen of WhisperX: $(( $(date +%s) - s0 )) s, $(du -sh "$T/uv-cache" | cut -f1) downloaded and cached, environment $(du -sh "$W/.venv" | cut -f1), $("$W/.venv/bin/python" -I -c 'import sys; print(sys.version.split()[0])')"
+  else bad "uv sync of WhisperX failed (log: $T/logs/uv.log)"; rc=1; fi
+fi
+
+step "5. python3 calls"
 if [ -s "$T/logs/python3-calls.log" ]; then bad "python3 was called:"; sed 's/^/      /' "$T/logs/python3-calls.log"; rc=1
 else ok "python3 never called"; fi
 
