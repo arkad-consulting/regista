@@ -38,6 +38,20 @@ extension MouseSuites {
         // Released, it stays: a second look changes nothing.
         await app.idle(0.3)
         #expect(options.bitrate == 25 && slider()?.valueDescription == "25 Mbps")
+        // The export follows the slider: the panel's export button (or «Esporta lo stesso» when a rule fails) runs
+        // export.render with 25 Mbps, into the file the save panel is answered with.
+        let out = rigTempDir("bitrate-export").appendingPathComponent("bitrate.mp4")
+        RigGuard.panelAnswer = [out]
+        defer { RigGuard.panelAnswer = nil }
+        let n = app.store.activity.count
+        let button = try #require(app.rig.element("Esporta lo stesso") ?? app.rig.element("Esporta video…"), "no export button on Esporta")
+        app.rig.click(button.centre)
+        for _ in 0..<600 where !(FileManager.default.fileExists(atPath: out.path) && app.store.jobs.latest("export")?.isRunning == false) {
+            await app.idle(0.1)
+        }
+        let run = app.store.activity.dropFirst(n).first { $0.command == "export.render" }
+        #expect(run?.params.contains("bitrate: 25") == true, "the export ran with «\(run?.params ?? "no export.render")»")
+        #expect(app.store.jobs.latest("export")?.state == .done && FileManager.default.fileExists(atPath: out.path), "the export did not end with a file")
         // In the interface language: the number and its unit.
         app.hostEditor(Navigation(activity: .export, rightTab: .inspector), language: "fr")
         await app.settle()
