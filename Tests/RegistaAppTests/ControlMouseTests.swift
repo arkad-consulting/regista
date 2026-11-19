@@ -73,6 +73,20 @@ private struct Hosted<Content: View, T>: View {
     }
 }
 
+/// A button that asks for a confirmation, as Settings › Motori's «Rimuovi…» (#103).
+private struct Confirming: View {
+    @ObservedObject var probe: Probe<Bool>
+    @State private var asking = false
+    var body: some View {
+        EdButton(title: "Rimuovi…") { asking = true }
+            .confirmationDialog(Text(verbatim: "Rimuovere?"), isPresented: $asking) {
+                Button(role: .destructive) { probe.actions += 1 } label: { Text(verbatim: "Rimuovi") }
+            }
+            .frame(width: 400, height: 320)
+            .environment(\.colorScheme, .dark)
+    }
+}
+
 @MainActor
 private func host<T, V: View>(_ probe: Probe<T>, _ container: Container, @ViewBuilder _ content: @escaping () -> V) -> MouseRig {
     MouseRig(Hosted(container: container, probe: probe, content: content), size: CGSize(width: 400, height: 320))
@@ -305,6 +319,27 @@ extension MouseSuites {
         rig.type("ok")
         #expect(p.value == "ok")
         #expect(p.under == 0)
+    }
+
+    /// #103: the button of a confirmation acts on the release it is given after the press, and the rig gave it the first
+    /// release it found in the event queue: none when the queue gives back no posted event (the screen locked, #57), or
+    /// another one (left by another click, or the real mouse's at the real pointer). The press then did nothing:
+    /// «Rimuovi» of Settings › Motori read as a dead control. The button gets the click's own release: with the release
+    /// lost on its way, it still acts once and the alert closes.
+    @Test func anAlertButtonActsWhenItsReleaseIsLost() throws {
+        let p = Probe(false)
+        let rig = MouseRig(Confirming(probe: p), size: CGSize(width: 400, height: 320))
+        defer { rig.close() }
+        #expect(rig.click("Rimuovi…"))
+        _ = rig.wait(3) { !rig.sheetButtons().isEmpty }
+        let button = try #require(rig.sheetButtons().first { $0.title == "Rimuovi" }, "no alert: \(rig.sheetButtons().map(\.title))")
+        let fallbacks = MouseRig.fallbackReleases
+        MouseRig.loseNextRelease = true
+        rig.click(button)
+        _ = rig.wait(2) { p.actions > 0 }
+        #expect(p.actions == 1, "the alert's «Rimuovi» acted \(p.actions) times")
+        #expect(rig.window.attachedSheet == nil, "the alert is still open")
+        #expect(MouseRig.fallbackReleases == fallbacks + 1, "the lost release was not counted")
     }
 
     @Test(arguments: Container.allCases)

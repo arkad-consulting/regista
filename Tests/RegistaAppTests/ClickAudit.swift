@@ -302,13 +302,21 @@ struct ClickAudit {
         }
         let before = AuditState(app)
         let refused = RigProcesses.refused.count
+        let releases = (foreign: MouseRig.foreignReleases, lost: MouseRig.fallbackReleases, moves: MouseRig.foreignEvents)
         rig.click(button)
         await app.settle()
         await app.idle(0.3)
         await app.settle()
         let changes = AuditState(app).changes(since: before)
         var row = Row(control: name, at: p, effect: changes.isEmpty ? "NOTHING" : changes.joined(separator: "; "))
-        if changes.isEmpty { row.nothing = true; row.reason = match(title, noOps) }
+        if changes.isEmpty {
+            row.nothing = true
+            row.reason = match(title, noOps)
+            // What the press met (#103): the alert still there or not, and what the rig had to give its button's loop.
+            row.effect += " (the alert \(rig.window.attachedSheet == nil ? "closed" : "still open"), its button \(button.window == nil ? "gone" : "there"); "
+                + "releases from outside the rig \(MouseRig.foreignReleases - releases.foreign), lost \(MouseRig.fallbackReleases - releases.lost), "
+                + "real mouse events dropped \(MouseRig.foreignEvents - releases.moves); screen locked: \(MouseRig.screenLocked))"
+        }
         if RigProcesses.refused.count > refused { row.problem = "refused process: " + RigProcesses.refused.dropFirst(refused).joined(separator: "; ") }
         return row
     }
