@@ -2475,7 +2475,7 @@
 "%@ px a destra" = "%@ px a destra";
 "Il titolo esce dalla zona che resta in entrambi i ritagli: %@." = "Il titolo esce dalla zona che resta in entrambi i ritagli: %@.";
 "Con «%@» rientra." = "Con «%@» rientra.";
-"Accorcia il titolo o mandalo a capo." = "Accorcia il titolo o mandalo a capo.";
+"Accorcia il titolo o mandalo a capo (⌥Invio)." = "Accorcia il titolo o mandalo a capo (⌥Invio).";
 "Imposta la copertina" = "Imposta la copertina";
 "Controlla la copertina" = "Controlla la copertina";
 "Copertina a %@" = "Copertina a %@";

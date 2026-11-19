@@ -59,6 +59,17 @@ extension MouseSuites {
         await app.settle()
         #expect(cover()?.title == "Tre parole qui" && ran(n) == ["cover.set"], "the title is \(String(describing: cover()?.title)), ran \(ran(n))")
 
+        // A second line (#125): ⌥Invio starts it in the field, Invio saves both.
+        app.rig.click(field.centre)
+        (app.rig.window.firstResponder as? NSTextView)?.selectAll(nil)
+        app.rig.type("Due")
+        app.rig.key("\r", keyCode: MouseRig.Key.returnKey.code, modifiers: .option)
+        app.rig.type("righe")
+        n = app.store.activity.count
+        app.rig.key(.returnKey)
+        await app.settle()
+        #expect(cover()?.title == "Due\nrighe" && ran(n) == ["cover.set"], "the two-line title is \(String(describing: cover()?.title)), ran \(ran(n))")
+
         // The three places, each once.
         for (name, place) in [("In alto", Cover.Place.top), ("In basso", .bottom), ("Al centro", .center)] {
             n = app.store.activity.count

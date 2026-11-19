@@ -73,7 +73,7 @@ struct CoverRow: View {
         .task(id: "\(store.projectVersion)") {
             model.store = store
             await model.refresh()
-            draft = Self.typed(store.project?.cover?.title)
+            draft = store.project?.cover?.title ?? ""
         }
     }
 
@@ -100,8 +100,9 @@ struct CoverRow: View {
             store.run(call.id, call.params)
         }
         if cover != nil {
-            RTextField(placeholder: "Titolo della copertina", text: $draft)
-                .onSubmit { commitTitle() }
+            // The growing editor every title uses (#125): Invio saves, ⌥Invio starts a new line, Esc restores.
+            RTextEditor(placeholder: "Titolo della copertina", text: $draft, kind: .grows(1...3), size: Ed.TypeSize.control,
+                        onSubmit: commitTitle, onExit: { draft = store.project?.cover?.title ?? "" })
             RChips(items: Cover.Place.allCases.map { .init(id: $0, title: Self.placeTitle($0)) }, selection: cover?.place, columns: 3) { p in
                 let call = CoverCalls.set(["place": .string(p.rawValue)])
                 store.run(call.id, call.params)
@@ -186,14 +187,11 @@ struct CoverRow: View {
         if let place = c["fix"]?["place"]?.stringValue.flatMap(Cover.Place.init(rawValue:)) {
             return leaves + " " + String(format: loc("Con «%@» rientra."), Self.placeTitle(place))
         }
-        return leaves + " " + loc("Accorcia il titolo o mandalo a capo.")
+        return leaves + " " + loc("Accorcia il titolo o mandalo a capo (⌥Invio).")
     }
 
-    /// The title as the one-line field shows it: a line break is typed \\n (as title.add reads it).
-    static func typed(_ title: String?) -> String { (title ?? "").replacingOccurrences(of: "\n", with: "\\n") }
-
     private func commitTitle() {
-        guard draft != Self.typed(store.project?.cover?.title) else { return }
+        guard draft != (store.project?.cover?.title ?? "") else { return }
         store.run(CoverCalls.set(["title": .string(draft)]).id, CoverCalls.set(["title": .string(draft)]).params)
     }
 

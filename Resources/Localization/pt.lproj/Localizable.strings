@@ -2475,7 +2475,7 @@
 "%@ px a destra" = "%@ px à direita";
 "Il titolo esce dalla zona che resta in entrambi i ritagli: %@." = "O título sai da área que os dois recortes mantêm: %@.";
 "Con «%@» rientra." = "Com «%@», ele cabe.";
-"Accorcia il titolo o mandalo a capo." = "Encurte o título ou quebre-o em duas linhas.";
+"Accorcia il titolo o mandalo a capo (⌥Invio)." = "Encurte o título ou quebre-o em duas linhas (⌥Return).";
 "Imposta la copertina" = "Definir a capa";
 "Controlla la copertina" = "Verificar a capa";
 "Copertina a %@" = "Capa em %@";

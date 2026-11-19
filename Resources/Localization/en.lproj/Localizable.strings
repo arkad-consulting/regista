@@ -2475,7 +2475,7 @@
 "%@ px a destra" = "%@ px on the right";
 "Il titolo esce dalla zona che resta in entrambi i ritagli: %@." = "The title leaves the area both crops keep: %@.";
 "Con «%@» rientra." = "With «%@» it fits.";
-"Accorcia il titolo o mandalo a capo." = "Shorten the title or break it onto two lines.";
+"Accorcia il titolo o mandalo a capo (⌥Invio)." = "Shorten the title or break it onto two lines (⌥Return).";
 "Imposta la copertina" = "Set the cover";
 "Controlla la copertina" = "Check the cover";
 "Copertina a %@" = "Cover at %@";
