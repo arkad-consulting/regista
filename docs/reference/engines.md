@@ -76,8 +76,8 @@ shipped build's licence and size below, not the installable one's above.
 
 | Engine | Shipped licence | Shipped size | Id |
 |---|---|---|---|
-| FFmpeg | LGPL-2.1-or-later | 8 MB | `ffmpeg` |
-| FFprobe | LGPL-2.1-or-later | 8 MB | `ffprobe` |
+| FFmpeg | LGPL-2.1-or-later | 9 MB | `ffmpeg` |
+| FFprobe | LGPL-2.1-or-later | 9 MB | `ffprobe` |
 | whisper.cpp | MIT | 8 MB | `whisper.cpp` |
 | DeepFilterNet3 | MIT OR Apache-2.0 | 28 MB | `deepfilternet` |
 

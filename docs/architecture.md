@@ -655,9 +655,10 @@ ran), so it is undoable in one step and scenario-testable.
 **Engines inside the app (#107).** A release build ships ffmpeg 9.0.2 + ffprobe, whisper-cli 1.9.5 and deep-filter
 0.5.6 in `Regista.app/Contents/Helpers` (`scripts/build-app.sh --bundle-engines`), so the Base tier needs only the
 transcription model on a Mac without Homebrew or a compiler. `scripts/build-engines.sh` builds them once from the pinned
-tarballs (`ffmpeg-src`, `whisper-src`, `deep-filter` in `scripts/engines.lock`) and caches the result under
+tarballs (`ffmpeg-src`, `libvpx-src`, `whisper-src`, `deep-filter` in `scripts/engines.lock`) and caches the result under
 `~/Library/Caches/Regista/engines-build/<recipe>` (a second run builds nothing): ffmpeg with `--disable-everything` and
-exactly the components Regista uses plus the inputs of phones, cameras and screen recorders, no external library (LGPL;
+exactly the components Regista uses plus the inputs of phones, cameras and screen recorders, and one external library, libvpx's VP9 decoder (static, BSD-3-Clause: the only decoder that keeps
+the alpha of a transparent `.webm`, #111), still LGPL;
 H.264 through VideoToolbox, AAC with ffmpeg's own encoder), static; whisper.cpp without `GGML_NATIVE` (Apple clang's
 default arm64 target, any Apple Silicon Mac), Metal embedded; everything checked to link only macOS's own libraries
 and to run on macOS 15. About a minute with `nice` and 4 jobs on an M5 Pro. Where a tool is found, in one place

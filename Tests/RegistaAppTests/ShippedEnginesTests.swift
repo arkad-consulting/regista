@@ -80,7 +80,7 @@ extension MouseSuites {
     // The catalog row of a shipped engine: the shipped facts; of the same engine installed by Homebrew: the formula's.
     let status: JSONValue = ["tier": "base", "memoryGB": 8, "engines": [["id": "ffmpeg", "state": "installed", "shipped": true]]]
     let row = try #require(EngineCatalog(status: status).row("ffmpeg"))
-    #expect(row.licence == "LGPL-2.1-or-later" && row.disk == "8 MB", "\(row.licence) · \(row.disk)")
+    #expect(row.licence == "LGPL-2.1-or-later" && row.disk == EngineManifest.shared.shippedDiskText("ffmpeg"), "\(row.licence) · \(row.disk)")
     let dev = try #require(EngineCatalog(status: ["tier": "base", "memoryGB": 8, "engines": [["id": "ffmpeg", "state": "installed"]]]).row("ffmpeg"))
     #expect(dev.licence == EngineManifest.shared.entry("ffmpeg")?.licence && dev.disk == EngineManifest.shared.diskText("ffmpeg"))
 }

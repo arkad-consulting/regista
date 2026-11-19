@@ -72,8 +72,13 @@ enum Graphics {
             try fm.createDirectory(at: dir, withIntermediateDirectories: true)
             let ffmpeg = ctx.services.config.url(ctx.services.config.ffmpeg)
             let decoder = ext == "webm" ? ["-c:v", "libvpx-vp9"] : []
-            try Subprocess.check(ffmpeg, FFmpegAudio.quiet + decoder + ["-i", path, "-an", "-pix_fmt", "rgba", "-start_number", "1",
-                                                                        dir.appendingPathComponent("%05d.png").path])
+            do {
+                try Subprocess.check(ffmpeg, FFmpegAudio.quiet + decoder + ["-i", path, "-an", "-pix_fmt", "rgba", "-start_number", "1",
+                                                                            dir.appendingPathComponent("%05d.png").path])
+            } catch where ext == "webm" && "\(error)".contains("libvpx") {
+                // An ffmpeg without libvpx (a developer's build; a release ships it, #111): what to do, not ffmpeg's own words.
+                throw CommandError(.io, "\(command): \(name) is a transparent VP9 .webm, and this ffmpeg has no libvpx, the decoder that keeps its transparency: export it as a .mov with alpha (ProRes 4444 or HEVC with alpha), or use an ffmpeg built with libvpx")
+            }
             let count = ((try? fm.contentsOfDirectory(atPath: dir.path)) ?? []).filter { $0.hasSuffix(".png") }.count
             guard count > 0 else { throw CommandError(.io, "\(command): no frames decoded from \(name)") }
             video.alpha = true

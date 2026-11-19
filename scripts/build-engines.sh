@@ -1,13 +1,16 @@
 #!/bin/bash
 # Builds the Base engines a downloaded Regista.app ships inside itself (#107): ffmpeg + ffprobe and whisper-cli from their
-# pinned source tarballs (version and sha256 in scripts/engines.lock), and the pinned deep-filter release binary.
+# pinned source tarballs (version and sha256 in scripts/engines.lock), and the pinned deep-filter release binary. ffmpeg
+# links libvpx's VP9 decoder (decoder only, static, from its pinned tarball: BSD-3-Clause, so the build stays LGPL), the
+# one decoder that keeps the alpha plane of a transparent .webm (#111).
 # Made for any Apple Silicon Mac on macOS 15 or later: nothing tuned to the CPU of the Mac that builds them (whisper.cpp
 # without GGML_NATIVE, Apple clang's default arm64 target; Metal shaders embedded), static (no library outside macOS's
 # own), and no Homebrew library is looked at (Homebrew's cmake is used as a build tool only).
 #
 # ffmpeg is configured with --disable-everything and then exactly what Regista asks of it (the inventory of every
-# ffmpeg / ffprobe call in Sources/ and Tests/) plus the inputs a phone, a camera and a screen recording produce. No
-# external library: the build is LGPL-2.1-or-later; H.264 is encoded with VideoToolbox, audio with ffmpeg's own AAC.
+# ffmpeg / ffprobe call in Sources/ and Tests/) plus the inputs a phone, a camera and a screen recording produce. One
+# external library, libvpx (VP9 with alpha); the build is LGPL-2.1-or-later; H.264 is encoded with VideoToolbox, audio
+# with ffmpeg's own AAC.
 #
 #   scripts/build-engines.sh [--force] [--quiet]
 #
@@ -36,12 +39,14 @@ MIN_MACOS=15.0
 FF_VERSION="$(lock_get ffmpeg-src 2)"; FF_SHA="$(lock_get ffmpeg-src 5)"
 WH_SHA="$(lock_get whisper-src 5)"
 DF_VERSION="$(lock_get deep-filter 2)"; DF_SHA="$(lock_get deep-filter 5)"
+VPX_VERSION="$(lock_get libvpx-src 2)"; VPX_SHA="$(lock_get libvpx-src 5)"
 
 # What Regista uses (inventory 2026-11-19), and the common inputs from phones, cameras and screen recorders.
 FF_FLAGS=(
   --cc=clang --arch=arm64 --target-os=darwin
   "--extra-cflags=-mmacosx-version-min=$MIN_MACOS -ffile-prefix-map=@WORK@=/regista-build" "--extra-ldflags=-mmacosx-version-min=$MIN_MACOS"
-  --disable-autodetect --enable-videotoolbox --enable-audiotoolbox --enable-zlib
+  "--extra-cflags=-I@WORK@/vpx/include" "--extra-ldflags=-L@WORK@/vpx/lib"
+  --disable-autodetect --enable-videotoolbox --enable-audiotoolbox --enable-zlib --enable-libvpx
   --disable-everything --disable-doc --disable-debug --disable-network --disable-ffplay
   --enable-ffmpeg --enable-ffprobe --enable-static --disable-shared
   --enable-avdevice --enable-indev=lavfi --enable-swscale --enable-swresample
@@ -49,9 +54,15 @@ FF_FLAGS=(
   --enable-muxer=wav,null,rawvideo,pcm_f32le,pcm_s16le,image2,mp4,mov
   --enable-demuxer=mov,wav,image2,image_png_pipe,image_jpeg_pipe,image_webp_pipe,image_tiff_pipe,image_bmp_pipe,gif,mp3,flac,aac,aiff,caf,matroska,avi,mpegts,ogg,mpegps
   --enable-encoder=pcm_s16le,pcm_s24le,pcm_f32le,rawvideo,png,wrapped_avframe,aac,h264_videotoolbox
-  --enable-decoder=wrapped_avframe,h264,hevc,prores,png,mjpeg,webp,tiff,bmp,gif,vp8,vp9,mpeg4,mpeg2video,mpeg1video,rawvideo,aac,aac_latm,alac,mp3float,mp3,flac,opus,vorbis,ac3,eac3,pcm_s16le,pcm_s16be,pcm_s24le,pcm_s24be,pcm_s32le,pcm_s32be,pcm_f32le,pcm_f32be,pcm_u8,pcm_alaw,pcm_mulaw
+  --enable-decoder=libvpx_vp9,wrapped_avframe,h264,hevc,prores,png,mjpeg,webp,tiff,bmp,gif,vp8,vp9,mpeg4,mpeg2video,mpeg1video,rawvideo,aac,aac_latm,alac,mp3float,mp3,flac,opus,vorbis,ac3,eac3,pcm_s16le,pcm_s16be,pcm_s24le,pcm_s24be,pcm_s32le,pcm_s32be,pcm_f32le,pcm_f32be,pcm_u8,pcm_alaw,pcm_mulaw
   --enable-parser=h264,hevc,aac,aac_latm,mpegaudio,flac,png,mjpeg,webp,bmp,gif,vp8,vp9,opus,vorbis,ac3,mpeg4video,mpegvideo
   --enable-filter=buffer,buffersink,abuffer,abuffersink,null,anull,format,aformat,scale,aresample,trim,atrim,setpts,asetpts,transpose,hflip,vflip,rotate,crop,split,asplit,concat,pan,ebur128,afade,volume,adelay,apad,amultiply,amix,alimiter,anullsrc,highpass,equalizer,agate,acompressor,ssim,psnr,reverse,fps,lutyuv,color,testsrc2,sine,gradients
+)
+# libvpx: the VP9 decoder only (no encoder, no VP8), static, for the same macOS (darwin24 = macOS 15).
+VPX_FLAGS=(
+  --target=arm64-darwin24-gcc --enable-static --disable-shared --disable-examples --disable-tools --disable-docs
+  --disable-unit-tests --disable-debug --disable-vp8 --disable-vp9-encoder --enable-vp9-decoder
+  "--extra-cflags=-mmacosx-version-min=$MIN_MACOS -ffile-prefix-map=@WORK@=/regista-build"
 )
 WH_FLAGS=(
   -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_OSX_ARCHITECTURES=arm64 "-DCMAKE_OSX_DEPLOYMENT_TARGET=$MIN_MACOS"
@@ -65,6 +76,7 @@ WH_FLAGS=(
 CC_VERSION="$(/usr/bin/clang --version | head -1)"
 RECIPE="regista engines recipe 1
 macOS >= $MIN_MACOS arm64, $CC_VERSION
+libvpx $VPX_VERSION $VPX_SHA ${VPX_FLAGS[*]}
 ffmpeg $FF_VERSION $FF_SHA ${FF_FLAGS[*]}
 whisper.cpp $WHISPER_VERSION $WH_SHA ${WH_FLAGS[*]}
 deep-filter $DF_VERSION $DF_SHA"
@@ -91,11 +103,23 @@ LOG="$WORK/logs"; mkdir -p "$LOG"
 clean_env() { env -i HOME="$HOME" TMPDIR="${TMPDIR:-/tmp}" PATH=/usr/bin:/bin:/usr/sbin:/sbin LANG=C "$@"; }
 
 say "==> sources (sha256-checked)"
+VPX_TAR="$CACHE/libvpx-src/libvpx-$VPX_VERSION.tar.gz"; fetch libvpx-src "$VPX_TAR"
 FF_TAR="$CACHE/ffmpeg-src/ffmpeg-$FF_VERSION.tar.xz"; fetch ffmpeg-src "$FF_TAR"
 WH_TAR="$CACHE/whisper-src/whisper.cpp-$WHISPER_VERSION.tar.gz"; fetch whisper-src "$WH_TAR"
 DF_BIN="$CACHE/deep-filter/deep-filter-$DF_VERSION-aarch64-apple-darwin"; fetch deep-filter "$DF_BIN"
 
 start=$(date +%s)
+say "==> libvpx $VPX_VERSION, VP9 decoder only (nice, $JOBS jobs)"
+tar -xzf "$VPX_TAR" -C "$WORK"
+VPX_SRC="$WORK/libvpx-$VPX_VERSION"
+VPX_ARGS=("--prefix=$WORK/vpx"); for f in "${VPX_FLAGS[@]}"; do VPX_ARGS+=("${f//@WORK@/$WORK}"); done
+(cd "$VPX_SRC" && clean_env nice -n 10 ./configure "${VPX_ARGS[@]}" >"$LOG/libvpx-configure.log" 2>&1 \
+   && clean_env nice -n 10 make -j "$JOBS" install >"$LOG/libvpx-make.log" 2>&1) \
+  || { tail -30 "$LOG/libvpx-make.log" "$LOG/libvpx-configure.log" >&2 2>/dev/null; die "libvpx build failed"; }
+[ -f "$WORK/vpx/lib/libvpx.a" ] || die "libvpx: no static library was installed"
+mkdir -p "$PART/licenses/libvpx"; cp "$VPX_SRC/LICENSE" "$VPX_SRC/PATENTS" "$PART/licenses/libvpx/"
+vpx_end=$(date +%s)
+
 say "==> ffmpeg $FF_VERSION (nice, $JOBS jobs)"
 tar -xJf "$FF_TAR" -C "$WORK"
 FF_SRC="$WORK/ffmpeg-$FF_VERSION"
@@ -146,6 +170,7 @@ for kind in filter encoder decoder muxer demuxer; do
   for want in $(printf '%s\n' "${FF_FLAGS[@]}" | sed -n "s/^--enable-$kind=//p" | tr ',' ' '); do
     # The listing shows a format's own name: pcm_f32le is "f32le", image_png_pipe "png_pipe", mpegps "mpeg".
     shown="$want"; case "$kind" in muxer|demuxer) shown="${want#pcm_}"; shown="${shown#image_}"; [ "$want" = mpegps ] && shown=mpeg ;; esac
+    [ "$want" = libvpx_vp9 ] && shown=libvpx-vp9   # a library decoder is listed by its own name
     printf '%s\n' "$have" | grep -qx "$shown" || die "ffmpeg: the $kind $want is not in the build (licence or name)"
   done
 done
@@ -157,7 +182,8 @@ sha256 "$PART/bin/deep-filter" | grep -qx "$DF_SHA" || die "deep-filter differs 
 printf '%s\n' "$RECIPE" >"$PART/RECIPE.txt"
 {
   echo "Regista engines, built $(date -u +%Y-%m-%dT%H:%M:%SZ) on $(sw_vers -productVersion), recipe $KEY"
-  echo "ffmpeg $FF_VERSION (source sha256 $FF_SHA), LGPL-2.1-or-later, $((ff_end - start)) s"
+  echo "libvpx $VPX_VERSION (source sha256 $VPX_SHA), BSD-3-Clause, VP9 decoder linked into ffmpeg, $((vpx_end - start)) s"
+  echo "ffmpeg $FF_VERSION (source sha256 $FF_SHA), LGPL-2.1-or-later, $((ff_end - vpx_end)) s"
   echo "whisper.cpp $WHISPER_VERSION (source sha256 $WH_SHA), MIT, $((wh_end - ff_end)) s"
   echo "deep-filter $DF_VERSION (release binary sha256 $DF_SHA), MIT OR Apache-2.0"
   for t in $TOOLS; do echo "  $t $(stat -f %z "$PART/bin/$t") bytes, sha256 $(sha256 "$PART/bin/$t")"; done
