@@ -28,6 +28,23 @@ The most common cases:
 4. If that is not enough, run the installation again: `~/code/regista/scripts/install.sh`. What is already installed and
    verified stays as it is.
 
+## ComfyUI does not start or a generation fails
+
+- *"ComfyUI does not answer … and Regista does not know where it is".* Choose the ComfyUI folder in
+  **Settings › Engines › ComfyUI**, or start ComfyUI yourself and set its **Address** there.
+- *"… has no Python environment of its own".* Create it in the ComfyUI folder as ComfyUI's instructions say (`.venv`
+  or `venv`), install ComfyUI's requirements in it, then **Check again**.
+- *ComfyUI stops before it answers, or does not answer in five minutes.* Regista stops what it started and shows the
+  last lines of ComfyUI's log: usually a missing Python package or a node pack that fails to load. Start ComfyUI once
+  by hand from its folder to see the whole message.
+- *"node … is not in ComfyUI".* Install the node pack it names (ComfyUI-GGUF for Wan 2.2) and restart ComfyUI; for a
+  ComfyUI node, update ComfyUI.
+- *"model file … is missing: put it in ComfyUI's models/… folder".* The ComfyUI row of the model in
+  **Settings › Engines** lists each file with its folder and the page to download it from. Restart ComfyUI after adding files.
+- *"ComfyUI ran out of memory".* Close other heavy apps, or ask for a smaller size or a shorter clip.
+- *The desktop app of ComfyUI.* It listens on another port than 8188: set its **Address** (for example
+  `http://127.0.0.1:8000`).
+
 ## Permissions: camera, microphone, screen
 
 macOS asks for permission the first time Regista uses the camera, the microphone or the screen. If you said no, or the

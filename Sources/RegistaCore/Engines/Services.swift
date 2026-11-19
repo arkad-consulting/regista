@@ -267,8 +267,10 @@ public struct EngineServices {
                                cleaner: DeepFilterVoiceCleaner(config: config, audio: ffmpeg), faces: faces, renderer: renderer,
                                images: images, library: library)
         s.comfyPlaces = ComfyServer.usualPlaces
-        s.comfyServer = { ComfyCheck.fetchObjectInfo(ComfyServer.address(config)) }
-        let generators: [GeneratorProvider] = [ComfyUIProvider(config: config, places: s.comfyPlaces), HiggsfieldProvider(config: config),
+        // ComfyUI's address and folder are re-read from engines.json at each use: Settings › Motori writes them live (#6).
+        let comfy = ComfyUIProvider(config: config, places: s.comfyPlaces, configFile: EngineConfig.defaultFile)
+        s.comfyServer = { ComfyCheck.fetchObjectInfo(comfy.location.server) }
+        let generators: [GeneratorProvider] = [comfy, HiggsfieldProvider(config: config),
                                              VoxCPMProvider(config: config, profiles: ProfileStore(directory: ProfileStore.defaultDirectory))]
         for g in generators { s.generators[g.id] = g }
         s.generationState = Generation.defaultStateDirectory

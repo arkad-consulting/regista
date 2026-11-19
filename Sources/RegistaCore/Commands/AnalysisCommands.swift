@@ -73,6 +73,8 @@ enum EnginesStatus: Command {
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         let s = ctx.services, c = s.config
+        // The running ComfyUI's node list (nil when it is off): its model files are checked against it (#6).
+        let comfyInfo = s.comfyServer().flatMap { try? JSONValue.parse($0) }
         let verify = p.bool("verify") ?? false
         let fm = FileManager.default
         let manifest = EngineManifest.shared
@@ -170,9 +172,20 @@ enum EnginesStatus: Command {
                 let location = (g as? ComfyUIProvider)?.location ?? s.comfyLocation
                 e = entry(g.id, "generation (\(g.title): Z-Image stills, Wan 2.2 clips, ACE-Step music, ESRGAN/RIFE upscale; server \(location.server.absoluteString))",
                           path: location.start?.path, available: why == nil, reason: why)
+                // Settings › Motori › ComfyUI states these in words: the address, whether it answers, where ComfyUI is.
+                if case .object(var o) = e {
+                    o["server"] = .string(location.server.absoluteString)
+                    o["running"] = .bool(comfyInfo != nil)
+                    o["configured"] = .bool(location.configured)
+                    o["startedByRegista"] = .bool(ComfyServer.started(c) != nil)
+                    if let p = location.startProblem { o["startProblem"] = .string(p) }
+                    e = .object(o)
+                }
             }
             return e
         }
+        // The ComfyUI model files: each with whether the running ComfyUI sees it (#6).
+        let comfyFiles: (String) -> [ComfyCheck.FileState]? = { id in comfyInfo.map { ComfyCheck.files(engine: id, objectInfo: $0) } }
         // The rest of the manifest: what the entries above do not report (models, aligners, tools, capabilities, planned).
         let reported = Set(engines.compactMap { $0["id"]?.stringValue })
         let components: [JSONValue] = manifest.entries.filter { !reported.contains($0.id) }.map { m in
@@ -180,12 +193,22 @@ enum EnginesStatus: Command {
             if let t = manifest.tier(of: m) { o["minimumTier"] = .string(t.rawValue) }
             var probe = Self.probe(m, s)
             if probe.state == "notNeeded" { probe.state = "installed"; o["notNeeded"] = true }
+            if !m.modelFiles.isEmpty {
+                let states = comfyFiles(m.id)
+                o["files"] = .array(m.modelFiles.map { f in
+                    var j = ComfyCheck.FileState(file: f, present: false).json.objectValue!
+                    if let present = states?.first(where: { $0.file.name == f.name })?.present { j["present"] = .bool(present) } else { j["present"] = nil }
+                    return .object(j)
+                })
+                if let states { probe.state = states.allSatisfy(\.present) ? "installed" : "missing" }
+            }
             if let path = probe.path { o["path"] = .string(EngineConfig.expand(path)) }
             facts(m.id, state: probe.state, into: &o)
             o["enabled"] = .bool(probe.state == "installed" && o["tierReason"] == nil)
             let reason = m.planned ? "planned, not built yet"
+                : probe.state == "missing" && !m.modelFiles.isEmpty ? "ComfyUI does not see every model file"
                 : probe.state == "missing" ? "not installed" + (m.install.method == "firstUse" ? " (downloaded on first use)" : "")
-                : probe.state == "notChecked" ? "Regista cannot check this one yet" : nil
+                : probe.state == "notChecked" ? (m.modelFiles.isEmpty ? "Regista cannot check this one yet" : "ComfyUI is off: its model files are checked when it answers") : nil
             if let reason { o["reason"] = .string(reason) }
             return .object(o)
         }

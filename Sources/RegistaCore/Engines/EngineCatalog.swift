@@ -52,6 +52,31 @@ public struct EngineCatalog: Equatable, Sendable {
         public var shipped = false
         /// Not needed with this app (CMake when whisper-cli ships inside it).
         public var notNeeded = false
+        /// A ComfyUI model's files (#6): name, ComfyUI models folder, size, licence, the publisher's page, and whether the
+        /// running ComfyUI sees it (nil: ComfyUI is off, not checked).
+        public var files: [ModelFile] = []
+        /// The ComfyUI row's setup (#6): the address, whether it answers, where ComfyUI is.
+        public var comfy: ComfySetup?
+    }
+
+    public struct ModelFile: Equatable, Sendable {
+        public let name: String
+        public let folder: String
+        public let size: String
+        public let licence: String
+        public let url: String
+        public let present: Bool?
+    }
+
+    public struct ComfySetup: Equatable, Sendable {
+        public let server: String
+        public let running: Bool
+        /// The ComfyUI folder (or start command) Regista starts when nothing answers; nil: none known.
+        public let start: String?
+        /// `start` is the one set in Regista (false: found in the usual places).
+        public let configured: Bool
+        public let startedByRegista: Bool
+        public let problem: String?
     }
 
     public let tier: MachineTier
@@ -104,7 +129,17 @@ public struct EngineCatalog: Equatable, Sendable {
             return Row(id: e.id, name: e.name, unlocks: e.unlocks, disk: disk, licence: shipped ? e.shipped?.licence ?? e.licence : e.licence,
                        nonCommercial: e.nonCommercial, paid: e.paid, optional: e.optional, method: e.install.method,
                        group: group, state: state, action: action, reason: r?["reason"]?.stringValue,
-                       scriptsCurrent: r?["scriptsCurrent"]?.boolValue ?? true, shipped: shipped, notNeeded: notNeeded)
+                       scriptsCurrent: r?["scriptsCurrent"]?.boolValue ?? true, shipped: shipped, notNeeded: notNeeded,
+                       files: (r?["files"]?.arrayValue ?? []).compactMap { f in
+                           guard let name = f["name"]?.stringValue else { return nil }
+                           return ModelFile(name: name, folder: f["folder"]?.stringValue ?? "", size: f["size"]?.stringValue ?? "?",
+                                            licence: f["licence"]?.stringValue ?? "", url: f["url"]?.stringValue ?? "", present: f["present"]?.boolValue)
+                       },
+                       comfy: e.id == "comfyui" ? r.flatMap { r in r["server"]?.stringValue.map { server in
+                           ComfySetup(server: server, running: r["running"]?.boolValue ?? false, start: r["path"]?.stringValue,
+                                      configured: r["configured"]?.boolValue ?? false, startedByRegista: r["startedByRegista"]?.boolValue ?? false,
+                                      problem: r["startProblem"]?.stringValue)
+                       } } : nil)
         }
     }
 

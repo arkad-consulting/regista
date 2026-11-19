@@ -15,10 +15,18 @@ public struct ComfyUIProvider: GeneratorProvider {
     var startTimeout: TimeInterval = 300
     var poll: TimeInterval = 1
 
-    public init(config: EngineConfig, places: [String] = ComfyServer.usualPlaces) {
+    /// engines.json, re-read for ComfyUI's address and folder at each use (Settings › Motori writes them while the app
+    /// runs); nil: `config` as it is.
+    public var configFile: URL?
+
+    public init(config: EngineConfig, places: [String] = ComfyServer.usualPlaces, configFile: URL? = nil) {
         self.config = config
         self.places = places
+        self.configFile = configFile
     }
+
+    /// The config with ComfyUI's address and folder as engines.json says now.
+    var current: EngineConfig { configFile.map { ComfyServer.fresh(config, from: $0) } ?? config }
 
     public let id = "comfyui"
     public let title = "ComfyUI (local, free)"
@@ -32,7 +40,7 @@ public struct ComfyUIProvider: GeneratorProvider {
     ]
 
     /// The server, and what Regista would start when it does not answer.
-    public var location: ComfyServer.Location { ComfyServer.locate(config, places: places) }
+    public var location: ComfyServer.Location { ComfyServer.locate(current, places: places) }
 
     public func unavailableReason(_ kind: GenerationKind) -> String? {
         if kind == .voice { return "ComfyUI makes no voice-over: use the voxcpm provider" }
@@ -117,7 +125,7 @@ public struct ComfyUIProvider: GeneratorProvider {
     public func process(_ r: GenerationRequest, job: URL) throws -> GenerationProcess {
         let (w, prepared, uploads) = try workflow(r)
         let seed: Int? = r.kind == .upscale ? nil : r.seed ?? GenerationRequest.defaultSeed(r.prompt)
-        let (config, places, startTimeout, poll) = (config, places, startTimeout, poll)
+        let (config, places, startTimeout, poll) = (current, places, startTimeout, poll)
         let timeout: TimeInterval = [.image: 15, .video: 45, .music: 15, .upscale: 60][r.kind, default: 30] * 60
         return GenerationProcess(name: "ComfyUI") { job, cancellation in
             let began = Date()
@@ -185,7 +193,7 @@ public struct ComfyUIProvider: GeneratorProvider {
     /// The server Regista started is stopped (its process group); one someone else started only gets `POST /free`.
     public func finish(keepRunning: Bool) {
         guard !keepRunning else { return }
-        ComfyServer.finish(config)
+        ComfyServer.finish(current)
     }
 }
 

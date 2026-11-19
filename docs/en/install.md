@@ -86,6 +86,30 @@ Open **Settings › Engines** (also from the **Engines** icon at the bottom of t
 **Force tier** changes the tier: **Automatic** picks it from the memory. A higher tier shows and installs engines that
 can slow the Mac down or stop for lack of memory.
 
+## Local generation with ComfyUI
+
+On the Pro tier Regista makes images, clips, music and upscales on your Mac, free, with ComfyUI. Regista talks to
+ComfyUI itself, with the workflows it ships; ComfyUI and its model files are set up by hand (about 69 GB for the four
+models). **Settings › Engines › ComfyUI** shows the steps; in short:
+
+1. Install ComfyUI by following its own instructions (https://docs.comfy.org/installation/manual_install), in a folder
+   with its own Python environment (`.venv` or `venv` inside that folder).
+2. Tell Regista where it is: in **Settings › Engines**, on the **ComfyUI** row, **ComfyUI folder** › **Choose…**.
+   Regista starts ComfyUI when a generation needs it, says so in the job while it waits for it to answer, and stops it
+   afterwards. If you start ComfyUI yourself, or use its desktop app (it does not listen on 8188), set its **Address**
+   there instead: a ComfyUI you started stays on; Regista only asks it to free its memory after a generation.
+3. Install the ComfyUI-GGUF node pack (https://github.com/city96/ComfyUI-GGUF) in ComfyUI's `custom_nodes` folder, then
+   restart ComfyUI: the Wan 2.2 clips need it.
+4. Put each model's files in ComfyUI's `models` folders. Each model's row (Z-Image Turbo, Wan 2.2 image-to-video,
+   ACE-Step 1.5, Real-ESRGAN + RIFE) lists every file with its folder, size, licence and the publisher's page to
+   download it from, and, once ComfyUI answers, which ones it already sees.
+5. Check: **Check again** on the row, or ask Claude for `generate.check`.
+
+With no folder set and nothing answering at the address, Regista looks for a ComfyUI folder (with its Python
+environment) in these places, in this order: `~/ComfyUI`, `~/comfy/ComfyUI`, `~/Documents/ComfyUI`,
+`~/Developer/ComfyUI`, `~/Projects/ComfyUI`, `~/src/ComfyUI`, `~/git/ComfyUI`, `/Applications/ComfyUI`. The row says
+which one it found; nothing is written in your settings until you choose a folder.
+
 ## Connecting Claude
 
 Open **Settings › Claude**.

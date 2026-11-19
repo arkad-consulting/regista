@@ -30,6 +30,23 @@ motivo. I casi più comuni:
 4. Se non basta, rilancia l'installazione: `~/code/regista/scripts/install.sh`. Quello che è già installato e verificato
    resta com'è.
 
+## ComfyUI non parte o una generazione non riesce
+
+- *«ComfyUI does not answer … and Regista does not know where it is».* Scegli la cartella di ComfyUI in
+  **Impostazioni › Motori › ComfyUI**, oppure avvia ComfyUI da te e imposta lì il suo **Indirizzo**.
+- *«… has no Python environment of its own».* Crealo nella cartella di ComfyUI come dicono le istruzioni di ComfyUI
+  (`.venv` o `venv`), installaci i requisiti di ComfyUI, poi **Controlla di nuovo**.
+- *ComfyUI si ferma prima di rispondere, o non risponde in cinque minuti.* Regista ferma quello che ha avviato e mostra le
+  ultime righe del log di ComfyUI: di solito un pacchetto Python mancante o un pacchetto di nodi che non si carica.
+  Avvia ComfyUI una volta a mano dalla sua cartella per vedere il messaggio intero.
+- *«node … is not in ComfyUI».* Installa il pacchetto di nodi che nomina (ComfyUI-GGUF per Wan 2.2) e riavvia ComfyUI;
+  per un nodo di ComfyUI stesso, aggiorna ComfyUI.
+- *«model file … is missing: put it in ComfyUI's models/… folder».* La riga del modello in **Impostazioni › Motori**
+  elenca ogni file con la sua cartella e la pagina da cui scaricarlo. Riavvia ComfyUI dopo aver aggiunto dei file.
+- *«ComfyUI ran out of memory».* Chiudi altre app pesanti, oppure chiedi una dimensione più piccola o una clip più breve.
+- *L'app desktop di ComfyUI.* Ascolta su una porta diversa dalla 8188: imposta il suo **Indirizzo** (per esempio
+  `http://127.0.0.1:8000`).
+
 ## Permessi: camera, microfono, schermo
 
 macOS chiede il permesso la prima volta che Regista usa la camera, il microfono o lo schermo. Se hai rifiutato, o se il

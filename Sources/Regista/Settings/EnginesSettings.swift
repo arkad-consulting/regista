@@ -7,6 +7,8 @@ import SwiftUI
 struct EnginesDemo {
     var status: JSONValue
     var tier: MachineTier?
+    /// A row drawn open (its detail: the ComfyUI setup, a model's files).
+    var open: String? = nil
 }
 
 /// The Motori tab's live state: engines.status (the same data Claude reads), the tier forced in engines.json, the
@@ -39,6 +41,11 @@ final class EnginesModel: ObservableObject {
 
     /// Writes `tier` in engines.json (nil removes it: detect from the RAM), keeping every other key.
     nonisolated static func writeForcedTier(_ tier: MachineTier?, to file: URL = EngineConfig.defaultFile) throws {
+        try writeSetting("tier", tier?.rawValue, to: file)
+    }
+
+    /// Writes one key of engines.json (nil removes it), keeping every other key: the tier, ComfyUI's address and folder (#6).
+    nonisolated static func writeSetting(_ key: String, _ value: String?, to file: URL = EngineConfig.defaultFile) throws {
         var o: [String: Any] = [:]
         if let data = FileManager.default.contents(atPath: file.path) {
             guard let parsed = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -46,10 +53,21 @@ final class EnginesModel: ObservableObject {
             }
             o = parsed
         }
-        if let tier { o["tier"] = tier.rawValue } else { o.removeValue(forKey: "tier") }
+        if let value { o[key] = value } else { o.removeValue(forKey: key) }
         try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
         let out = try JSONSerialization.data(withJSONObject: o, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
         try (out + Data("\n".utf8)).write(to: file, options: .atomic)
+    }
+
+    /// ComfyUI's address (`comfyServer`) or folder (`comfyStart`) from its row (#6), then the row says what it finds.
+    func setComfy(_ key: String, _ value: String?, store: EditorStore) {
+        do {
+            try Self.writeSetting(key, value)
+            error = nil
+        } catch {
+            self.error = loc("Non ho potuto salvare la scelta: %@", error.localizedDescription)
+        }
+        Task { await reload(store) }
     }
 
     func setForcedTier(_ tier: MachineTier?) {
@@ -140,10 +158,12 @@ struct EnginesSettings: View {
                                 Section {
                                     ForEach(rows) { r in
                                         ObservingJobs(jobs: store.jobs) { jobs in
-                                        EngineRowView(row: r, highlighted: demo == nil && focus == r.id, job: demo == nil ? jobs.latest(EnginesModel.jobKind(r.id)) : nil,
+                                        EngineRowView(row: r, highlighted: demo == nil && focus == r.id, open: demo?.open == r.id,
+                                                      job: demo == nil ? jobs.latest(EnginesModel.jobKind(r.id)) : nil,
                                                       canInstall: model.installer != nil || demo != nil, removing: model.removing == r.id,
                                                       install: { if r.nonCommercial { confirmLicence = r } else { model.install(r, store: store) } }, remove: { confirmRemove = r },
                                                       checkAgain: { Task { await model.reload(store) } },
+                                                      setComfy: { key, value in model.setComfy(key, value, store: store) },
                                                       cancel: { if let j = jobs.latest(EnginesModel.jobKind(r.id)) { jobs.cancel(j.id) } })
                                         }
                                         .id(r.id)
@@ -280,12 +300,16 @@ struct EnginesSettings: View {
 private struct EngineRowView: View {
     let row: EngineCatalog.Row
     let highlighted: Bool
+    /// Drawn open (a render of the row's detail).
+    var open = false
     let job: JobCenter.Job?
     let canInstall: Bool
     let removing: Bool
     let install: () -> Void
     let remove: () -> Void
     let checkAgain: () -> Void
+    /// Writes ComfyUI's address or folder in engines.json (#6).
+    let setComfy: (_ key: String, _ value: String?) -> Void
     let cancel: () -> Void
     /// This app: a release build names no script of the source folder (#113).
     @Environment(\.appBundle) private var appBundle
@@ -319,7 +343,11 @@ private struct EngineRowView: View {
                 Text(verbatim: String(format: loc("Installazione non riuscita: %@"), why)).font(.caption).foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            if expanded, let steps { howTo(steps) }
+            if expanded || open {
+                if let setup = row.comfy { ComfySetupView(setup: setup, save: setComfy) }
+                if let steps { howTo(steps) }
+                if !row.files.isEmpty { filesList }
+            }
             // Its helper scripts differ from the app's and could not be replaced (#61): normally they are, at launch.
             if row.state == .installed, !row.scriptsCurrent {
                 Text("I file di supporto di questo motore sono più vecchi di quelli dell'app: rimuovilo e installalo di nuovo.")
@@ -360,6 +388,8 @@ private struct EngineRowView: View {
         default:
             HStack(spacing: 8) {
                 StateText(text: stateText, color: row.state == .installed ? .green : .secondary)
+                // ComfyUI's setup stays reachable once it works: its address and folder (#6).
+                if row.comfy != nil, case .nothing = row.action { Button(loc("Imposta")) { expanded.toggle() } }
                 switch row.action {
                 case .install:
                     Button("Installa", action: install).disabled(busy || !canInstall)
@@ -409,6 +439,26 @@ private struct EngineRowView: View {
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
     }
 
+    /// A ComfyUI model's files: name, folder, size, licence, the publisher's page, and whether ComfyUI sees it.
+    private var filesList: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(row.files, id: \.name) { f in
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 6) {
+                        Text(verbatim: f.name).font(.callout.monospaced()).textSelection(.enabled)
+                        if let present = f.present {
+                            Text(verbatim: present ? loc("c'è") : loc("manca")).font(.caption.weight(.medium)).foregroundStyle(present ? .green : .orange)
+                        }
+                    }
+                    Text(verbatim: "\(f.folder) · \(EnginesSettings.localDisk(f.size)) · \(loc(f.licence))").font(.caption).foregroundStyle(.secondary)
+                    Text(verbatim: f.url).font(.caption).foregroundStyle(.tertiary).textSelection(.enabled).lineLimit(1).truncationMode(.middle)
+                }
+            }
+        }
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+    }
+
     private var intro: String {
         switch row.id {
         case "higgsfield":
@@ -435,4 +485,64 @@ private struct StateText: View {
     let text: String
     let color: Color
     var body: some View { Text(verbatim: text).font(.callout).foregroundStyle(color).lineLimit(1).fixedSize() }
+}
+
+/// ComfyUI's row detail (#6): its address and its folder, a one-off setup, with what Regista finds in words.
+private struct ComfySetupView: View {
+    let setup: EngineCatalog.ComfySetup
+    let save: (_ key: String, _ value: String?) -> Void
+    @State private var address: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(verbatim: loc("Indirizzo")).frame(width: 150, alignment: .leading)
+                TextField(loc("Indirizzo"), text: Binding(get: { address ?? setup.server }, set: { address = $0 }), prompt: Text(verbatim: ComfyServer.defaultAddress))
+                    .labelsHidden().textFieldStyle(.roundedBorder).frame(maxWidth: 240)
+                    .onSubmit(commit)
+                Button(loc("Salva"), action: commit).controlSize(.small).disabled((address ?? setup.server) == setup.server)
+            }
+            Text(verbatim: serverWords).font(.caption).foregroundStyle(setup.running ? .green : .secondary).padding(.leading, 158)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(verbatim: loc("Cartella di ComfyUI")).frame(width: 150, alignment: .leading)
+                Text(verbatim: setup.start.map { ($0 as NSString).abbreviatingWithTildeInPath } ?? loc("Non impostata"))
+                    .font(.callout).foregroundStyle(setup.start == nil ? .secondary : .primary).lineLimit(1).truncationMode(.middle)
+                Spacer(minLength: 4)
+                Button(loc("Scegli…"), action: choose).controlSize(.small)
+                if setup.configured { Button(loc("Togli")) { save("comfyStart", nil) }.controlSize(.small) }
+            }
+            Text(verbatim: folderWords).font(.caption).foregroundStyle(setup.problem != nil ? .orange : .secondary)
+                .fixedSize(horizontal: false, vertical: true).padding(.leading, 158)
+        }
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+    }
+
+    private var serverWords: String {
+        guard setup.running else { return loc("Spento: non risponde nessuno a questo indirizzo") }
+        return setup.startedByRegista ? loc("Risponde · avviato da Regista") : loc("Risponde")
+    }
+
+    private var folderWords: String {
+        if setup.problem != nil { return loc("Questa cartella non avvia ComfyUI: serve una cartella di ComfyUI con il suo ambiente Python (.venv o venv), o un programma che lo avvia.") }
+        guard setup.start != nil else { return loc("Non trovata: scegli la cartella dove hai installato ComfyUI, oppure avvialo da te e scrivi il suo indirizzo.") }
+        return setup.configured ? loc("Regista avvia ComfyUI quando una generazione ne ha bisogno e lo ferma dopo.")
+            : loc("Trovata in un posto consueto: Regista avvia ComfyUI da qui quando serve. Sceglila per fissarla.")
+    }
+
+    private func commit() {
+        let value = (address ?? setup.server).trimmingCharacters(in: .whitespaces)
+        address = nil
+        save("comfyServer", value.isEmpty || value == ComfyServer.defaultAddress ? nil : value)
+    }
+
+    private func choose() {
+        let p = NSOpenPanel()
+        p.canChooseDirectories = true
+        p.canChooseFiles = true
+        p.allowsMultipleSelection = false
+        p.message = loc("La cartella di ComfyUI, o un programma che avvia ComfyUI")
+        guard p.runModal() == .OK, let url = p.url else { return }
+        save("comfyStart", url.path)
+    }
 }

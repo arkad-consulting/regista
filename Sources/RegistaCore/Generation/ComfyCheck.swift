@@ -32,11 +32,14 @@ public enum ComfyCheck {
         public let state: String
         public let missing: [Missing]
         public let reason: String?
+        /// Every model file the workflow loads and whether the running ComfyUI sees it (empty when it is off).
+        public var files: [FileState] = []
 
         public var json: JSONValue {
             var o: [String: JSONValue] = ["model": .string(model), "state": .string(state)]
             if !missing.isEmpty { o["missing"] = .array(missing.map(\.json)) }
             if let reason { o["reason"] = .string(reason) }
+            if !files.isEmpty { o["files"] = .array(files.map(\.json)) }
             return .object(o)
         }
 
@@ -62,6 +65,8 @@ public enum ComfyCheck {
     /// (node id, input name, value).
     public struct Workflow: Sendable {
         public let model: String
+        /// The manifest entry that lists its model files (Settings › Motori's row).
+        public let engine: String
         public let kind: GenerationKind
         let bytes: [UInt8]
         public let output: String
@@ -71,18 +76,48 @@ public enum ComfyCheck {
     }
 
     public static let workflows: [Workflow] = [
-        Workflow(model: "z-image-turbo", kind: .image, bytes: PackageResources.z_image_turbo_json, output: "10",
+        Workflow(model: "z-image-turbo", engine: "comfyui-z-image", kind: .image, bytes: PackageResources.z_image_turbo_json, output: "10",
                  fills: [("5", "text", .prompt), ("7", "width", .width), ("7", "height", .height), ("8", "seed", .seed)]),
-        Workflow(model: "wan2.2-i2v-14b-lightning", kind: .video, bytes: PackageResources.wan2_2_i2v_14b_lightning_json, output: "17",
+        Workflow(model: "wan2.2-i2v-14b-lightning", engine: "comfyui-wan22", kind: .video, bytes: PackageResources.wan2_2_i2v_14b_lightning_json, output: "17",
                  fills: [("9", "text", .prompt), ("11", "image", .startImage), ("12", "width", .width), ("12", "height", .height),
                          ("12", "length", .frames), ("13", "noise_seed", .seed)]),
-        Workflow(model: "ace-step-1.5-turbo", kind: .music, bytes: PackageResources.ace_step_1_5_turbo_json, output: "SAVE",
+        Workflow(model: "ace-step-1.5-turbo", engine: "comfyui-ace-step", kind: .music, bytes: PackageResources.ace_step_1_5_turbo_json, output: "SAVE",
                  fills: [("PROMPT", "tags", .prompt), ("PROMPT", "seed", .seed), ("PROMPT", "bpm", .bpm), ("PROMPT", "duration", .seconds),
                          ("LATENT", "seconds", .seconds), ("SAMPLER", "seed", .seed)]),
-        Workflow(model: "realesrgan-x4plus+rife-4.26", kind: .upscale, bytes: PackageResources.realesrgan_x4plus_rife_4_26_json, output: "12",
+        Workflow(model: "realesrgan-x4plus+rife-4.26", engine: "comfyui-upscale", kind: .upscale, bytes: PackageResources.realesrgan_x4plus_rife_4_26_json, output: "12",
                  fills: [("1", "file", .inputClip)]),
     ]
     public static var models: [String] { workflows.map(\.model) }
+
+    /// A model file of the manifest and whether the running ComfyUI sees it.
+    public struct FileState: Equatable, Sendable {
+        public let file: EngineManifest.ModelFile
+        public let present: Bool
+
+        public var json: JSONValue {
+            ["name": .string(file.name), "folder": .string("models/\(file.folder)"), "size": .string(file.sizeText), "bytes": .number(Double(file.bytes)),
+             "licence": .string(file.licence), "url": .string(file.url), "present": .bool(present)]
+        }
+    }
+
+    /// The model files of a manifest entry (comfyui-z-image…) and whether `objectInfo` offers each to the loader that
+    /// reads it in the shipped workflows.
+    public static func files(engine: String, objectInfo info: JSONValue) -> [FileState] {
+        let files = EngineManifest.shared.entry(engine)?.modelFiles ?? []
+        return files.map { f in
+            var present = false
+            for w in workflows {
+                for (_, node) in w.graph.objectValue ?? [:] {
+                    guard let cls = node["class_type"]?.stringValue else { continue }
+                    for (name, v) in node["inputs"]?.objectValue ?? [:] where v.stringValue == f.name {
+                        let spec = info[cls]?.value(at: "input.required.\(name)") ?? info[cls]?.value(at: "input.optional.\(name)")
+                        if allowed(spec)?.contains(f.name) == true { present = true }
+                    }
+                }
+            }
+            return FileState(file: f, present: present)
+        }
+    }
     public static func workflow(_ model: String) -> Workflow? { workflows.first { $0.model == model } }
 
     /// The ComfyUI models folder each loader reads.
@@ -141,9 +176,12 @@ public enum ComfyCheck {
             ?? "node \(cls) is not in ComfyUI: update ComfyUI (the node is part of a newer ComfyUI), or install the node pack that provides it, then restart ComfyUI"
     }
 
-    /// A model file ComfyUI does not see: the folder it goes in and where to find it.
+    /// A model file ComfyUI does not see: the folder it goes in and where to get it (the manifest's facts when it lists it).
     static func modelHint(cls: String, value v: String) -> String {
         let folder = folders[cls] ?? "<folder \(cls) reads>"
+        if let f = EngineManifest.shared.modelFile(v) {
+            return "model file \(v) is missing: put it in ComfyUI's models/\(f.folder) folder (\(f.sizeText), \(f.licence), from \(f.url)), then restart ComfyUI"
+        }
         let stem = (v as NSString).deletingPathExtension
         return "model file \(v) is missing: put it in ComfyUI's models/\(folder) folder (find it: https://huggingface.co/models?search=\(stem.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? stem)), then restart ComfyUI"
     }
@@ -179,7 +217,8 @@ public enum ComfyCheck {
                               reason: "ComfyUI is off (nothing answers at \(location.server.absoluteString)): its node packs and model files are checked when it runs; Regista starts \(from) (\(location.start!.path)) at the next generation")
             }
             let missing = check(workflow: w.graph, objectInfo: info)
-            return Result(model: w.model, state: missing.isEmpty ? "ready" : "missing", missing: missing, reason: nil)
+            return Result(model: w.model, state: missing.isEmpty ? "ready" : "missing", missing: missing, reason: nil,
+                          files: files(engine: w.engine, objectInfo: info))
         }
         last.withLock { cache in for r in results { cache[r.model] = r } }
         return results

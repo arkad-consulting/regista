@@ -87,6 +87,31 @@ Abra **Ajustes › Motores** (também pelo ícone **Motores** embaixo, na barra 
 **Forçar nível** muda o nível: **Automático** escolhe pela memória. Um nível mais alto mostra e instala motores que
 podem deixar o Mac lento ou parar por falta de memória.
 
+## Geração local com o ComfyUI
+
+No nível Pro, o Regista cria imagens, clipes, música e upscales no seu Mac, de graça, com o ComfyUI. O Regista fala
+com o ComfyUI por conta própria, com os workflows que ele traz; o ComfyUI e os arquivos dos modelos são preparados à
+mão (cerca de 69 GB para os quatro modelos). **Ajustes › Motores › ComfyUI** mostra os passos; em resumo:
+
+1. Instale o ComfyUI seguindo as instruções dele (https://docs.comfy.org/installation/manual_install), em uma pasta com
+   seu próprio ambiente Python (`.venv` ou `venv` dentro dessa pasta).
+2. Diga ao Regista onde ele está: em **Ajustes › Motores**, na linha **ComfyUI**, **Pasta do ComfyUI** › **Escolher…**.
+   O Regista inicia o ComfyUI quando uma geração precisa, avisa na tarefa enquanto espera que ele responda e o para
+   depois. Se você inicia o ComfyUI por conta própria, ou usa o app de desktop dele (não escuta na 8188), defina ali o
+   **Endereço**: um ComfyUI iniciado por você continua ligado; depois de uma geração, o Regista só pede que ele libere
+   a memória.
+3. Instale o pacote de nós ComfyUI-GGUF (https://github.com/city96/ComfyUI-GGUF) na pasta `custom_nodes` do ComfyUI e
+   reinicie o ComfyUI: os clipes do Wan 2.2 precisam dele.
+4. Coloque os arquivos de cada modelo nas pastas `models` do ComfyUI. A linha de cada modelo (Z-Image Turbo, Wan 2.2
+   imagem para vídeo, ACE-Step 1.5, Real-ESRGAN + RIFE) lista cada arquivo com a pasta, o tamanho, a licença e a página
+   do editor de onde baixá-lo e, quando o ComfyUI responde, quais ele já vê.
+5. Verifique: **Verificar de novo** na linha, ou peça ao Claude `generate.check`.
+
+Sem pasta definida e sem nada respondendo no endereço, o Regista procura uma pasta do ComfyUI (com seu ambiente Python)
+nestes lugares, nesta ordem: `~/ComfyUI`, `~/comfy/ComfyUI`, `~/Documents/ComfyUI`, `~/Developer/ComfyUI`,
+`~/Projects/ComfyUI`, `~/src/ComfyUI`, `~/git/ComfyUI`, `/Applications/ComfyUI`. A linha diz qual encontrou; nada é
+gravado nos seus ajustes até você escolher uma pasta.
+
 ## Conectar o Claude
 
 Abra **Ajustes › Claude**.

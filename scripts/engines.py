@@ -282,6 +282,20 @@ def docs(m, lock):
     for e in manual:
         w("- **%s**: %s" % (e["name"], " ".join(e["install"]["steps"])))
     w("")
+    with_files = [e for e in m["engines"] if e.get("modelFiles")]
+    if with_files:
+        w("## ComfyUI model files")
+        w("")
+        w("Every file Regista's ComfyUI workflows load, by model: put it in the ComfyUI models folder named here. Regista never")
+        w("downloads them; the size and sha256 are the publisher's (checked against the files on a Mac that runs them).")
+        w("")
+        w("| Model | File | ComfyUI folder | Size | Licence | sha256 | Where to get it |")
+        w("|---|---|---|---|---|---|---|")
+        for e in with_files:
+            for f in e["modelFiles"]:
+                w("| %s | `%s` | `models/%s` | %s | %s | %s | %s |" % (e["name"], f["name"], f["folder"], gb(f["bytes"]), f["licence"],
+                                                          "`%s…`" % f["sha256"][:12] if f.get("sha256") else "–", f["url"]))
+        w("")
     return "\n".join(L)
 
 

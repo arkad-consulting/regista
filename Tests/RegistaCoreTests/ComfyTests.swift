@@ -240,3 +240,81 @@ private func pid(_ file: URL) -> Int32? {
     }
     #expect(ComfyCheck.models == ComfyUIProvider(config: EngineConfig(), places: []).models.map(\.id))
 }
+
+// MARK: item 1 — the manifest lists every model file; generate.check and engines.status say which ComfyUI sees
+
+@Test func theManifestListsEveryModelFileTheWorkflowsLoad() throws {
+    var loaded: [String: String] = [:]   // file → ComfyUI folder of the loader that reads it
+    for w in ComfyCheck.workflows {
+        let listed = Set(try #require(EngineManifest.shared.entry(w.engine)).modelFiles.map(\.name))
+        for (_, n) in w.graph.objectValue ?? [:] {
+            guard let cls = n["class_type"]?.stringValue, let folder = ComfyCheck.folders[cls] else { continue }
+            for (_, v) in n["inputs"]?.objectValue ?? [:] {
+                guard let file = v.stringValue, file.contains(".") else { continue }
+                loaded[file] = folder
+                #expect(listed.contains(file), "\(w.model) loads \(file), not listed under \(w.engine)")
+            }
+        }
+    }
+    let files = EngineManifest.shared.entries.flatMap(\.modelFiles)
+    #expect(Set(files.map(\.name)) == Set(loaded.keys), "every listed file is loaded by a workflow")
+    for f in files {
+        #expect(f.folder == loaded[f.name], "\(f.name): models/\(f.folder), the loader reads models/\(loaded[f.name] ?? "?")")
+        #expect(f.bytes > 1_000_000 && f.url.hasPrefix("https://") && !f.licence.isEmpty, "\(f.name)")
+        #expect(f.sha256?.count == 64, "\(f.name): sha256")
+    }
+    // A missing file's hint carries the manifest's facts.
+    #expect(ComfyCheck.modelHint(cls: "VAELoader", value: "ae.safetensors").contains("335 MB") == true || ComfyCheck.modelHint(cls: "VAELoader", value: "ae.safetensors").contains("0.34 GB"))
+    #expect(ComfyCheck.modelHint(cls: "VAELoader", value: "ae.safetensors").contains("https://huggingface.co/Comfy-Org/z_image_turbo"))
+}
+
+@Test func generateCheckAndEnginesStatusSayWhichModelFilesComfyUISees() throws {
+    // A ComfyUI that has everything Z-Image needs but its VAE.
+    var info: [String: JSONValue] = [:]
+    for w in ComfyCheck.workflows where w.model == "z-image-turbo" {
+        for (_, n) in w.graph.objectValue ?? [:] {
+            guard let cls = n["class_type"]?.stringValue else { continue }
+            var req = info[cls]?.value(at: "input.required")?.objectValue ?? [:]
+            for (name, v) in n["inputs"]?.objectValue ?? [:] {
+                guard let t = v.stringValue, t != "ae.safetensors" else { continue }
+                req[name] = [.array((req[name]?.arrayValue?.first?.arrayValue ?? []) + [.string(t)])]
+            }
+            info[cls] = ["input": ["required": .object(req)]]
+        }
+    }
+    let data = JSONValue.object(info).data()
+    var s = FakeServices().make()
+    s.config.comfyServer = "http://127.0.0.1:9"
+    s.generators = ["comfyui": ComfyUIProvider(config: s.config, places: [])]
+    s.comfyServer = { data }
+    let e = Engine(prober: FakeProber(), services: s)
+    let check = try e.execute("generate.check", params: ["model": "z-image-turbo"])
+    let files = try #require(check.value(at: "models.0.files")?.arrayValue)
+    #expect(files.first { $0["name"] == "z_image_turbo_bf16.safetensors" }?["present"] == true)
+    #expect(files.first { $0["name"] == "ae.safetensors" }?["present"] == false)
+    #expect(files.first { $0["name"] == "ae.safetensors" }?["folder"] == "models/vae")
+    let status = try e.execute("engines.status")
+    let row = try #require(status["components"]?.arrayValue?.first { $0["id"] == "comfyui-z-image" })
+    #expect(row["state"] == "missing" && row["reason"] == "ComfyUI does not see every model file")
+    #expect(row["files"]?.arrayValue?.count == 3)
+    let catalog = try #require(EngineCatalog(status: status).row("comfyui-z-image"))
+    #expect(catalog.files.map(\.present) == [true, true, false] || Set(catalog.files.compactMap(\.present)) == [true, false])
+    // ComfyUI off: the files are listed, not checked.
+    s.comfyServer = { nil }
+    let off = try Engine(prober: FakeProber(), services: s).execute("engines.status")
+    let offRow = try #require(off["components"]?.arrayValue?.first { $0["id"] == "comfyui-wan22" })
+    #expect(offRow["state"] == "notChecked" && offRow["files"]?.arrayValue?.allSatisfy { $0["present"] == nil } == true)
+    // The ComfyUI row: its address and where it is, in the status Settings › Motori reads.
+    let comfy = try #require(EngineCatalog(status: off).row("comfyui")?.comfy)
+    #expect(comfy.server == "http://127.0.0.1:9" && !comfy.running && comfy.start == nil)
+}
+
+@Test func theAddressAndFolderSetInSettingsReachTheProviderWithoutARestart() throws {
+    let file = tempDir().appendingPathComponent("engines.json")
+    let provider = ComfyUIProvider(config: EngineConfig(), places: [], configFile: file)
+    #expect(provider.location.server.absoluteString == ComfyServer.defaultAddress)
+    try #"{"comfyServer": "http://127.0.0.1:8000", "comfyStart": "/usr/bin/true", "tier": "pro"}"#.write(to: file, atomically: true, encoding: .utf8)
+    #expect(provider.location.server.port == 8000 && provider.location.start == .executable(URL(fileURLWithPath: "/usr/bin/true")))
+    try #"{"tier": "pro"}"#.write(to: file, atomically: true, encoding: .utf8)
+    #expect(provider.location.server.port == 8188 && provider.location.start == nil)
+}

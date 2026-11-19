@@ -91,6 +91,32 @@ indique **Mémoire**, **Niveau** et **Espace libre**. Dessous, les moteurs sont 
 **Forcer le niveau** change le niveau : **Automatique** le choisit selon la mémoire. Un niveau plus élevé montre et
 installe des moteurs qui peuvent ralentir le Mac ou s'arrêter faute de mémoire.
 
+## Génération locale avec ComfyUI
+
+Au niveau Pro, Regista crée des images, des clips, de la musique et des upscales sur votre Mac, gratuitement, avec
+ComfyUI. Regista parle lui-même à ComfyUI, avec les workflows qu'il embarque ; ComfyUI et les fichiers de ses modèles
+s'installent à la main (environ 69 Go pour les quatre modèles). **Réglages › Moteurs › ComfyUI** affiche les étapes ;
+en bref :
+
+1. Installez ComfyUI en suivant ses propres instructions (https://docs.comfy.org/installation/manual_install), dans un
+   dossier avec son propre environnement Python (`.venv` ou `venv` dans ce dossier).
+2. Indiquez à Regista où il se trouve : dans **Réglages › Moteurs**, sur la ligne **ComfyUI**, **Dossier de ComfyUI** ›
+   **Choisir…**. Regista lance ComfyUI quand une génération en a besoin, l'indique dans la tâche pendant qu'il attend
+   sa réponse, et l'arrête ensuite. Si vous lancez ComfyUI vous-même, ou utilisez son app de bureau (elle n'écoute pas
+   sur 8188), indiquez plutôt son **Adresse** à cet endroit : un ComfyUI lancé par vous reste allumé ; après une
+   génération, Regista lui demande seulement de libérer sa mémoire.
+3. Installez le pack de nœuds ComfyUI-GGUF (https://github.com/city96/ComfyUI-GGUF) dans le dossier `custom_nodes` de
+   ComfyUI, puis redémarrez ComfyUI : les clips Wan 2.2 en ont besoin.
+4. Placez les fichiers de chaque modèle dans les dossiers `models` de ComfyUI. La ligne de chaque modèle (Z-Image Turbo,
+   Wan 2.2 image vers vidéo, ACE-Step 1.5, Real-ESRGAN + RIFE) liste chaque fichier avec son dossier, sa taille, sa
+   licence et la page de l'éditeur où le télécharger et, dès que ComfyUI répond, ceux qu'il voit déjà.
+5. Vérifiez : **Vérifier à nouveau** sur la ligne, ou demandez à Claude `generate.check`.
+
+Sans dossier indiqué et sans réponse à l'adresse, Regista cherche un dossier de ComfyUI (avec son environnement Python)
+à ces endroits, dans cet ordre : `~/ComfyUI`, `~/comfy/ComfyUI`, `~/Documents/ComfyUI`, `~/Developer/ComfyUI`,
+`~/Projects/ComfyUI`, `~/src/ComfyUI`, `~/git/ComfyUI`, `/Applications/ComfyUI`. La ligne indique celui qu'il a trouvé ;
+rien n'est écrit dans vos réglages tant que vous ne choisissez pas un dossier.
+
 ## Connecter Claude
 
 Ouvrez **Réglages › Claude**.

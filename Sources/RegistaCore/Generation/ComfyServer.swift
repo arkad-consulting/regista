@@ -38,6 +38,18 @@ public enum ComfyServer {
         public var startProblem: String?
     }
 
+    /// `config` with `comfyServer` and `comfyStart` as `file` says now (a missing key: the default; an unreadable file:
+    /// `config` unchanged).
+    public static func fresh(_ config: EngineConfig, from file: URL) -> EngineConfig {
+        guard let d = FileManager.default.contents(atPath: file.path), let o = try? JSONValue.parse(d), o.objectValue != nil else {
+            return FileManager.default.fileExists(atPath: file.path) ? config : { var c = config; c.comfyServer = defaultAddress; c.comfyStart = nil; return c }()
+        }
+        var c = config
+        c.comfyServer = o["comfyServer"]?.stringValue ?? defaultAddress
+        c.comfyStart = o["comfyStart"]?.stringValue
+        return c
+    }
+
     /// The server address of the config (the default when it is not a valid http URL).
     public static func address(_ config: EngineConfig) -> URL {
         let s = config.comfyServer.trimmingCharacters(in: .whitespaces)

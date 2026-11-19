@@ -330,7 +330,6 @@
 "Ascolta la selezione, o il paragrafo dove sta il cursore, senza toccare il montaggio" = "Écouter la sélection, ou le paragraphe où se trouve le curseur, sans toucher au montage";
 "Ascolta la voce" = "Écouter la voix";
 "Ascolto della voce" = "Écoute de la voix";
-"Install ComfyUI by following its own instructions (https://docs.comfy.org), in a Python environment of its own, and put the model files generate.check lists in ComfyUI's models folders (Regista's workflows name each file exactly)." = "Installez ComfyUI en suivant ses propres instructions (https://docs.comfy.org), dans un environnement Python à part, et placez les fichiers de modèles que liste generate.check dans les dossiers models de ComfyUI (les flux de travail de Regista nomment chaque fichier exactement).";
 "Aspetta: «%@» è in corso." = "Patientez : « %@ » est en cours.";
 "Aspetto" = "Apparence";
 "Attenzione" = "Attention";
@@ -1217,7 +1216,6 @@
 "Parola per parola, con le parole chiave evidenziate." = "Mot par mot, avec les mots clés mis en avant.";
 "Parole" = "Mots";
 "Parole chiave" = "Mots clés";
-"Part of the ComfyUI setup: generate.check lists the files this one still needs and the ComfyUI models folder each goes in." = "Fait partie de la configuration de ComfyUI : generate.check liste les fichiers qu'il lui manque encore et le dossier models de ComfyUI où va chacun.";
 "Passi" = "Étapes";
 "Passo %d di %d" = "Étape %d sur %d";
 "Passo %d di %d · circa %d min" = "Étape %d sur %d · environ %d min";
@@ -2438,3 +2436,21 @@
 "Check it: ask Claude for generate.check. It lists every missing node pack and model file, with the ComfyUI folder it goes in." = "Pour vérifier : demandez à Claude generate.check. Il liste chaque pack de nœuds et fichier de modèle manquant, avec le dossier de ComfyUI où il doit aller.";
 "Tell Regista where it is: Settings › Engines › ComfyUI › ComfyUI folder (Regista starts it when a generation needs it and stops it afterwards). If you start ComfyUI yourself, or use its desktop app, set its Address there instead (the desktop app does not listen on 8188)." = "Indiquez à Regista où il se trouve : Réglages › Moteurs › ComfyUI › Dossier de ComfyUI (Regista le lance quand une génération en a besoin et l'arrête ensuite). Si vous lancez ComfyUI vous-même, ou utilisez son app de bureau, indiquez plutôt son Adresse à cet endroit (l'app de bureau n'écoute pas sur 8188).";
 "Avvio ComfyUI e aspetto che risponda…" = "Je lance ComfyUI et j'attends qu'il réponde…";
+"Install ComfyUI by following its own instructions (https://docs.comfy.org/installation/manual_install), in a folder with its own Python environment (.venv or venv inside that folder)." = "Installez ComfyUI en suivant ses propres instructions (https://docs.comfy.org/installation/manual_install), dans un dossier avec son propre environnement Python (.venv ou venv dans ce dossier).";
+"Install the ComfyUI-GGUF node pack (https://github.com/city96/ComfyUI-GGUF, Apache-2.0) in ComfyUI's custom_nodes folder as its page says, then restart ComfyUI: the Wan 2.2 clips need it. The other workflows use ComfyUI's own nodes (if generate.check says one is missing, update ComfyUI)." = "Installez le pack de nœuds ComfyUI-GGUF (https://github.com/city96/ComfyUI-GGUF, Apache-2.0) dans le dossier custom_nodes de ComfyUI comme l'indique sa page, puis redémarrez ComfyUI : les clips Wan 2.2 en ont besoin. Les autres workflows utilisent les nœuds de ComfyUI lui-même (si generate.check en signale un manquant, mettez ComfyUI à jour).";
+"Put the model files in ComfyUI's models folders: each model below lists every file, the folder it goes in, its size, its licence and the publisher's page to download it from (about 69 GB for all four)." = "Placez les fichiers des modèles dans les dossiers models de ComfyUI : chaque modèle ci-dessous liste chaque fichier, le dossier où il va, sa taille, sa licence et la page de l'éditeur où le télécharger (environ 69 Go pour les quatre).";
+"Part of the ComfyUI setup: put each file listed here in the ComfyUI models folder it names (download it from the publisher's page beside it), restart ComfyUI, then check again." = "Fait partie de l'installation de ComfyUI : placez chaque fichier listé ici dans le dossier models de ComfyUI qu'il indique (téléchargez-le depuis la page de l'éditeur à côté), redémarrez ComfyUI, puis vérifiez à nouveau.";
+"Indirizzo" = "Adresse";
+"Cartella di ComfyUI" = "Dossier de ComfyUI";
+"Imposta" = "Configurer";
+"Non impostata" = "Non définie";
+"c'è" = "présent";
+"manca" = "manquant";
+"Spento: non risponde nessuno a questo indirizzo" = "Éteint : rien ne répond à cette adresse";
+"Risponde · avviato da Regista" = "Répond · lancé par Regista";
+"Risponde" = "Répond";
+"Questa cartella non avvia ComfyUI: serve una cartella di ComfyUI con il suo ambiente Python (.venv o venv), o un programma che lo avvia." = "Ce dossier ne lance pas ComfyUI : choisissez un dossier de ComfyUI avec son propre environnement Python (.venv ou venv), ou un programme qui le lance.";
+"Non trovata: scegli la cartella dove hai installato ComfyUI, oppure avvialo da te e scrivi il suo indirizzo." = "Introuvable : choisissez le dossier où vous avez installé ComfyUI, ou lancez-le vous-même et saisissez son adresse.";
+"La cartella di ComfyUI, o un programma che avvia ComfyUI" = "Le dossier de ComfyUI, ou un programme qui lance ComfyUI";
+"Regista avvia ComfyUI quando una generazione ne ha bisogno e lo ferma dopo." = "Regista lance ComfyUI quand une génération en a besoin et l'arrête ensuite.";
+"Trovata in un posto consueto: Regista avvia ComfyUI da qui quando serve. Sceglila per fissarla." = "Trouvé à un endroit habituel : Regista lance ComfyUI d'ici quand il le faut. Choisissez-le pour le garder.";

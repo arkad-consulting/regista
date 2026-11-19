@@ -26,6 +26,21 @@ public struct EngineManifest: Sendable {
         public let bytes: Int64
     }
 
+    /// A model file a ComfyUI workflow loads (#6): where it goes, its facts, the publisher's page. Regista never downloads it.
+    public struct ModelFile: Codable, Hashable, Sendable {
+        public let name: String
+        /// The ComfyUI models folder it goes in (`models/<folder>`).
+        public let folder: String
+        public let bytes: Int64
+        public let sha256: String?
+        public let licence: String
+        /// The publisher's page to download it from.
+        public let url: String
+
+        /// "12.31 GB", "23 MB".
+        public var sizeText: String { EngineManifest.sizeText(bytes) }
+    }
+
     public struct Entry: Hashable, Sendable {
         public let id: String
         public let name: String
@@ -56,6 +71,8 @@ public struct EngineManifest: Sendable {
         public let paid: Bool
         /// The shipped build's facts, on the entries a release build ships (#107, #114).
         public var shipped: Shipped? = nil
+        /// The ComfyUI model files of a ComfyUI model entry (#6).
+        public var modelFiles: [ModelFile] = []
 
         public var planned: Bool { status == "planned" }
     }
@@ -92,6 +109,8 @@ public struct EngineManifest: Sendable {
 
     public func entry(_ id: String) -> Entry? { entries.first { $0.id == id } }
     public func artifact(_ id: String) -> Artifact? { artifacts.first { $0.id == id } }
+    /// A ComfyUI model file by name, from the entry that lists it (#6).
+    public func modelFile(_ name: String) -> ModelFile? { entries.lazy.flatMap(\.modelFiles).first { $0.name == name } }
 
     /// The lock rows an entry names (an id ending with ":" = every row with that prefix).
     public func artifacts(of e: Entry) -> [Artifact] {
@@ -244,7 +263,7 @@ public struct EngineManifest: Sendable {
 extension EngineManifest.Entry: Decodable {
     private enum K: String, CodingKey {
         case id, name, role, unlocks, minRamGB, ramInUseGB, diskBytes, licence, nonCommercial, licenceUrl, install, artifacts, files, scripts, optional,
-             dependsOn, status, version, paid, shipped
+             dependsOn, status, version, paid, shipped, modelFiles
     }
 
     public init(from decoder: Decoder) throws {
@@ -270,6 +289,7 @@ extension EngineManifest.Entry: Decodable {
         version = try c.decodeIfPresent(String.self, forKey: .version)
         paid = try c.decodeIfPresent(Bool.self, forKey: .paid) ?? false
         shipped = try c.decodeIfPresent(EngineManifest.Shipped.self, forKey: .shipped)
+        modelFiles = try c.decodeIfPresent([EngineManifest.ModelFile].self, forKey: .modelFiles) ?? []
     }
 
     /// A throwaway entry to resolve artifact patterns during validation.

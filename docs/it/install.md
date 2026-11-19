@@ -85,6 +85,31 @@ dice **Memoria**, **Livello** e **Spazio libero**. Sotto, i motori sono divisi p
 **Forza livello** cambia il livello: **Automatico** lo sceglie dalla memoria. Un livello più alto mostra e installa
 motori che possono rallentare il Mac o fermarsi per mancanza di memoria.
 
+## Generazione in locale con ComfyUI
+
+Sul livello Pro Regista crea immagini, clip, musica e upscale sul tuo Mac, gratis, con ComfyUI. Regista parla con
+ComfyUI da sé, con i workflow che porta con sé; ComfyUI e i file dei suoi modelli si preparano a mano (circa 69 GB per i
+quattro modelli). **Impostazioni › Motori › ComfyUI** mostra i passi; in breve:
+
+1. Installa ComfyUI seguendo le sue istruzioni (https://docs.comfy.org/installation/manual_install), in una cartella con
+   il suo ambiente Python (`.venv` o `venv` dentro quella cartella).
+2. Di' a Regista dov'è: in **Impostazioni › Motori**, sulla riga **ComfyUI**, **Cartella di ComfyUI** › **Scegli…**.
+   Regista avvia ComfyUI quando una generazione ne ha bisogno, lo dice nel lavoro mentre aspetta che risponda, e lo ferma
+   dopo. Se avvii ComfyUI da te, o usi la sua app desktop (non ascolta sulla 8188), imposta lì invece il suo
+   **Indirizzo**: un ComfyUI avviato da te resta acceso; dopo una generazione Regista gli chiede solo di liberare la
+   memoria.
+3. Installa il pacchetto di nodi ComfyUI-GGUF (https://github.com/city96/ComfyUI-GGUF) nella cartella `custom_nodes` di
+   ComfyUI, poi riavvia ComfyUI: serve alle clip di Wan 2.2.
+4. Metti i file di ogni modello nelle cartelle `models` di ComfyUI. La riga di ogni modello (Z-Image Turbo, Wan 2.2
+   image-to-video, ACE-Step 1.5, Real-ESRGAN + RIFE) elenca ogni file con la cartella, la dimensione, la licenza e la
+   pagina dell'editore da cui scaricarlo e, quando ComfyUI risponde, quali vede già.
+5. Controlla: **Controlla di nuovo** sulla riga, oppure chiedi a Claude `generate.check`.
+
+Senza una cartella impostata e senza nulla che risponda all'indirizzo, Regista cerca una cartella di ComfyUI (con il
+suo ambiente Python) in questi posti, in quest'ordine: `~/ComfyUI`, `~/comfy/ComfyUI`, `~/Documents/ComfyUI`,
+`~/Developer/ComfyUI`, `~/Projects/ComfyUI`, `~/src/ComfyUI`, `~/git/ComfyUI`, `/Applications/ComfyUI`. La riga dice
+quale ha trovato; nelle tue impostazioni non viene scritto nulla finché non scegli una cartella.
+
 ## Collegare Claude
 
 Apri **Impostazioni › Claude**.
