@@ -35,9 +35,12 @@ public struct BrandKit: Codable, Hashable, Sendable {
     public var notes: String?
     /// Folder of a stored kit (relative asset paths resolve against it); not encoded.
     public var directory: URL?
+    /// A project's copy only (#101): the kit's file each of the copy's own files was copied from (copy path → kit path),
+    /// so the copy is compared with the kit by what a person sees, not by where the files are.
+    public var originals: [String: String]?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, colors, fonts, logo, logos, captionPreset, captionStyle, titles, logoPlacement, watermark, notes
+        case id, name, colors, fonts, logo, logos, captionPreset, captionStyle, titles, logoPlacement, watermark, notes, originals
     }
 
     public init(id: String, name: String, colors: [String: String], fonts: [String: String], logo: String? = nil,
@@ -162,6 +165,29 @@ public struct BrandKit: Codable, Hashable, Sendable {
         k.directory = nil
         return k
     }
+
+    /// A project's copy with each of its own files named by the kit's file it was copied from (`originals`, #101): what
+    /// the kit itself would say.
+    public func withOriginalPaths() -> BrandKit {
+        guard let originals, !originals.isEmpty else { return self }
+        var k = self
+        func back(_ p: String) -> String { originals[p] ?? p }
+        k.fonts = fonts.mapValues(back)
+        k.logo = logo.map(back)
+        k.logos = logos?.mapValues(back)
+        k.originals = nil
+        return k
+    }
+
+    /// The files the kit refers to (font files, the logo and its variants), as paths.
+    public var files: [String] {
+        let fontFiles = fonts.keys.sorted().compactMap { fonts[$0].flatMap { Self.isFontFile($0) ? assetPath($0) : nil } }
+        let logoFiles = (logo.map { [assetPath($0)] } ?? []) + (logos ?? [:]).keys.sorted().compactMap { logos?[$0].map(assetPath) }
+        return fontFiles + logoFiles
+    }
+
+    /// The files the kit refers to that are not on disk (a deleted kit's folder took them, #101).
+    public var missingFiles: [String] { files.filter { !FileManager.default.fileExists(atPath: $0) } }
 
     /// Resources shipped with Regista (`Resources/<path>`): in the app bundle (also for the regista-mcp it ships in
     /// Contents/MacOS, whose main bundle is the app), else in the source tree it was built from.

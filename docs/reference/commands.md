@@ -122,7 +122,7 @@ Returns: the track.
 
 **Apply the brand kit** · MCP tool: `brandkit_apply` · undo: yes — one undo step · takes `project`
 
-Apply a brand kit to the project in one go: its title presets become available to title.add, colour/font roles (primary, ink, paper, accent, success, highlight; display, text, mono) resolve in title params, captions are recoloured (keyword box = the kit's highlight, its text = onHighlight; the caption style the user chose — preset, font, size — is kept), titles made from presets are rebuilt in the new kit, and logo overlays (logo.add) are swapped for the new kit's logo and placement. Missing font files fall back to system fonts (reported). Run it before adding titles, and again any time to switch kit. Returns what was restyled.
+Apply a brand kit to the project in one go: its title presets become available to title.add, colour/font roles (primary, ink, paper, accent, success, highlight; display, text, mono) resolve in title params, captions are recoloured (keyword box = the kit's highlight, its text = onHighlight; the caption style the user chose — preset, font, size — is kept), titles made from presets are rebuilt in the new kit, and logo overlays (logo.add) are swapped for the new kit's logo and placement. The project keeps its own copy of the kit, its font files and logos included (copied into the project's media folder): deleting or changing the kit later does not change the video. Missing font files fall back to system fonts (reported). Run it before adding titles, and again any time to switch kit. Returns what was restyled.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|

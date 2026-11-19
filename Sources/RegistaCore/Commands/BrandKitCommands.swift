@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 // Brand kits (issue #17): list, apply, create/update, import/export as .registakit, logos and fonts, the logo
@@ -35,7 +36,7 @@ enum BrandKits {
     /// Restyles the project with `kit`: captions recoloured (their style otherwise kept, #17), preset titles rebuilt, logo overlays swapped
     /// (and laid over the whole video for a watermark kit). Returns what changed.
     static func apply(_ kit: BrandKit, to project: inout Project, _ ctx: inout CommandContext, captions: Bool, command: String) throws -> [String: JSONValue] {
-        let stored = kit.absolutized()
+        let stored = try holdingFiles(kit, &ctx, command: command)
         project.brand = stored
         var restyled: [JSONValue] = []
         if captions {
@@ -89,6 +90,58 @@ enum BrandKits {
                 "colors": .object(kit.colors.mapValues { .string($0) }), "captionTracks": .array(restyled), "titlesRestyled": .number(Double(titles)),
                 "logos": .number(Double(logos)), "fonts": fontsJSON(stored), "missingFonts": .array(missing), "warnings": .array(warnings),
                 "notes": kit.notes.map { .string($0) } ?? .null]
+    }
+
+    /// The project's copy of `kit` (#101): every asset path absolute, and the kit's own files — font files, the logo and
+    /// its variants — copied into the project's media folder (`media/brandkit-<id>/`), the copy pointing at them, so
+    /// deleting or changing the kit does not change the video. Not copied: the files Regista ships (`bundle:`), font
+    /// files installed on the Mac, files already in the project's media folder and files that are not there. A file
+    /// already copied with the same content is used again; another one of the same name gets the content's hash in its
+    /// name. `originals` keeps the kit's path of each copy.
+    static func holdingFiles(_ kit: BrandKit, _ ctx: inout CommandContext, command: String) throws -> BrandKit {
+        var copy = kit.absolutized()
+        var originals: [String: String] = [:]
+        var folder: URL?
+        let fm = FileManager.default
+        let installed = ["/System/Library/Fonts/", "/Library/Fonts/", fm.homeDirectoryForCurrentUser.appendingPathComponent("Library/Fonts").path + "/"]
+        func own(_ spec: String) throws -> String? {
+            guard !spec.hasPrefix("bundle:") else { return nil }
+            let source = URL(fileURLWithPath: kit.assetPath(spec)).standardizedFileURL
+            var isDir: ObjCBool = false
+            guard fm.fileExists(atPath: source.path, isDirectory: &isDir), !isDir.boolValue,
+                  !installed.contains(where: source.path.hasPrefix) else { return nil }
+            let media = try ctx.mediaDirectory().standardizedFileURL
+            guard !source.path.hasPrefix(media.path + "/") else { return nil }
+            let dir = try folder ?? {
+                let d = media.appendingPathComponent("brandkit-\(kit.id)")
+                do { try fm.createDirectory(at: d, withIntermediateDirectories: true) }
+                catch { throw CommandError(.io, "\(command): cannot create \(d.path): \(error.localizedDescription)") }
+                return d
+            }()
+            folder = dir
+            var target = dir.appendingPathComponent(source.lastPathComponent)
+            if fm.fileExists(atPath: target.path), !fm.contentsEqual(atPath: target.path, andPath: source.path) {
+                let data = (try? Data(contentsOf: source)) ?? Data()
+                let hash = SHA256.hash(data: data).prefix(4).map { String(format: "%02x", $0) }.joined()
+                let name = source.deletingPathExtension().lastPathComponent + "-" + hash
+                target = dir.appendingPathComponent(source.pathExtension.isEmpty ? name : name + "." + source.pathExtension)
+            }
+            if !fm.fileExists(atPath: target.path) {
+                do { try fm.copyItem(at: source, to: target) }
+                catch { throw CommandError(.io, "\(command): cannot copy \(source.lastPathComponent) into the project: \(error.localizedDescription)") }
+            }
+            originals[target.path] = kit.assetPath(spec)   // as the kit itself names it (compared with its absolutized paths)
+            return target.path
+        }
+        for role in kit.fonts.keys.sorted() {
+            if let spec = kit.fonts[role], BrandKit.isFontFile(spec), let mine = try own(spec) { copy.fonts[role] = mine }
+        }
+        if let spec = kit.logo, let mine = try own(spec) { copy.logo = mine }
+        for v in (kit.logos ?? [:]).keys.sorted() {
+            if let spec = kit.logos?[v], let mine = try own(spec) { copy.logos?[v] = mine }
+        }
+        copy.originals = originals.isEmpty ? nil : originals
+        return copy
     }
 
     static func merge(_ dict: [String: String], _ patch: JSONValue?, command: String, field: String) throws -> [String: String] {
@@ -215,7 +268,7 @@ enum BrandkitList: Command {
 
 enum BrandkitApply: Command {
     static let id = "brandkit.apply"
-    static let summary = "Apply a brand kit to the project in one go: its title presets become available to title.add, colour/font roles (primary, ink, paper, accent, success, highlight; display, text, mono) resolve in title params, captions are recoloured (keyword box = the kit's highlight, its text = onHighlight; the caption style the user chose — preset, font, size — is kept), titles made from presets are rebuilt in the new kit, and logo overlays (logo.add) are swapped for the new kit's logo and placement. Missing font files fall back to system fonts (reported). Run it before adding titles, and again any time to switch kit. Returns what was restyled."
+    static let summary = "Apply a brand kit to the project in one go: its title presets become available to title.add, colour/font roles (primary, ink, paper, accent, success, highlight; display, text, mono) resolve in title params, captions are recoloured (keyword box = the kit's highlight, its text = onHighlight; the caption style the user chose — preset, font, size — is kept), titles made from presets are rebuilt in the new kit, and logo overlays (logo.add) are swapped for the new kit's logo and placement. The project keeps its own copy of the kit, its font files and logos included (copied into the project's media folder): deleting or changing the kit later does not change the video. Missing font files fall back to system fonts (reported). Run it before adding titles, and again any time to switch kit. Returns what was restyled."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("kit", .string, "Kit id (arkad, wesites, cafe-atelier, or a user kit)."),

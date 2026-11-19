@@ -991,7 +991,11 @@ a user copy), `brandkit.setLogo {kit, path, variant}`, `brandkit.setFont {kit, p
 `brandkit.import {path, replace?}`, `brandkit.delete {kit}` — each one undo step: the command records the kit folder
 before and after (`KitChange`, `KitSnapshot` in `BrandKitStore.swift`) and `history.undo` / `redo` put it back, with or
 without a project open (E4 #3) —, `brandkit.apply {kit}` (recolours captions — their style is kept, #17 —, rebuilds titles
-made from presets — `Clip.titlePreset`; hand-styled titles keep their look — and swaps logo clips),
+made from presets — `Clip.titlePreset`; hand-styled titles keep their look — and swaps logo clips; the project's copy of
+the kit, `project.brand`, holds the kit's own files, #101: font files and logo variants are copied into
+`<project>.regista/media/brandkit-<id>/` and the copy points at them, `originals` keeping the kit's path of each — the
+Marca popover compares the copy with the kit through it, #98 — so deleting or changing the kit leaves the video as it
+was; bundled files and fonts installed on the Mac are not copied),
 `logo.add {corner?, width?, opacity?, animation?, start?, duration?, replace?}` (track role `logo`, the whole timeline by
 default; SVG rasterised at 2× the drawn size), `brandkit.preview {kit | definition, width}` (9:16 PNG through the
 compositor: hook title, caption with keyword, logo, over a frame of the open project or a backdrop in the kit's colours),

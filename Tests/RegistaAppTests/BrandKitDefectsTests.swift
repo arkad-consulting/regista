@@ -1,5 +1,6 @@
 import AppKit
 import RegistaCore
+import RegistaEngines
 import SwiftUI
 import Testing
 @testable import Regista
@@ -185,7 +186,8 @@ extension MouseSuites {
             #expect(j.store.project?.brand?.name == name && j.store.project?.brand?.colors["primary"] == old, "\(language): the project lost its copy")
             try await j.tap(marcaTip)
             let picker2 = try #require(await j.popover(), "\(language): Marca opened no picker")
-            let gone = String(format: loc("Il kit «%@» è stato eliminato: il progetto tiene la sua copia dei colori. Il logo e i caratteri del kit possono mancare nel video."), name)
+            // The copy of a kit made from Café Atelier holds its files (system fonts, logos Regista ships): the video does not change (#101).
+            let gone = String(format: loc("Il kit «%@» è stato eliminato: il progetto tiene la sua copia e il video non cambia."), name)
             #expect(!picker2.elements(containing: gone).isEmpty, "\(language): the popover does not say «\(gone)»: \(j.screen(picker2))")
             #expect(j.control("Aggiorna dal kit", in: picker2) == nil, "\(language): «Aggiorna dal kit» for a deleted kit")
             j.shot(picker2, "\(language)-deleted")
@@ -200,11 +202,46 @@ extension MouseSuites {
         for language in ["it", "en", "fr", "pt"] {
             let table = MouseRig.table(language)
             for key in ["%@ · copia del progetto", "%@ · kit eliminato", "Il kit è cambiato dopo che l'hai applicato a questo progetto.", "Aggiorna dal kit",
-                        "Il kit «%@» è stato eliminato: il progetto tiene la sua copia dei colori. Il logo e i caratteri del kit possono mancare nel video."] {
+                        "Il kit «%@» è stato eliminato: il progetto tiene la sua copia dei colori. Il logo e i caratteri del kit possono mancare nel video.", "Il kit «%@» è stato eliminato: il progetto tiene la sua copia e il video non cambia."] {
                 let text = table.localizedString(forKey: key, value: "", table: nil)
                 #expect(!text.isEmpty && (language == "it" || text != key), "\(language): «\(key)» has no text")
             }
         }
+    }
+
+    /// #101: the project's copy of a kit holds the kit's own files and still reads as the kit (the copied file is compared
+    /// as the kit's file it came from); a change of the kit reads as one. Deleted, the kit leaves the video as it was:
+    /// «il video non cambia» — except for a copy that still points at the kit's files (a project the kit was applied to
+    /// before its files were copied), which keeps the line that the logo and fonts may be missing.
+    @Test func aCopyHoldingItsFilesIsTheKitAndADeletedKitLeavesTheVideo() throws {
+        _ = rigKitsDirectory
+        let dir = rigTempDir("n24-copy-status")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let e = Engine(services: .live())
+        try e.execute("project.new", params: ["name": "copy-status", "directory": .string(dir.path)])
+        let font = dir.appendingPathComponent("StatoDisplay.ttf")
+        try FileManager.default.copyItem(atPath: BrandKit.bundled("Fonts/Fraunces.ttf"), toPath: font.path)
+        let id = "n24-stato"
+        _ = try? BrandKitStore().delete(id)
+        defer { _ = try? BrandKitStore().delete(id) }
+        try e.execute("brandkit.create", params: ["name": "Stato", "id": .string(id)])
+        try e.execute("brandkit.setFont", params: ["kit": .string(id), "path": .string(font.path), "role": "display"])
+        try e.execute("brandkit.apply", params: ["kit": .string(id)])
+        let library = BrandKitLibrary()
+        let copy = try #require(e.project?.brand)
+        // A copy as projects kept it before the kit's files were copied: the kit's own paths.
+        let legacy = try #require(library.kit(id)).absolutized()
+        #expect(copy.fonts["display"] != legacy.fonts["display"], "the copy still refers to the kit's font file")
+        #expect(library.status(of: copy) == .same, "a copy holding the kit's files reads as changed")
+        #expect(library.status(of: legacy) == .same)
+        try e.execute("brandkit.update", params: ["kit": .string(id), "colors": ["primary": "#2E7D32"]])
+        library.reload()
+        #expect(library.status(of: copy) == .changed, "a changed kit reads as the copy")
+        try e.execute("brandkit.delete", params: ["kit": .string(id)])
+        library.reload()
+        #expect(library.status(of: copy) == .deleted, "the copy holding its files: \(copy.missingFiles)")
+        #expect(library.status(of: legacy) == .deletedFilesMissing, "the copy pointing at the deleted kit's files")
+        #expect(library.label(copy) == String(format: loc("%@ · kit eliminato"), "Stato") && library.label(legacy) == library.label(copy))
     }
 
     /// Follow-up of #96: a colour's code typed and then left — by a click on another field, or by Tab — is committed as

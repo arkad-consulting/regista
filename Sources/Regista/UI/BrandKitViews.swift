@@ -36,14 +36,17 @@ final class BrandKitLibrary: ObservableObject {
     func kit(_ id: String?) -> BrandKit? { kits.first { $0.id == id } }
 
     /// A project's copy of its kit against the kit as it is now (#98): the project keeps its copy (a video comes out
-    /// tomorrow as it does today), and the window says when the two differ or the kit is gone.
-    enum CopyStatus { case same, changed, deleted }
+    /// tomorrow as it does today), and the window says when the two differ or the kit is gone. A deleted kit leaves the
+    /// video as it was when the copy holds its files (#101: copied into the project when the kit was applied, or files
+    /// that do not go away); `deletedFilesMissing`: the copy still points at files that went with the kit's folder (a
+    /// project the kit was applied to before its files were copied).
+    enum CopyStatus { case same, changed, deleted, deletedFilesMissing }
 
     /// Compares what a person can see — colours, fonts, logo files, the logo's corner and size — never timestamps: a kit
-    /// changed and put back is the same.
+    /// changed and put back is the same. A file the project holds is compared as the kit's file it was copied from.
     func status(of copy: BrandKit) -> CopyStatus {
-        guard let current = kit(copy.id)?.absolutized() else { return .deleted }
-        let a = copy.absolutized()
+        guard let current = kit(copy.id)?.absolutized() else { return copy.missingFiles.isEmpty ? .deleted : .deletedFilesMissing }
+        let a = copy.absolutized().withOriginalPaths()
         func codes(_ k: BrandKit) -> [String: String] { k.colors.mapValues { $0.uppercased() } }
         let same = codes(a) == codes(current) && a.fonts == current.fonts && a.logo == current.logo && (a.logos ?? [:]) == (current.logos ?? [:])
             && a.logoPlacement?.corner == current.logoPlacement?.corner && a.logoPlacement?.width == current.logoPlacement?.width
@@ -56,7 +59,7 @@ final class BrandKitLibrary: ObservableObject {
         switch status(of: copy) {
         case .same: copy.name
         case .changed: String(format: loc("%@ · copia del progetto"), copy.name)
-        case .deleted: String(format: loc("%@ · kit eliminato"), copy.name)
+        case .deleted, .deletedFilesMissing: String(format: loc("%@ · kit eliminato"), copy.name)
         }
     }
 
@@ -169,7 +172,7 @@ struct BrandPicker: View {
     static let width: CGFloat = 300
     /// `notice`: the project's copy differs from its kit, or the kit was deleted (#98): one more block on top.
     static func height(kits: Int, notice: BrandKitLibrary.CopyStatus = .same) -> CGFloat {
-        CGFloat(118 + 40 * max(kits, 1) + (notice == .changed ? 96 : notice == .deleted ? 88 : 0))
+        CGFloat(118 + 40 * max(kits, 1) + (notice == .changed ? 96 : notice == .deletedFilesMissing ? 88 : notice == .deleted ? 64 : 0))
     }
 
     var body: some View {
@@ -205,7 +208,8 @@ struct BrandPicker: View {
     }
 
     /// The project's copy against its kit (#98): changed → one line and «Aggiorna dal kit» (brandkit.apply again: one
-    /// command, one undo step); deleted → the project keeps its copy, nothing to update.
+    /// command, one undo step); deleted → the project keeps its copy, nothing to update; and, when the copy still points at
+    /// the deleted kit's files (#101), that its logo and fonts may be missing.
     @ViewBuilder
     private func copyNotice(_ copy: BrandKit) -> some View {
         switch library.status(of: copy) {
@@ -220,6 +224,10 @@ struct BrandPicker: View {
             }
             .padding(.horizontal, 14).padding(.bottom, Ed.Space.s)
         case .deleted:
+            Text(verbatim: String(format: loc("Il kit «%@» è stato eliminato: il progetto tiene la sua copia e il video non cambia."), copy.name))
+                .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 14).padding(.bottom, Ed.Space.s)
+        case .deletedFilesMissing:
             Text(verbatim: String(format: loc("Il kit «%@» è stato eliminato: il progetto tiene la sua copia dei colori. Il logo e i caratteri del kit possono mancare nel video."), copy.name))
                 .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 14).padding(.bottom, Ed.Space.s)
