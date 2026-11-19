@@ -287,6 +287,26 @@ extension MouseSuites {
         #expect(p.under == 0)
     }
 
+    /// #102: a release lost on its way to the text view's tracking loop does not hang the click: the loop gets the press's
+    /// own release (after a second, or in place of the real mouse's with the screen locked), the click returns, the field
+    /// has the focus and the fallback is counted.
+    @Test func aLostReleaseDoesNotHangATextFieldClick() throws {
+        let p = Probe("")
+        let rig = host(p, .alone) { RTextField(placeholder: "Cerca", text: p.binding) }
+        defer { rig.close() }
+        let e = try #require(rig.element("Cerca", role: "AXTextField"))
+        let fallbacks = MouseRig.fallbackReleases + MouseRig.foreignReleases
+        let start = Date()
+        MouseRig.loseNextRelease = true
+        rig.click(e.centre)
+        #expect(Date().timeIntervalSince(start) < MouseRig.pressDeadline, "the click waited \(Date().timeIntervalSince(start)) s")
+        #expect(MouseRig.fallbackReleases + MouseRig.foreignReleases == fallbacks + 1, "the press's release was not handed to the tracking loop")
+        #expect(rig.isTyping, "the text field did not take the focus")
+        rig.type("ok")
+        #expect(p.value == "ok")
+        #expect(p.under == 0)
+    }
+
     @Test(arguments: Container.allCases)
     func textEditorTypesSubmitsAndExits(_ c: Container) throws {
         let p = Probe("")

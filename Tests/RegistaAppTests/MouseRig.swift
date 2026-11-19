@@ -24,6 +24,14 @@ final class RigWindow: NSWindow {
 
 extension NSApplication {
     @objc fileprivate var rig_isActive: Bool { true }
+
+    /// Exchanged with `nextEvent(matching:until:inMode:dequeue:)`: calling it calls the original (see `MouseRig.press`).
+    @objc fileprivate func rig_nextEvent(matching mask: NSEvent.EventTypeMask, until expiration: Date?, inMode mode: RunLoop.Mode,
+                                         dequeue: Bool) -> NSEvent? {
+        MouseRig.nextEvent(mask, until: expiration, mode: mode, dequeue: dequeue) { m, u, md, d in
+            rig_nextEvent(matching: m, until: u, inMode: md, dequeue: d)
+        }
+    }
 }
 
 @MainActor
@@ -44,6 +52,11 @@ final class MouseRig {
         guard let real = class_getInstanceMethod(NSApplication.self, #selector(getter: NSApplication.isActive)),
               let fake = class_getInstanceMethod(NSApplication.self, #selector(getter: NSApplication.rig_isActive)) else { return }
         method_exchangeImplementations(real, fake)
+        // A press of the rig cannot wait for ever for its release (#102): see `press`.
+        if let real = class_getInstanceMethod(NSApplication.self, #selector(NSApplication.nextEvent(matching:until:inMode:dequeue:))),
+           let fake = class_getInstanceMethod(NSApplication.self, #selector(NSApplication.rig_nextEvent(matching:until:inMode:dequeue:))) {
+            method_exchangeImplementations(real, fake)
+        }
         RigGuard.install()
         // SwiftUI builds its accessibility tree only for an assistive client: this is what such a client sets.
         NSApp.accessibilitySetValue(true, forAttribute: NSAccessibility.Attribute(rawValue: "AXEnhancedUserInterface"))
@@ -190,23 +203,28 @@ final class MouseRig {
     /// Press and release at a point. Over an AppKit control or text view (a SwiftUI text field), the release goes
     /// through the event queue as from a real mouse; anywhere else both are sent to the window one after the other
     /// (SwiftUI's gestures see them there). Settings' system form is only partly driven this way (see WindowsClickTests).
-    func click(_ p: CGPoint, clicks: Int = 1, modifiers: NSEvent.ModifierFlags = []) {
+    /// `name` names the control in a failure (the press that never returned, #102); by default the view under the point.
+    func click(_ p: CGPoint, clicks: Int = 1, modifiers: NSEvent.ModifierFlags = [], name: String? = nil) {
         RigTrace.note("MouseRig.click at \(Int(p.x)),\(Int(p.y))")
         let sheet = window.attachedSheet
         defer { if window.attachedSheet !== sheet { hold() } }
         let target = viewAt(p)
         takeKey()
-        if target is NSText || target is NSControl, let up = event(.leftMouseUp, p, clicks: clicks, modifiers: modifiers),
+        if let target, target is NSText || target is NSControl, let up = event(.leftMouseUp, p, clicks: clicks, modifiers: modifiers),
            let down = event(.leftMouseDown, p, clicks: clicks, modifiers: modifiers) {
             // The release waits in the event queue, where a control that tracks the mouse in a loop of its own until the
             // button goes up takes it, as from a real mouse; if nothing took it, it is sent after the press. Posting
             // stops the running run loop: a nested one of ours, never the test runner's loop (it would end the process).
+            // Named only when it is needed (a fallback, a failure): reading the accessibility tree here queues work on the loop.
+            let label = { name ?? Self.describe(target, at: p) }
+            var handed = false
             CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue) { [self, window] in
-                NSApp.postEvent(up, atStart: false)
-                deliver(down, to: window)
+                if !Self.loseNextRelease { NSApp.postEvent(up, atStart: false) }
+                Self.loseNextRelease = false
+                handed = Self.press(label, release: up) { deliver(down, to: window) }
             }
             CFRunLoopRunInMode(.defaultMode, 0.3, false)
-            if let pending = NSApp.nextEvent(matching: .leftMouseUp, until: .distantPast, inMode: .default, dequeue: true) {
+            if let pending = NSApp.nextEvent(matching: .leftMouseUp, until: .distantPast, inMode: .default, dequeue: true), !handed {
                 deliver(pending, to: window)
             }
             drain()
@@ -237,16 +255,136 @@ final class MouseRig {
         }
         guard let down = e(.leftMouseDown), let up = e(.leftMouseUp) else { return }
         // Posting stops the running run loop: a nested one of ours (see `click`).
+        var handed = false
+        let label = { "the alert's «\(button.title)»" }
         CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue) {
             NSApp.postEvent(up, atStart: false)
-            sheet.sendEvent(down)
+            handed = Self.press(label, release: up) { sheet.sendEvent(down) }
         }
         CFRunLoopRunInMode(.defaultMode, 0.3, false)
-        if let pending = NSApp.nextEvent(matching: .leftMouseUp, until: .distantPast, inMode: .default, dequeue: true) {
+        if let pending = NSApp.nextEvent(matching: .leftMouseUp, until: .distantPast, inMode: .default, dequeue: true), !handed {
             sheet.sendEvent(pending)
         }
         drain()
         hold()
+    }
+
+    // MARK: A press that cannot wait for ever (#102)
+
+    /// A press being delivered: the control's name, its release, when it started, whether the release was handed to it.
+    private struct Press {
+        let name: () -> String
+        let release: NSEvent
+        let started: TimeInterval
+        var handed = false
+        /// The loop got a release (its own from the queue, or one handed to it): the time after it is the control's action.
+        var released = false
+    }
+    private static var pressing: Press?
+    /// After this long inside a press, its release is handed to the loop that tracks it (`rig_nextEvent`).
+    static let fallbackAfter: TimeInterval = 1
+    /// A press that has not returned, nor got its release, after this long fails its test, with the control's name.
+    static let pressDeadline: TimeInterval = 5
+    /// Releases handed to a tracking loop because the one in the event queue never reached it.
+    static var fallbackReleases = 0
+    /// Releases from outside the rig (the real mouse's, with the screen locked) replaced by the press's own.
+    static var foreignReleases = 0
+    /// Other events of the real mouse (moves, drags) dropped during a press of the rig's.
+    static var foreignEvents = 0
+    /// The events a real mouse sends: during a press of the rig's, only the rig's own reach the control.
+    private static let realMouse: Set<NSEvent.EventType> = [.leftMouseDown, .leftMouseUp, .leftMouseDragged, .mouseMoved]
+    /// The next click over an AppKit control posts no release (the test of the fallback: a release lost on its way).
+    static var loseNextRelease = false
+
+    /// Delivers a press (`deliver`) whose release was posted to the event queue. A control that tracks the mouse in a
+    /// loop of its own (a text field's text view, a button's cell) waits there for the release: two commit runs hung for
+    /// 40 minutes in a text view's loop that never got it (#102). While the press is delivered, the loop's requests for
+    /// events are watched (`rig_nextEvent`): the loop gets the press's own release, written down in RigTrace and on stderr
+    /// whenever the queue did not give it. A press still not back after `pressDeadline` fails the test with the control's
+    /// name. Returns whether the release was handed (the queued one, if it is still there, is then stale).
+    static func press(_ name: @escaping () -> String, release: NSEvent, deliver: () -> Void) -> Bool {
+        pressing = Press(name: name, release: release, started: ProcessInfo.processInfo.systemUptime)
+        var failed = false
+        func fail() {
+            guard !failed else { return }
+            failed = true
+            let line = "the press on «\(name())» has not returned after \(Int(pressDeadline)) s (#102)"
+            FileHandle.standardError.write(Data("MouseRig: \(line)\n".utf8))
+            RigTrace.note("PRESS STUCK: \(line)")
+            Issue.record(Comment(rawValue: line))
+        }
+        // A press stuck anywhere else than in a request for events still says so, from a timer of every mode.
+        let deadline = CFRunLoopTimerCreateWithHandler(nil, CFAbsoluteTimeGetCurrent() + pressDeadline, 0, 0, 0) { _ in
+            MainActor.assumeIsolated { if pressing?.released == false { fail() } }
+        }
+        CFRunLoopAddTimer(CFRunLoopGetMain(), deadline, .commonModes)
+        defer {
+            CFRunLoopTimerInvalidate(deadline)
+            pressing = nil
+        }
+        deliver()
+        if pressing?.released == false, ProcessInfo.processInfo.systemUptime - (pressing?.started ?? 0) > pressDeadline { fail() }
+        return pressing?.handed ?? false
+    }
+
+    /// `-[NSApplication nextEventMatchingMask:untilDate:inMode:dequeue:]` while a press of the rig is delivered. A request
+    /// for a release waits in short turns and gets the press's own release:
+    /// - after `fallbackAfter` when none came (the queue lost it, or gives back no posted mouse event, as with the screen
+    ///   locked: #57);
+    /// - in place of a release that is not the rig's: with the screen locked, a button's loop got the real mouse's
+    ///   button-up, at the real pointer far outside the rig's window, and its click did nothing.
+    /// Any other request is the original's.
+    fileprivate static func nextEvent(_ mask: NSEvent.EventTypeMask, until: Date?, mode: RunLoop.Mode, dequeue: Bool,
+                                      original: (NSEvent.EventTypeMask, Date?, RunLoop.Mode, Bool) -> NSEvent?) -> NSEvent? {
+        guard let press = pressing, !press.handed, mask.contains(.leftMouseUp) else { return original(mask, until, mode, dequeue) }
+        func hand(_ count: inout Int, _ why: String) -> NSEvent {
+            if dequeue {
+                pressing?.handed = true
+                pressing?.released = true
+                count += 1
+            }
+            let line = "the release of the press on «\(press.name())» \(why) (#102)"
+            RigTrace.note("FALLBACK release: \(line)")
+            FileHandle.standardError.write(Data("MouseRig: \(line)\n".utf8))
+            return press.release
+        }
+        let end = until ?? .distantPast
+        while true {
+            let turn = min(end, Date().addingTimeInterval(0.05))
+            if let e = original(mask, turn, mode, dequeue) {
+                // Its own release, where the rig released: with the screen locked the queue gave back the rig's posted
+                // release moved to the real pointer, far outside the window (seen 2026-11-19), which a button ignores.
+                let own = e === press.release || (e.timestamp == press.release.timestamp && e.windowNumber == press.release.windowNumber
+                    && abs(e.locationInWindow.x - press.release.locationInWindow.x) < 1 && abs(e.locationInWindow.y - press.release.locationInWindow.y) < 1)
+                if own, dequeue { pressing?.released = true }
+                if own || !Self.realMouse.contains(e.type) { return e }
+                if e.type == .leftMouseUp {
+                    return hand(&foreignReleases, "was taken by a release from outside the rig (screen locked: \(screenLocked)): replaced by its own")
+                }
+                // The real mouse moving or dragging (with the screen locked) is not part of a click of the rig's: dropped,
+                // or a button's loop would see the pointer leave it and give up the click.
+                if !dequeue { _ = original(NSEvent.EventTypeMask(type: e.type), .distantPast, mode, true) }
+                foreignEvents += 1
+                let line = "an event \(e.type.rawValue) of the real mouse dropped during the press on «\(press.name())» (screen locked: \(screenLocked)) (#102)"
+                RigTrace.note("FOREIGN " + line)
+                FileHandle.standardError.write(Data("MouseRig: \(line)\n".utf8))
+                continue
+            }
+            if ProcessInfo.processInfo.systemUptime - press.started >= fallbackAfter {
+                return hand(&fallbackReleases, "never reached the loop tracking it: handed to it after \(Int(fallbackAfter)) s")
+            }
+            if Date() >= end { return nil }
+        }
+    }
+
+    /// A control's name for a failure: its accessibility label, title or placeholder, and its kind.
+    static func describe(_ view: NSView, at p: CGPoint) -> String {
+        var v: NSView? = view
+        while let candidate = v, !(candidate is NSControl) { v = candidate.superview }
+        let control = (v as? NSControl) ?? (view as? NSText)?.delegate as? NSControl
+        let words = [control?.accessibilityLabel(), (control as? NSTextField)?.placeholderString, (control as? NSButton)?.title]
+            .compactMap { $0 }.first { !$0.isEmpty }
+        return "\(words ?? "?") (\(Swift.type(of: control ?? view)) at \(Int(p.x)),\(Int(p.y)))"
     }
 
     /// Two clicks at a point, the second with a click count of 2 (what a double-click sends).
@@ -532,7 +670,7 @@ final class MouseRig {
     @discardableResult
     func click(_ name: String, role: String? = nil, index: Int = 0, modifiers: NSEvent.ModifierFlags = []) -> Bool {
         guard let e = element(name, role: role, index: index) else { return false }
-        click(e.centre, modifiers: modifiers)
+        click(e.centre, modifiers: modifiers, name: name)
         return true
     }
 
