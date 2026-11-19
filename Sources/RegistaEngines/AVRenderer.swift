@@ -12,8 +12,17 @@ public struct AVRenderer: VideoRenderer {
     /// An export that delivers no frame (and no audio) for this many seconds is stopped with an error instead of waiting
     /// forever (#71): the reader and writer are cancelled and the partial file removed.
     public var stallTimeout: TimeInterval
+    /// Before the first second of output, a first attempt that delivers nothing for this long (at most `stallTimeout`) is
+    /// stopped and the export starts again once, from a new reader and writer (#116: an export of a 4-second synthetic
+    /// clip stopped once at frame 17 for a minute, and passed when run again; 200 runs in a loop never stalled). The
+    /// result says so (`ExportReport.restartedAtFrame`) and a line is written on standard error. A second stall, or a
+    /// stall after the first second, stops the export with the error as before.
+    public var startTimeout: TimeInterval
 
-    public init(stallTimeout: TimeInterval = 60) { self.stallTimeout = stallTimeout }
+    public init(stallTimeout: TimeInterval = 60, startTimeout: TimeInterval = 10) {
+        self.stallTimeout = stallTimeout
+        self.startTimeout = startTimeout
+    }
 
     /// Exact CMTime in a small time scale when one fits (AVFoundation dislikes the 705 600 000 tick scale).
     static func cm(_ t: MediaTime) -> CMTime {
@@ -213,6 +222,34 @@ public struct AVRenderer: VideoRenderer {
 
     public func export(_ job: RenderJob, audio: URL?, to output: URL, bitrate: Int) throws -> ExportReport {
         let started = Date()
+        let rate = job.frameRate.doubleValue
+        let firstSecond = max(Int(rate.rounded(.up)), 1)
+        var restartedAt: Int?
+        while true {
+            do {
+                // Only the first attempt is cut short at the start; the second one has the whole stall timeout.
+                let early = restartedAt == nil ? min(startTimeout, stallTimeout) : nil
+                let frames = try exportOnce(job, audio: audio, to: output, bitrate: bitrate, startTimeout: early, startFrames: firstSecond)
+                return ExportReport(frames: frames, seconds: Date().timeIntervalSince(started), restartedAtFrame: restartedAt)
+            } catch let stall as ExportStall {
+                try? FileManager.default.removeItem(at: output)
+                if stall.atStart, restartedAt == nil {
+                    restartedAt = stall.frames
+                    FileHandle.standardError.write(Data(("render: nothing moved for \(Int(stall.waited)) s at frame \(stall.frames) of "
+                        + "\(job.frameCount), before the first second of output: the export starts again once, from a new reader and writer\n").utf8))
+                    continue
+                }
+                let at = Double(stall.frames) / rate
+                let again = restartedAt.map { " The export had already started again once, after the first attempt stopped at frame \($0)." } ?? ""
+                throw CommandError(.io, "render: stopped at frame \(stall.frames) of \(job.frameCount) (\(String(format: "%.2f", at)) s): nothing moved for "
+                    + "\(Int(stall.waited)) s while \(stall.phase); the reader and the writer were cancelled.\(again) Run the export again; "
+                    + "if it stops at the same frame, that frame's layers are the cause.")
+            }
+        }
+    }
+
+    /// One attempt of `export`: the frames written. A stall throws `ExportStall` (the partial file is the caller's).
+    func exportOnce(_ job: RenderJob, audio: URL?, to output: URL, bitrate: Int, startTimeout: TimeInterval?, startFrames: Int) throws -> Int {
         let b = try build(job)
         let video = try reader(b, range: CMTimeRange(start: .zero, end: Self.cm(job.duration)))
         try? FileManager.default.removeItem(at: output)
@@ -268,24 +305,18 @@ public struct AVRenderer: VideoRenderer {
         do {
             // Finishing rewrites the file with the index first (faststart): allow a second per second of video.
             frames = try Self.drive(writer, pumps, stallTimeout: stallTimeout, finishTimeout: max(stallTimeout, job.duration.seconds),
-                                    frameCount: job.frameCount) {
+                                    frameCount: job.frameCount, startTimeout: startTimeout, startFrames: startFrames) {
                 video.cancel()
                 audioGate?.cancel()
             }
         } catch let e as CommandError {   // cancelled (the app's job): the partial file goes
             try? FileManager.default.removeItem(at: output)
             throw e
-        } catch let stall as ExportStall {
-            try? FileManager.default.removeItem(at: output)
-            let at = Double(stall.frames) / rate
-            throw CommandError(.io, "render: stopped at frame \(stall.frames) of \(job.frameCount) (\(String(format: "%.2f", at)) s): nothing moved for "
-                + "\(Int(stall.waited)) s while \(stall.phase); the reader and the writer were cancelled. Run the export again; "
-                + "if it stops at the same frame, that frame's layers are the cause.")
         }
         if video.reader.status == .failed { throw CommandError(.io, "render: \(video.reader.error?.localizedDescription ?? "reading failed")") }
         if audioGate?.reader.status == .failed { throw CommandError(.io, "render: mix: \(audioGate?.reader.error?.localizedDescription ?? "")") }
         guard writer.status == .completed else { throw CommandError(.io, "render: \(writer.error?.localizedDescription ?? "writing failed")") }
-        return ExportReport(frames: frames, seconds: Date().timeIntervalSince(started))
+        return frames
     }
 
     /// One writer input fed from a sample source (a reader output).
@@ -303,6 +334,8 @@ public struct AVRenderer: VideoRenderer {
         var phase: String
         /// Seconds waited before stopping.
         var waited: TimeInterval
+        /// Stopped by the start watchdog (`startTimeout`), before the first second of output.
+        var atStart = false
     }
 
     /// Feeds every input from its source until all are drained, then finishes the file; returns the frames written.
@@ -311,8 +344,11 @@ public struct AVRenderer: VideoRenderer {
     /// readers, the writer is cancelled, and `ExportStall` is thrown. After a stop, a source call still blocked inside
     /// AVFoundation can return later: the pumps then drop its sample and never touch the cancelled writer.
     /// Inside a `CommandJob` it reports the frames written out of `frameCount` and stops (cancelled) when the job is.
+    /// `startTimeout`: while fewer than `startFrames` frames are written, the watchdog stops after this long already
+    /// (`ExportStall.atStart`), so that `export` can start again once without making the person wait a minute.
     static func drive(_ writer: AVAssetWriter, _ pumps: [Pump], stallTimeout: TimeInterval, finishTimeout: TimeInterval,
-                      frameCount: Int = 0, cancelSources: @escaping () -> Void) throws -> Int {
+                      frameCount: Int = 0, startTimeout: TimeInterval? = nil, startFrames: Int = 0,
+                      cancelSources: @escaping () -> Void) throws -> Int {
         let job = CommandJob.current
         let state = DriveState()
         let group = DispatchGroup()
@@ -355,12 +391,18 @@ public struct AVRenderer: VideoRenderer {
             _ = cancelled.wait(timeout: .now() + 5)
             return ExportStall(frames: state.frames, phase: phase, waited: waited)
         }
-        while group.wait(timeout: .now() + min(job == nil ? 1 : 0.25, stallTimeout / 4)) == .timedOut {
+        let tick = min(job == nil ? 1 : 0.25, stallTimeout / 4, (startTimeout ?? stallTimeout) / 4)
+        while group.wait(timeout: .now() + tick) == .timedOut {
             if job?.isCancelled == true {
                 _ = stop("cancelled", after: 0)
                 throw CommandJob.cancelledError("export.render")
             }
             if frameCount > 0 { job?.report(Double(state.frames) / Double(frameCount)) }
+            if let startTimeout, state.frames < startFrames, state.idle > startTimeout {
+                var stall = stop("reading frames", after: startTimeout)
+                stall.atStart = true
+                throw stall
+            }
             if state.idle > stallTimeout { throw stop("reading frames", after: stallTimeout) }
         }
         let finished = DispatchSemaphore(value: 0)

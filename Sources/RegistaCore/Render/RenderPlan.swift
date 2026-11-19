@@ -529,10 +529,14 @@ public enum AudioPlan {
 public struct ExportReport: Sendable {
     public var frames: Int
     public var seconds: Double
+    /// The frame where a first attempt stopped moving before the first second of output, when the export was started
+    /// again once because of it (#116); nil when the first attempt went through.
+    public var restartedAtFrame: Int?
 
-    public init(frames: Int, seconds: Double) {
+    public init(frames: Int, seconds: Double, restartedAtFrame: Int? = nil) {
         self.frames = frames
         self.seconds = seconds
+        self.restartedAtFrame = restartedAtFrame
     }
 }
 

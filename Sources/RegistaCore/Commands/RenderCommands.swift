@@ -104,6 +104,8 @@ enum ExportRender: Command {
         if project.hasAudibleGeneratedVoice {
             result["aiDisclosure"] = "This video has an AI-generated voice (cloned, VoxCPM2): say so in the post description (e.g. «voix générée par IA» / «voce generata con IA»)."
         }
+        // Said, not hidden: the first attempt stopped moving before the first second and the export started again once.
+        if let frame = report.restartedAtFrame { result["restartedAtFrame"] = .number(Double(frame)) }
         if masterGain != 0 { result["masterGain"] = .number((masterGain * 100).rounded() / 100) }
         if wav != nil { result["loudness"] = try ctx.services.audio.loudness(of: [AudioSpan(url: output, channels: 2)]).json }
         return .object(result)
