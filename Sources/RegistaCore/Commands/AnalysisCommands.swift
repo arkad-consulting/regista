@@ -113,6 +113,11 @@ enum EnginesStatus: Command {
                 o["expectedSha256"] = .string(expected)
             }
             facts(id, state: (installed ?? available) ? "installed" : "missing", into: &o)
+            // The build inside the app, not the installable one (#114).
+            if shipped, let sh = manifest.entry(id)?.shipped {
+                o["licence"] = .string(sh.licence)
+                o["diskGB"] = .number((Double(sh.bytes) / 1e7).rounded() / 100)
+            }
             return .object(o)
         }
         let whisper = s.transcribers[WhisperCppTranscriber.engineID]

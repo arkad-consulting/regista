@@ -181,6 +181,15 @@ def validate(m, lock):
                 errs.append("%s: script %s is not among its files" % (i, f))
             elif not os.path.isfile(os.path.join(REPO, "engines", f)):
                 errs.append("%s: script %s is not in engines/" % (i, f))
+        if "shipped" in e:
+            sh = e["shipped"]
+            if not isinstance(sh, dict) or set(sh) != {"licence", "bytes"}:
+                errs.append("%s: shipped must be {\"licence\": …, \"bytes\": …}" % i)
+            else:
+                if not isinstance(sh["licence"], str) or not sh["licence"].strip():
+                    errs.append("%s: shipped.licence is empty" % i)
+                if not isinstance(sh["bytes"], int) or isinstance(sh["bytes"], bool) or sh["bytes"] <= 0:
+                    errs.append("%s: shipped.bytes must be a positive whole number" % i)
         if e.get("artifacts") and "version" in e:
             errs.append("%s: version comes from engines.lock when artifacts are named; drop it" % i)
     named = set(a for e in m.get("engines", []) for a in artifact_ids(e, lock))
@@ -246,6 +255,19 @@ def docs(m, lock):
             ram = "%g GB" % e["ramInUseGB"] if e.get("ramInUseGB") else "–"
             w("| %s | %s | %s | %s | %s | %s | `%s` |" % (e["name"], "; ".join(e["unlocks"]), ram, gb(disk_bytes(e, lock)), lic, how,
                                                        e["id"]))
+        w("")
+    shipped = [e for e in m["engines"] if "shipped" in e]
+    if shipped:
+        w("## Shipped inside a release build")
+        w("")
+        w("A release build (`scripts/release.sh`) ships these in `Regista.app/Contents/Helpers`, built by")
+        w("`scripts/build-engines.sh` (see THIRD-PARTY-LICENSES.md): Settings › Engines and engines.status then show the")
+        w("shipped build's licence and size below, not the installable one's above.")
+        w("")
+        w("| Engine | Shipped licence | Shipped size | Id |")
+        w("|---|---|---|---|")
+        for e in shipped:
+            w("| %s | %s | %s | `%s` |" % (e["name"], e["shipped"]["licence"], gb(e["shipped"]["bytes"]), e["id"]))
         w("")
     planned = [e for e in m["engines"] if e["status"] == "planned"]
     if planned:

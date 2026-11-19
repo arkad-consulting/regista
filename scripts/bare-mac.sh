@@ -160,7 +160,7 @@ if [ "$SHIPPED" = 1 ]; then
   step "3. A first reel with the shipped helpers only (log: $T/logs/reel.log)"
   cat >"$T/reel.json" <<JSON
 {"name": "bare-mac-reel", "description": "A first reel on a bare Mac, shipped helpers only.", "steps": [
-  {"command": "engines.status", "expect": {"result.engines.0.id": "ffmpeg", "result.engines.0.shipped": true, "result.engines.1.shipped": true, "result.engines.2.shipped": true, "result.engines.5.id": "deepfilternet", "result.engines.5.shipped": true}},
+  {"command": "engines.status", "expect": {"result.engines.0.id": "ffmpeg", "result.engines.0.shipped": true, "result.engines.1.shipped": true, "result.engines.2.shipped": true, "result.engines.5.id": "deepfilternet", "result.engines.5.shipped": true, "result.engines.0.licence": "LGPL-2.1-or-later", "result.engines.2.licence": "MIT"}},
   {"command": "project.new", "params": {"name": "bare-mac-reel", "directory": "\${WORK}"}},
   {"command": "media.import", "params": {"path": "$M/take.mov"}, "capture": {"raw": "result.asset.id"}},
   {"command": "media.extractAudio", "params": {"assetId": "\${raw}"}},

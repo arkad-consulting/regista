@@ -68,6 +68,19 @@ The free disk asked for = what the installer installs on that tier + a margin of
 | ACE-Step 1.5 | local generated music | – | 10.03 GB | Apache-2.0 | manual, optional | `comfyui-ace-step` |
 | Real-ESRGAN + RIFE | upscale generated clips | – | 90 MB | BSD-3-Clause AND MIT | manual, optional | `comfyui-upscale` |
 
+## Shipped inside a release build
+
+A release build (`scripts/release.sh`) ships these in `Regista.app/Contents/Helpers`, built by
+`scripts/build-engines.sh` (see THIRD-PARTY-LICENSES.md): Settings › Engines and engines.status then show the
+shipped build's licence and size below, not the installable one's above.
+
+| Engine | Shipped licence | Shipped size | Id |
+|---|---|---|---|
+| FFmpeg | LGPL-2.1-or-later | 8 MB | `ffmpeg` |
+| FFprobe | LGPL-2.1-or-later | 8 MB | `ffprobe` |
+| whisper.cpp | MIT | 8 MB | `whisper.cpp` |
+| DeepFilterNet3 | MIT OR Apache-2.0 | 28 MB | `deepfilternet` |
+
 ## Planned, not built
 
 - **SAM 3.1** (`sam-3.1`) — objects tracked by name (issue #37) (SAM License).

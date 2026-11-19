@@ -14,6 +14,9 @@
     "the Motori screen removes exactly these, and scripts/install.sh --only <id> downloads a single-artifact entry to its one file.",
     "scripts: the small helper files the installer copies from the repository's engines/ (never a lock file, an environment or a",
     "model): the app replaces those of an installed engine that differ from its own copy, at launch and when the engine is used.",
+    "shipped: on the entries a release build ships inside the app (#107), the shipped build's licence and size in bytes (the",
+    "binary in Contents/Helpers, from scripts/build-engines.sh's BUILD-INFO.txt): Settings › Engines and engines.status show",
+    "these for a shipped engine, not the installable one's (#114).",
     "After editing: scripts/reference-docs.sh (regenerates docs/reference/engines.md; the pre-commit hook runs --check)."
   ],
   "tiers": [
@@ -32,6 +35,7 @@
       "minRamGB": 8, "ramInUseGB": null, "diskBytes": 214585344,
       "licence": "LGPL-2.1-or-later AND GPL-2.0-or-later", "nonCommercial": false,
       "install": {"method": "homebrew", "formula": "ffmpeg"}, "artifacts": ["ffmpeg", "ffmpeg-src"],
+      "shipped": {"licence": "LGPL-2.1-or-later", "bytes": 8381528},
       "optional": false, "dependsOn": [], "status": "available",
       "notes": "diskBytes = the ffmpeg formula and its Homebrew dependencies; a release build ships its own LGPL ffmpeg and ffprobe, built from ffmpeg-src by scripts/build-engines.sh (#107)"
     },
@@ -42,6 +46,7 @@
       "minRamGB": 8, "ramInUseGB": null, "diskBytes": 0,
       "licence": "LGPL-2.1-or-later AND GPL-2.0-or-later", "nonCommercial": false,
       "install": {"method": "homebrew", "formula": "ffmpeg"},
+      "shipped": {"licence": "LGPL-2.1-or-later", "bytes": 8205624},
       "optional": false, "dependsOn": ["ffmpeg"], "status": "available",
       "notes": "ships in the ffmpeg formula (its size is counted there)"
     },
@@ -61,6 +66,7 @@
       "minRamGB": 8, "ramInUseGB": null, "diskBytes": 8021408,
       "licence": "MIT", "nonCommercial": false,
       "install": {"method": "installer", "step": "base"}, "files": ["whisper.cpp-1.9.5", "src/whisper.cpp-1.9.5.tar.gz"], "artifacts": ["whisper-src"],
+      "shipped": {"licence": "MIT", "bytes": 8004648},
       "optional": false, "dependsOn": ["cmake", "whisper-model"], "status": "available",
       "notes": "built locally by scripts/build-whisper.sh; diskBytes = the build"
     },
@@ -80,6 +86,7 @@
       "minRamGB": 8, "ramInUseGB": null,
       "licence": "MIT OR Apache-2.0", "nonCommercial": false,
       "install": {"method": "installer", "step": "base"}, "files": ["deepfilternet"], "artifacts": ["deep-filter"],
+      "shipped": {"licence": "MIT OR Apache-2.0", "bytes": 27877081},
       "optional": false, "dependsOn": ["ffmpeg"], "status": "available"
     },
     {

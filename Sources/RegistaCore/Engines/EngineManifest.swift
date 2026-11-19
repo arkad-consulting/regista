@@ -20,6 +20,12 @@ public struct EngineManifest: Sendable {
         public let steps: [String]?
     }
 
+    /// What a release build ships of an entry inside the app (#114): the shipped build's licence and size.
+    public struct Shipped: Codable, Hashable, Sendable {
+        public let licence: String
+        public let bytes: Int64
+    }
+
     public struct Entry: Hashable, Sendable {
         public let id: String
         public let name: String
@@ -48,6 +54,8 @@ public struct EngineManifest: Sendable {
         public let status: String
         public let version: String?
         public let paid: Bool
+        /// The shipped build's facts, on the entries a release build ships (#107, #114).
+        public var shipped: Shipped? = nil
 
         public var planned: Bool { status == "planned" }
     }
@@ -103,6 +111,15 @@ public struct EngineManifest: Sendable {
     /// "4.96 GB", "28 MB", "–" (nothing to download), "?" (unknown): the same rounding as docs/reference/engines.md.
     public func diskText(_ id: String) -> String {
         guard let e = entry(id), let b = diskBytes(e) else { return "?" }
+        return Self.sizeText(b)
+    }
+
+    /// The shipped build's size, as `diskText` writes it (nil when the entry ships nothing).
+    public func shippedDiskText(_ id: String) -> String? {
+        entry(id)?.shipped.map { Self.sizeText($0.bytes) }
+    }
+
+    static func sizeText(_ b: Int64) -> String {
         if b == 0 { return "–" }
         return b < 100_000_000 ? String(format: "%.0f MB", Double(b) / 1e6) : String(format: "%.2f GB", Double(b) / 1e9)
     }
@@ -175,6 +192,9 @@ public struct EngineManifest: Sendable {
             if e.minRamGB == nil && !e.planned { problems.append("\(e.id): minRamGB null is only allowed for planned entries") }
             if !["available", "planned"].contains(e.status) { problems.append("\(e.id): status must be available or planned") }
             if e.licence.trimmingCharacters(in: .whitespaces).isEmpty { problems.append("\(e.id): no licence") }
+            if let sh = e.shipped, sh.licence.trimmingCharacters(in: .whitespaces).isEmpty || sh.bytes <= 0 {
+                problems.append("\(e.id): shipped needs a licence and a positive size in bytes")
+            }
             for f in e.files where f.isEmpty || f.hasPrefix("/") || f.split(separator: "/").contains("..") {
                 problems.append("\(e.id): files must be paths relative to the engines folder (got \(f))")
             }
@@ -224,7 +244,7 @@ public struct EngineManifest: Sendable {
 extension EngineManifest.Entry: Decodable {
     private enum K: String, CodingKey {
         case id, name, role, unlocks, minRamGB, ramInUseGB, diskBytes, licence, nonCommercial, licenceUrl, install, artifacts, files, scripts, optional,
-             dependsOn, status, version, paid
+             dependsOn, status, version, paid, shipped
     }
 
     public init(from decoder: Decoder) throws {
@@ -249,6 +269,7 @@ extension EngineManifest.Entry: Decodable {
         status = try c.decode(String.self, forKey: .status)
         version = try c.decodeIfPresent(String.self, forKey: .version)
         paid = try c.decodeIfPresent(Bool.self, forKey: .paid) ?? false
+        shipped = try c.decodeIfPresent(EngineManifest.Shipped.self, forKey: .shipped)
     }
 
     /// A throwaway entry to resolve artifact patterns during validation.

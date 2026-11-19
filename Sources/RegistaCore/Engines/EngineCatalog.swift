@@ -99,7 +99,9 @@ public struct EngineCatalog: Equatable, Sendable {
                     : state == .installed ? .nothing : .firstUse(e.install.steps ?? [])
             default: action = .nothing
             }
-            return Row(id: e.id, name: e.name, unlocks: e.unlocks, disk: manifest.diskText(e.id), licence: e.licence,
+            // A shipped engine states the shipped build's size and licence (#114).
+            let disk = shipped ? manifest.shippedDiskText(e.id) ?? manifest.diskText(e.id) : manifest.diskText(e.id)
+            return Row(id: e.id, name: e.name, unlocks: e.unlocks, disk: disk, licence: shipped ? e.shipped?.licence ?? e.licence : e.licence,
                        nonCommercial: e.nonCommercial, paid: e.paid, optional: e.optional, method: e.install.method,
                        group: group, state: state, action: action, reason: r?["reason"]?.stringValue,
                        scriptsCurrent: r?["scriptsCurrent"]?.boolValue ?? true, shipped: shipped, notNeeded: notNeeded)
