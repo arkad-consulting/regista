@@ -109,7 +109,7 @@ struct FirstStepsBlock: View {
             } else {
                 EdButton(title: "Scarica", symbol: "arrow.down.circle", disabled: installer == nil) { download() }
                     .fixedSize()
-                    .tip(installer == nil ? "Questa copia di Regista non contiene l'installatore: usa scripts/install.sh" : "")
+                    .tip(installer == nil ? ReleaseWords.pick("Questa copia di Regista non contiene l'installatore: usa scripts/install.sh", bundle: appBundle) : "")
             }
         }
     }

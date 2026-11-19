@@ -165,7 +165,7 @@ struct ClaudeSettings: View {
                     }
                     LabeledContent("Build di questa app") { Text(verbatim: Self.appBuild).font(.callout.monospaced()).textSelection(.enabled) }
                     LabeledContent("Server MCP di questa app") {
-                        Text(verbatim: ClaudeClients.bundledMCP(bundle: appBundle) ?? loc("Non incluso in questa build: installa l'app con scripts/install.sh"))
+                        Text(verbatim: ClaudeClients.bundledMCP(bundle: appBundle) ?? loc(ReleaseWords.pick("Non incluso in questa build: installa l'app con scripts/install.sh", bundle: appBundle)))
                             .font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(2).truncationMode(.middle).textSelection(.enabled)
                     }
                     // Opened outside an Applications folder (#110): its path would not last, nothing is registered.
@@ -175,7 +175,7 @@ struct ClaudeSettings: View {
                         }
                     }
                     if let m = bench.agentBuildMismatch {
-                        Label { Text(verbatim: loc(ClaudeStatus.buildNotice(m))).fixedSize(horizontal: false, vertical: true) } icon: {
+                        Label { Text(verbatim: loc(ClaudeStatus.buildNotice(m, bundle: appBundle))).fixedSize(horizontal: false, vertical: true) } icon: {
                             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                         }
                     }
@@ -269,7 +269,7 @@ struct ClaudeSettings: View {
         let title = repoint ? loc("Ricollega a questa app…") : t == .desktop ? loc("Collega Claude Desktop…") : loc("Collega Claude Code…")
         return Button(title) { confirm = t }
             .disabled(!ready)
-            .help(mcp == nil ? loc("Non trovo regista-mcp: esegui scripts/install.sh") : "")
+            .help(mcp == nil ? loc(ReleaseWords.pick("Non trovo regista-mcp: esegui scripts/install.sh", bundle: appBundle)) : "")
     }
 
     private var confirmTitle: String {

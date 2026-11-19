@@ -33,7 +33,7 @@ public struct WhisperCppTranscriber: Transcriber {
 
     public func unavailableReason() -> String? {
         if !FileManager.default.isExecutableFile(atPath: executable.path) {
-            return "whisper-cli not found at \(executable.path) (run scripts/build-whisper.sh)"
+            return "whisper-cli not found at \(executable.path)" + ReleaseBuild.sourceHint(" (run scripts/build-whisper.sh)", release: " (install Regista again from its disk image)")
         }
         if !FileManager.default.fileExists(atPath: modelURL.path) { return "whisper model not found at \(modelURL.path)" }
         return nil
@@ -191,9 +191,9 @@ public struct WhisperXTranscriber: Transcriber {
         let e = EngineManifest.shared.entry(id)
         let name = e?.name ?? id
         if e?.nonCommercial == true {
-            return "the \(name) is not installed: it is licensed \(e!.licence) (non-commercial use only), so it is installed only on request — Settings › Motori › \(name), or scripts/install.sh --only \(id)"
+            return "the \(name) is not installed: it is licensed \(e!.licence) (non-commercial use only), so it is installed only on request — Settings › Motori › \(name)" + ReleaseBuild.sourceHint(", or scripts/install.sh --only \(id)")
         }
-        return "the \(name) is not installed — Settings › Motori › \(name), or scripts/install.sh --only \(id)"
+        return "the \(name) is not installed — Settings › Motori › \(name)" + ReleaseBuild.sourceHint(", or scripts/install.sh --only \(id)")
     }
 
     public func transcribe(_ speech16k: URL, language: String) throws -> Transcript {

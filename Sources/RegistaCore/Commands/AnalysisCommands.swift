@@ -142,9 +142,9 @@ enum EnginesStatus: Command {
             entry("hyperframes", "HTML motion graphics (graphics.hyperframes, hyperframes \(EngineConfig.hyperframesVersion)\(hyperframes?.source == "npx" ? " through npx" : ""), scripts off)",
                   path: hyperframes.map { $0.source == "installed" ? c.hyperframes : $0.executable.path },
                   available: hyperframes != nil,
-                  reason: hyperframes == nil ? "not installed (Node.js and the pinned HyperFrames CLI: scripts/install.sh --only hyperframes)"
+                  reason: hyperframes == nil ? "not installed (Node.js and the pinned HyperFrames CLI: " + ReleaseBuild.sourceHint("scripts/install.sh --only hyperframes", release: "Settings › Motori") + ")"
                       : GraphicsEngines.hyperframesInstalled(c) ? nil
-                      : "not installed: runs through npx with a Node.js found on this Mac, not the pinned copy (scripts/install.sh --only hyperframes)",
+                      : "not installed: runs through npx with a Node.js found on this Mac, not the pinned copy (" + ReleaseBuild.sourceHint("scripts/install.sh --only hyperframes", release: "Settings › Motori") + ")",
                   installed: GraphicsEngines.hyperframesInstalled(c)),
             entry("sfx-bank", "sound effects made in code (earshot, MIT), shipped with Regista", path: SoundLibrary.bankDirectory.path,
                   available: !SoundLibrary.bank().isEmpty, reason: SoundLibrary.bank().isEmpty ? "the app was built without Resources/SFX" : nil),

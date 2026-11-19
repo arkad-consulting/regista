@@ -307,12 +307,17 @@ struct ClaudeStatus: View {
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }
-        .tip(store.socketProblem ?? store.agentBuildMismatch.map(Self.buildNotice) ?? "Claude Code si collega da solo all'app aperta (server MCP regista)")
+        .tip(store.socketProblem ?? store.agentBuildMismatch.map { Self.buildNotice($0) } ?? "Claude Code si collega da solo all'app aperta (server MCP regista)")
     }
 
     /// The app and the connected regista-mcp come from different builds (#45): which one to rebuild. Italian keys,
     /// localized by `.tip` (English in en.lproj).
-    static func buildNotice(_ m: BuildStamp.Mismatch) -> String {
+    /// A release build (#113) says what a downloaded app can do instead (ReleaseWords).
+    static func buildNotice(_ m: BuildStamp.Mismatch, bundle: Bundle = .main) -> String {
+        ReleaseWords.pick(sourceNotice(m), bundle: bundle)
+    }
+
+    private static func sourceNotice(_ m: BuildStamp.Mismatch) -> String {
         switch m {
         case .rebuildApp: return "Questa app è più vecchia del server MCP collegato: chiudi Regista, esegui scripts/build-app.sh --install e riaprila."
         case .rebuildMCP: return "Il server MCP collegato è più vecchio di questa app: esegui scripts/build-mcp.sh e riavvia la sessione di Claude."

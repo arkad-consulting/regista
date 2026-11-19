@@ -2432,3 +2432,8 @@
 "Collega Claude per montare parlando" = "Connectez Claude pour monter en parlant";
 "Collega…" = "Connecter…";
 "Non uso Claude" = "Je n'utilise pas Claude";
+"Non incluso in questa copia: installa di nuovo Regista dalla sua immagine disco" = "Absent de cette copie : réinstallez Regista depuis son image disque";
+"Non trovo regista-mcp: installa di nuovo Regista dalla sua immagine disco" = "regista-mcp introuvable : réinstallez Regista depuis son image disque";
+"Questa copia di Regista non contiene l'installatore: installala di nuovo dalla sua immagine disco" = "Cette copie de Regista ne contient pas l'installateur : réinstallez-la depuis son image disque";
+"L'app e il server MCP collegato vengono da copie diverse di Regista: in Impostazioni › Claude ricollega Claude a questa app, poi riavvia la sessione di Claude." = "L'app et le serveur MCP connecté viennent de copies différentes de Regista : reconnectez Claude à cette app dans Réglages › Claude, puis redémarrez la session de Claude.";
+"Check it: ask Claude for generate.check. It lists every missing node pack and model file, with the ComfyUI folder it goes in." = "Pour vérifier : demandez à Claude generate.check. Il liste chaque pack de nœuds et fichier de modèle manquant, avec le dossier de ComfyUI où il doit aller.";

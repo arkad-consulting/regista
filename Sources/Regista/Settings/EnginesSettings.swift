@@ -287,6 +287,8 @@ private struct EngineRowView: View {
     let remove: () -> Void
     let checkAgain: () -> Void
     let cancel: () -> Void
+    /// This app: a release build names no script of the source folder (#113).
+    @Environment(\.appBundle) private var appBundle
     @State private var expanded = false
 
     var body: some View {
@@ -361,7 +363,7 @@ private struct EngineRowView: View {
                 switch row.action {
                 case .install:
                     Button("Installa", action: install).disabled(busy || !canInstall)
-                        .help(canInstall ? "" : loc("Questa copia di Regista non contiene l'installatore: usa scripts/install.sh"))
+                        .help(canInstall ? "" : loc(ReleaseWords.pick("Questa copia di Regista non contiene l'installatore: usa scripts/install.sh", bundle: appBundle)))
                 case .remove:
                     Button("Rimuovi…", action: remove).disabled(busy || removing)
                 case .howTo:
@@ -396,7 +398,7 @@ private struct EngineRowView: View {
             ForEach(Array(steps.enumerated()), id: \.offset) { i, s in
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(verbatim: "\(i + 1).").font(.callout.monospacedDigit()).foregroundStyle(.secondary)
-                    Text(verbatim: loc(s)).font(.callout).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                    Text(verbatim: loc(ReleaseWords.pick(s, bundle: appBundle))).font(.callout).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
                 }
             }
             if case .howTo = row.action {

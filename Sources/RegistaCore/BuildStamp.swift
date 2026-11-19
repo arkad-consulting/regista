@@ -43,20 +43,22 @@ public struct BuildStamp: Equatable, Sendable {
     public static func warning(app: BuildStamp?, mcp: BuildStamp?) -> String? {
         guard let m = mismatch(app: app, mcp: mcp) else { return nil }
         let a = "the Regista app (build \(app?.id ?? "from before build ids"))", s = "regista-mcp (build \(mcp?.id ?? "from before build ids"))"
+        // A downloaded app (#113): the two come from different copies of Regista, and no source folder can rebuild them.
+        let copies = "\(a) and \(s) come from different copies of Regista: in Regista › Settings › Claude, reconnect Claude to this app (or install the newest Regista from its disk image), then restart the Claude session."
         switch m {
         case .rebuildApp:
-            return "\(a) is older than \(s): quit Regista, run scripts/build-app.sh --install, then reopen it."
+            return ReleaseBuild.sourceHint("\(a) is older than \(s): quit Regista, run scripts/build-app.sh --install, then reopen it.", release: copies)
         case .rebuildMCP:
-            return "\(s) is older than \(a): run scripts/build-mcp.sh, then restart the Claude session so it relaunches the MCP server."
+            return ReleaseBuild.sourceHint("\(s) is older than \(a): run scripts/build-mcp.sh, then restart the Claude session so it relaunches the MCP server.", release: copies)
         case .rebuildBoth:
-            return "\(a) and \(s) differ (same commit with different uncommitted changes, or a commit time is unknown): run scripts/build-app.sh --install (it rebuilds regista-mcp too), reopen Regista and restart the Claude session."
+            return ReleaseBuild.sourceHint("\(a) and \(s) differ (same commit with different uncommitted changes, or a commit time is unknown): run scripts/build-app.sh --install (it rebuilds regista-mcp too), reopen Regista and restart the Claude session.", release: copies)
         }
     }
 
     /// The error for a command the running app does not know: it is older than the MCP server that sent it.
     public static func unknownInApp(_ command: String, app: BuildStamp?, mcp: BuildStamp?) -> String {
         "The Regista app (build \(app?.id ?? "from before build ids")) does not know '\(command)': it is older than the MCP server "
-            + "(build \(mcp?.id ?? "?")). Quit Regista, run scripts/build-app.sh --install (or scripts/install.sh), then reopen it."
+            + "(build \(mcp?.id ?? "?")). " + ReleaseBuild.sourceHint("Quit Regista, run scripts/build-app.sh --install (or scripts/install.sh), then reopen it.", release: "Install the newest Regista from its disk image, then reconnect Claude to it in Regista › Settings › Claude.")
     }
 
     /// As sent in the socket hello and in engines.status.

@@ -153,7 +153,7 @@ enum GraphicsHyperframes: Command {
         _ = try ctx.requireProject()
         let runner = GraphicsEngines.hyperframes(ctx.services.config)
         if let why = GraphicsEngines.unavailable(ctx, engine: "HyperFrames (Node.js)", id: "hyperframes", path: runner?.executable) {
-            throw CommandError(.io, "\(id): \(why) — install it in Settings › Motori (HyperFrames) or with scripts/install.sh --only hyperframes")
+            throw CommandError(.io, "\(id): \(why) — install it in Settings › Motori (HyperFrames)" + ReleaseBuild.sourceHint(" or with scripts/install.sh --only hyperframes"))
         }
         let projectDir = URL(fileURLWithPath: EngineConfig.expand(p.requiredString("folder"))).standardizedFileURL
         let composition = p.string("composition")
