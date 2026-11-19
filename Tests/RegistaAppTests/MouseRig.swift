@@ -20,6 +20,10 @@ import SwiftUI
 final class RigWindow: NSWindow {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+    /// The main display, though the window stays off every display (#50): SwiftUI applies a wheel event on the refresh of
+    /// its window's screen, and a window off every display has none, so the events were held. With this one they scroll
+    /// where they are given, and the window never moves.
+    override var screen: NSScreen? { super.screen ?? NSScreen.main ?? NSScreen.screens.first }
 }
 
 extension NSApplication {
@@ -495,36 +499,20 @@ final class MouseRig {
         pump()
     }
 
-    /// Scrolls the scroll view under `p` by `dy` points (positive: towards its end) with a scroll-wheel event, and says
-    /// whether it moved (#50). A SwiftUI scroll view takes a wheel event only while its window lies on a display: off
-    /// every display the events were accepted and applied all at once later. So for the length of the event the rig's
-    /// window is put on the main display's coordinates, fully transparent and deaf to the mouse of the person at the
-    /// Mac (nothing shows, their clicks go through), and then back where it was. The event is given to the window
-    /// (`NSWindow.sendEvent`), never posted to the session or the HID event tap. With the main display asleep, or if the
-    /// wheel moves nothing, the clip view is moved as before and the miss is counted (`wheelMisses`).
+    /// Scrolls the scroll view under `p` by `dy` points (positive: towards its end) with a wheel event given to the rig's
+    /// window (never posted to the session or the HID event tap), and says whether it moved. The window stays off every display: its `screen` answers the main display, which is
+    /// what SwiftUI's wheel handling needs (#50). With the main display asleep SwiftUI holds a wheel event until the display
+    /// wakes, so the clip view is moved instead, and the same when the wheel moved nothing; both are counted (`wheelMisses`).
     @discardableResult
     func scrollContent(at p: CGPoint, by dy: CGFloat) -> Bool {
         var v = viewAt(p)
         while let x = v, !(x is NSScrollView) { v = x.superview }
         guard let sv = v as? NSScrollView else { return false }
         let from = sv.contentView.bounds.origin.y
-        // SwiftUI applies a wheel event on the display's refresh: with the main display asleep (the screen locked, the
-        // push hook running unattended) it is held and applied whenever the display wakes, in some later step. Then the
-        // clip view is moved, as before #50, and no event is left waiting.
         guard CGDisplayIsAsleep(CGMainDisplayID()) == 0 else {
             scrolledWithoutWheel(sv, from: from, by: dy)
             return abs(sv.contentView.bounds.origin.y - from) > 0.5
         }
-        let (origin, alpha, ignores) = (window.frame.origin, window.alphaValue, window.ignoresMouseEvents)
-        window.alphaValue = 0
-        window.ignoresMouseEvents = true
-        if let screen = NSScreen.screens.first { window.setFrameOrigin(CGPoint(x: screen.frame.minX, y: screen.frame.minY)) }
-        defer {
-            window.setFrameOrigin(origin)
-            window.alphaValue = alpha
-            window.ignoresMouseEvents = ignores
-        }
-        pump(0.05)
         scroll(at: p, dy: Int32(dy.rounded()))
         pump(0.25)
         if abs(sv.contentView.bounds.origin.y - from) <= 0.5 { scrolledWithoutWheel(sv, from: from, by: dy) }
@@ -550,7 +538,7 @@ final class MouseRig {
     }
 
     /// A scroll-wheel event at a point (positive `dy` scrolls the content down, as a trackpad swipe up does), given to
-    /// the window. Off every display a SwiftUI scroll view does not apply it: `scrollContent` places the window first.
+    /// the window. The rig's window answers the main display as its screen (#50), so a SwiftUI scroll view applies it.
     func scroll(at p: CGPoint, dx: Int32 = 0, dy: Int32, modifiers: NSEvent.ModifierFlags = []) {
         guard let e = wheelEvent(at: p, dx: dx, dy: dy, modifiers: modifiers) else { return }
         takeKey()
