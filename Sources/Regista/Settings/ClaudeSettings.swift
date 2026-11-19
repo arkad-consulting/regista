@@ -145,6 +145,8 @@ extension EnvironmentValues {
 struct ClaudeSettings: View {
     @EnvironmentObject private var store: EditorStore
     @Environment(\.pasteboard) private var pasteboard
+    /// This app (a test gives a copy in a scratch folder): its regista-mcp, and whether it runs from a lasting place.
+    @Environment(\.appBundle) private var appBundle
     @State private var clients = ClaudeClients.read()
     @State private var confirm: Target?
     @State private var copied = false
@@ -163,8 +165,14 @@ struct ClaudeSettings: View {
                     }
                     LabeledContent("Build di questa app") { Text(verbatim: Self.appBuild).font(.callout.monospaced()).textSelection(.enabled) }
                     LabeledContent("Server MCP di questa app") {
-                        Text(verbatim: ClaudeClients.bundledMCP() ?? loc("Non incluso in questa build: installa l'app con scripts/install.sh"))
+                        Text(verbatim: ClaudeClients.bundledMCP(bundle: appBundle) ?? loc("Non incluso in questa build: installa l'app con scripts/install.sh"))
                             .font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(2).truncationMode(.middle).textSelection(.enabled)
+                    }
+                    // Opened outside an Applications folder (#110): its path would not last, nothing is registered.
+                    if outsideApplications {
+                        Label { Text(verbatim: loc("Sposta Regista nella cartella Applicazioni prima di collegare Claude: da dove è aperto ora, il collegamento smetterebbe di funzionare.")).fixedSize(horizontal: false, vertical: true) } icon: {
+                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                        }
                     }
                     if let m = bench.agentBuildMismatch {
                         Label { Text(verbatim: loc(ClaudeStatus.buildNotice(m))).fixedSize(horizontal: false, vertical: true) } icon: {
@@ -213,12 +221,18 @@ struct ClaudeSettings: View {
         }
     }
 
+    /// This app ships its own server but runs from a place that does not last (Downloads, its disk image, a translocated
+    /// copy): Settings › Claude registers nothing until it is moved (#110).
+    private var outsideApplications: Bool {
+        ClaudeClients.bundledMCP(bundle: appBundle) != nil && AppLocation.shouldOffer(appBundle.bundleURL)
+    }
+
     static var appBuild: String {
         (Bundle.main.infoDictionary?["RegistaBuildID"] as? String) ?? BuildStamp.current.id
     }
 
     @ViewBuilder private func clientRow(_ s: ClaudeClients.State, installed: Bool, target: Target) -> some View {
-        switch ClaudeClients.verdict(s, bundled: ClaudeClients.bundledMCP()) {
+        switch ClaudeClients.verdict(s, bundled: ClaudeClients.bundledMCP(bundle: appBundle)) {
         case .here(let command):
             LabeledContent(loc("Collegato a questa app")) {
                 Text(verbatim: command).font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(2).truncationMode(.middle).textSelection(.enabled)
@@ -250,8 +264,8 @@ struct ClaudeSettings: View {
     }
 
     private func connectButton(_ t: Target, installed: Bool, repoint: Bool = false) -> some View {
-        let mcp = clients.mcpBinary()
-        let ready = mcp != nil && (t == .desktop || ClaudeClients.claudeCLI() != nil)
+        let mcp = clients.mcpBinary(bundle: appBundle)
+        let ready = mcp != nil && (t == .desktop || ClaudeClients.claudeCLI() != nil) && !outsideApplications
         let title = repoint ? loc("Ricollega a questa app…") : t == .desktop ? loc("Collega Claude Desktop…") : loc("Collega Claude Code…")
         return Button(title) { confirm = t }
             .disabled(!ready)
@@ -263,7 +277,7 @@ struct ClaudeSettings: View {
     }
 
     private var confirmMessage: String {
-        guard let mcp = clients.mcpBinary() else { return "" }
+        guard let mcp = clients.mcpBinary(bundle: appBundle) else { return "" }
         switch confirm {
         case .desktop:
             return String(format: loc("In %@ aggiungo, tenendo tutto il resto e con una copia di sicurezza prima:"), ClaudeClients.desktopConfig.path)
@@ -278,7 +292,7 @@ struct ClaudeSettings: View {
     /// The installer's own steps (ClaudeDesktopConfig, what `regista-engine claude-desktop set` runs / claude mcp add), as
     /// a job. Claude Desktop's file is edited in this process: nothing here needs python3 (#106).
     private func connect(_ t: Target) {
-        guard let mcp = clients.mcpBinary() else { return }
+        guard !outsideApplications, let mcp = clients.mcpBinary(bundle: appBundle) else { return }
         let home = ClaudeClients.home
         // The `claude` command writes its user-scope servers in the home folder it is given.
         let environment = ClaudeClients.homeOverride.map { ["HOME": $0.path] }

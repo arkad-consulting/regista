@@ -2416,3 +2416,13 @@
 "1 invariato" = "1 invariato";
 "%d invariati" = "%d invariati";
 "Copio anche la skill di Regista in %@." = "Copio anche la skill di Regista in %@.";
+"Sposta Regista in Applicazioni" = "Sposta Regista in Applicazioni";
+"Sposta e riapri" = "Sposta e riapri";
+"Non ora" = "Non ora";
+"Regista è aperto da %@: da lì Claude non lo ritrova dopo un riavvio. Lo copio nella cartella Applicazioni e lo riapro da lì." = "Regista è aperto da %@: da lì Claude non lo ritrova dopo un riavvio. Lo copio nella cartella Applicazioni e lo riapro da lì.";
+"Nella cartella Applicazioni c'è già un Regista: lo sostituisco con questa copia." = "Nella cartella Applicazioni c'è già un Regista: lo sostituisco con questa copia.";
+"una posizione temporanea di macOS" = "una posizione temporanea di macOS";
+"l'immagine disco «%@»" = "l'immagine disco «%@»";
+"Non ho potuto spostare Regista: %@" = "Non ho potuto spostare Regista: %@";
+"Regista non è stato spostato" = "Regista non è stato spostato";
+"Sposta Regista nella cartella Applicazioni prima di collegare Claude: da dove è aperto ora, il collegamento smetterebbe di funzionare." = "Sposta Regista nella cartella Applicazioni prima di collegare Claude: da dove è aperto ora, il collegamento smetterebbe di funzionare.";

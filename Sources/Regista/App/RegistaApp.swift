@@ -19,6 +19,8 @@ struct RegistaApp: App {
         Window("Regista", id: "main") {  // l10n-ignore — the app's name
             ActiveTab(bench: app.bench) { app.inject(EditorRoot(), store: $0) }
                 .frame(minWidth: 1024, minHeight: 640)
+                // A copy opened outside an Applications folder offers to move itself there (#110).
+                .movePrompt(app.movePrompt)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1440, height: 900)
@@ -114,6 +116,8 @@ final class AppState: ObservableObject {
     let bench = Workbench()
     let meter = LoudnessMeter()
     let recorder = Recorder()
+    /// The launch alert of a copy outside an Applications folder (#110): nil location everywhere else.
+    let movePrompt = MovePrompt()
 
     private var bag: Set<AnyCancellable> = []
     /// Subscriptions to the tab on screen, renewed when another tab is selected.

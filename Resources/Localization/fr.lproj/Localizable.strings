@@ -2416,3 +2416,13 @@
 "1 invariato" = "1 inchangé";
 "%d invariati" = "%d inchangés";
 "Copio anche la skill di Regista in %@." = "Je copie aussi la skill de Regista dans %@.";
+"Sposta Regista in Applicazioni" = "Placer Regista dans Applications";
+"Sposta e riapri" = "Déplacer et rouvrir";
+"Non ora" = "Plus tard";
+"Regista è aperto da %@: da lì Claude non lo ritrova dopo un riavvio. Lo copio nella cartella Applicazioni e lo riapro da lì." = "Regista est ouvert depuis %@ : de là, Claude ne le retrouve plus après un redémarrage. Je le copie dans le dossier Applications et je le rouvre depuis là.";
+"Nella cartella Applicazioni c'è già un Regista: lo sostituisco con questa copia." = "Il y a déjà un Regista dans le dossier Applications : je le remplace par cette copie.";
+"una posizione temporanea di macOS" = "un emplacement temporaire de macOS";
+"l'immagine disco «%@»" = "l'image disque « %@ »";
+"Non ho potuto spostare Regista: %@" = "Impossible de déplacer Regista : %@";
+"Regista non è stato spostato" = "Regista n'a pas été déplacé";
+"Sposta Regista nella cartella Applicazioni prima di collegare Claude: da dove è aperto ora, il collegamento smetterebbe di funzionare." = "Placez Regista dans le dossier Applications avant de connecter Claude : depuis l'endroit où il est ouvert, la connexion cesserait de fonctionner.";

@@ -352,7 +352,12 @@ never tags, publishes or uploads anything, and no credential is ever written in 
 `Contents/Resources/Skill` (the Claude Code skill Settings › Claude and the installer install), `Contents/Resources/Licenses`.
 `scripts/doctor.sh` accepts a downloaded app (its quarantine is fine when Gatekeeper accepts it; a release is not compared
 with a git checkout); `install.sh --app-bundle` with an app that ships its engines needs neither the Command Line Tools nor,
-on the Base tier, Homebrew.
+on the Base tier, Homebrew. A copy opened outside `/Applications` or `~/Applications` (Downloads, the mounted image, the
+read-only place macOS translocates a quarantined download to) offers once at launch to move itself
+(`AppLocation` / `MovePrompt`, #110): «Sposta e riapri» copies the bundle into the Applications folder (beside it first,
+then in place of a copy already there, which the alert names), without the download's quarantine, opens the copy and
+quits; «Non ora» leaves it. Builds in `build.noindex` and the tests never ask. Until it is moved Settings › Claude
+registers nothing and says why in one line: a regista-mcp path from there would stop working.
 
 ### Pre-commit hook
 
