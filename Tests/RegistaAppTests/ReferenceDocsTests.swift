@@ -203,16 +203,16 @@ enum ReferenceDocs {
 
     /// What each engines.json key is for. A key the code adds without a line here fails the test.
     static let engineKeys: [String: String] = [
-        "ffmpeg": "ffmpeg binary: audio extraction, the voice chain, loudness, render and export.",
-        "ffprobe": "ffprobe binary: reads the format of a media file.",
-        "whisperCpp": "whisper.cpp command-line tool, built from the pinned tag by scripts/build-whisper.sh.",
+        "ffmpeg": "ffmpeg binary: audio extraction, the voice chain, loudness, render and export. A release build ships its own in Regista.app/Contents/Helpers, which wins over this key.",
+        "ffprobe": "ffprobe binary: reads the format of a media file. A release build ships its own, which wins over this key.",
+        "whisperCpp": "whisper.cpp command-line tool, built from the pinned tag by scripts/build-whisper.sh. A release build ships its own, which wins over this key.",
         "whisperModel": "The ggml Whisper large-v3-turbo model whisper.cpp uses.",
         "whisperModelSha256": "Expected SHA-256 of that model (from engines.lock), checked by engines.status.",
         "whisperThreads": "CPU threads whisper.cpp uses.",
         "uv": "uv, which runs the Python environments of WhisperX and VoxCPM2 (Medium tier and up).",
         "whisperXProject": "The uv project folder of WhisperX (precise word timings).",
         "whisperXScript": "The WhisperX alignment script in that folder.",
-        "deepFilter": "DeepFilterNet3 binary (voice cleaning).",
+        "deepFilter": "DeepFilterNet3 binary (voice cleaning). A release build ships its own, which wins over this key.",
         "deepFilterSha256": "Expected SHA-256 of that binary (from engines.lock), checked by engines.status.",
         "cacheDirectory": "Where transcripts are cached (by audio hash and engine).",
         "sfxLibrary": "Your own sound effects (mp3 / wav files and an optional manifest.json), listed next to the shipped bank.",
@@ -241,6 +241,7 @@ enum ReferenceDocs {
         "REGISTA_ENGINE_SOCKET": "Path of the app's engine socket (default ~/Library/Application Support/Regista/engine.sock).",
         "REGISTA_FFPROBE": "ffprobe to use for reading media, before the usual Homebrew locations.",
         "REGISTA_FOLDER": "Regista's folder (projects, recordings, exports) instead of the one set in Settings › General (default ~/Movies/Regista); the tests point it at a scratch folder.",
+        "REGISTA_HELPERS": "Folder of the ffmpeg, ffprobe, whisper-cli and deep-filter to use as if the app shipped them (default: Regista.app/Contents/Helpers; the tests and checks point it at scripts/build-engines.sh's output).",
         "REGISTA_INSTALLER": "Folder of the installer scripts Settings › Engines runs (default: the copy inside the app).",
         "REGISTA_LOCK": "engines.lock that `regista-engine manifest` reads instead of the compiled-in copy (the installer tests' fake downloads), as scripts/install.sh does.",
         "REGISTA_MANIFEST": "engines.manifest.json that `regista-engine manifest` reads instead of the compiled-in copy (the installer tests' fake engine), as scripts/install.sh does.",
@@ -259,7 +260,8 @@ enum ReferenceDocs {
             guard let label = c.label else { return nil }
             let m = Mirror(reflecting: c.value)
             if m.displayStyle == .optional { return (label, m.children.first.map { "\($0.value)" } ?? "nil") }
-            return (label, "\(c.value)")
+            // The default of a build without shipped helpers (#107), whatever the process running the generator ships.
+            return (label, EngineConfig.developerDefaults[label] ?? "\(c.value)")
         }
     }
 

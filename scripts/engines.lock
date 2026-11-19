@@ -19,6 +19,10 @@ cmake | 3.28 | - | 2026-11-02 | - | - | brew:cmake
 uv | 0.9 | - | 2026-11-02 | - | - | brew:uv
 
 # --- Base tier ---
+# FFmpeg source release (ffmpeg.org publishes signatures, not checksums: the sha256 of the tarball, equal to the Homebrew
+# formula's for the same release), built by scripts/build-engines.sh: LGPL, static, only what Regista uses; shipped in
+# Regista.app/Contents/Helpers by scripts/build-app.sh --bundle-engines (#107).
+ffmpeg-src | 9.0.2 | 2026-09-18 | 2026-11-19 | 8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e | 12040788 | https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz
 # whisper.cpp source tarball (tag v1.9.5), built by scripts/build-whisper.sh (static, Metal embedded).
 whisper-src | 1.9.5 | 2026-10-06 | 2026-11-01 | ff1a9053feb509ff9d7729703355541ae9690073a6b1c40eb692c962e0dc1720 | - | https://github.com/ggml-org/whisper.cpp/archive/refs/tags/v1.9.5.tar.gz
 # ggml large-v3-turbo, official whisper.cpp model repo pinned to a revision; sha256 = the HF LFS oid.

@@ -100,6 +100,11 @@ enum EnginesStatus: Command {
             var o: [String: JSONValue] = ["id": .string(id), "role": .string(role), "minimumTier": .string(tier.rawValue),
                                           "available": .bool(available), "enabled": .bool(available && s.tier >= tier)]
             if let path { o["path"] = .string(EngineConfig.expand(path)) }
+            // Shipped inside the app (#107): part of the app, nothing to install. Its bytes carry the app's signature, so a
+            // shipped deep-filter is not compared with the release binary's hash.
+            let shipped = path.map { ShippedTools.isShipped($0) } ?? false
+            if shipped { o["shipped"] = true }
+            let expected = shipped ? nil : expected
             if let reason { o["reason"] = .string(reason) }
             if hash, let path, available, let digest = try? FileDigest.sha256(c.url(path)) {
                 o["sha256"] = .string(digest)
@@ -166,7 +171,8 @@ enum EnginesStatus: Command {
         let components: [JSONValue] = manifest.entries.filter { !reported.contains($0.id) }.map { m in
             var o: [String: JSONValue] = ["id": .string(m.id), "role": .string(m.role)]
             if let t = manifest.tier(of: m) { o["minimumTier"] = .string(t.rawValue) }
-            let probe = Self.probe(m, s)
+            var probe = Self.probe(m, s)
+            if probe.state == "notNeeded" { probe.state = "installed"; o["notNeeded"] = true }
             if let path = probe.path { o["path"] = .string(EngineConfig.expand(path)) }
             facts(m.id, state: probe.state, into: &o)
             o["enabled"] = .bool(probe.state == "installed" && o["tierReason"] == nil)
@@ -213,7 +219,8 @@ enum EnginesStatus: Command {
         let wx = c.whisperXProject, brew = (EngineConfig.expand(c.ffmpeg) as NSString).deletingLastPathComponent
         let lockFile = { (id: String) in EngineManifest.shared.artifacts(of: m).first { $0.id == id }.map { ($0.url as NSString).lastPathComponent } ?? id }
         switch m.id {
-        case "cmake": return file("\(brew)/cmake")
+        // Only builds whisper.cpp: not needed when the app ships whisper-cli (#107).
+        case "cmake": return ShippedTools.isShipped(c.whisperCpp) ? (nil, "notNeeded") : file("\(brew)/cmake")
         case "uv": return file(c.uv)
         case "speech": return (nil, s.speech != nil ? "installed" : "missing")
         case "faster-whisper-model": return file("\(wx)/models/ct2-whisper-large-v3-turbo/model.bin")

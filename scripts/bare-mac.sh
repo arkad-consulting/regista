@@ -6,27 +6,32 @@
 #   - every shell step of the installer traced (bash xtrace): a python3 call by absolute path is caught too.
 # Steps: Settings › Engines' path for one Base engine (`regista-engine install <id>`: the app's EngineInstaller running the
 # installer inside the app, exactly as the Motori screen does), then Settings › Claude's Claude Desktop connection (the
-# same code, `regista-engine claude-desktop set`) on a config that already has another server.
+# same code, `regista-engine claude-desktop set`) on a config that already has another server. With an app that ships
+# its engines (scripts/build-app.sh --bundle-engines, #107), a first reel too, headless through regista-engine with the
+# shipped helpers only: a synthetic take (macOS's `say` into a file, nothing plays; the picture and the file made by the
+# shipped ffmpeg) imported, transcribed by the shipped whisper-cli, captioned, its voice cleaned by the shipped
+# deep-filter, exported 9:16, and the export probed by the shipped ffprobe.
 # Nothing outside the temporary folder is written; the owner's support folder, caches and Claude configs are not read.
 #
 #   scripts/bare-mac.sh --app <Regista.app> [--engine <id>] [--seed <lock id>=<file>]... [--keep]
 #
 #   --app     a built Regista.app (scripts/build-app.sh --no-open → build.noindex/Regista.app)
-#   --engine  the Base engine to install (default deepfilternet: a 28 MB pinned download)
+#   --engine  the Base engine to install (default: deepfilternet, a 28 MB pinned download; whisper-model with an app that
+#             ships its engines: the one Base download left, give it with --seed ggml-large-v3-turbo=<file>)
 #   --seed    an already downloaded file for the temporary download cache (still sha256-checked by the installer)
 #   --keep    keep the temporary folder (printed)
 # Exit 0 when every step passes.
 set -uo pipefail
 . "$(dirname "$0")/lib.sh"
 
-APP_SRC=""; ENGINE=deepfilternet; SEEDS=(); KEEP=0
+APP_SRC=""; ENGINE=""; SEEDS=(); KEEP=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --app) APP_SRC="${2:-}"; shift ;;
     --engine) ENGINE="${2:-}"; shift ;;
     --seed) SEEDS+=("${2:-}"); shift ;;
     --keep) KEEP=1 ;;
-    -h|--help) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "unknown option $1 (see --help)" ;;
   esac
   shift
@@ -34,6 +39,8 @@ done
 [ -x "$APP_SRC/Contents/MacOS/regista-engine" ] || die "--app needs a Regista.app with Contents/MacOS/regista-engine (scripts/build-app.sh --no-open)"
 APP="$(cd "$APP_SRC" && pwd)"
 HELPER_BIN="$APP/Contents/MacOS/regista-engine"
+SHIPPED=0; [ -x "$APP/Contents/Helpers/ffmpeg" ] && SHIPPED=1
+if [ -z "$ENGINE" ]; then if [ "$SHIPPED" = 1 ]; then ENGINE=whisper-model; else ENGINE=deepfilternet; fi; fi
 
 T="$(mktemp -d "${TMPDIR:-/tmp}/regista-bare-mac.XXXXXX")"
 [ "$KEEP" = 1 ] || trap 'rm -rf "$T"' EXIT
@@ -96,7 +103,40 @@ if [ "$crc" = 0 ] && bare "$HELPER_BIN" claude-desktop status "$CFG" "$MCP" >/de
   ok "Claude Desktop → $MCP (other server and preferences kept, backup made)"
 else bad "Claude Desktop connection: $(cat "$CFG")"; rc=1; fi
 
-step "3. python3 calls"
+if [ "$SHIPPED" = 1 ]; then
+  step "3. A first reel with the shipped helpers only (log: $T/logs/reel.log)"
+  M="$T/media"; mkdir -p "$M"
+  # A voice in a file (say writes the file, nothing is played), a picture and the take made by the shipped ffmpeg.
+  /usr/bin/say -o "$M/speech.aiff" "Hello. This is a short test of Regista on a new Mac. The captions come from the voice." \
+    || die "say could not write the speech file"
+  dur="$(bare "$APP/Contents/Helpers/ffprobe" -v error -show_entries format=duration -of csv=p=0 "$M/speech.aiff" 2>/dev/null | grep -E '^[0-9]' | head -1)"
+  bare "$APP/Contents/Helpers/ffmpeg" -nostdin -hide_banner -loglevel error -y -f lavfi -i "testsrc2=s=1080x1920:r=30:d=${dur:-6}" \
+    -i "$M/speech.aiff" -c:v h264_videotoolbox -b:v 4M -pix_fmt yuv420p -c:a aac -b:a 128k -shortest "$M/take.mov" >>"$T/logs/reel.log" 2>&1 \
+    && ok "synthetic take made by the shipped ffmpeg (${dur:-?} s, H.264 VideoToolbox + AAC)" || { bad "the shipped ffmpeg could not make the take"; rc=1; }
+  cat >"$T/reel.json" <<JSON
+{"name": "bare-mac-reel", "description": "A first reel on a bare Mac, shipped helpers only.", "steps": [
+  {"command": "engines.status", "expect": {"result.engines.0.id": "ffmpeg", "result.engines.0.shipped": true, "result.engines.1.shipped": true, "result.engines.2.shipped": true, "result.engines.5.id": "deepfilternet", "result.engines.5.shipped": true}},
+  {"command": "project.new", "params": {"name": "bare-mac-reel", "directory": "\${WORK}"}},
+  {"command": "media.import", "params": {"path": "$M/take.mov"}, "capture": {"raw": "result.asset.id"}},
+  {"command": "media.extractAudio", "params": {"assetId": "\${raw}"}},
+  {"command": "transcript.run", "params": {"assetId": "\${raw}", "language": "en", "engine": "whisper.cpp"}, "expect": {"result.words": {"min": 8}}},
+  {"command": "script.fromTranscript", "expect": {"result.set": true}},
+  {"command": "takes.list"},
+  {"command": "edit.autoCut"},
+  {"command": "audio.clean", "expect": {"result.loudness.integrated": {"approx": -15, "tol": 1}}},
+  {"command": "captions.generate", "params": {"keywords": ["REGISTA"]}, "expect": {"result.chunks": {"min": 2}}},
+  {"command": "export.render", "params": {"path": "\${WORK}/bare-mac-reel.mp4", "preset": "9:16"}},
+  {"command": "media.probe", "params": {"path": "\${WORK}/bare-mac-reel.mp4"}, "expect": {"result.video.width": 1080, "result.video.height": 1920}},
+  {"command": "project.save"}
+]}
+JSON
+  if bare "$HELPER_BIN" run "$T/reel.json" --work "$T/work" >>"$T/logs/reel.log" 2>&1; then
+    ok "import → transcription → cut → clean voice → captions → export 9:16 ($(stat -f %z "$T/work/bare-mac-reel.mp4" 2>/dev/null || echo ?) bytes)"
+  else bad "the first reel failed:"; grep -vE '^\++ ' "$T/logs/reel.log" | tail -15 | sed 's/^/      /'; rc=1; fi
+  grep -E "transcript|words|chunks" "$T/logs/reel.log" | head -4 | sed 's/^/  /'
+fi
+
+step "4. python3 calls"
 if [ -s "$T/logs/python3-calls.log" ]; then bad "python3 was called:"; sed 's/^/      /' "$T/logs/python3-calls.log"; rc=1
 else ok "python3 never called"; fi
 

@@ -4,11 +4,13 @@ import Foundation
 /// (`~/Library/Application Support/Regista/engines`); any key can be overridden in
 /// `~/Library/Application Support/Regista/engines.json` (or the file named by `$REGISTA_ENGINES`), which the
 /// installer writes. Paths may start with `~`. Large models are referenced in place, never copied.
+/// ffmpeg, ffprobe, whisper-cli and deep-filter shipped inside the app (`ShippedTools`, #107) win over engines.json and the
+/// defaults, so a downloaded app always runs its own; a developer's build ships none.
 public struct EngineConfig: Codable, Hashable, Sendable {
-    public var ffmpeg = "/opt/homebrew/bin/ffmpeg"
-    public var ffprobe = "/opt/homebrew/bin/ffprobe"
-    /// whisper.cpp CLI, built from the pinned tag by scripts/build-whisper.sh.
-    public var whisperCpp = "\(EngineConfig.managedDirectory)/whisper.cpp-\(EngineManifest.shared.artifact("whisper-src")!.version)/bin/whisper-cli"
+    public var ffmpeg = ShippedTools.path("ffmpeg") ?? EngineConfig.developerDefaults["ffmpeg"]!
+    public var ffprobe = ShippedTools.path("ffprobe") ?? EngineConfig.developerDefaults["ffprobe"]!
+    /// whisper.cpp CLI: shipped in the app, else built from the pinned tag by scripts/build-whisper.sh.
+    public var whisperCpp = ShippedTools.path("whisper-cli") ?? EngineConfig.developerDefaults["whisperCpp"]!
     /// ggml copy of openai/whisper-large-v3-turbo (sha256 = the Hugging Face LFS hash of ggerganov/whisper.cpp, from engines.lock).
     public var whisperModel = "\(EngineConfig.managedDirectory)/models/ggml-large-v3-turbo.bin"
     public var whisperModelSha256 = EngineManifest.shared.artifact("ggml-large-v3-turbo")!.sha256
@@ -19,7 +21,7 @@ public struct EngineConfig: Codable, Hashable, Sendable {
     public var whisperXScript = "\(EngineConfig.managedDirectory)/whisperx/wx_align.py"
     /// DeepFilterNet3 release binary (model embedded; version and hash from engines.lock). The release publishes no
     /// checksum: this is the hash of the downloaded asset, checked by engines.status.
-    public var deepFilter = "\(EngineConfig.managedDirectory)/deepfilternet/deep-filter-\(EngineManifest.shared.artifact("deep-filter")!.version)-aarch64-apple-darwin"
+    public var deepFilter = ShippedTools.path("deep-filter") ?? EngineConfig.developerDefaults["deepFilter"]!
     public var deepFilterSha256 = EngineManifest.shared.artifact("deep-filter")!.sha256
     /// Transcripts are cached here by audio hash + engine (re-running a scenario costs nothing).
     public var cacheDirectory = "~/Library/Caches/Regista"
@@ -57,6 +59,15 @@ public struct EngineConfig: Codable, Hashable, Sendable {
     /// Where scripts/install.sh puts the engines.
     public static let managedDirectory = "~/Library/Application Support/Regista/engines"
 
+    /// The defaults of the keys a release build ships a helper for (#107), as a build without them uses them: Homebrew's
+    /// ffmpeg, the installer's whisper.cpp build and DeepFilterNet download.
+    public static let developerDefaults: [String: String] = [
+        "ffmpeg": "/opt/homebrew/bin/ffmpeg",
+        "ffprobe": "/opt/homebrew/bin/ffprobe",
+        "whisperCpp": "\(EngineConfig.managedDirectory)/whisper.cpp-\(EngineManifest.shared.artifact("whisper-src")!.version)/bin/whisper-cli",
+        "deepFilter": "\(EngineConfig.managedDirectory)/deepfilternet/deep-filter-\(EngineManifest.shared.artifact("deep-filter")!.version)-aarch64-apple-darwin",
+    ]
+
     public init() {}
 
     /// The engines.json that is read, if any.
@@ -87,16 +98,17 @@ public struct EngineConfig: Codable, Hashable, Sendable {
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let d = EngineConfig()
-        ffmpeg = try c.decodeIfPresent(String.self, forKey: .ffmpeg) ?? d.ffmpeg
-        ffprobe = try c.decodeIfPresent(String.self, forKey: .ffprobe) ?? d.ffprobe
-        whisperCpp = try c.decodeIfPresent(String.self, forKey: .whisperCpp) ?? d.whisperCpp
+        // A shipped helper wins over the file (#107).
+        ffmpeg = try ShippedTools.path("ffmpeg") ?? c.decodeIfPresent(String.self, forKey: .ffmpeg) ?? d.ffmpeg
+        ffprobe = try ShippedTools.path("ffprobe") ?? c.decodeIfPresent(String.self, forKey: .ffprobe) ?? d.ffprobe
+        whisperCpp = try ShippedTools.path("whisper-cli") ?? c.decodeIfPresent(String.self, forKey: .whisperCpp) ?? d.whisperCpp
         whisperModel = try c.decodeIfPresent(String.self, forKey: .whisperModel) ?? d.whisperModel
         whisperModelSha256 = try c.decodeIfPresent(String.self, forKey: .whisperModelSha256) ?? d.whisperModelSha256
         whisperThreads = try c.decodeIfPresent(Int.self, forKey: .whisperThreads) ?? d.whisperThreads
         uv = try c.decodeIfPresent(String.self, forKey: .uv) ?? d.uv
         whisperXProject = try c.decodeIfPresent(String.self, forKey: .whisperXProject) ?? d.whisperXProject
         whisperXScript = try c.decodeIfPresent(String.self, forKey: .whisperXScript) ?? d.whisperXScript
-        deepFilter = try c.decodeIfPresent(String.self, forKey: .deepFilter) ?? d.deepFilter
+        deepFilter = try ShippedTools.path("deep-filter") ?? c.decodeIfPresent(String.self, forKey: .deepFilter) ?? d.deepFilter
         deepFilterSha256 = try c.decodeIfPresent(String.self, forKey: .deepFilterSha256) ?? d.deepFilterSha256
         cacheDirectory = try c.decodeIfPresent(String.self, forKey: .cacheDirectory) ?? d.cacheDirectory
         sfxLibrary = try c.decodeIfPresent(String.self, forKey: .sfxLibrary) ?? d.sfxLibrary

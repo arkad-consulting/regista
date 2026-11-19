@@ -395,7 +395,7 @@ enum ClipSpeed: Command {
         do {
             try Subprocess.check(ffmpeg, FFmpegAudio.quiet + ["-ss", String(format: "%.6f", clip.sourceIn.seconds), "-i", asset.path,
                                                                "-t", String(format: "%.6f", clip.sourceDuration.seconds), "-vf", "reverse", "-an",
-                                                               "-c:v", "libx264", "-preset", "veryfast", "-crf", "14", "-pix_fmt", "yuv420p", tmp.path])
+                                                               "-c:v", "h264_videotoolbox", "-q:v", "75", "-pix_fmt", "yuv420p", tmp.path])
             try FileManager.default.moveItem(at: tmp, to: url)
         } catch {
             try? FileManager.default.removeItem(at: tmp)

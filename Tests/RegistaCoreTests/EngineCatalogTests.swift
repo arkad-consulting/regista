@@ -131,9 +131,11 @@ private func uniformStatus(_ state: String, tier: MachineTier = .pro) -> JSONVal
     let c = EngineConfig()
     let managed = EngineConfig.expand(EngineConfig.managedDirectory)
     func rel(_ p: String) -> String { String(EngineConfig.expand(p).dropFirst(managed.count + 1)) }
-    #expect(manifest.entry("whisper.cpp")!.files.contains(rel(c.whisperCpp).components(separatedBy: "/bin/")[0]))
+    // The installer's copies (a release build's shipped helpers live in the app, not in the engines folder: #107).
+    let whisperCpp = EngineConfig.developerDefaults["whisperCpp"]!, deepFilter = EngineConfig.developerDefaults["deepFilter"]!
+    #expect(manifest.entry("whisper.cpp")!.files.contains(rel(whisperCpp).components(separatedBy: "/bin/")[0]))
     #expect(manifest.entry("whisper-model")!.files == [rel(c.whisperModel)])
-    #expect(rel(c.deepFilter).hasPrefix(manifest.entry("deepfilternet")!.files[0] + "/"))
+    #expect(rel(deepFilter).hasPrefix(manifest.entry("deepfilternet")!.files[0] + "/"))
     #expect(manifest.entry("voxcpm-weights")!.files == [rel(c.voxcpmModel)])
     #expect(manifest.entry("voxcpm")!.files.contains(rel(c.voxcpmScript)))
     #expect(manifest.entry("whisperx")!.files.contains(rel(c.whisperXScript)))

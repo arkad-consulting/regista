@@ -48,6 +48,10 @@ public struct EngineCatalog: Equatable, Sendable {
         public let reason: String?
         /// False when the engine's helper scripts differ from the app's and could not be replaced (#61).
         public var scriptsCurrent = true
+        /// Shipped inside the app (#107): part of it, nothing to install or remove.
+        public var shipped = false
+        /// Not needed with this app (CMake when whisper-cli ships inside it).
+        public var notNeeded = false
     }
 
     public let tier: MachineTier
@@ -81,9 +85,10 @@ public struct EngineCatalog: Equatable, Sendable {
             if let needed, needed > tier, state != .planned { state = .needsTier(needed) }
             let group: Group = e.planned ? .planned : e.install.method == "cloud" ? .cloud
                 : Group(rawValue: (needed ?? .base).rawValue) ?? .base
+            let shipped = r?["shipped"]?.boolValue ?? false, notNeeded = r?["notNeeded"]?.boolValue ?? false
             let action: Action
             switch e.install.method {
-            case _ where e.planned: action = .nothing
+            case _ where e.planned || shipped || notNeeded: action = .nothing
             case "installer", "homebrew":
                 if state == .missing { action = .install }
                 else if state == .installed, !EngineCatalog.removable(e, in: enginesDirectory).isEmpty { action = .remove }
@@ -97,7 +102,7 @@ public struct EngineCatalog: Equatable, Sendable {
             return Row(id: e.id, name: e.name, unlocks: e.unlocks, disk: manifest.diskText(e.id), licence: e.licence,
                        nonCommercial: e.nonCommercial, paid: e.paid, optional: e.optional, method: e.install.method,
                        group: group, state: state, action: action, reason: r?["reason"]?.stringValue,
-                       scriptsCurrent: r?["scriptsCurrent"]?.boolValue ?? true)
+                       scriptsCurrent: r?["scriptsCurrent"]?.boolValue ?? true, shipped: shipped, notNeeded: notNeeded)
         }
     }
 

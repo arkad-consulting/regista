@@ -25,19 +25,22 @@ public struct FFProbe: MediaProber {
         self.executable = executable ?? Self.locate()
     }
 
-    /// $REGISTA_FFPROBE, then the usual Homebrew locations.
+    /// Where every tool is found (#107): $REGISTA_FFPROBE, then the ffprobe the app ships, then the one engines.json names,
+    /// then the usual Homebrew locations.
     static func locate() -> URL {
         if let env = ProcessInfo.processInfo.environment["REGISTA_FFPROBE"], !env.isEmpty {
             return URL(fileURLWithPath: env)
         }
-        let candidates = ["/opt/homebrew/bin/ffprobe", "/usr/local/bin/ffprobe", "/usr/bin/ffprobe"]
+        if let shipped = ShippedTools.path("ffprobe") { return URL(fileURLWithPath: shipped) }
+        let configured = EngineConfig.expand(EngineConfig.loadOrDefault().config.ffprobe)
+        let candidates = [configured, "/opt/homebrew/bin/ffprobe", "/usr/local/bin/ffprobe", "/usr/bin/ffprobe"]
         let found = candidates.first { FileManager.default.isExecutableFile(atPath: $0) }
-        return URL(fileURLWithPath: found ?? candidates[0])
+        return URL(fileURLWithPath: found ?? configured)
     }
 
     public func probe(_ url: URL) throws -> ProbedMedia {
         guard FileManager.default.isExecutableFile(atPath: executable.path) else {
-            throw CommandError(.io, "ffprobe not found at \(executable.path) (brew install ffmpeg, or set REGISTA_FFPROBE)")
+            throw CommandError(.io, "ffprobe not found at \(executable.path): it ships inside Regista.app (reinstall the app), or set ffprobe in engines.json or REGISTA_FFPROBE")
         }
         let process = Process()
         process.executableURL = executable

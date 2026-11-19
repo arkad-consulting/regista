@@ -90,10 +90,11 @@ enum RecordingSynthesize: Command {
         for (on, url) in [(withCamera, cameraURL), (withMic, micURL)] where !on { try? FileManager.default.removeItem(at: url) }
         if withCamera {
             let enable = markFrames.map { "eq(n\\,\($0))" }.joined(separator: "+")
-            let flash = markFrames.isEmpty ? "" : ",eq=brightness=0.45:enable='\(enable)'"
+            // lutyuv, not eq (GPL, not in the ffmpeg the app ships, #107): the same brightness jump on the marked frames.
+            let flash = markFrames.isEmpty ? "" : ",lutyuv=y='clip(val+115,0,255)':enable='\(enable)'"
             try Subprocess.check(ffmpeg, FFmpegAudio.quiet + ["-ss", String(format: "%.6f", cameraIn), "-i", take.path, "-t", String(format: "%.6f", duration - oC),
-                                                              "-an", "-vf", "fps=\(Int(cameraFPS))\(flash),format=yuv420p", "-c:v", "libx264",
-                                                              "-preset", "veryfast", "-crf", "17", "-movflags", "+faststart", cameraURL.path])
+                                                              "-an", "-vf", "fps=\(Int(cameraFPS))\(flash),format=yuv420p", "-c:v", "h264_videotoolbox",
+                                                              "-q:v", "70", "-movflags", "+faststart", cameraURL.path])
         }
         if withMic {
             // mic.wav: the take's sound in sync with the camera stretch (it starts earlier by cameraOffset − micOffset), beeps on the slates.

@@ -31,9 +31,9 @@
       "unlocks": ["import and export video", "clean voice chain", "loudness"],
       "minRamGB": 8, "ramInUseGB": null, "diskBytes": 214585344,
       "licence": "LGPL-2.1-or-later AND GPL-2.0-or-later", "nonCommercial": false,
-      "install": {"method": "homebrew", "formula": "ffmpeg"}, "artifacts": ["ffmpeg"],
+      "install": {"method": "homebrew", "formula": "ffmpeg"}, "artifacts": ["ffmpeg", "ffmpeg-src"],
       "optional": false, "dependsOn": [], "status": "available",
-      "notes": "diskBytes = the ffmpeg formula and its Homebrew dependencies"
+      "notes": "diskBytes = the ffmpeg formula and its Homebrew dependencies; a release build ships its own LGPL ffmpeg and ffprobe, built from ffmpeg-src by scripts/build-engines.sh (#107)"
     },
     {
       "id": "ffprobe", "name": "FFprobe",

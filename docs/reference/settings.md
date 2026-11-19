@@ -8,16 +8,16 @@ Where the engines live. The installer writes `~/Library/Application Support/Regi
 
 | Key | Default | What it is |
 |---|---|---|
-| `ffmpeg` | `/opt/homebrew/bin/ffmpeg` | ffmpeg binary: audio extraction, the voice chain, loudness, render and export. |
-| `ffprobe` | `/opt/homebrew/bin/ffprobe` | ffprobe binary: reads the format of a media file. |
-| `whisperCpp` | `~/Library/Application Support/Regista/engines/whisper.cpp-1.9.5/bin/whisper-cli` | whisper.cpp command-line tool, built from the pinned tag by scripts/build-whisper.sh. |
+| `ffmpeg` | `/opt/homebrew/bin/ffmpeg` | ffmpeg binary: audio extraction, the voice chain, loudness, render and export. A release build ships its own in Regista.app/Contents/Helpers, which wins over this key. |
+| `ffprobe` | `/opt/homebrew/bin/ffprobe` | ffprobe binary: reads the format of a media file. A release build ships its own, which wins over this key. |
+| `whisperCpp` | `~/Library/Application Support/Regista/engines/whisper.cpp-1.9.5/bin/whisper-cli` | whisper.cpp command-line tool, built from the pinned tag by scripts/build-whisper.sh. A release build ships its own, which wins over this key. |
 | `whisperModel` | `~/Library/Application Support/Regista/engines/models/ggml-large-v3-turbo.bin` | The ggml Whisper large-v3-turbo model whisper.cpp uses. |
 | `whisperModelSha256` | `1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69` | Expected SHA-256 of that model (from engines.lock), checked by engines.status. |
 | `whisperThreads` | `8` | CPU threads whisper.cpp uses. |
 | `uv` | `/opt/homebrew/bin/uv` | uv, which runs the Python environments of WhisperX and VoxCPM2 (Medium tier and up). |
 | `whisperXProject` | `~/Library/Application Support/Regista/engines/whisperx` | The uv project folder of WhisperX (precise word timings). |
 | `whisperXScript` | `~/Library/Application Support/Regista/engines/whisperx/wx_align.py` | The WhisperX alignment script in that folder. |
-| `deepFilter` | `~/Library/Application Support/Regista/engines/deepfilternet/deep-filter-0.5.6-aarch64-apple-darwin` | DeepFilterNet3 binary (voice cleaning). |
+| `deepFilter` | `~/Library/Application Support/Regista/engines/deepfilternet/deep-filter-0.5.6-aarch64-apple-darwin` | DeepFilterNet3 binary (voice cleaning). A release build ships its own, which wins over this key. |
 | `deepFilterSha256` | `4601e7f4e4c03e59a4c5b5000216ef3add3e808799cfccd95e14e83ea4611081` | Expected SHA-256 of that binary (from engines.lock), checked by engines.status. |
 | `cacheDirectory` | `~/Library/Caches/Regista` | Where transcripts are cached (by audio hash and engine). |
 | `sfxLibrary` | `~/Library/Application Support/Regista/sfx` | Your own sound effects (mp3 / wav files and an optional manifest.json), listed next to the shipped bank. |
@@ -49,6 +49,7 @@ Read by the app, `regista-mcp` and `regista-engine` (developers and tests; nobod
 | `REGISTA_ENGINE_SOCKET` | Path of the app's engine socket (default ~/Library/Application Support/Regista/engine.sock). |
 | `REGISTA_FFPROBE` | ffprobe to use for reading media, before the usual Homebrew locations. |
 | `REGISTA_FOLDER` | Regista's folder (projects, recordings, exports) instead of the one set in Settings › General (default ~/Movies/Regista); the tests point it at a scratch folder. |
+| `REGISTA_HELPERS` | Folder of the ffmpeg, ffprobe, whisper-cli and deep-filter to use as if the app shipped them (default: Regista.app/Contents/Helpers; the tests and checks point it at scripts/build-engines.sh's output). |
 | `REGISTA_INSTALLER` | Folder of the installer scripts Settings › Engines runs (default: the copy inside the app). |
 | `REGISTA_LOCK` | engines.lock that `regista-engine manifest` reads instead of the compiled-in copy (the installer tests' fake downloads), as scripts/install.sh does. |
 | `REGISTA_MANIFEST` | engines.manifest.json that `regista-engine manifest` reads instead of the compiled-in copy (the installer tests' fake engine), as scripts/install.sh does. |

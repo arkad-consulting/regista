@@ -3,7 +3,11 @@
 # regista-mcp / regista-engine (scripts/build-mcp.sh), all stamped with the same build id (scripts/build-stamp.sh).
 # Both ship inside the app (Contents/MacOS, M3 #60): Claude Desktop and Claude Code run the app's own regista-mcp, so the
 # server always matches the app and nothing points into a source folder.
-# Usage: scripts/build-app.sh [--install] [--no-open]
+# Usage: scripts/build-app.sh [--install] [--no-open] [--bundle-engines]
+# --bundle-engines ships ffmpeg, ffprobe, whisper-cli and deep-filter inside the app (Contents/Helpers, #107), from
+# scripts/build-engines.sh (built once, then cached under ~/Library/Caches/Regista/engines-build), with their licence texts
+# in Contents/Resources/Licenses; they are signed with the app. Without it (a developer's build) the app uses the tools
+# installed on this Mac, as before.
 # --install copies it to $REGISTA_APP_DIR (default /Applications; scripts/install.sh passes ~/Applications when
 # /Applications is not writable) and, when that is /Applications or ~/Applications, moves any other Regista.app in those
 # two folders to the Trash, so exactly one copy is left to launch. Any other destination (a test folder) touches nothing else.
@@ -17,13 +21,16 @@ set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 cd "$REPO"
 
-INSTALL=0; OPEN=1
+INSTALL=0; OPEN=1; BUNDLE_ENGINES=0
 for a in "$@"; do
   case "$a" in
     --install) INSTALL=1 ;;
     --no-open) OPEN=0 ;;
+    --bundle-engines) BUNDLE_ENGINES=1 ;;
   esac
 done
+# The engines first (cached after the first build): a failure stops before anything is assembled.
+if [ "$BUNDLE_ENGINES" = 1 ]; then ENGINES_OUT="$(scripts/build-engines.sh --quiet)" || die "scripts/build-engines.sh failed"; fi
 
 read -r BUILD_ID BUILD_SHA BUILD_DIRTY _ < <(scripts/build-stamp.sh)
 BUILD_DATE="$(date -u '+%Y-%m-%d %H:%M UTC')"
@@ -63,12 +70,24 @@ mkdir -p "$INST/scripts"
 cp scripts/install.sh scripts/lib.sh scripts/i18n.sh scripts/engines.lock scripts/engines.manifest.json \
    scripts/build-whisper.sh scripts/doctor.sh scripts/mcp_smoke.py "$INST/scripts/"
 git ls-files engines | while IFS= read -r f; do mkdir -p "$INST/$(dirname "$f")"; cp "$f" "$INST/$f"; done
+# The shipped engines (#107) and their licences.
+if [ "$BUNDLE_ENGINES" = 1 ]; then
+  mkdir -p "$APP/Contents/Helpers" "$APP/Contents/Resources/Licenses"
+  cp "$ENGINES_OUT"/bin/* "$APP/Contents/Helpers/"
+  cp -R "$ENGINES_OUT"/licenses/* "$APP/Contents/Resources/Licenses/"
+  cp THIRD-PARTY-LICENSES.md "$ENGINES_OUT/BUILD-INFO.txt" "$APP/Contents/Resources/Licenses/"
+  echo "Engines shipped in the app: $(cd "$APP/Contents/Helpers" && echo *) ($(du -sh "$APP/Contents/Helpers" | cut -f1), $ENGINES_OUT)"
+fi
 
-# Same entitlements and options as before (no hardened runtime); only the identity changes. The helpers in Contents/MacOS
-# are signed first with the same identity (no entitlements: they need none), then the app.
+# Same entitlements and options as before (no hardened runtime); only the identity changes. The shipped engines in
+# Contents/Helpers and the helpers in Contents/MacOS are signed first with the same identity (no entitlements: they need
+# none), then the app.
 sign() {
   local h
-  for h in "$APP/Contents/MacOS/regista-mcp" "$APP/Contents/MacOS/regista-engine"; do codesign --force "$@" "$h" || return 1; done
+  for h in "$APP"/Contents/Helpers/* "$APP/Contents/MacOS/regista-mcp" "$APP/Contents/MacOS/regista-engine"; do
+    [ -f "$h" ] || continue
+    codesign --force "$@" "$h" || return 1
+  done
   codesign --force "$@" --entitlements Config/Regista.entitlements "$APP"
 }
 why=""

@@ -371,7 +371,10 @@ private struct EngineRowView: View {
         if removing { return loc("Rimuovo…") }
         if job?.isRunning == true { return loc("Installo…") }
         switch row.state {
-        case .installed: return row.method == "system" ? loc("Incluso in macOS") : loc("Installato")
+        case .installed:
+            if row.shipped { return loc("Incluso nell'app") }
+            if row.notNeeded { return loc("Non serve con questa app") }
+            return row.method == "system" ? loc("Incluso in macOS") : loc("Installato")
         case .missing: return loc("Non installato")
         case .notChecked: return loc("Non controllato")
         case .planned: return loc("In arrivo")

@@ -729,7 +729,7 @@ public enum BrandKitPreview {
         let blank = cache.appendingPathComponent("blank-2s.mp4")
         if !fm.fileExists(atPath: blank.path) {
             try Subprocess.check(services.config.url(services.config.ffmpeg),
-                                 FFmpegAudio.quiet + ["-f", "lavfi", "-i", "color=c=black:s=108x192:r=30:d=2", "-pix_fmt", "yuv420p", blank.path])
+                                 FFmpegAudio.quiet + ["-f", "lavfi", "-i", "color=c=black:s=108x192:r=30:d=2", "-c:v", "h264_videotoolbox", "-pix_fmt", "yuv420p", blank.path])
         }
         let project = Self.project(kit, blank: blank.path, backdrop: (backdrop!.path, w, h), logo: logo, title: title ?? kit.name)
         let job = RenderJob(project: project, preset: ExportPreset(id: "preview", width: w, height: h))

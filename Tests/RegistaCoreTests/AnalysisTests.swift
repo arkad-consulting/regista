@@ -119,7 +119,7 @@ import Testing
     let file = tempDir().appendingPathComponent("engines.json")
     try Data(#"{"ffmpeg": "/usr/local/bin/ffmpeg", "tier": "base", "transcription": {"pro": "whisper.cpp"}}"#.utf8).write(to: file)
     let c = try EngineConfig.load(from: file)
-    #expect(c.ffmpeg == "/usr/local/bin/ffmpeg")
+    #expect(c.ffmpeg == (ShippedTools.path("ffmpeg") ?? "/usr/local/bin/ffmpeg"), "the file's ffmpeg, unless the app ships one (#107)")
     #expect(c.deepFilterSha256 == EngineConfig().deepFilterSha256)   // untouched keys keep their defaults
     #expect(MachineTier.pro.defaultTranscriber(c) == "whisper.cpp")
     #expect(MachineTier.medium.defaultTranscriber(EngineConfig()) == "whisperx")

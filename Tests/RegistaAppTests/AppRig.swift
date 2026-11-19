@@ -266,10 +266,10 @@ final class AppRig {
     }
 
     /// Any view with the editor's environment.
-    func host<V: View>(_ view: V, size: CGSize, env: (AnyView) -> AnyView = { $0 }) {
+    func host<V: View>(_ view: V, size: CGSize, language: String? = nil, env: (AnyView) -> AnyView = { $0 }) {
         mount(env(AnyView(view
             .environmentObject(store).environmentObject(store.preview).environmentObject(store.preview.playhead)
-            .environmentObject(store.media).environmentObject(meter).environmentObject(recorder))), size: size)
+            .environmentObject(store.media).environmentObject(meter).environmentObject(recorder))), size: size, language: language)
     }
 
     private func mount<V: View>(_ root: V, size: CGSize, language: String? = nil) {

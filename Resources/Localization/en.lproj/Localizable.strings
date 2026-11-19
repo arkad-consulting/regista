@@ -859,6 +859,8 @@
 "Inchiostro" = "Ink";
 "Inclinazione" = "Tilt";
 "Incluso in macOS" = "Part of macOS";
+"Incluso nell'app" = "Part of the app";
+"Non serve con questa app" = "Not needed with this app";
 "Incolla al cursore" = "Paste at the playhead";
 "Incolla qui il copione, una frase per riga" = "Paste the script here, one sentence per line";
 "incompleta" = "incomplete";

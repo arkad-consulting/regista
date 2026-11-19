@@ -619,6 +619,22 @@ ran), so it is undoable in one step and scenario-testable.
 | DeepFilterNet3 `deep-filter` **v0.5.6** | voice denoise | Base | `scripts/install.sh` → `<support>/engines/deepfilternet/`, sha256 `4601e7f4e4c03e59a4c5b5000216ef3add3e808799cfccd95e14e83ea4611081` (checked by `engines.status`) |
 | Apple Vision | face boxes | Base | macOS |
 
+**Engines inside the app (#107).** A release build ships ffmpeg 9.0.2 + ffprobe, whisper-cli 1.9.5 and deep-filter
+0.5.6 in `Regista.app/Contents/Helpers` (`scripts/build-app.sh --bundle-engines`), so the Base tier needs only the
+transcription model on a Mac without Homebrew or a compiler. `scripts/build-engines.sh` builds them once from the pinned
+tarballs (`ffmpeg-src`, `whisper-src`, `deep-filter` in `scripts/engines.lock`) and caches the result under
+`~/Library/Caches/Regista/engines-build/<recipe>` (a second run builds nothing): ffmpeg with `--disable-everything` and
+exactly the components Regista uses plus the inputs of phones, cameras and screen recorders, no external library (LGPL;
+H.264 through VideoToolbox, AAC with ffmpeg's own encoder), static; whisper.cpp without `GGML_NATIVE` (Apple clang's
+default arm64 target, any Apple Silicon Mac), Metal embedded; everything checked to link only macOS's own libraries
+and to run on macOS 15. About a minute with `nice` and 4 jobs on an M5 Pro. Where a tool is found, in one place
+(`ShippedTools`): an environment override (as today: `REGISTA_FFPROBE`), then the shipped helper (it wins over
+engines.json, so everyone runs the same tools), then engines.json or today's default; `REGISTA_HELPERS` points at
+another folder of helpers (the whole suite runs on the cache's with it). Settings › Engines shows them as part of the
+app, CMake as not needed. Licences: `THIRD-PARTY-LICENSES.md`, copied with the texts into
+`Contents/Resources/Licenses`. Not shipped: libx264 (the two re-encodes that used it now use VideoToolbox) and libvpx
+(an alpha `.webm` import still asks for it: #111).
+
 **Config.** Defaults are in `EngineConfig.swift`; any key can be overridden in
 `~/Library/Application Support/Regista/engines.json` (or `$REGISTA_ENGINES`), e.g.
 `{"whisperModel": "~/models/ggml-large-v3-turbo.bin", "tier": "base", "transcription": {"pro": "whisper.cpp"}}`.
