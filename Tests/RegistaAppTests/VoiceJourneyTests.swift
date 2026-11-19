@@ -266,7 +266,7 @@ extension Journey {
         #expect(rigPasteboard.string(forType: .string) == loc(AIVoiceNote.sentence), "«Copia» put «\(rigPasteboard.string(forType: .string) ?? "nothing")» on the pasteboard")
         step("Esporta video…, then «Copia» on the AI-voice note", sees: "voce-a-mano.mp4 written; the pasteboard: «\(loc(AIVoiceNote.sentence))»")
 
-        // 12. One paragraph changed, «Metti in timeline» again: what the product does with the other one.
+        // 12. One paragraph changed, «Metti in timeline» again: its clip is replaced where it was, the other one stays (#100).
         store.nav = Navigation(activity: .voice, rightTab: .inspector)
         await app.settle()
         let changed = "La voce è la tua, e resta su questo Mac."
@@ -281,15 +281,24 @@ extension Journey {
         rig.type(changed)
         await app.settle()
         #expect(model.paragraphs == [first, changed], "the panel reads \(model.paragraphs)")
-        let rendersBefore = voiceRenders(), voiceClips = store.project?.tracks.first { $0.id == voce.id }?.clips.count ?? 0
+        let rendersBefore = voiceRenders(), clipsBefore = store.project?.tracks.first { $0.id == voce.id }?.clips ?? []
         _ = await until(5) { control(place)?.enabled == true }
         try await tap(place)
         _ = await until(30) { store.jobs.latest("voice")?.isRunning == false }
         await app.settle()
         let rendered = voiceRenders() - rendersBefore
-        let nowClips = store.project?.tracks.first { $0.id == voce.id }?.clips.count ?? 0
+        let clipsNow = store.project?.tracks.first { $0.id == voce.id }?.clips ?? []
         #expect(rendered == 1, "the unchanged paragraph was rendered again (\(rendered) renders for one changed paragraph)")
-        step("Changes the second paragraph, Metti in timeline again", sees: "\(rendered) render (the unchanged paragraph from the cache); the Voce track \(voiceClips) → \(nowClips) clips: the whole text is placed again after the last voice (no way to replace one paragraph's clip in place)")
+        #expect(clipsNow.count == 2 && clipsNow.first == clipsBefore.first, "the Voce track has \(clipsNow.count) clips, the first one \(clipsNow.first == clipsBefore.first ? "untouched" : "changed")")
+        #expect(clipsNow.last?.id != clipsBefore.last?.id && clipsNow.last?.start == clipsBefore.last?.start && clipsNow.last?.assetID != clipsBefore.last?.assetID,
+                "the changed paragraph's clip was not replaced where it was")
+        let remade = loc("1 paragrafo rifatto") + ", " + loc("1 invariato")
+        #expect(store.jobs.latest("voice")?.detail == remade, "the job says «\(store.jobs.latest("voice")?.detail ?? "")»")
+        // The captions made from the voice follow the voice no more: «da rigenerare».
+        let captions = store.project?.tracks.first { $0.captions?.sourceTrack == voce.id }?.captions
+        #expect(captions.map { c in store.project?.tracks.first { $0.id == voce.id }.map { Captions.signature(of: $0) != c.sourceSignature } ?? false } == true,
+                "the captions of the voice do not read as to be made again")
+        step("Changes the second paragraph, Metti in timeline again", sees: "\(rendered) render (the unchanged paragraph from the cache); «\(store.jobs.latest("voice")?.detail ?? "")»: the Voce track keeps \(clipsNow.count) clips, the first untouched, the second replaced where it was; the captions «da rigenerare»")
 
         // 13. A second language for the same profile: «Gestisci voci…», Français, its consent and text. The panel lists both.
         try await tap("Le tue voci: lingue, toni e allenamento")   // «Gestisci voci…», read by its tooltip

@@ -334,3 +334,92 @@ struct VoiceFixture {
         #expect(fr["trainedTones"]?.arrayValue?.compactMap(\.stringValue) == ["neutral", "serious"])
     }
 }
+
+// #100: a placed text placed again (voice.say replace) changes only what changed.
+
+@Test func theParagraphsOfATextPlacedAgainArePairedWithTheirClips() {
+    typealias C = VoiceSay.Change
+    #expect(VoiceSay.changes(old: ["a", "b"], new: ["a", "b2"]) == [C.kept(clip: 0, paragraph: 0), .remade(clip: 1, paragraph: 1)])
+    #expect(VoiceSay.changes(old: ["a", "b"], new: ["a", "b", "c"]) == [C.kept(clip: 0, paragraph: 0), .kept(clip: 1, paragraph: 1), .added(paragraph: 2)])
+    #expect(VoiceSay.changes(old: ["a", "b", "c"], new: ["a", "c"]) == [C.kept(clip: 0, paragraph: 0), .removed(clip: 1), .kept(clip: 2, paragraph: 1)])
+    #expect(VoiceSay.changes(old: ["a", "b"], new: ["a2", "b"]) == [C.remade(clip: 0, paragraph: 0), .kept(clip: 1, paragraph: 1)])
+    #expect(VoiceSay.changes(old: ["a"], new: ["x", "y"]) == [C.remade(clip: 0, paragraph: 0), .added(paragraph: 1)])
+}
+
+/// A Voce track with clips of the given seconds (assets "a<i>" at "/v/a<i>.wav"), 0.5 s apart, and spare assets.
+private func voceProject(_ seconds: [Double], spare: [String: Double] = [:]) -> Project {
+    var p = Project(name: "vo")
+    func asset(_ id: String, _ s: Double) -> MediaAsset {
+        MediaAsset(id: id, name: id, path: "/v/\(id).wav", duration: MediaTime(seconds: s), audio: AudioInfo(sampleRate: 48000, channels: 1, codec: "pcm"))
+    }
+    p.assets = seconds.enumerated().map { asset("a\($0.offset)", $0.element) } + spare.sorted { $0.key < $1.key }.map { asset($0.key, $0.value) }
+    var track = Track(id: "t9", kind: .audio, name: "Voce")
+    var at = MediaTime.zero
+    for (i, s) in seconds.enumerated() {
+        track.clips.append(Clip(id: "c\(i)", assetID: "a\(i)", sourceIn: .zero, sourceOut: MediaTime(seconds: s), start: at))
+        at = (at + MediaTime(seconds: s + 0.5)).snapped(to: p.settings.frameRate)
+    }
+    p.tracks = [track]
+    p.idCounters["c"] = 100   // as a project that made these clips
+    return p
+}
+
+@Test func aParagraphThatGotLongerMovesTheVoiceAfterItAndAnUnchangedOneStays() throws {
+    // Three clips (2 s, 3 s, 1 s) and a later voice of another text (c9 at 20 s); the middle paragraph now lasts 5 s.
+    var p = voceProject([2, 3, 1], spare: ["b1": 5])
+    p.tracks[0].clips.append(Clip(id: "c9", assetID: "a0", sourceIn: .zero, sourceOut: MediaTime(seconds: 2), start: MediaTime(seconds: 20)))
+    let before = p.tracks[0].clips
+    let r = try VoiceSay.replace(["c0", "c1", "c2"], with: ["a0", "b1", "a2"], gap: MediaTime(seconds: 0.5), in: &p)
+    let after = Dictionary(uniqueKeysWithValues: p.tracks[0].clips.map { ($0.id, $0) })
+    #expect(after["c0"] == before[0], "the unchanged first paragraph's clip moved or changed")
+    let remade = try #require(p.tracks[0].clips.first { $0.assetID == "b1" })
+    #expect(after["c1"] == nil && remade.start == before[1].start && remade.duration.seconds == 5, "the changed paragraph's clip was not replaced where it was")
+    #expect(abs((after["c2"]!.start - before[2].start).seconds - 2) < 0.04, "the clip after a paragraph 2 s longer did not move by 2 s")
+    #expect(abs((after["c9"]!.start - before[3].start).seconds - 2) < 0.04, "the later voice did not move with it")
+    #expect(p.tracks[0].clips.count == 4)
+    #expect(r["remade"] == 1 && r["unchanged"] == 2 && r["added"] == 0 && r["removed"] == 0)
+    #expect(r["clips"]?.arrayValue?.compactMap { $0["clipId"]?.stringValue } == ["c0", remade.id, "c2"])
+}
+
+@Test func aParagraphAddedAtTheEndGoesAfterTheLastVoiceAndARemovedOneTakesItsClipAway() throws {
+    var p = voceProject([2, 3, 1], spare: ["n": 4])
+    let last = p.tracks[0].clips[2]
+    // Removed: the middle paragraph; its clip goes and the one after closes the room it took.
+    var removed = p
+    let r1 = try VoiceSay.replace(["c0", "c1", "c2"], with: ["a0", "a2"], gap: MediaTime(seconds: 0.5), in: &removed)
+    #expect(removed.tracks[0].clips.map(\.id) == ["c0", "c2"])
+    #expect(removed.tracks[0].clips[1].start == p.tracks[0].clips[1].start, "the clip after the removed one did not take its place")
+    #expect(r1["removed"] == 1 && r1["unchanged"] == 2)
+    // Added at the end: after the last voice of the track, with the gap; nothing else moves.
+    let r2 = try VoiceSay.replace(["c0", "c1", "c2"], with: ["a0", "a1", "a2", "n"], gap: MediaTime(seconds: 0.5), in: &p)
+    #expect(p.tracks[0].clips.count == 4 && Array(p.tracks[0].clips.prefix(3)).map(\.start) == [MediaTime.zero, MediaTime(seconds: 2.5).snapped(to: p.settings.frameRate), last.start])
+    let added = try #require(p.tracks[0].clips.last)
+    #expect(added.assetID == "n" && abs((added.start - last.end).seconds - 0.5) < 0.04)
+    #expect(r2["added"] == 1 && r2["unchanged"] == 3)
+}
+
+@Test func voiceSayReplacesOnlyTheChangedParagraphInOneUndoStep() throws {
+    let f = try VoiceFixture()
+    let e = try f.engine()
+    let first = "Bonjour, ici WeSites.", second = "Deuxième paragraphe."
+    let r = try e.execute("voice.say", params: ["text": .string("\(first)\n\n\(second)"), "language": "fr"])
+    let ids = try #require(r["clips"]?.arrayValue?.compactMap { $0["clipId"]?.stringValue })
+    let tid = try #require(r["trackId"]?.stringValue)
+    let before = try #require(e.project?.tracks.first { $0.id == tid }?.clips)
+    let undo = e.context.history.undoStack.count
+    let again = try e.execute("voice.say", params: ["text": .string("\(first)\n\nUn autre deuxième paragraphe."), "language": "fr",
+                                                    "replace": .array(ids.map { .string($0) })])
+    let clips = try #require(e.project?.tracks.first { $0.id == tid }?.clips)
+    #expect(clips.count == 2, "\(clips.count) clips for two paragraphs placed again")
+    #expect(clips[0] == before[0], "the unchanged paragraph's clip changed")
+    #expect(clips[1].id != before[1].id && clips[1].start == before[1].start && clips[1].assetID != before[1].assetID, "the changed paragraph's clip was not replaced in place")
+    #expect(e.project?.asset(clips[1].assetID)?.generated?.prompt == "Un autre deuxième paragraphe.")
+    #expect(again["remade"] == 1 && again["unchanged"] == 1)
+    #expect(e.context.history.undoStack.count == undo + 1)
+    try e.execute("history.undo")
+    #expect(e.project?.tracks.first { $0.id == tid }?.clips == before, "one undo did not bring the voice back")
+    // With «at» it is a new copy where asked, never a replacement.
+    #expect(throws: CommandError.self) {
+        try e.execute("voice.say", params: ["text": .string(first), "language": "fr", "at": 30, "replace": .array(ids.map { .string($0) })])
+    }
+}

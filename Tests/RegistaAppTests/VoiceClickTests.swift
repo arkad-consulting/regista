@@ -146,6 +146,47 @@ extension MouseSuites {
         #expect(v.store.showVoiceSetup && v.model.windowLanguage == "it", "+ Tono opened \(v.store.showVoiceSetup) on \(v.model.windowLanguage)")
     }
 
+    /// #100: two paragraphs placed («Dopo l'ultima voce»), the second one changed, «Metti in timeline» again: still two
+    /// clips — the first untouched, the second replaced where it was — in one command and one undo step, and the job says
+    /// «1 paragrafo rifatto, 1 invariato». ⌘Z brings the first placement back.
+    @Test func changingOneParagraphReplacesOnlyItsClip() async throws {
+        let v = try await VoiceRig()
+        defer { v.close() }
+        v.app.hostEditor(Navigation(activity: .voice, rightTab: .inspector))
+        await v.app.settle()
+        v.model.text = "Ciao a tutti.\n\nOggi vi mostro Regista."
+        v.model.placement = .afterVoice
+        await v.app.settle()
+        let place = "Ogni paragrafo diventa una clip sulla pista Voce, con i tempi delle parole"
+        v.app.rig.click(try await v.enabledControl(place).centre)
+        #expect(await v.until { v.store.jobs.latest("voice")?.isRunning == false && v.model.placed != nil }, "the first placement did not end")
+        await v.app.settle()
+        let tid = try #require(v.model.placed?.trackId)
+        func clips() -> [Clip] { v.store.project?.tracks.first { $0.id == tid }?.clips ?? [] }
+        let before = clips()
+        #expect(before.count == 2, "\(before.count) clips for two paragraphs")
+
+        v.model.text = "Ciao a tutti.\n\nOggi vi mostro come si monta un video."
+        await v.app.settle()
+        let n = v.store.activity.count, undo = v.store.undoNames.count
+        v.app.rig.click(try await v.enabledControl(place).centre)
+        #expect(await v.until { v.store.jobs.latest("voice")?.isRunning == false && v.app.commands(since: n).contains("voice.say") }, "the second placement did not end")
+        await v.app.settle()
+        #expect(v.app.commands(since: n).filter { $0 == "voice.say" } == ["voice.say"], "the click ran \(v.app.commands(since: n))")
+        let after = clips()
+        #expect(after.count == 2, "\(after.count) clips on the Voce track: the text was placed again beside the old one")
+        #expect(after.first == before.first, "the unchanged paragraph's clip changed")
+        #expect(after.last?.id != before.last?.id && after.last?.start == before.last?.start && after.last?.assetID != before.last?.assetID,
+                "the changed paragraph's clip was not replaced where it was")
+        #expect(v.store.undoNames.count == undo + 1, "placing again took \(v.store.undoNames.count - undo) undo steps")
+        let said = loc("1 paragrafo rifatto") + ", " + loc("1 invariato")
+        #expect(v.store.jobs.latest("voice")?.detail == said, "the job says «\(v.store.jobs.latest("voice")?.detail ?? "")», not «\(said)»")
+        #expect(v.model.placed?.clipIds == after.map(\.id))
+        v.store.undo()
+        await v.app.settle()
+        #expect(clips() == before, "⌘Z did not bring the first placement back")
+    }
+
     /// «Metti in timeline» refused (the playhead on a voice clip with «Al cursore»): the job says why in the panel's words,
     /// never the engine's text (#94), and the edit is unchanged.
     @Test func aRefusedPlacementSaysWhyInWords() async throws {

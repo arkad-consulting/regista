@@ -275,6 +275,7 @@ enum VoiceSay: Command {
         .optional("gap", .number, "Seconds of silence between paragraphs (default 0.35)."),
         .optional("trackId", .string, "Audio track to use (default: the «Voce» track, created if missing)."),
         .optional("seed", .integer, "Seed of the first paragraph (+1 per paragraph); default derived from each paragraph's text."),
+        .optional("replace", .array(.string), "The clips an earlier voice.say placed for this text, one per paragraph in order (its result's clips): the text is placed again over them — a changed paragraph replaces its clip in place (a new clip id), an unchanged one keeps its clip, the clips after a paragraph that got longer or shorter move by the difference, a new paragraph at the end goes after the last voice, a removed one takes its clip away. Not with at."),
     ]
 
     /// The render request of paragraph `index` (voice.preview builds the same one, so its renders are reused here).
@@ -323,6 +324,14 @@ enum VoiceSay: Command {
             project.assets[k].analysis = analysis
         }
 
+        let gap = MediaTime(seconds: max(0, p.number("gap") ?? 0.35))
+        if let replace = p.strings("replace"), !replace.isEmpty {
+            guard !p.has("at") else { throw CommandError.invalid("\(id): replace keeps each paragraph where its clip is: leave at out") }
+            let r = try Self.replace(replace, with: assets, gap: gap, in: &project)
+            ctx.project = project
+            return r
+        }
+
         // The Voce track and the clips, back to back with the gaps.
         let rate = project.settings.frameRate
         let t: Int
@@ -334,7 +343,6 @@ enum VoiceSay: Command {
         }
         guard project.tracks[t].kind == .audio else { throw CommandError.invalid("\(id): \(project.tracks[t].id) is not an audio track") }
         var cursor = (p.time("at") ?? project.tracks[t].clips.map(\.end).max() ?? .zero).snapped(to: rate)
-        let gap = MediaTime(seconds: max(0, p.number("gap") ?? 0.35))
         var placed: [JSONValue] = []
         let fade = MediaTime(seconds: 0.01)
         for aid in assets {
@@ -355,6 +363,135 @@ enum VoiceSay: Command {
         ctx.project = project
         return ["trackId": .string(project.tracks[t].id), "clips": .array(placed), "paragraphs": .number(Double(paragraphs.count)),
                 "end": ProjectState.seconds(cursor - gap),
+                "captions": .string("captions.generate {sourceTrackId: \"\(project.tracks[t].id)\"}"),
+                "aiDisclosure": "AI-generated voice: say so in the post description (EU AI Act art. 50)."]
+    }
+
+    /// What became of each paragraph when a placed text is placed again (`replace`): the old clip it keeps or replaces,
+    /// or none (a new paragraph); and the old clips no paragraph keeps.
+    enum Change: Equatable {
+        case kept(clip: Int, paragraph: Int)
+        case remade(clip: Int, paragraph: Int)
+        case added(paragraph: Int)
+        case removed(clip: Int)
+    }
+
+    /// The old paragraphs (by their render) against the new ones, in order: the longest run of unchanged renders kept, a
+    /// removed render and an added one at the same place paired as one paragraph remade.
+    static func changes(old: [String], new: [String]) -> [Change] {
+        let n = old.count, m = new.count
+        var lcs = Array(repeating: Array(repeating: 0, count: m + 1), count: n + 1)
+        for i in stride(from: n - 1, through: 0, by: -1) {
+            for j in stride(from: m - 1, through: 0, by: -1) {
+                lcs[i][j] = old[i] == new[j] ? lcs[i + 1][j + 1] + 1 : max(lcs[i + 1][j], lcs[i][j + 1])
+            }
+        }
+        var out: [Change] = [], removed: [Int] = [], added: [Int] = []
+        func flush() {
+            let pairs = min(removed.count, added.count)
+            out += (0..<pairs).map { .remade(clip: removed[$0], paragraph: added[$0]) }
+            out += removed.dropFirst(pairs).map { .removed(clip: $0) }
+            out += added.dropFirst(pairs).map { .added(paragraph: $0) }
+            removed = []; added = []
+        }
+        var i = 0, j = 0
+        while i < n || j < m {
+            if i < n, j < m, old[i] == new[j] { flush(); out.append(.kept(clip: i, paragraph: j)); i += 1; j += 1 }
+            else if j < m, i == n || lcs[i][j + 1] >= lcs[i + 1][j] { added.append(j); j += 1 }
+            else { removed.append(i); i += 1 }
+        }
+        flush()
+        return out
+    }
+
+    /// Places the rendered paragraphs (`assets`, in order) over the clips an earlier voice.say placed for the text (`clipIDs`,
+    /// one per paragraph then): see the `replace` parameter. Every clip after a change on the track moves with it.
+    static func replace(_ clipIDs: [String], with assets: [String], gap: MediaTime, in project: inout Project) throws -> JSONValue {
+        guard let t = project.tracks.firstIndex(where: { $0.clips.contains { $0.id == clipIDs[0] } }) else {
+            throw CommandError.notFound("\(id): clip \(clipIDs[0]) is not on the timeline")
+        }
+        for c in clipIDs where !project.tracks[t].clips.contains(where: { $0.id == c }) {
+            throw CommandError.invalid("\(id): clip \(c) is not on \(project.tracks[t].name) with \(clipIDs[0]): replace takes the clips of one voice.say")
+        }
+        let rate = project.settings.frameRate
+        func clip(_ id: String) -> Clip { project.tracks[t].clips.first { $0.id == id }! }
+        func path(_ asset: String) -> String { project.asset(asset)?.path ?? asset }
+        /// Every clip of the track starting at or after `from` (but `except`) moves by `delta`.
+        func shift(from: MediaTime, by delta: MediaTime, except: String? = nil) {
+            guard delta != .zero else { return }
+            for k in project.tracks[t].clips.indices where project.tracks[t].clips[k].id != except && project.tracks[t].clips[k].start >= from {
+                project.tracks[t].clips[k].start = (project.tracks[t].clips[k].start + delta).snapped(to: rate)
+            }
+        }
+        let fade = MediaTime(seconds: 0.01)
+        var placed: [String?] = Array(repeating: nil, count: assets.count)
+        var counts = (remade: 0, kept: 0, added: 0, removed: 0)
+        var lastPlaced: String?
+        let plan = changes(old: clipIDs.map { path(clip($0).assetID) }, new: assets.map(path))
+        for (step, change) in plan.enumerated() {
+            switch change {
+            case .kept(let c, let i):
+                placed[i] = clipIDs[c]
+                lastPlaced = clipIDs[c]
+                counts.kept += 1
+            case .remade(let c, let i):
+                let old = clip(clipIDs[c])
+                let duration = project.asset(assets[i])!.duration
+                shift(from: old.end, by: duration - old.duration, except: old.id)
+                // A new clip where the old one was (a new id: what was made from the old one, such as its captions,
+                // reads as made from another voice).
+                let k = project.tracks[t].clips.firstIndex { $0.id == old.id }!
+                project.tracks[t].clips[k].id = project.makeID("c")
+                project.tracks[t].clips[k].assetID = assets[i]
+                project.tracks[t].clips[k].sourceIn = .zero
+                project.tracks[t].clips[k].sourceOut = duration
+                placed[i] = project.tracks[t].clips[k].id
+                lastPlaced = placed[i]
+                counts.remade += 1
+            case .removed(let c):
+                let old = clip(clipIDs[c])
+                // The clips after it close the room it took, up to the next clip's start.
+                let next = project.tracks[t].clips.filter { $0.id != old.id && $0.start >= old.end }.map(\.start).min()
+                project.tracks[t].clips.removeAll { $0.id == old.id }
+                if let next { shift(from: next, by: old.start - next) }
+                counts.removed += 1
+            case .added(let i):
+                let duration = project.asset(assets[i])!.duration
+                // Between paragraphs: after the one before it (or where the first one was), the clips after it moving on.
+                // At the end: after the last voice of the track.
+                let next = plan[(step + 1)...].lazy.compactMap { change -> String? in
+                    switch change {
+                    case .kept(let c, _), .remade(let c, _): clipIDs[c]
+                    default: nil
+                    }
+                }.first.map(clip)
+                let start: MediaTime
+                if let next {
+                    start = lastPlaced.map { (clip($0).end + gap).snapped(to: rate) } ?? next.start
+                    shift(from: next.start, by: start + duration + gap - next.start)
+                } else {
+                    start = ((project.tracks[t].clips.map(\.end).max() ?? .zero) + gap).snapped(to: rate)
+                }
+                var c = Clip(id: project.makeID("c"), assetID: assets[i], sourceIn: .zero, sourceOut: duration, start: start)
+                c.fadeIn = fade
+                c.fadeOut = fade
+                project.tracks[t].clips.append(c)
+                placed[i] = c.id
+                lastPlaced = c.id
+                counts.added += 1
+            }
+        }
+        project.tracks[t].sortClips()
+        let clips: [JSONValue] = zip(placed, assets).compactMap { id, aid in
+            guard let id, let c = project.tracks[t].clips.first(where: { $0.id == id }) else { return nil }
+            return ["clipId": .string(id), "assetId": .string(aid), "start": ProjectState.seconds(c.start), "duration": ProjectState.seconds(c.duration),
+                    "text": .string(String(project.asset(aid)?.generated?.prompt.prefix(80) ?? ""))]
+        }
+        let ends = placed.compactMap { id in project.tracks[t].clips.first { $0.id == id }?.end }
+        return ["trackId": .string(project.tracks[t].id), "clips": .array(clips), "paragraphs": .number(Double(assets.count)),
+                "end": ProjectState.seconds(ends.max() ?? .zero),
+                "remade": .number(Double(counts.remade)), "unchanged": .number(Double(counts.kept)),
+                "added": .number(Double(counts.added)), "removed": .number(Double(counts.removed)),
                 "captions": .string("captions.generate {sourceTrackId: \"\(project.tracks[t].id)\"}"),
                 "aiDisclosure": "AI-generated voice: say so in the post description (EU AI Act art. 50)."]
     }

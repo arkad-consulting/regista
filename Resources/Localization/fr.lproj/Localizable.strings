@@ -2404,3 +2404,12 @@
 "Aggiorna dal kit" = "Mettre à jour depuis le kit";
 "Il kit «%@» è stato eliminato: il progetto tiene la sua copia dei colori. Il logo e i caratteri del kit possono mancare nel video." = "Le kit « %@ » a été supprimé : le projet garde sa copie des couleurs. Le logo et les polices du kit peuvent manquer dans la vidéo.";
 "Il kit «%@» è stato eliminato: il progetto tiene la sua copia e il video non cambia." = "Le kit « %@ » a été supprimé : le projet garde sa copie et la vidéo ne change pas.";
+"Nessun paragrafo rifatto" = "Aucun paragraphe refait";
+"1 paragrafo rifatto" = "1 paragraphe refait";
+"%d paragrafi rifatti" = "%d paragraphes refaits";
+"1 aggiunto" = "1 ajouté";
+"%d aggiunti" = "%d ajoutés";
+"1 tolto" = "1 retiré";
+"%d tolti" = "%d retirés";
+"1 invariato" = "1 inchangé";
+"%d invariati" = "%d inchangés";

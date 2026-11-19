@@ -31,12 +31,26 @@ enum VoiceCalls {
         return .init(id: "voice.preview", params: .object(o))
     }
 
-    /// Metti in timeline: at the playhead, or after the last voice clip (voice.say's default).
-    static func say(_ text: String, language: String, tone: String, placement: Placement, playhead: Double) -> VoiceCall {
+    /// Metti in timeline: at the playhead, or after the last voice clip (voice.say's default). `replace`: the clips this
+    /// panel placed for its text before, one per paragraph (#100): «Dopo l'ultima voce» places the text again over them
+    /// (a changed paragraph replaces its clip in place, the others stay); «Al cursore» always places a new copy.
+    static func say(_ text: String, language: String, tone: String, placement: Placement, playhead: Double, replace: [String]? = nil) -> VoiceCall {
         var o: [String: JSONValue] = ["text": .string(text), "language": .string(language)]
         if tone != VoiceTone.neutral { o["tone"] = .string(tone) }
         if placement == .playhead { o["at"] = .number(playhead) }
+        else if let replace, !replace.isEmpty { o["replace"] = .array(replace.map { .string($0) }) }
         return .init(id: "voice.say", params: .object(o))
+    }
+
+    /// What placing the text again did (#100), in words: «1 paragrafo rifatto, 1 invariato».
+    static func replaced(_ r: JSONValue) -> String {
+        func n(_ key: String) -> Int { Int(r[key]?.doubleValue ?? 0) }
+        let remade = n("remade"), added = n("added"), removed = n("removed"), kept = n("unchanged")
+        var parts = [remade == 0 ? loc("Nessun paragrafo rifatto") : remade == 1 ? loc("1 paragrafo rifatto") : String(format: loc("%d paragrafi rifatti"), remade)]
+        if added > 0 { parts.append(added == 1 ? loc("1 aggiunto") : String(format: loc("%d aggiunti"), added)) }
+        if removed > 0 { parts.append(removed == 1 ? loc("1 tolto") : String(format: loc("%d tolti"), removed)) }
+        if kept > 0 { parts.append(kept == 1 ? loc("1 invariato") : String(format: loc("%d invariati"), kept)) }
+        return parts.joined(separator: ", ")
     }
 
     static func captions(trackId: String) -> VoiceCall { .init(id: "captions.generate", params: ["sourceTrackId": .string(trackId)]) }
@@ -260,7 +274,12 @@ final class VoiceModel: ObservableObject {
             }
             try Task.checkCancellation()
             h.update(progress: Double(n) / Double(n + 1), detail: loc("Metto le clip sulla pista Voce e calcolo i tempi delle parole…"))
-            let say = VoiceCalls.say(text, language: lang, tone: tone, placement: placement, playhead: store.preview.time)
+            // The text this panel placed before, its clips all still on their track: placed again over them (#100).
+            let before = self.placed.flatMap { p -> [String]? in
+                let onTrack = Set(store.project?.tracks.first { $0.id == p.trackId }?.clips.map(\.id) ?? [])
+                return !p.clipIds.isEmpty && p.clipIds.allSatisfy(onTrack.contains) ? p.clipIds : nil
+            }
+            let say = VoiceCalls.say(text, language: lang, tone: tone, placement: placement, playhead: store.preview.time, replace: before)
             let r = try await Self.inWords { try await store.perform(say.id, say.params) }
             let ids = (r["clips"]?.arrayValue ?? []).compactMap { $0["clipId"]?.stringValue }
             let trackId = r["trackId"]?.stringValue ?? ""
@@ -268,7 +287,7 @@ final class VoiceModel: ObservableObject {
             store.selection = Set(ids)
             if let s = r["clips"]?.arrayValue?.first?["start"]?.doubleValue { store.preview.seek(s) }
             self.placed = Placed(trackId: trackId, clipIds: ids, seconds: max(0, end - start), text: text)
-            h.update(progress: 1, detail: String(format: loc("%d clip sulla pista Voce"), ids.count))
+            h.update(progress: 1, detail: say.params["replace"] != nil ? VoiceCalls.replaced(r) : String(format: loc("%d clip sulla pista Voce"), ids.count))
         }
     }
 

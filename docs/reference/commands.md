@@ -2712,6 +2712,7 @@ Voice-over in the active profile's own voice, placed on the timeline: splits the
 | `gap` | number | no | 0.35 | Seconds of silence between paragraphs (default 0.35). |
 | `trackId` | string | no | the «Voce» track, created if missing | Audio track to use (default: the «Voce» track, created if missing). |
 | `seed` | integer | no | derived from each paragraph's text | Seed of the first paragraph (+1 per paragraph); default derived from each paragraph's text. |
+| `replace` | array of string | no | – | The clips an earlier voice.say placed for this text, one per paragraph in order (its result's clips): the text is placed again over them — a changed paragraph replaces its clip in place (a new clip id), an unchanged one keeps its clip, the clips after a paragraph that got longer or shorter move by the difference, a new paragraph at the end goes after the last voice, a removed one takes its clip away. Not with at. |
 
 Returns: the track, clips, total duration and the AI-disclosure reminder.
 
