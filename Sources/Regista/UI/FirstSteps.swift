@@ -11,14 +11,19 @@ enum FirstSteps {
     /// The manifest entry the model row installs: the job Settings › Motori starts for it.
     static let modelID = "whisper-model"
 
-    /// Neither Claude Desktop nor Claude Code runs this app's own server.
+    /// Neither Claude Desktop nor Claude Code runs a Regista server that is there: this app's own, or another copy that
+    /// still exists (a build of the source folder, an older app). Pointing a working connection at this app is Settings ›
+    /// Claude's job, not a first step; a connection to a file that is gone counts as none.
     static func claudePending(_ clients: ClaudeClients, bundle: Bundle) -> Bool {
         let bundled = ClaudeClients.bundledMCP(bundle: bundle)
-        func here(_ s: ClaudeClients.State) -> Bool {
-            if case .here = ClaudeClients.verdict(s, bundled: bundled) { return true }
-            return false
+        func connected(_ s: ClaudeClients.State) -> Bool {
+            switch ClaudeClients.verdict(s, bundled: bundled) {
+            case .here: return true
+            case .elsewhere(_, let exists): return exists
+            case .notConnected, .unreadable: return false
+            }
         }
-        return !here(clients.desktop) && !here(clients.code)
+        return !connected(clients.desktop) && !connected(clients.code)
     }
 }
 
@@ -26,10 +31,18 @@ enum FirstSteps {
 /// no Settings scene).
 private struct SettingsOpenerKey: EnvironmentKey { static let defaultValue: ((SettingsTab) -> Void)? = nil }
 
+/// How the block reads the Claude clients' configuration: ClaudeClients.read by default (a test gives its own state: the
+/// test process shares one configuration folder).
+private struct ClaudeClientsReaderKey: EnvironmentKey { static let defaultValue: (() -> ClaudeClients)? = nil }
+
 extension EnvironmentValues {
     var settingsOpener: ((SettingsTab) -> Void)? {
         get { self[SettingsOpenerKey.self] }
         set { self[SettingsOpenerKey.self] = newValue }
+    }
+    var claudeClientsReader: (() -> ClaudeClients)? {
+        get { self[ClaudeClientsReaderKey.self] }
+        set { self[ClaudeClientsReaderKey.self] = newValue }
     }
 }
 
@@ -38,6 +51,7 @@ struct FirstStepsBlock: View {
     @Environment(\.appBundle) private var appBundle
     @Environment(\.openSettings) private var openSettings
     @Environment(\.settingsOpener) private var opener
+    @Environment(\.claudeClientsReader) private var reader
     @State private var clients = ClaudeClients.read()
     @State private var noClaude = false
     @State private var installer = EngineInstaller.locate()
@@ -62,10 +76,12 @@ struct FirstStepsBlock: View {
                 .padding(.top, 22)
             }
         }
-        .onAppear { clients = ClaudeClients.read() }
+        .onAppear { clients = readClients() }
         // Back from Settings › Claude (or from Claude Desktop): the connection is read again.
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in clients = ClaudeClients.read() }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in clients = readClients() }
     }
+
+    private func readClients() -> ClaudeClients { reader?() ?? ClaudeClients.read() }
 
     // MARK: Rows
 
@@ -97,7 +113,7 @@ struct FirstStepsBlock: View {
         let size = EnginesSettings.localDisk(EngineManifest.shared.diskText(FirstSteps.modelID))
         var failure: String?
         if let job, case .failed(let why) = job.state { failure = String(format: loc("Installazione non riuscita: %@"), why) }
-        return row("waveform", loc("Serve per trascrivere e fare i sottotitoli"), detail: size, warning: failure) {
+        return row("waveform", loc("Modello per trascrivere e fare i sottotitoli"), detail: size, warning: failure) {
             if let job, job.isRunning {
                 HStack(spacing: Ed.Space.s) {
                     JobProgressBar(progress: job.progress, estimated: job.estimated).frame(width: 140)

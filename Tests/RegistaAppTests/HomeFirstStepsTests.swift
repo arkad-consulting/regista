@@ -38,9 +38,15 @@ extension MouseSuites {
         return MouseRig.table(language).localizedString(forKey: key, value: nil, table: nil)
     }
 
-    /// Inizio hosted as the window shows it, with `bundle` as this app and the Settings tabs «Collega…» opens recorded.
-    static func host(_ app: AppRig, bundle: Bundle = .main, language: String? = nil, opened: @escaping (SettingsTab) -> Void = { _ in }) async {
+    /// No Claude client connected to any Regista server (a Mac the app was just downloaded on).
+    static let noClient = ClaudeClients(desktop: .notConnected, code: .notConnected)
+
+    /// Inizio hosted as the window shows it, with `bundle` as this app, the Settings tabs «Collega…» opens recorded, and
+    /// `clients` as the Claude clients' state (nil: the rig's own — Claude Code runs the test process's server).
+    static func host(_ app: AppRig, bundle: Bundle = .main, language: String? = nil, clients: ClaudeClients? = noClient,
+                     opened: @escaping (SettingsTab) -> Void = { _ in }) async {
         app.host(HomeWorkspace().environment(\.appBundle, bundle).environment(\.settingsOpener, opened)
+            .environment(\.claudeClientsReader, clients.map { c in { c } })
             .frame(width: size.width, height: size.height), size: size, language: language)
         await app.settle()
         _ = app.rig.wait(5) { app.store.engineSummary != nil }
@@ -64,7 +70,7 @@ extension MouseSuites {
         defer { app.close() }
         await Self.host(app, bundle: try shippedApp(), language: language)
         #expect(!app.rig.elements(containing: Self.label(language)).isEmpty, "\(language): no «Per cominciare»")
-        #expect(!app.rig.elements(containing: Self.word("Serve per trascrivere e fare i sottotitoli", language)).isEmpty)
+        #expect(!app.rig.elements(containing: Self.word("Modello per trascrivere e fare i sottotitoli", language)).isEmpty)
         #expect(!app.rig.elements(containing: Self.word("Collega Claude per montare parlando", language)).isEmpty)
         #expect(!app.rig.elements(containing: Self.word("Reel parlato", language)).isEmpty, "the start cards are not on screen")
         try Self.snapshot(app, "n26-home-first-steps-\(language).png")
@@ -148,13 +154,27 @@ extension MouseSuites {
         #expect(app.rig.element("Collega Claude per montare parlando") == nil)
     }
 
+    /// Claude already connected to another copy of Regista that is still there (a build of the source folder, an older
+    /// app): no Claude row — repointing it is Settings › Claude's job. A connection to a file that is gone counts as none.
+    @Test func aWorkingConnectionToAnotherCopyIsNotAFirstStep() async throws {
+        let bundle = try shippedApp()
+        let app = try await AppRig(project: nil, services: model(present: true))
+        defer { app.close() }
+        await Self.host(app, bundle: bundle, clients: nil)   // the rig's Claude Code runs the test process's server, not this bundle's
+        #expect(app.rig.element("Collega…") == nil && app.rig.elements(containing: Self.label(nil)).isEmpty,
+                "«Per cominciare» although Claude Code is connected to a working copy")
+        let gone = ClaudeClients(desktop: .notConnected, code: .connected(command: "/nowhere/Regista.app/Contents/MacOS/regista-mcp", exists: false))
+        #expect(FirstSteps.claudePending(gone, bundle: bundle))
+        #expect(FirstSteps.claudePending(Self.noClient, bundle: bundle))
+    }
+
     /// Nothing pending (the model there, Claude Code connected to this app — the rig's client runs the test process's
     /// server): the block is not in the view tree, in Italian and French.
     @Test(arguments: ["it", "fr"])
     func nothingPendingNoBlock(_ language: String) async throws {
         let app = try await AppRig(project: nil, services: model(present: true))
         defer { app.close() }
-        await Self.host(app, language: language)
+        await Self.host(app, language: language, clients: nil)
         #expect(app.rig.elements(containing: Self.label(language)).isEmpty, "\(language): «Per cominciare» with nothing pending")
         #expect(app.rig.element(Self.word("Scarica", language)) == nil && app.rig.element(Self.word("Collega…", language)) == nil)
         #expect(!app.rig.elements(containing: Self.word("Reel parlato", language)).isEmpty)
