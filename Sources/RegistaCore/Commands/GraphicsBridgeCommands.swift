@@ -138,6 +138,13 @@ enum GraphicsBlenderTitle: Command {
 
 enum GraphicsHyperframes: Command {
     static let id = "graphics.hyperframes"
+
+    /// The environment the CLI renders with: its Node.js, then Regista's own ffmpeg first on the PATH (it encodes with a
+    /// bare `ffmpeg`, #115), no install scripts, and no usage data sent (the CLI's telemetry is on by default, #117).
+    static func environment(_ config: EngineConfig, node: URL) -> [String: String] {
+        ["PATH": config.enginePath(first: [node.deletingLastPathComponent().path]), "npm_config_ignore_scripts": "true",
+         "HYPERFRAMES_NO_TELEMETRY": "1", "DO_NOT_TRACK": "1"]
+    }
     static let summary = "Render a HyperFrames composition (HTML/GSAP cards, kinetic type, UI mock-ups) to a transparent PNG sequence with the pinned CLI (hyperframes \(EngineConfig.hyperframesVersion) installed from a lockfile in the engines folder, npm scripts disabled; separate process, Medium tier+) and place it as an overlay: native size in a band, or fullFrame. The composition must have a transparent background. Cached by the folder's content. Returns the overlay clip and render time."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
@@ -179,10 +186,9 @@ enum GraphicsHyperframes: Command {
                         "--output", frames.path, "--fps", String(Int(ctx.project!.settings.frameRate.doubleValue.rounded())), "--quiet"]
             if let c = composition { args += ["--composition", c] }
             if let v = p.json("variables") { args += ["--variables", String(decoding: v.data(), as: UTF8.self)] }
-            // Its Node.js first, then Regista's own ffmpeg (the CLI encodes with a bare `ffmpeg`, #115).
-            let path = ctx.services.config.enginePath(first: [runner!.executable.deletingLastPathComponent().path])
             let started = Date()
-            let r = try Subprocess.run(runner!.executable, args, environment: ["npm_config_ignore_scripts": "true", "PATH": path], currentDirectory: dir)
+            let r = try Subprocess.run(runner!.executable, args, environment: Self.environment(ctx.services.config, node: runner!.executable),
+                                       currentDirectory: dir)
             renderSeconds = Date().timeIntervalSince(started)
             let pngs = ((try? FileManager.default.contentsOfDirectory(atPath: frames.path)) ?? []).filter { $0.hasSuffix(".png") }
             guard r.status == 0, !pngs.isEmpty else {

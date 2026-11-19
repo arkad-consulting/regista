@@ -19,3 +19,13 @@ import Testing
     // WhisperX (since #109).
     #expect(WhisperXTranscriber(config: config).environment["PATH"]?.hasPrefix(folder + ":") == true)
 }
+
+/// #117: HyperFrames renders send no usage data (the pinned CLI reads both switches) and find the app's ffmpeg.
+@Test func hyperframesRendersWithoutTelemetry() {
+    var config = EngineConfig()
+    config.ffmpeg = "/Applications/Regista.app/Contents/Helpers/ffmpeg"
+    let env = GraphicsHyperframes.environment(config, node: URL(fileURLWithPath: "/engines/node/bin/node"))
+    #expect(env["HYPERFRAMES_NO_TELEMETRY"] == "1" && env["DO_NOT_TRACK"] == "1")
+    #expect(env["npm_config_ignore_scripts"] == "true")
+    #expect(env["PATH"]?.hasPrefix("/engines/node/bin:/Applications/Regista.app/Contents/Helpers:") == true, "\(env)")
+}
