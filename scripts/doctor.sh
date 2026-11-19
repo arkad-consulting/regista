@@ -51,7 +51,7 @@ done < <(lock_ids)
 step "Configuration"
 if [ ! -f "$CONFIG" ]; then
   problem "no $CONFIG" "$REINSTALL"
-elif ! "$PY" -I -c 'import json,sys; json.load(open(sys.argv[1]))' "$CONFIG" 2>/dev/null; then
+elif ! json_ok "$CONFIG"; then
   problem "$CONFIG is not valid JSON" "$(t fix_json)"
 else ok "$CONFIG"; fi
 # cfg <key> <default> — the engines.json value, else Regista's built-in default (EngineConfig.swift)
@@ -185,6 +185,8 @@ else
   MCP="$(bundled_mcp "$APP")"
   if [ -x "$MCP" ]; then ok "regista-mcp inside the app ($MCP)"
   else problem "this Regista.app has no regista-mcp inside (built before M3)" "$REINSTALL"; MCP=""; fi
+  # The installed app's helper reads Claude Desktop's config below (no python3, #106).
+  [ -n "$HELPER" ] || [ ! -x "$APP/Contents/MacOS/regista-engine" ] || HELPER="$APP/Contents/MacOS/regista-engine"
   # An app built from an older commit than this folder: Claude would use old tools.
   app_sha="$(defaults read "$APP/Contents/Info" RegistaBuildSHA 2>/dev/null || true)"
   head_sha="$(git rev-parse --short=7 HEAD 2>/dev/null || true)"
@@ -214,7 +216,7 @@ if command -v claude >/dev/null 2>&1; then
   else UNCONNECTED+=("Claude Code|claude mcp add --scope user regista -- ${MCP:-<Regista.app>/Contents/MacOS/regista-mcp}"); fi
 else ok "Claude Code not installed (optional)"; fi
 if desktop_installed; then
-  MCP_ENV="$(mcp_env)"; rc=0; cur="$("$PY" -I scripts/claude_desktop.py status "$DESKTOP_CONFIG" "${MCP:-/nonexistent}" ${MCP_ENV:+"$MCP_ENV"})" || rc=$?
+  MCP_ENV="$(mcp_env)"; rc=0; cur="$(desktop_config status "$DESKTOP_CONFIG" "${MCP:-/nonexistent}" ${MCP_ENV:+"$MCP_ENV"})" || rc=$?
   case $rc in
     0) ok "Claude Desktop: regista → $MCP"; CONNECTED=1 ;;
     2) problem "Claude Desktop's regista server points to $cur, not to the app's own (${MCP:-none in this app})" "$(t fix_repoint desktop)" ;;

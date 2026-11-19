@@ -55,12 +55,13 @@ for lang in it en fr pt; do
   cp docs/$lang/*.md "$APP/Contents/Resources/Help/$lang/"
 done
 [ -f Resources/AppIcon.icns ] && cp Resources/AppIcon.icns "$APP/Contents/Resources/"
-# The installer, for Impostazioni › Motori (scripts/install.sh --only <id>) and › Claude (claude_desktop.py): the scripts
-# it runs and the engine sources it copies (the files git tracks in engines/, never a .venv or a model).
+# The installer, for Impostazioni › Motori (scripts/install.sh --only <id>): the scripts it runs and the engine sources it
+# copies (the files git tracks in engines/, never a .venv or a model). No Python helper: inside the app the installer asks
+# Contents/MacOS/regista-engine (#106), so it runs on a Mac without the Command Line Tools.
 INST="$APP/Contents/Resources/Installer"
 mkdir -p "$INST/scripts"
-cp scripts/install.sh scripts/lib.sh scripts/i18n.sh scripts/engines.py scripts/engines.lock scripts/engines.manifest.json \
-   scripts/build-whisper.sh scripts/claude_desktop.py scripts/doctor.sh scripts/mcp_smoke.py "$INST/scripts/"
+cp scripts/install.sh scripts/lib.sh scripts/i18n.sh scripts/engines.lock scripts/engines.manifest.json \
+   scripts/build-whisper.sh scripts/doctor.sh scripts/mcp_smoke.py "$INST/scripts/"
 git ls-files engines | while IFS= read -r f; do mkdir -p "$INST/$(dirname "$f")"; cp "$f" "$INST/$f"; done
 
 # Same entitlements and options as before (no hardened runtime); only the identity changes. The helpers in Contents/MacOS

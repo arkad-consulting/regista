@@ -279,7 +279,12 @@ source `scripts/lib.sh`, and both speak the macOS language — Italian, English,
   else `~/Applications` (a copy left in the other folder is moved to the Trash). Existing verified copies are referenced in place (the paths `engines.json` already names), and the download cache is reused.
 - **Overrides** (for tests and unusual setups): `REGISTA_SUPPORT_DIR`, `REGISTA_CACHE_DIR`, `REGISTA_ENGINES`,
   `REGISTA_APP_DIR`. `scripts/fresh-user.sh` runs the whole new-user simulation (installer + doctor in a temp home with
-  a prebuilt app, see its header). Foundation ignores `$HOME`, so a fresh-user simulation also sets `CFFIXED_USER_HOME`:
+  a prebuilt app, see its header). `scripts/bare-mac.sh --app <Regista.app>` checks what a downloaded app does on a Mac
+  without the Command Line Tools and Homebrew (#106): a `python3` that fails like the Command Line Tools stub first on the
+  PATH, no Homebrew folder, every installer step traced; Settings › Engines' path for one Base engine and Settings ›
+  Claude's Claude Desktop connection. Inside the app the installer asks `Contents/MacOS/regista-engine` (`manifest`,
+  `config`, `claude-desktop`) for what Python helpers did; `scripts/engines.py` stays for a developer's clone
+  (`validate`, `docs`, and the queries before an app is built). Foundation ignores `$HOME`, so a fresh-user simulation also sets `CFFIXED_USER_HOME`:
 
   ```bash
   T=$(mktemp -d); git clone ~/code/regista $T/home/code/regista   # cache: symlink already-downloaded files into $T/cache/<id>/
@@ -293,7 +298,7 @@ source `scripts/lib.sh`, and both speak the macOS language — Italian, English,
 - **Claude connections.** `--claude desktop|code|both|none` (default: whichever is installed — `claude` in PATH for
   Claude Code; `Claude.app` in /Applications or ~/Applications, or an existing config, for Claude Desktop; `--no-claude`
   = `none`). Claude Code: `claude mcp add --scope user regista` (replaces a previous user-scope entry). Claude Desktop:
-  `scripts/claude_desktop.py set` adds or replaces `mcpServers.regista = {"command": <abs>/regista-mcp, "args": []}`
+  `regista-engine claude-desktop set` (the app's own helper; Settings › Claude runs the same code) adds or replaces `mcpServers.regista = {"command": <abs>/regista-mcp, "args": []}`
   (+ `env.REGISTA_ENGINES` when engines.json is not at its default place) in
   `~/Library/Application Support/Claude/claude_desktop_config.json`, keeping every other key (Desktop keeps its own
   `preferences` there) and server; asks first unless `--yes`, copies the file to

@@ -223,7 +223,7 @@ struct ClaudeSettings: View {
 
     private func connectButton(_ t: Target, installed: Bool, repoint: Bool = false) -> some View {
         let mcp = clients.mcpBinary()
-        let ready = mcp != nil && (t == .desktop || ClaudeClients.claudeCLI() != nil) && (t == .code || EngineInstaller.locate() != nil)
+        let ready = mcp != nil && (t == .desktop || ClaudeClients.claudeCLI() != nil)
         let title = repoint ? loc("Ricollega a questa app…") : t == .desktop ? loc("Collega Claude Desktop…") : loc("Collega Claude Code…")
         return Button(title) { confirm = t }
             .disabled(!ready)
@@ -246,29 +246,33 @@ struct ClaudeSettings: View {
         }
     }
 
-    /// The installer's own steps (claude_desktop.py set / claude mcp add), as a job.
+    /// The installer's own steps (ClaudeDesktopConfig, what `regista-engine claude-desktop set` runs / claude mcp add), as
+    /// a job. Claude Desktop's file is edited in this process: nothing here needs python3 (#106).
     private func connect(_ t: Target) {
         guard let mcp = clients.mcpBinary() else { return }
         let home = ClaudeClients.home
         // The `claude` command writes its user-scope servers in the home folder it is given.
         let environment = ClaudeClients.homeOverride.map { ["HOME": $0.path] }
-        let steps: [(URL, [String])]
+        var steps: [(URL, [String])] = []
         switch t {
         case .desktop:
-            guard let installer = EngineInstaller.locate() else { return }
-            let py = installer.script.deletingLastPathComponent().appendingPathComponent("claude_desktop.py").path
-            steps = [(URL(fileURLWithPath: "/usr/bin/python3"), ["-I", py, "set", ClaudeClients.desktopConfig.path, mcp])]
+            break
         case .code:
             guard let cli = ClaudeClients.claudeCLI() else { return }
-            var s: [(URL, [String])] = []
-            if case .connected = clients.code { s.append((URL(fileURLWithPath: cli), ["mcp", "remove", "regista", "--scope", "user"])) }
-            s.append((URL(fileURLWithPath: cli), ["mcp", "add", "--scope", "user", "regista", "--", mcp]))
-            steps = s
+            if case .connected = clients.code { steps.append((URL(fileURLWithPath: cli), ["mcp", "remove", "regista", "--scope", "user"])) }
+            steps.append((URL(fileURLWithPath: cli), ["mcp", "add", "--scope", "user", "regista", "--", mcp]))
         }
+        let desktopConfig = ClaudeClients.desktopConfig
         store.jobs.start(kind: "claude.\(t)", title: t == .desktop ? loc("Collego Claude Desktop") : loc("Collego Claude Code"), tab: loc("Claude")) { _ in
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
                 Thread.detachNewThread {
-                    cont.resume(with: Result { for (exe, args) in steps { try Subprocess.check(exe, args, environment: environment, currentDirectory: home) } })
+                    cont.resume(with: Result {
+                        if t == .desktop {
+                            let r = ClaudeDesktopConfig.set(desktopConfig, mcp: mcp)
+                            guard r.status == 0 else { throw RegistaError(r.out.trimmingCharacters(in: .whitespacesAndNewlines)) }
+                        }
+                        for (exe, args) in steps { try Subprocess.check(exe, args, environment: environment, currentDirectory: home) }
+                    })
                 }
             }
             clients = ClaudeClients.read()

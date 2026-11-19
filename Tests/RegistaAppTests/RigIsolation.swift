@@ -32,8 +32,8 @@ struct RigOutside {
     /// `REGISTA_SUPPORT_DIR`: its `engines` folder is the one Rimuovi deletes from.
     let support: URL
     var enginesFolder: URL { support.appendingPathComponent("engines", isDirectory: true) }
-    /// `REGISTA_INSTALLER`: scripts/install.sh writes its arguments to `installLog` and installs nothing;
-    /// scripts/claude_desktop.py is the repository's own (it edits the scratch Claude Desktop configuration).
+    /// `REGISTA_INSTALLER`: scripts/install.sh writes its arguments to `installLog` and installs nothing (Claude Desktop's
+    /// scratch configuration is edited by the app's own code, ClaudeDesktopConfig).
     let installer: URL
     let installLog: URL
     /// `REGISTA_CLAUDE_HOME`: Claude Code's configuration names `mcp` as Regista's server; `claude` writes its arguments
@@ -70,7 +70,6 @@ struct RigOutside {
             echo "$@" >> "\(installLog.path)"
             echo "✓ test rig: nothing installed"
             """)
-        try! fm.copyItem(at: repository.appendingPathComponent("scripts/claude_desktop.py"), to: installer.appendingPathComponent("scripts/claude_desktop.py"))
         let home = root.appendingPathComponent("claude-home", isDirectory: true)
         let mcp = home.appendingPathComponent("regista-mcp")
         let claudeLog = root.appendingPathComponent("claude.log")

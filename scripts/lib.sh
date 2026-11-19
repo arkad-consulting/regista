@@ -25,7 +25,15 @@ DESKTOP_CONFIG="$HOME/Library/Application Support/Claude/claude_desktop_config.j
 # The env Regista's MCP server needs in a Claude config: REGISTA_ENGINES only when engines.json is not at its default place.
 mcp_env() { [ "$CONFIG" = "$HOME/Library/Application Support/Regista/engines.json" ] || echo "REGISTA_ENGINES=$CONFIG"; }
 desktop_installed() { [ -d /Applications/Claude.app ] || [ -d "$HOME/Applications/Claude.app" ] || [ -f "$DESKTOP_CONFIG" ]; }
-PY=/usr/bin/python3   # ships with the Command Line Tools; used for JSON only, always with -I
+PY=/usr/bin/python3   # ships with the Command Line Tools: only a developer's clone uses it (below), always with -I
+# The app's own helper (#106): on a Mac without the Command Line Tools /usr/bin/python3 is a stub that only asks to install
+# them, so the installer copy inside Regista.app (what Settings › Engines runs) asks regista-engine instead: the manifest
+# queries, engines.json and Claude Desktop's config. $REGISTA_HELPER names it (the app passes its own); the copy in
+# Contents/Resources/Installer finds Contents/MacOS/regista-engine by itself; install.sh --app-bundle uses that app's. A
+# clone without a built app falls back to scripts/engines.py and Python (developer tools are there anyway).
+if [ -n "${REGISTA_HELPER:-}" ]; then HELPER="$REGISTA_HELPER"
+elif [ -x "$REPO/../../MacOS/regista-engine" ]; then HELPER="$(cd "$REPO/../../MacOS" && pwd)/regista-engine"
+else HELPER=""; fi
 . "$REPO/scripts/i18n.sh"   # t <key>: messages in it / en / fr / pt, from the macOS language
 
 if [ -t 1 ]; then B=$'\033[1m'; G=$'\033[32m'; Y=$'\033[33m'; R=$'\033[31m'; N=$'\033[0m'; else B=; G=; Y=; R=; N=; fi
@@ -113,16 +121,52 @@ version_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -t. -k1,1n -k2,2n -k3,3n 
 free_gb() { local p="$1"; while [ ! -e "$p" ]; do p="$(dirname "$p")"; done; df -k "$p" | awk 'NR==2 { printf "%d", $4/1048576 }'; }
 
 ram_gb() { echo $(( $(sysctl -n hw.memsize) / 1073741824 )); }
-# manifest <command> … — scripts/engines.py on scripts/engines.manifest.json (needs python3, i.e. the Command Line Tools:
-# call it only after the preflight checked them).
-manifest() { "$PY" -I "$REPO/scripts/engines.py" "$@"; }
+# manifest <command> … — the queries of scripts/engines.py on scripts/engines.manifest.json: regista-engine when there is
+# one ($HELPER), else engines.py itself (a clone: python3 of the Command Line Tools).
+manifest() { if [ -n "$HELPER" ]; then "$HELPER" manifest "$@"; else "$PY" -I "$REPO/scripts/engines.py" "$@"; fi; }
 # The manifest's tier thresholds, the same ones MachineTier.detect reads (RegistaCore EngineManifest).
 detect_tier() { manifest tier-for-ram "$(ram_gb)"; }
 tier_rank() { case "$1" in base) echo 0;; medium) echo 1;; pro) echo 2;; *) echo -1;; esac; }
 
 # json_get <file> <key>   — prints the value (empty if missing)
-json_get() { [ -f "$1" ] && "$PY" -I -c 'import json,sys
-d=json.load(open(sys.argv[1])); v=d.get(sys.argv[2]); print("" if v is None else v)' "$1" "$2" 2>/dev/null || true; }
+json_get() {
+  [ -f "$1" ] || return 0
+  if [ -n "$HELPER" ]; then "$HELPER" config get "$1" "$2" 2>/dev/null || true; return 0; fi
+  "$PY" -I -c 'import json,sys
+d=json.load(open(sys.argv[1])); v=d.get(sys.argv[2]); print("" if v is None else v)' "$1" "$2" 2>/dev/null || true
+}
+# json_set <file> <key> <value> … — managed keys only; an empty value removes the key; anything else is kept.
+json_set() {
+  local f="$1"; shift
+  mkdir -p "$(dirname "$f")"
+  if [ -n "$HELPER" ]; then "$HELPER" config set "$f" "$@"; return; fi
+  "$PY" -I - "$f" "$@" <<'PYEOF'
+import json, os, sys
+path, kv = sys.argv[1], sys.argv[2:]
+try:
+    with open(path) as f: cfg = json.load(f)
+except FileNotFoundError:
+    cfg = {}
+for k, v in zip(kv[::2], kv[1::2]):
+    if v: cfg[k] = v
+    else: cfg.pop(k, None)
+tmp = path + ".tmp"
+with open(tmp, "w") as f: json.dump(cfg, f, indent=2, sort_keys=True); f.write("\n")
+os.replace(tmp, path)
+PYEOF
+}
+# json_ok <file> — the file holds valid JSON.
+json_ok() {
+  if [ -n "$HELPER" ]; then "$HELPER" config check "$1" >/dev/null 2>&1; return; fi
+  "$PY" -I -c 'import json,sys; json.load(open(sys.argv[1]))' "$1" 2>/dev/null
+}
+# desktop_config status|set <config> <regista-mcp> [KEY=VALUE …] — Claude Desktop's regista entry (regista-engine
+# claude-desktop: exit 0 connected here, 1 absent, 2 something else, 3 not valid JSON, also printed when there is no
+# helper yet). The installer and the doctor use the installed app's helper.
+desktop_config() {
+  [ -n "$HELPER" ] || { echo "no regista-engine to read Claude Desktop's config with (build or install the app first)"; return 3; }
+  "$HELPER" claude-desktop "$@"
+}
 
 # Paths Regista expects for the managed engines.
 WHISPER_VERSION="$(lock_get whisper-src 2)"

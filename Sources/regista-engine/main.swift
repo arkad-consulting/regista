@@ -20,6 +20,13 @@ regista-engine — Regista's command engine, headless
       "requires": ["app"] unless they replay on the app (--mcp … --engine app).
   regista-engine list
       List the commands with their parameters.
+
+  What the installer and Settings run on a Mac without developer tools (no python3, #106):
+  regista-engine manifest <command> …   the queries of scripts/engines.py on the compiled-in manifest and engines.lock
+                                        ($REGISTA_MANIFEST / $REGISTA_LOCK point at other copies)
+  regista-engine config get <engines.json> <key> · config set <engines.json> <key> <value> … · config check <file>
+  regista-engine claude-desktop status|set <config> <regista-mcp> [KEY=VALUE …] · claude-desktop remove <config>
+  regista-engine install <engine id>    what Settings › Engines runs: the installer inside this app, --only <id>
 """
 
 func fail(_ message: String) -> Never {
@@ -125,7 +132,45 @@ func list() {
     }
 }
 
+/// Prints a helper's output and exits with its status.
+func finish(_ r: HelperOutput) -> Never {
+    FileHandle.standardOutput.write(Data(r.out.utf8))
+    FileHandle.standardError.write(Data(r.err.utf8))
+    exit(r.status)
+}
+
+func config(_ a: [String]) -> Never {
+    switch (a.first, a.count) {
+    case ("get", 3): finish(EnginesFile.get(URL(fileURLWithPath: a[1]), a[2]))
+    case ("check", 2): finish(EnginesFile.check(URL(fileURLWithPath: a[1])))
+    case ("set", let n) where n >= 2 && n % 2 == 0:
+        let kv = Array(a.dropFirst(2))
+        finish(EnginesFile.set(URL(fileURLWithPath: a[1]), stride(from: 0, to: kv.count, by: 2).map { (kv[$0], kv[$0 + 1]) }))
+    default: fail("regista-engine config get <file> <key> | set <file> <key> <value> … | check <file>")
+    }
+}
+
+/// Installs one engine exactly as Settings › Engines does (EngineInstaller, the installer inside this app), printing
+/// what the installer printed.
+func install(_ a: [String]) -> Never {
+    guard a.count == 1 else { fail("regista-engine install <engine id>") }
+    guard let installer = EngineInstaller.locate() else { fail("no installer next to this regista-engine (Contents/Resources/Installer)") }
+    do {
+        let r = try installer.run(a[0])
+        FileHandle.standardOutput.write(r.stdout)
+        FileHandle.standardError.write(r.stderr)
+        exit(r.status)
+    } catch { fail("error: \(error)") }
+}
+
 let args = CommandLine.arguments.dropFirst()
+switch args.first {
+case "manifest": finish(ManifestQuery.run(Array(args.dropFirst())))
+case "config": config(Array(args.dropFirst()))
+case "claude-desktop": finish(ClaudeDesktopConfig.run(Array(args.dropFirst())))
+case "install": install(Array(args.dropFirst()))
+default: break
+}
 let (positional, options) = parse(args.dropFirst())
 switch args.first {
 case "exec": exec(positional, options)

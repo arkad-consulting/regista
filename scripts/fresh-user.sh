@@ -101,7 +101,8 @@ cat "$T/logs/doctor.log"
 
 step "3. The Claude configs point to the app's own server"
 MCP="$(bundled_mcp "$APP_DIR/Regista.app")"
-"$PY" -I scripts/claude_desktop.py status "$DESKTOP_CONFIG" "$MCP" >/dev/null && ok "Claude Desktop → $MCP (other server kept: $("$PY" -I -c 'import json,sys; print(",".join(sorted(json.load(open(sys.argv[1]))["mcpServers"])))' "$DESKTOP_CONFIG"))" \
+HELPER="$APP_DIR/Regista.app/Contents/MacOS/regista-engine"
+desktop_config status "$DESKTOP_CONFIG" "$MCP" >/dev/null && ok "Claude Desktop → $MCP (other server kept: $("$PY" -I -c 'import json,sys; print(",".join(sorted(json.load(open(sys.argv[1]))["mcpServers"])))' "$DESKTOP_CONFIG"))" \
   || { bad "Claude Desktop: $(cat "$DESKTOP_CONFIG")"; rc=1; }
 [ "$(claude mcp get regista | sed -n 's/^ *Command: //p')" = "$MCP" ] && ok "Claude Code → $MCP" || { bad "Claude Code: $(cat "$H/.claude.json" 2>/dev/null)"; rc=1; }
 grep -rl "$REPO" "$DESKTOP_CONFIG" "$H/.claude.json" "$SUPPORT/engines.json" 2>/dev/null | sed 's/^/  ! points into the source folder: /' && rc=1

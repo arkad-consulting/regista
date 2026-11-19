@@ -31,7 +31,7 @@ cd "$WORK/whisper.cpp-$VERSION"
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF \
   -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON -DGGML_NATIVE=ON \
   -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_SERVER=OFF -DWHISPER_SDL2=OFF -DWHISPER_CURL=OFF >/dev/null
-cmake --build build --config Release --target whisper-cli -j "$(sysctl -n hw.ncpu)" >/dev/null
+cmake --build build --config Release --target whisper-cli -j "${REGISTA_BUILD_JOBS:-$(sysctl -n hw.ncpu)}" >/dev/null   # fewer jobs: REGISTA_BUILD_JOBS
 mkdir -p "$PREFIX/bin"
 cp build/bin/whisper-cli "$BIN"
 cat > "$PREFIX/BUILD-INFO.txt" <<EOF

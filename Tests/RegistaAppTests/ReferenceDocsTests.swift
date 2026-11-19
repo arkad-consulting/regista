@@ -242,6 +242,8 @@ enum ReferenceDocs {
         "REGISTA_FFPROBE": "ffprobe to use for reading media, before the usual Homebrew locations.",
         "REGISTA_FOLDER": "Regista's folder (projects, recordings, exports) instead of the one set in Settings › General (default ~/Movies/Regista); the tests point it at a scratch folder.",
         "REGISTA_INSTALLER": "Folder of the installer scripts Settings › Engines runs (default: the copy inside the app).",
+        "REGISTA_LOCK": "engines.lock that `regista-engine manifest` reads instead of the compiled-in copy (the installer tests' fake downloads), as scripts/install.sh does.",
+        "REGISTA_MANIFEST": "engines.manifest.json that `regista-engine manifest` reads instead of the compiled-in copy (the installer tests' fake engine), as scripts/install.sh does.",
         "REGISTA_MCP_PROGRESS_INTERVAL": "Seconds between two progress notifications of a long MCP tool call (default 10, at least 0.2).",
         "REGISTA_MEDIA_ROOT": "Extra folders media.list may read, separated by `:` (as regista-mcp's --media-root).",
         "REGISTA_NO_RECENT_SEED": "1: the first launch does not seed the recent projects from the default project folders (scripts/ui-shots.sh sets it for its private render copy, so renders never show the person's projects).",

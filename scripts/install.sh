@@ -57,6 +57,10 @@ done
 [ -z "$TIER" ] || [ "$TIER" = auto ] || [ "$(tier_rank "$TIER")" -ge 0 ] || die "--tier must be base, medium, pro or auto"
 case "$CLAUDE_TARGET" in auto|desktop|code|both|none) ;; *) die "--claude must be desktop, code, both or none" ;; esac
 [ "$CHECK" = 0 ] || [ -n "$ONLY" ] || die "--check goes with --only <id>"
+# A prebuilt app brings its own helper: nothing below needs python3 then (#106).
+if [ -z "$HELPER" ] && [ -n "$APP_BUNDLE" ] && [ -x "$APP_BUNDLE/Contents/MacOS/regista-engine" ]; then
+  HELPER="$(cd "$APP_BUNDLE/Contents/MacOS" && pwd)/regista-engine"
+fi
 
 # ask "<question>" <default y|n> — the default with --yes or without a terminal.
 ask() {
@@ -436,21 +440,7 @@ install_shotcut() {
 # ---------------------------------------------------------------- engines.json
 # write_config <key> <value> … — managed keys only; an empty value removes the key; anything else the user set is kept.
 write_config() {
-  mkdir -p "$(dirname "$CONFIG")"
-  "$PY" -I - "$CONFIG" "$@" <<'EOF'
-import json, os, sys
-path, kv = sys.argv[1], sys.argv[2:]
-try:
-    with open(path) as f: cfg = json.load(f)
-except FileNotFoundError:
-    cfg = {}
-for k, v in zip(kv[::2], kv[1::2]):
-    if v: cfg[k] = v
-    else: cfg.pop(k, None)
-tmp = path + ".tmp"
-with open(tmp, "w") as f: json.dump(cfg, f, indent=2, sort_keys=True); f.write("\n")
-os.replace(tmp, path)
-EOF
+  json_set "$CONFIG" "$@"
   ok "$CONFIG"
 }
 
@@ -593,6 +583,8 @@ fi
 # into this folder (M3 #60).
 MCP="$(bundled_mcp "$APP_DIR/Regista.app")"
 [ -x "$MCP" ] || die "regista-mcp not found inside the app ($MCP)"
+# From here on the installed app's own helper answers (engines.json, Claude Desktop's config): no python3 (#106).
+[ -n "$HELPER" ] || [ ! -x "$APP_DIR/Regista.app/Contents/MacOS/regista-engine" ] || HELPER="$APP_DIR/Regista.app/Contents/MacOS/regista-engine"
 ok "regista-mcp $MCP"
 # One installed copy (others moved to the Trash) and how it was signed (#45).
 grep -E '^(Moved the other copy|Signed with)' "$LOGS/build-app.log" | while IFS= read -r l; do ok "$l"; done || true
@@ -655,14 +647,14 @@ desktop_snippet() {
 }
 if [ "$DO_DESKTOP" = 1 ]; then
   [ "$HAS_DESKTOP" = 1 ] || warn "Claude Desktop does not seem installed (https://claude.ai/download): connecting it anyway"
-  rc=0; cur="$("$PY" -I scripts/claude_desktop.py status "$DESKTOP_CONFIG" "$MCP" ${MCP_ENV:+"$MCP_ENV"})" || rc=$?
+  rc=0; cur="$(desktop_config status "$DESKTOP_CONFIG" "$MCP" ${MCP_ENV:+"$MCP_ENV"})" || rc=$?
   case $rc in
     0) ok "already connected: regista → $MCP ($DESKTOP_CONFIG)"; DESKTOP_STATE="ok" ;;
     3) missing "Claude Desktop" "$cur — not touched. Fix it in Claude → Settings → Developer → Edit Config, then re-run scripts/install.sh"
        desktop_snippet ;;
     *) [ $rc = 2 ] && echo "  The current regista entry runs: $cur"
        if ask "$(t ask_desktop) ($DESKTOP_CONFIG)" y; then
-         out="$("$PY" -I scripts/claude_desktop.py set "$DESKTOP_CONFIG" "$MCP" ${MCP_ENV:+"$MCP_ENV"})" \
+         out="$(desktop_config set "$DESKTOP_CONFIG" "$MCP" ${MCP_ENV:+"$MCP_ENV"})" \
            || die "could not update $DESKTOP_CONFIG: $out"
          printf '%s\n' "$out" | sed -n 's/^backup /  backup: /p'
          ok "Claude Desktop: regista → $MCP"

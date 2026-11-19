@@ -42,7 +42,7 @@ private let sourceRoot = URL(fileURLWithPath: #filePath).deletingLastPathCompone
     #expect(String(decoding: try Data(contentsOf: desktop), as: UTF8.self) == "{not json")
     #expect(ClaudeClients.state(dir.appendingPathComponent("missing.json")) == .notConnected)
     #expect(ClaudeClients.read(desktop: desktop, code: code).mcpBinary(bundle: Bundle(for: BundleToken.self)) == nil)
-    // What "Collega Claude Desktop" shows before writing: the same entry claude_desktop.py writes.
+    // What "Collega Claude Desktop" shows before writing: the same entry ClaudeDesktopConfig writes.
     #expect(ClaudeClients.desktopEntry("/x/regista-mcp") == #""regista": {"command": "/x/regista-mcp", "args": []}"#)
     #expect(StartPrompt.text.contains("recipe_get"), "the start prompt of handoff/START-PROMPT.md is compiled in")
     #expect(!StartPrompt.text.hasPrefix("#"), "only the block to paste, not the page's own heading")

@@ -162,10 +162,21 @@ public struct EngineInstaller: Sendable {
 
     public init(script: URL, environment: [String: String] = [:]) {
         self.script = script
-        // An app started from the Finder gets launchd's short PATH: the system tools the installer calls (sysctl,
-        // hdiutil, shasum) and Homebrew's, whatever the shell profile says.
+        // The system tools the installer calls (sysctl, hdiutil, shasum) after the PATH this process got (launchd's short
+        // one for an app started from the Finder). Homebrew's folder is not added: the installer finds brew itself when a
+        // step needs it (#106), and a downloaded app runs on a Mac without it.
         let path = ProcessInfo.processInfo.environment["PATH"] ?? ""
-        self.environment = ["PATH": "/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin" + (path.isEmpty ? "" : ":" + path)].merging(environment) { $1 }
+        var env = ["PATH": (path.isEmpty ? "" : path + ":") + "/usr/bin:/bin:/usr/sbin:/sbin"]
+        // The app's own helper answers the installer's manifest, engines.json and Claude questions (no python3, #106).
+        if let helper = Self.helper { env["REGISTA_HELPER"] = helper }
+        self.environment = env.merging(environment) { $1 }
+    }
+
+    /// `regista-engine` next to this process's executable (the app's Contents/MacOS), nil in a build without it.
+    public static var helper: String? {
+        guard let dir = Bundle.main.executableURL?.resolvingSymlinksInPath().deletingLastPathComponent() else { return nil }
+        let h = dir.appendingPathComponent("regista-engine").path
+        return FileManager.default.isExecutableFile(atPath: h) ? h : nil
     }
 
     /// The installer next to the app (nil when this build has none: a plain `swift build`).
@@ -181,9 +192,14 @@ public struct EngineInstaller: Sendable {
 
     /// Installs one engine; throws the installer's own last error line when it fails.
     public func install(_ id: String) throws {
-        let r = try Subprocess.run(URL(fileURLWithPath: "/bin/bash"), [script.path, "--only", id], environment: environment,
-                                   currentDirectory: script.deletingLastPathComponent(), progress: .installer)
+        let r = try run(id)
         guard r.status == 0 else { throw CommandError(.io, Self.failure(r.stderrText + "\n" + r.stdoutText)) }
+    }
+
+    /// `install.sh --only <id>`, whatever its exit status (`regista-engine install` prints it).
+    public func run(_ id: String) throws -> Subprocess.Result {
+        try Subprocess.run(URL(fileURLWithPath: "/bin/bash"), [script.path, "--only", id], environment: environment,
+                           currentDirectory: script.deletingLastPathComponent(), progress: .installer)
     }
 
     /// The installer's reason (its "✗ …" line), else the last lines it printed.
