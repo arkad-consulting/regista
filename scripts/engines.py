@@ -11,6 +11,7 @@
   engines.py size <id>                its disk footprint in bytes (empty when unknown)
   engines.py field <id> <key>         one manifest field of an entry (empty when absent), e.g. licence, licenceUrl
   engines.py comfy-bytes              the disk ComfyUI and its model families take (set up by hand, Pro tier)
+  engines.py comfy-places             where a ComfyUI folder is looked for (the list Regista reads), one per line
   engines.py others <id,id,...>       names of the available entries not in the list (doctor: "not checked")
   engines.py scripts <id>             the helper scripts of an entry (relative to the engines folder), one per line
   engines.py install-info <id>        method|step|formula|artifact ids (comma)|files (comma)|tier|status (install.sh --only)
@@ -192,6 +193,9 @@ def validate(m, lock):
                     errs.append("%s: shipped.bytes must be a positive whole number" % i)
         if e.get("artifacts") and "version" in e:
             errs.append("%s: version comes from engines.lock when artifacts are named; drop it" % i)
+    places = m.get("comfyPlaces")
+    if not isinstance(places, list) or not places or not all(isinstance(p, str) and (p.startswith("~/") or p.startswith("/")) for p in places):
+        errs.append("comfyPlaces must be a non-empty list of absolute or ~/ paths")
     named = set(a for e in m.get("engines", []) for a in artifact_ids(e, lock))
     for k in lock:
         if k not in named:
@@ -351,6 +355,9 @@ def main(argv):
         print("" if v is None else v)
     elif cmd == "comfy-bytes":
         print(sum(disk_bytes(e, lock) or 0 for e in m["engines"] if e["id"] == "comfyui" or "comfyui" in e.get("dependsOn", [])))
+    elif cmd == "comfy-places":
+        for p in m.get("comfyPlaces", []):
+            print(p)
     elif cmd == "others":
         known = set(args[0].split(",")) if args else set()
         print(", ".join(e["name"] for e in m["engines"] if e["status"] == "available" and e["id"] not in known))

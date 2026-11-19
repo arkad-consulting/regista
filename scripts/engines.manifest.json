@@ -28,6 +28,9 @@
     {"id": "pro", "name": "Pro", "ramGB": 32, "detectFromGB": 28}
   ],
   "tierDetectNote": "detectFromGB sits below the nominal size: macOS reports slightly less than 16/32 GiB on some models.",
+  "comfyPlaces": ["~/ComfyUI", "~/comfy/ComfyUI", "~/Documents/ComfyUI", "~/Developer/ComfyUI", "~/Projects/ComfyUI", "~/src/ComfyUI",
+                  "~/git/ComfyUI", "/Applications/ComfyUI"],
+  "comfyPlacesNote": "where Regista and scripts/install.sh look for a ComfyUI folder (main.py, comfy/ and its own .venv or venv) when engines.json sets no comfyStart, in this order (documented in the install guide)",
   "diskMarginGB": 2,
   "diskMarginNote": "headroom for the install itself: the 1.6 GB source of the faster-whisper conversion (deleted afterwards), the download cache and logs",
   "engines": [

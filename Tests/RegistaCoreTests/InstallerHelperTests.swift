@@ -21,7 +21,7 @@ private func enginesPy(_ args: [String]) throws -> HelperOutput {
 
 @Test func theManifestQueriesAnswerLikeEnginesPy() throws {
     let env = [String: String]()
-    var calls: [[String]] = [["ids"], ["comfy-bytes"], ["others", "whisper.cpp,ffmpeg"], ["others"]]
+    var calls: [[String]] = [["ids"], ["comfy-bytes"], ["comfy-places"], ["others", "whisper.cpp,ffmpeg"], ["others"]]
     for gb in ["7", "8", "15.5", "16", "30", "48", "64", "128"] { calls.append(["tier-for-ram", gb]) }
     for t in ["base", "medium", "pro"] { calls += [["need-gb", t], ["need-gb", t, "--detail"], ["disk", t]] }
     for e in EngineManifest.shared.entries {

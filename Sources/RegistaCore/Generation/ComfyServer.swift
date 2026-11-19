@@ -8,9 +8,9 @@ public enum ComfyServer {
     /// ComfyUI's own default (`python main.py`). The desktop app listens on another port: the person sets it.
     public static let defaultAddress = "http://127.0.0.1:8188"
 
-    /// Where a ComfyUI folder is looked for when `comfyStart` is not set, in this order (documented in the install guide).
-    public static let usualPlaces = ["~/ComfyUI", "~/comfy/ComfyUI", "~/Documents/ComfyUI", "~/Developer/ComfyUI",
-                                     "~/Projects/ComfyUI", "~/src/ComfyUI", "~/git/ComfyUI", "/Applications/ComfyUI"]
+    /// Where a ComfyUI folder is looked for when `comfyStart` is not set, in this order (documented in the install guide):
+    /// the manifest's `comfyPlaces`, the same list scripts/install.sh reads (#124).
+    public static var usualPlaces: [String] { EngineManifest.shared.comfyPlaces }
 
     /// How the server is started.
     public enum Start: Equatable, Sendable {

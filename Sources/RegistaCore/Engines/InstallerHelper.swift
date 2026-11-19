@@ -26,7 +26,7 @@ public enum ManifestQuery {
     public static let usage = """
     regista-engine manifest <command> …  (the queries of scripts/engines.py)
       tier-for-ram <GB> · need-gb <tier|id> [--detail] · disk <tier> · steps <id> · name <id> · size <id> ·
-      field <id> <key> · comfy-bytes · others <id,id,…> · scripts <id> · install-info <id> · ids
+      field <id> <key> · comfy-bytes · comfy-places · others <id,id,…> · scripts <id> · install-info <id> · ids
     """
 
     /// The manifest and lock the installer reads: `$REGISTA_MANIFEST` / `$REGISTA_LOCK` when set (the installer tests'
@@ -106,6 +106,8 @@ public enum ManifestQuery {
         case "comfy-bytes":
             let total = m.entries.filter { $0.id == "comfyui" || $0.dependsOn.contains("comfyui") }.reduce(Int64(0)) { $0 + (m.diskBytes($1) ?? 0) }
             lines = [String(total)]
+        case "comfy-places":
+            lines = m.comfyPlaces
         case "others":
             let known = Set((arg(0) ?? "").split(separator: ",").map(String.init))
             lines = [m.entries.filter { !$0.planned && !known.contains($0.id) }.map(\.name).joined(separator: ", ")]

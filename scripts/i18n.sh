@@ -166,6 +166,14 @@ msg() {
     it.comfy_steps) echo 'ComfyUI si configura a mano (%s con i modelli):' ;;
     fr.comfy_steps) echo "ComfyUI s'installe à la main (%s avec ses modèles) :" ;;
     pt.comfy_steps) echo 'O ComfyUI é configurado à mão (%s com os modelos):' ;;
+    en.comfy_found) echo '%s (found in a usual place: Regista starts ComfyUI from there)' ;;
+    it.comfy_found) echo '%s (trovata in un posto consueto: Regista avvia ComfyUI da qui)' ;;
+    fr.comfy_found) echo '%s (trouvé à un emplacement habituel : Regista démarre ComfyUI depuis ce dossier)' ;;
+    pt.comfy_found) echo '%s (encontrada em um local habitual: o Regista inicia o ComfyUI a partir dela)' ;;
+    en.not_installed) echo '%s: not installed — %s' ;;
+    it.not_installed) echo '%s: non installato — %s' ;;
+    fr.not_installed) echo '%s : non installé — %s' ;;
+    pt.not_installed) echo '%s: não instalado — %s' ;;
     en.comfy_missing) echo 'Pro tier, set up by hand: scripts/install.sh --with comfyui prints the steps' ;;
     it.comfy_missing) echo 'livello Pro, da configurare a mano: scripts/install.sh --with comfyui mostra i passi' ;;
     fr.comfy_missing) echo 'niveau Pro, à installer à la main : scripts/install.sh --with comfyui affiche les étapes' ;;

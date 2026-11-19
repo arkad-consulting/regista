@@ -121,6 +121,42 @@ version_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -t. -k1,1n -k2,2n -k3,3n 
 free_gb() { local p="$1"; while [ ! -e "$p" ]; do p="$(dirname "$p")"; done; df -k "$p" | awk 'NR==2 { printf "%d", $4/1048576 }'; }
 
 ram_gb() { echo $(( $(sysctl -n hw.memsize) / 1073741824 )); }
+# What the installer found, is missing, or left out (the summary lists them); optional lines are translated (#124).
+FOUND=""; MISSING=""; OPTIONAL=""
+found()    { FOUND="$FOUND, $1"; ok "$1${2:+ — $2}"; }
+missing()  { MISSING="$MISSING, $1"; warn "$1 — $2"; }
+optional() { OPTIONAL="$OPTIONAL, $1"; ok "$(t not_installed "$1" "$2")"; }
+
+# comfy_where — where Regista's ComfyUI is, as the app sees it (ComfyServer.locate, #6): "server <address>" when a server
+# answers at comfyServer, "start <setting>" when engines.json sets comfyStart, "found <folder>" for the first usual place
+# (the manifest's comfyPlaces, the list Regista reads: #124) that holds a ComfyUI folder with its own Python environment,
+# else nothing.
+comfy_where() {
+  local server start p dir py
+  server="$(json_get "$CONFIG" comfyServer)"; server="${server:-http://127.0.0.1:8188}"
+  if curl -fsS -m 2 "${server%/}/system_stats" >/dev/null 2>&1; then echo "server $server"; return 0; fi
+  start="$(json_get "$CONFIG" comfyStart)"
+  if [ -n "$start" ]; then echo "start $start"; return 0; fi
+  while IFS= read -r p; do
+    [ -n "$p" ] || continue
+    case "$p" in "~/"*) dir="$HOME/${p#\~/}" ;; *) dir="$p" ;; esac
+    [ -e "$dir/main.py" ] && [ -d "$dir/comfy" ] || continue
+    for py in .venv/bin/python venv/bin/python .venv/bin/python3 venv/bin/python3; do
+      if [ -x "$dir/$py" ] && [ ! -d "$dir/$py" ]; then echo "found $(cd "$dir" && pwd -P)"; return 0; fi
+    done
+  done < <(manifest comfy-places)
+}
+
+# comfy_line — the installer's ComfyUI line; sets COMFY (an address or a folder generate.check can reach, empty: none).
+comfy_line() {
+  local w; w="$(comfy_where)"
+  case "$w" in
+    "server "*|"start "*) COMFY="${w#* }"; found "ComfyUI" "$COMFY" ;;
+    "found "*) COMFY="${w#found }"; found "ComfyUI" "$(t comfy_found "$COMFY")" ;;
+    *) COMFY=""; optional "ComfyUI" "$(t comfy_missing)" ;;
+  esac
+}
+
 # manifest <command> … — the queries of scripts/engines.py on scripts/engines.manifest.json: regista-engine when there is
 # one ($HELPER), else engines.py itself (a clone: python3 of the Command Line Tools).
 manifest() { if [ -n "$HELPER" ]; then "$HELPER" manifest "$@"; else "$PY" -I "$REPO/scripts/engines.py" "$@"; fi; }

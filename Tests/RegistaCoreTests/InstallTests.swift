@@ -335,3 +335,49 @@ private func messageKeys() throws -> [String: Set<String>] {
     let bad = try Subprocess.run(URL(fileURLWithPath: "/bin/bash"), [install, "--only", "sfx-bank"], environment: env)
     #expect(bad.status != 0 && (bad.stdoutText + bad.stderrText).contains("differs from its pin"))
 }
+
+// MARK: the installer's ComfyUI line (#124)
+
+/// The installer's ComfyUI line in the four configurations Regista itself tells apart: a server that answers, only the
+/// start setting, a ComfyUI folder in a usual place, and none of them. A scratch home each time (never the person's
+/// usual places), «not installed» in the language of the run, and the usual places read from the one list Regista reads.
+@Test(arguments: ["it", "en"])
+func theInstallersComfyUILineSaysWhatRegistaWouldUse(_ lang: String) throws {
+    #expect(ComfyServer.usualPlaces == EngineManifest.shared.comfyPlaces && ComfyServer.usualPlaces.count == 8)
+    #expect(ComfyServer.usualPlaces.first == "~/ComfyUI" && ComfyServer.usualPlaces.contains("~/Documents/ComfyUI"))
+    func line(home: URL, config: String) throws -> String {
+        let file = home.appendingPathComponent("engines.json")
+        try config.write(to: file, atomically: true, encoding: .utf8)
+        let r = try Subprocess.run(URL(fileURLWithPath: "/bin/bash"), ["-c", ". \"$0/scripts/lib.sh\"; comfy_line; echo \"COMFY=$COMFY\"", repo.path],
+                                   environment: ["HOME": home.path, "REGISTA_ENGINES": file.path, "REGISTA_LANG": lang, "REGISTA_HELPER": ""])
+        #expect(r.status == 0, "\(r.stderrText)")
+        return r.stdoutText
+    }
+    let notInstalled = lang == "it" ? "ComfyUI: non installato — livello Pro" : "ComfyUI: not installed — Pro tier"
+    // A stand-in server answering at the address engines.json sets.
+    let fake = try FakeComfy()
+    let served = try line(home: tempDir(), config: #"{"comfyServer": "\#(fake.base.absoluteString)"}"#)
+    #expect(served.contains("✓ ComfyUI — \(fake.base.absoluteString)") && served.contains("COMFY=\(fake.base.absoluteString)"), "\(served)")
+    #expect(!fake.requests("/system_stats").isEmpty)
+    // Only the start setting (nothing answers at the address).
+    let started = try line(home: tempDir(), config: #"{"comfyServer": "http://127.0.0.1:9", "comfyStart": "/opt/comfy/start.sh"}"#)
+    #expect(started.contains("✓ ComfyUI — /opt/comfy/start.sh") && started.contains("COMFY=/opt/comfy/start.sh"), "\(started)")
+    // Neither: «not installed» in the run's language, nothing reachable.
+    let neither = try line(home: tempDir(), config: #"{"comfyServer": "http://127.0.0.1:9"}"#)
+    #expect(neither.contains(notInstalled) && neither.contains("COMFY=\n") && !neither.contains("not installed —") == (lang == "it"), "\(neither)")
+    // A ComfyUI folder with its own Python environment in a usual place (the third one): found there, as Regista finds it.
+    let home = tempDir()
+    let folder = home.appendingPathComponent("Documents/ComfyUI")
+    try FileManager.default.createDirectory(at: folder.appendingPathComponent("comfy"), withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: folder.appendingPathComponent(".venv/bin"), withIntermediateDirectories: true)
+    try Data().write(to: folder.appendingPathComponent("main.py"))
+    try "#!/bin/sh\n".write(to: folder.appendingPathComponent(".venv/bin/python"), atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.appendingPathComponent(".venv/bin/python").path)
+    let real = ComfyServer.canonical(folder).path
+    let found = try line(home: home, config: #"{"comfyServer": "http://127.0.0.1:9"}"#)
+    let words = lang == "it" ? "trovata in un posto consueto" : "found in a usual place"
+    #expect(found.contains("✓ ComfyUI — \(real) (\(words)") && found.contains("COMFY=\(real)\n"), "\(found)")
+    // Regista finds the same folder from the same list (spelled from the scratch home).
+    let places = ComfyServer.usualPlaces.map { $0.hasPrefix("~/") ? home.path + $0.dropFirst() : $0 }
+    #expect(ComfyServer.find(in: places)?.path == real)
+}

@@ -92,6 +92,9 @@ public struct EngineManifest: Sendable {
     public let diskMarginGB: Double
     public let entries: [Entry]
     public let artifacts: [Artifact]
+    /// Where a ComfyUI folder is looked for when engines.json sets no `comfyStart`, in this order: the one list Regista
+    /// (`ComfyServer.usualPlaces`) and scripts/install.sh (`manifest comfy-places`) read (#124).
+    public var comfyPlaces: [String] = []
 
     /// The compiled-in manifest. Its parsing is covered by the tests, so a failure here is a build that skipped them.
     public static let shared: EngineManifest = {
@@ -183,7 +186,8 @@ public struct EngineManifest: Sendable {
         let raw: RawManifest
         do { raw = try JSONDecoder().decode(RawManifest.self, from: data) }
         catch let error as DecodingError { throw ParseError(description: "engines.manifest.json: \(describe(error, data))") }
-        let m = EngineManifest(tiers: raw.tiers, diskMarginGB: raw.diskMarginGB, entries: raw.engines, artifacts: artifacts)
+        var m = EngineManifest(tiers: raw.tiers, diskMarginGB: raw.diskMarginGB, entries: raw.engines, artifacts: artifacts)
+        m.comfyPlaces = raw.comfyPlaces ?? []
         try m.validate()
         return m
     }
@@ -257,6 +261,7 @@ public struct EngineManifest: Sendable {
         let tiers: [Tier]
         let diskMarginGB: Double
         let engines: [Entry]
+        let comfyPlaces: [String]?
     }
 }
 

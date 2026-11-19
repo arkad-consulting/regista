@@ -72,10 +72,6 @@ ask() {
 }
 wants() { case "$WITH" in *",$1,"*) return 0 ;; esac; return 1; }
 
-FOUND=""; MISSING=""; OPTIONAL=""
-found()    { FOUND="$FOUND, $1"; ok "$1${2:+ — $2}"; }
-missing()  { MISSING="$MISSING, $1"; warn "$1 — $2"; }
-optional() { OPTIONAL="$OPTIONAL, $1"; ok "$1: not installed — $2"; }
 
 # ---------------------------------------------------------------- update
 if [ -z "$ONLY" ] && [ "$PULL" = 1 ] && [ -z "${REGISTA_INSTALL_PULLED:-}" ] && git rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
@@ -598,12 +594,7 @@ if [ "$TIER" = pro ]; then
     echo "  $(t comfy_steps "$(human "$comfy_bytes")")"
     manifest steps comfyui | awk '{ printf "    %d. %s\n", NR, $0 }'
   fi
-  # Regista talks to ComfyUI over its HTTP API (#6): a server that answers, or the folder Regista starts it from.
-  COMFY_SERVER="$(json_get "$CONFIG" comfyServer)"; COMFY_SERVER="${COMFY_SERVER:-http://127.0.0.1:8188}"
-  COMFY_START="$(json_get "$CONFIG" comfyStart)"
-  if curl -fsS -m 2 "${COMFY_SERVER%/}/system_stats" >/dev/null 2>&1; then COMFY="$COMFY_SERVER"; found "ComfyUI" "$COMFY_SERVER"
-  elif [ -n "$COMFY_START" ]; then COMFY="$COMFY_START"; found "ComfyUI" "$COMFY_START"
-  else COMFY=""; optional "ComfyUI" "$(t comfy_missing)"; fi
+  comfy_line   # sets COMFY (lib.sh)
 fi
 
 # ---------------------------------------------------------------- build the app and the MCP server
