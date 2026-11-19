@@ -28,20 +28,22 @@ private func guide(_ lang: String, _ g: HelpGuide) -> String {
 }
 
 @Test func everyQuotedLabelIsInThatLanguagesTable() {
-    // A bold run is a UI label: the exact text of the table (a menu path "A › B" is checked part by part).
-    let bold = try! NSRegularExpression(pattern: #"\*\*(.+?)\*\*"#)
+    // A bold run is a UI label: the exact text of the table (a menu path "A › B" is checked part by part). A run may wrap
+    // onto the next line of its paragraph, as the help window joins them (#122): it is read whole, its line break a space.
+    let bold = try! NSRegularExpression(pattern: #"\*\*([^*]+?)\*\*"#)
     var problems: [String] = []
     for lang in HelpLibrary.languages {
         let values = Set(table(lang).values)
         #expect(!values.isEmpty)
         for g in HelpGuide.allCases {
-            let lines = guide(lang, g).components(separatedBy: "\n")
-            for (n, line) in lines.enumerated() {
-                for m in bold.matches(in: line, range: NSRange(line.startIndex..., in: line)) {
-                    let label = (line as NSString).substring(with: m.range(at: 1))
-                    for part in label.components(separatedBy: " › ") where !values.contains(part) {
-                        problems.append("docs/\(lang)/\(g.file):\(n + 1): «\(part)» is not a label of \(lang).lproj")
-                    }
+            let text = guide(lang, g) as NSString
+            for m in bold.matches(in: text as String, range: NSRange(location: 0, length: text.length)) {
+                let raw = text.substring(with: m.range(at: 1))
+                guard !raw.contains("\n\n") else { continue }   // never across paragraphs
+                let label = raw.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+                let line = text.substring(to: m.range.location).filter { $0 == "\n" }.count + 1
+                for part in label.components(separatedBy: " › ") where !values.contains(part) {
+                    problems.append("docs/\(lang)/\(g.file):\(line): «\(part)» is not a label of \(lang).lproj")
                 }
             }
         }
