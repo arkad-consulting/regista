@@ -252,7 +252,11 @@ extension MouseSuites.ClickAudits {
             // teleprompter's default mode.
             "Voce": alreadyCurrent,
             "Ricomincia": "scrolls the teleprompter's own window back to the top: that window is hidden here (Mostra il gobbo is clicked on its own)",
-        ])
+        ], setup: { _ in
+            // From the default mode, whatever the test process kept: a run stopped in the middle of this audit left
+            // «Velocità» chosen, and its click then changed nothing in every later run.
+            TeleprompterController.shared.mode = .voice
+        })
     }
 }
 }
