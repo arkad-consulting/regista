@@ -266,6 +266,36 @@ extension MouseSuites {
 // the top edge. Each section opens at its top.
 extension MouseSuites {
 @Suite(.serialized) @MainActor struct GraphicsSectionScrollMouseTests {
+    /// #132: the line under the list says what a click does on the tab on screen: the click-or-drag sentence on Filtri,
+    /// Regola, Effetti and Motion, the style's Applica on Stili, the logo's controls and motions on Logo — never another
+    /// tab's. Each tab is opened by a click on its chip.
+    @Test(arguments: ["it", "en", "fr", "pt"])
+    func eachTabShowsItsOwnFooter(_ language: String) async throws {
+        let app = try await AppRig()
+        defer { app.close() }
+        var nav = Navigation(activity: .graphics, rightTab: .inspector)
+        nav.graphicsSection = .filters
+        app.hostEditor(nav, language: language)
+        await app.settle()
+        let footers = Set(Navigation.GraphicsSection.allCases.map { GraphicsPanel.footer($0) })
+        #expect(footers.count == 3, "\(language): \(footers)")
+        let snapshots = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"]
+        for section in Navigation.GraphicsSection.allCases.reversed() {
+            let title = loc(GraphicsCatalog.title(section))
+            let chip = try #require(app.rig.controls().first { $0.visible && ($0.label == title || $0.title == title) }, "\(language): no chip «\(title)»")
+            app.rig.click(chip.centre)
+            await app.settle()
+            #expect(app.store.nav.graphicsSection == section, "\(language): the chip «\(title)» opened \(app.store.nav.graphicsSection)")
+            let shown = app.rig.elements().filter { $0.visible && $0.role == "AXStaticText" && footers.contains($0.value) }.map(\.value)
+            #expect(shown == [GraphicsPanel.footer(section)], "\(language) \(section): the footer reads \(shown)")
+            if let snapshots, [.styles, .logo, .effects].contains(section) {
+                try? app.snapshot(to: URL(fileURLWithPath: snapshots).appendingPathComponent("graphics-footer-\(section.rawValue)-\(language).png"))
+            }
+        }
+        #expect(GraphicsPanel.footer(.styles).contains(loc("Applica")) && GraphicsPanel.footer(.logo).contains(loc("Sting finale")),
+                "\(language): the footers do not name the button and the motion as the tab shows them")
+    }
+
     @Test func aSectionOpensAtItsTop() async throws {
         let app = try await AppRig()
         defer { app.close() }

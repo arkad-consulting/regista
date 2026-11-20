@@ -1975,6 +1975,8 @@
 "Schede animate, liste, contatori, grafici e cornici" = "Animated cards, lists, counters, charts and frames";
 "Il logo della marca nel video e le sue animazioni" = "The brand's logo in the video and its animations";
 "Clic: si applica alla clip selezionata o alla testina. Si può anche trascinare sulla timeline." = "Click to apply it to the selected clip, or at the playhead. You can also drag it onto the timeline.";
+"«%@» mette lo stile su tutto il video." = "“%@” puts the style on the whole video.";
+"Angolo, grandezza, animazione e presenza valgono per il logo nel video. Clic su un movimento: «%@» va alla fine del video, gli altri alla testina." = "Corner, size, animation and presence apply to the logo in the video. Click a motion: “%@” goes at the end of the video, the others at the playhead.";
 "Nessun effetto con questo nome." = "No effect with this name.";
 "Regolazioni rapide" = "Quick adjustments";
 "Regolazioni" = "Adjustments";

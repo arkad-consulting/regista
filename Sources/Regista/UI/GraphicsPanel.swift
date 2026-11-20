@@ -233,7 +233,7 @@ struct GraphicsPanel: View {
                     .onChange(of: state.textItem) { _, id in Self.reveal(id, proxy) }
                     .onChange(of: state.motionItem) { _, id in Self.reveal(id, proxy) }
                 }
-                Text(verbatim: loc("Clic: si applica alla clip selezionata o alla testina. Si può anche trascinare sulla timeline."))
+                Text(verbatim: Self.footer(state.query.trimmingCharacters(in: .whitespaces).isEmpty ? section : nil))
                     .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, Ed.Space.m).padding(.vertical, 7)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -245,6 +245,17 @@ struct GraphicsPanel: View {
         .onAppear { store.previews.refresh(at: playhead.time) }
         .onChange(of: playhead.time) { store.previews.refresh(at: playhead.time) }
         .onChange(of: store.project) { store.previews.refresh(at: playhead.time) }
+    }
+
+    /// The line under the list: what a click on the tab's items does (#132). Looks, adjustments, effects and motion
+    /// templates (and search results) go to the selected clip or the playhead by a click or a drag; a style goes on the
+    /// whole video with its Applica; the logo tab's controls set the logo in the video and its motions land by a click.
+    static func footer(_ section: Navigation.GraphicsSection?) -> String {
+        switch section {
+        case .styles: loc("«%@» mette lo stile su tutto il video.", loc("Applica"))
+        case .logo: loc("Angolo, grandezza, animazione e presenza valgono per il logo nel video. Clic su un movimento: «%@» va alla fine del video, gli altri alla testina.", loc("Sting finale"))
+        default: loc("Clic: si applica alla clip selezionata o alla testina. Si può anche trascinare sulla timeline.")
+        }
     }
 
     /// The id of the form opened under the row of `item`.

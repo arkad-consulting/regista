@@ -51,6 +51,7 @@ Keep these the same everywhere in `*.lproj/Localizable.strings` (scheme and chec
 | Genera | Generate | Générer | Gerar |
 | Marca / brand kit | Brand / brand kit | Marque / kit de marque | Marca / kit de marca |
 | look / stile / filtro | look / style / filter | look / style / filtre | look / estilo / filtro |
+| movimento del logo (Grafica › Logo: Sting finale, Giro…, `logo.animate`) | logo motion | mouvement du logo | movimento do logo |
 | Lavori (jobs) | Jobs | Tâches | Tarefas |
 | livello (RAM tier) | tier | niveau | nível |
 | progetto | project | projet | projeto |

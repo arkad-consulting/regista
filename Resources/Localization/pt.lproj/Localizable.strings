@@ -1975,6 +1975,8 @@
 "Schede animate, liste, contatori, grafici e cornici" = "Cartões animados, listas, contadores, gráficos e molduras";
 "Il logo della marca nel video e le sue animazioni" = "O logo da marca no vídeo e suas animações";
 "Clic: si applica alla clip selezionata o alla testina. Si può anche trascinare sulla timeline." = "Clique para aplicar ao clipe selecionado ou na posição do indicador de reprodução. Você também pode arrastá-lo para a linha do tempo.";
+"«%@» mette lo stile su tutto il video." = "“%@” coloca o estilo no vídeo inteiro.";
+"Angolo, grandezza, animazione e presenza valgono per il logo nel video. Clic su un movimento: «%@» va alla fine del video, gli altri alla testina." = "Canto, tamanho, animação e presença valem para o logo no vídeo. Clique em um movimento: “%@” vai para o fim do vídeo, os outros para o indicador de reprodução.";
 "Nessun effetto con questo nome." = "Nenhum efeito com esse nome.";
 "Regolazioni rapide" = "Ajustes rápidos";
 "Regolazioni" = "Ajustes de imagem";
