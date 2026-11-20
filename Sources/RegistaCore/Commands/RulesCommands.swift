@@ -128,6 +128,7 @@ enum RulesSet: Command {
     static let id = "rules.set"
     static let summary = "Write a rule sheet (the user's copy in the rules folder, which replaces the shipped default of that kind; rules.reset brings the default back): the whole text, or only the prose (the header is kept), and/or switches — checks {\"logo-pause\": {\"on\": true, \"value\": 0.4}, \"text-size\": false}. Only when the user asked to change their rules. Not an undo step. Returns the sheet as rules.get."
     static let kind = CommandKind.session
+    static let undoNote: String? = "no — writes the rule sheets in the rules folder, outside the project (rules.reset brings back a built-in default)"
     static let params: [ParamSpec] = [
         .required("kind", .string, "every-video, a built-in kind or a kind of the user's."),
         .optional("text", .string, "The whole file: header between two --- lines, then the prose (written as given; header problems are reported)."),
@@ -157,6 +158,7 @@ enum RulesReset: Command {
     static let id = "rules.reset"
     static let summary = "Bring back the shipped default of a built-in sheet (every-video or a built-in kind): removes the user's copy. Only when the user asked. A kind of the user's own has no default (rules.removeKind deletes it). Returns the sheet and whether a copy was removed."
     static let kind = CommandKind.session
+    static let undoNote: String? = "no — writes the rule sheets in the rules folder, outside the project (rules.reset brings back a built-in default)"
     static let params: [ParamSpec] = [
         .required("kind", .string, "every-video or a built-in kind."),
         Rules.languageParam,
@@ -179,6 +181,7 @@ enum RulesAddKind: Command {
     static let id = "rules.addKind"
     static let summary = "Add a kind of video of the user's own (e.g. \"YouTube tutorial\"): a new sheet in the rules folder, copied from an existing kind (from) or empty under its title; every-video still applies to it. Then project.setKind chooses it for a project. Returns the new sheet."
     static let kind = CommandKind.session
+    static let undoNote: String? = "no — writes the rule sheets in the rules folder, outside the project (rules.reset brings back a built-in default)"
     static let params: [ParamSpec] = [
         .required("title", .string, "The kind's name as the user says it (the sheet's first heading)."),
         .optional("slug", .string, "Its id: lower-case letters, digits and hyphens (default: from the title)."),
@@ -210,6 +213,7 @@ enum RulesRemoveKind: Command {
     static let id = "rules.removeKind"
     static let summary = "Delete a kind of video of the user's own (its sheet). Only when the user asked. A project that had it falls back to the kind of its format (rules.check says so). Built-in kinds cannot be removed (rules.reset restores their default). Returns the removed kind."
     static let kind = CommandKind.session
+    static let undoNote: String? = "no — writes the rule sheets in the rules folder, outside the project (rules.reset brings back a built-in default)"
     static let params: [ParamSpec] = [.required("kind", .string, "A kind of the user's own.")]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {

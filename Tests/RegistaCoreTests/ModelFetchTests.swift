@@ -223,6 +223,35 @@ private func fetchEngine(_ server: StandInFiles, folder: URL?, start: String? = 
     #expect(server.requests.map(\.path) == ["/rife_v4.26.safetensors"])
 }
 
+/// A download is stopped from a command too (generate.status {jobId, cancel: true}): it answers cancelled, the partial file
+/// stays, and the next generate.fetch of that file resumes it with a Range request.
+@Test func generateStatusCancelsADownloadAndTheNextFetchResumesIt() async throws {
+    let server = try StandInFiles()
+    let rife = try #require(EngineManifest.shared.modelFile("rife_v4.26.safetensors"))
+    server[rife.name] = Data(count: Int(rife.bytes))
+    server.mode = .hold(after: 100_000)
+    let folder = try comfyFolder()
+    let part = folder.appendingPathComponent("models/frame_interpolation/\(rife.name).part")
+    let e = fetchEngine(server, folder: folder)
+    let r = try e.execute("generate.fetch", params: ["file": .string(rife.name)])
+    let id = try #require(r.value(at: "jobs.0.jobId")?.stringValue)
+    for _ in 0..<200 where (ModelFetch.fileSize(part) ?? 0) < 100_000 { try await Task.sleep(nanoseconds: 50_000_000) }
+    #expect(ModelFetch.fileSize(part) == 100_000 && ModelDownloads.shared.job(id)?.state == .running)
+    // cancel needs a download's id.
+    #expect(throws: CommandError.self) { try e.execute("generate.status", params: ["cancel": true]) }
+    #expect(throws: CommandError.self) { try e.execute("generate.status", params: ["jobId": "g1", "cancel": true]) }
+    let stopped = try e.execute("generate.status", params: ["jobId": .string(id), "cancel": true])
+    #expect(stopped["status"] == "cancelled" && stopped["received"] == 100_000, "\(stopped)")
+    #expect(ModelFetch.fileSize(part) == 100_000, "the partial file stays")
+    // The next generate.fetch of the file starts where the part ends.
+    server.mode = .normal
+    let again = try e.execute("generate.fetch", params: ["file": .string(rife.name)])
+    let next = try #require(again.value(at: "jobs.0.jobId")?.stringValue)
+    #expect(next != id)
+    _ = ModelDownloads.shared.wait(next)
+    #expect(server.requests.last?.range == "bytes=100000-")
+}
+
 @Test func generateFetchRefusesWhatItCannotDo() throws {
     let server = try StandInFiles()
     // The executable form: no folder, no download, and the error says what to set.

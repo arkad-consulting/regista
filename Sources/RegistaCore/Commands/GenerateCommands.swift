@@ -330,7 +330,8 @@ enum GenerateCheck: Command {
 enum GenerateFetch: Command {
     static let id = "generate.fetch"
     static let summary = "Download missing ComfyUI model files: tens of GB, so before calling tell the user the size (generate.check gives each file's size and the total of the missing ones) and ask first. Each file goes into the models folder of the ComfyUI folder Regista knows (set in Settings › Motori, or found in the usual places; never one guessed from a running server: with only an address or a start program it refuses and says what to set). Free space is checked first (the files plus the manifest's disk margin of \(Int(EngineManifest.shared.diskMarginGB)) GB: the refusal says how much is missing); a file already there with the right size is skipped, one with another size is never overwritten; a partial download resumes; the sha256 is checked before the file is moved into place. Answers at once with one job per file (jobId d1…); generate.status {jobId} follows each (received, bytes, percent, running / done / failed with the reason / cancelled). Restart ComfyUI afterwards so it sees the new files."
-    static let kind = CommandKind.session
+    static let kind = CommandKind.job
+    static let undoNote: String? = "no — starts downloads into the ComfyUI folder, outside the project; stop one with generate.status {jobId, cancel: true} (its partial file stays for the next generate.fetch)"
     static let params: [ParamSpec] = [
         .optional("model", .oneOf(ComfyCheck.models), "Every missing file of one ComfyUI model."),
         .optional("file", .string, "One model file by name (generate.check lists them)."),
@@ -431,6 +432,7 @@ enum GenerateApprove: Command {
     static let id = "generate.approve"
     static let summary = "Human only: approve (or decline) a paid generation estimate. The Regista app's confirmation sheet calls it; from a terminal the owner runs `regista-engine exec generate.approve '{\"estimateId\": \"e-…\"}'`. Agents cannot call it (MCP refuses). Returns the single-use approval token (valid 2 h, for exactly that request)."
     static let kind = CommandKind.session
+    static let undoNote: String? = "no — records the person's decision on a paid estimate (a single-use token), outside the project"
     static let humanOnly = true
     static let params: [ParamSpec] = [
         .optional("estimateId", .string, "The estimate to decide (default: the only pending one)."),
@@ -463,6 +465,7 @@ enum GenerateRun: Command {
     static let id = "generate.run"
     static let summary = "Generate a still, a clip, a music bed or a voice-over (kind voice: the owner's cloned voice, VoxCPM2, see voice.list) and add it to the media bin (asset with provider, model, prompt, seed, cost, created). Then place it: overlay.add {path, fullFrame: true} for B-roll, audio.addMusic {path} for music, timeline.place for a voice-over. ComfyUI (free) first: image → video uses the still as start frame (refs), then generate.upscale to reach 1080×1920. Cached by request. Higgsfield (paid) needs approval (token from the human via generate.approve) and draws on the 2-call budget. Waits by default (ComfyUI stills ~30 s, clips ~5 min); wait: false runs in the background, poll generate.status. Returns the job and the asset."
     static let kind = CommandKind.edit
+    static let undoNote: String? = "yes — one undo step takes the asset off the project; the generated file stays in the job folder, a paid call's credits are spent, and with wait: false the job keeps running (undo takes its record off the project)"
     static let params: [ParamSpec] = Generate.requestParams + [
         .optional("approval", .string, "Paid providers: the approval token the human got from generate.approve for this exact request."),
         .optional("wait", .boolean, "Wait for the result (default true); false = background job, poll generate.status."),
@@ -481,6 +484,7 @@ enum GenerateUpscale: Command {
     static let id = "generate.upscale"
     static let summary = "Upscale a generated clip (ComfyUI Real-ESRGAN x4plus + RIFE 4.26): a 464×832 32 fps Wan clip becomes 1080×1920 at exactly 30 fps, same duration (~4 min per 3 s, cached). Crisper edges, no invented detail. Returns the new asset (generated.sourceAssetId = the original)."
     static let kind = CommandKind.edit
+    static let undoNote: String? = "yes — one undo step takes the asset off the project; the upscaled file stays in the job folder, and with wait: false the job keeps running (undo takes its record off the project)"
     static let params: [ParamSpec] = [
         .required("assetId", .string, "Video asset to upscale."),
         .optional("wait", .boolean, "Wait for the result (default true)."),
@@ -498,13 +502,24 @@ enum GenerateUpscale: Command {
 
 enum GenerateStatus: Command {
     static let id = "generate.status"
-    static let summary = "Check generation jobs: a background job (generate.run wait: false) is collected into the media bin when its process has finished. Without jobId lists every job of the project. A download of generate.fetch (jobId d1…) answers with or without a project: file, received, bytes, percent, status running / done / failed (with the reason) / cancelled. Returns the job(s) with status running / done / failed, asset and path when done."
+    static let summary = "Check generation jobs: a background job (generate.run wait: false) is collected into the media bin when its process has finished. Without jobId lists every job of the project. A download of generate.fetch (jobId d1…) answers with or without a project: file, received, bytes, percent, status running / done / failed (with the reason) / cancelled; cancel: true stops it (the partial file stays: the next generate.fetch of that file resumes it). Returns the job(s) with status running / done / failed, asset and path when done."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
-        .optional("jobId", .string, "Job (g1…)."),
+        .optional("jobId", .string, "Job (g1…, or d1… for a download of generate.fetch)."),
+        .optional("cancel", .boolean, "Stop the download jobId (d1…): it answers once it has stopped (status cancelled; still running when the connection did not let go within 5 s: ask again)."),
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
+        if p.bool("cancel") == true {
+            guard let jid = p.string("jobId"), ModelDownloads.shared.job(jid) != nil else {
+                throw CommandError.invalid("\(id): cancel stops a download of generate.fetch: pass its jobId (d1…)")
+            }
+            ModelDownloads.shared.cancel(jid)
+            // The download stops at its next read (a moment); a stuck connection answers still running after 5 s.
+            let end = Date().addingTimeInterval(5)
+            while ModelDownloads.shared.job(jid)?.state == .running, Date() < end { Thread.sleep(forTimeInterval: 0.05) }
+            return ModelDownloads.shared.job(jid)!.json
+        }
         // A model file's download (generate.fetch): the process's, not the project's.
         if let jid = p.string("jobId"), let d = ModelDownloads.shared.job(jid) { return d.json }
         let downloads = ModelDownloads.shared.all

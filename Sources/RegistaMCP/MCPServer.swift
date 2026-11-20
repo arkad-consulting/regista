@@ -123,10 +123,20 @@ public final class MCPServer {
                 "description": .string(d.summary),
                 // Every project-scoped command also takes `project` (which tab): the host routes it, no command declares it.
                 "inputSchema": ProjectTarget.accepts(d.id) ? ProjectTarget.adding(to: d.inputSchema) : d.inputSchema,
-                "annotations": ["readOnlyHint": .bool(d.kind == .query)],
+                "annotations": Self.annotations(d),
             ]
         }
         return ["tools": .array(tools)]
+    }
+
+    /// The MCP hints of a command: a query reads only; a job (a download, a training) only adds files outside the project,
+    /// never overwriting one, so it is not destructive; every other command may change or replace what is there.
+    static func annotations(_ d: CommandDescriptor) -> JSONValue {
+        switch d.kind {
+        case .query: ["readOnlyHint": true]
+        case .job: ["readOnlyHint": false, "destructiveHint": false]
+        case .edit, .session, .history: ["readOnlyHint": false]
+        }
     }
 
     func callTool(_ params: JSONValue) throws -> JSONValue {

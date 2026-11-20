@@ -13,6 +13,9 @@ public protocol Command {
     /// Only the person at the Mac may run it (the app's UI, `regista-engine exec` in their terminal): the MCP server
     /// does not list it and refuses it, and the app's engine socket refuses it from agent clients.
     static var humanOnly: Bool { get }
+    /// What undo does with it, when the kind's general answer would not be true for this command (a sheet or a profile
+    /// outside the project, a background job that keeps running): the command reference shows it instead (nil: the kind's).
+    static var undoNote: String? { get }
     /// Runs on a copy of the engine state: throwing leaves the engine untouched.
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue
 }
@@ -26,6 +29,9 @@ public enum CommandKind: String, Codable, Sendable {
     case session
     /// Moves through the undo history.
     case history
+    /// Starts work outside the project that goes on after it answers (a download, a training): not undoable, the project
+    /// unchanged; another command follows it (and stops it, when it can be stopped).
+    case job
 }
 
 // MARK: - Parameter description
@@ -102,6 +108,8 @@ public struct CommandDescriptor: Hashable, Sendable {
     public var kind: CommandKind
     public var params: [ParamSpec]
     public var humanOnly = false
+    /// The command's own undo answer (Command.undoNote), nil for the kind's.
+    public var undoNote: String?
 
     /// JSON Schema (draft 2020-12 subset) of the params object.
     public var inputSchema: JSONValue {
@@ -122,9 +130,10 @@ public struct CommandDescriptor: Hashable, Sendable {
 
 extension Command {
     public static var humanOnly: Bool { false }
+    public static var undoNote: String? { nil }
 
     public static var descriptor: CommandDescriptor {
-        CommandDescriptor(id: id, summary: summary, kind: kind, params: params, humanOnly: humanOnly)
+        CommandDescriptor(id: id, summary: summary, kind: kind, params: params, humanOnly: humanOnly, undoNote: undoNote)
     }
 }
 

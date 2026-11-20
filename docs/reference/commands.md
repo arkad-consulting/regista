@@ -951,7 +951,7 @@ Returns: see the description above.
 
 ### `generate.approve`
 
-**Approve a generation** · MCP tool: none (human-only) · undo: no — replaces or saves the project (opening or creating one clears the history) · takes `project`
+**Approve a generation** · MCP tool: none (human-only) · undo: no — records the person's decision on a paid estimate (a single-use token), outside the project · takes `project`
 
 Human only: approve (or decline) a paid generation estimate. The Regista app's confirmation sheet calls it; from a terminal the owner runs `regista-engine exec generate.approve '{"estimateId": "e-…"}'`. Agents cannot call it (MCP refuses). Returns the single-use approval token (valid 2 h, for exactly that request).
 
@@ -998,7 +998,7 @@ Returns: {estimateId, credits, seconds, model, paid, cached, budgetRemaining, ap
 
 ### `generate.fetch`
 
-**Download model files** · MCP tool: `generate_fetch` · undo: no — replaces or saves the project (opening or creating one clears the history) · takes `project`
+**Download model files** · MCP tool: `generate_fetch` · undo: no — starts downloads into the ComfyUI folder, outside the project; stop one with generate.status {jobId, cancel: true} (its partial file stays for the next generate.fetch) · takes `project`
 
 Download missing ComfyUI model files: tens of GB, so before calling tell the user the size (generate.check gives each file's size and the total of the missing ones) and ask first. Each file goes into the models folder of the ComfyUI folder Regista knows (set in Settings › Motori, or found in the usual places; never one guessed from a running server: with only an address or a start program it refuses and says what to set). Free space is checked first (the files plus the manifest's disk margin of 2 GB: the refusal says how much is missing); a file already there with the right size is skipped, one with another size is never overwritten; a partial download resumes; the sha256 is checked before the file is moved into place. Answers at once with one job per file (jobId d1…); generate.status {jobId} follows each (received, bytes, percent, running / done / failed with the reason / cancelled). Restart ComfyUI afterwards so it sees the new files.
 
@@ -1031,7 +1031,7 @@ Returns: each provider's models, availability per kind (when unavailable: reason
 
 ### `generate.run`
 
-**Generate** · MCP tool: `generate_run` · undo: yes — one undo step · takes `project`
+**Generate** · MCP tool: `generate_run` · undo: yes — one undo step takes the asset off the project; the generated file stays in the job folder, a paid call's credits are spent, and with wait: false the job keeps running (undo takes its record off the project) · takes `project`
 
 Generate a still, a clip, a music bed or a voice-over (kind voice: the owner's cloned voice, VoxCPM2, see voice.list) and add it to the media bin (asset with provider, model, prompt, seed, cost, created). Then place it: overlay.add {path, fullFrame: true} for B-roll, audio.addMusic {path} for music, timeline.place for a voice-over. ComfyUI (free) first: image → video uses the still as start frame (refs), then generate.upscale to reach 1080×1920. Cached by request. Higgsfield (paid) needs approval (token from the human via generate.approve) and draws on the 2-call budget. Waits by default (ComfyUI stills ~30 s, clips ~5 min); wait: false runs in the background, poll generate.status. Returns the job and the asset.
 
@@ -1056,17 +1056,18 @@ Returns: the job and the asset.
 
 **Generation status** · MCP tool: `generate_status` · undo: yes — one undo step · takes `project`
 
-Check generation jobs: a background job (generate.run wait: false) is collected into the media bin when its process has finished. Without jobId lists every job of the project. A download of generate.fetch (jobId d1…) answers with or without a project: file, received, bytes, percent, status running / done / failed (with the reason) / cancelled. Returns the job(s) with status running / done / failed, asset and path when done.
+Check generation jobs: a background job (generate.run wait: false) is collected into the media bin when its process has finished. Without jobId lists every job of the project. A download of generate.fetch (jobId d1…) answers with or without a project: file, received, bytes, percent, status running / done / failed (with the reason) / cancelled; cancel: true stops it (the partial file stays: the next generate.fetch of that file resumes it). Returns the job(s) with status running / done / failed, asset and path when done.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `jobId` | string | no | – | Job (g1…). |
+| `jobId` | string | no | – | Job (g1…, or d1… for a download of generate.fetch). |
+| `cancel` | boolean | no | – | Stop the download jobId (d1…): it answers once it has stopped (status cancelled; still running when the connection did not let go within 5 s: ask again). |
 
 Returns: the job(s) with status running / done / failed, asset and path when done.
 
 ### `generate.upscale`
 
-**Upscale** · MCP tool: `generate_upscale` · undo: yes — one undo step · takes `project`
+**Upscale** · MCP tool: `generate_upscale` · undo: yes — one undo step takes the asset off the project; the upscaled file stays in the job folder, and with wait: false the job keeps running (undo takes its record off the project) · takes `project`
 
 Upscale a generated clip (ComfyUI Real-ESRGAN x4plus + RIFE 4.26): a 464×832 32 fps Wan clip becomes 1080×1920 at exactly 30 fps, same duration (~4 min per 3 s, cached). Crisper edges, no invented detail. Returns the new asset (generated.sourceAssetId = the original).
 
@@ -1652,7 +1653,7 @@ Returns: the path.
 
 ### `profile.adopt`
 
-**Adopt a profile** · MCP tool: none (human-only) · undo: no — replaces or saves the project (opening or creating one clears the history) · takes `project`
+**Adopt a profile** · MCP tool: none (human-only) · undo: no — binds a copied voice profile to this Mac, outside the project · takes `project`
 
 Human only: bind a profile copied from another Mac to this one (the owner moving to a new Mac). Until then a copied profile is locked and its voice unusable.
 
@@ -1666,7 +1667,7 @@ Returns: see the description above.
 
 ### `profile.create`
 
-**Create a profile** · MCP tool: `profile_create` · undo: no — replaces or saves the project (opening or creating one clears the history) · takes `project`
+**Create a profile** · MCP tool: `profile_create` · undo: no — writes the voice profiles, outside the project · takes `project`
 
 Create the profile of the person using Regista (their first name). It becomes active when no profile is active; otherwise the person switches to it in the Regista app (switching is human-only). A profile starts with no voice: they record theirs with voice.enroll.*. Returns the profile and whether it is active.
 
@@ -1678,7 +1679,7 @@ Returns: the profile and whether it is active.
 
 ### `profile.delete`
 
-**Delete a profile** · MCP tool: none (human-only) · undo: no — replaces or saves the project (opening or creating one clears the history) · takes `project`
+**Delete a profile** · MCP tool: none (human-only) · undo: no — moves the profile's folder to the Trash (put it back from there), outside the project · takes `project`
 
 Human only: delete a profile and its voice data (recordings, clips, LoRAs) by moving its folder to the Trash.
 
@@ -1702,7 +1703,7 @@ Returns: {active, profiles}.
 
 ### `profile.switch`
 
-**Switch profile** · MCP tool: none (human-only) · undo: no — replaces or saves the project (opening or creating one clears the history) · takes `project`
+**Switch profile** · MCP tool: none (human-only) · undo: no — changes the active voice profile, outside the project · takes `project`
 
 Human only: make another profile active (the Regista app's Settings → Profile, or `regista-engine exec profile.switch '{"id": "…"}'` in the owner's terminal). Agents cannot call it: a voice belongs to its person.
 
@@ -1920,7 +1921,7 @@ Returns: the session path and what it contains.
 
 ### `rules.addKind`
 
-**Add a kind of video** · MCP tool: `rules_addKind` · undo: no — replaces or saves the project (opening or creating one clears the history) · takes `project`
+**Add a kind of video** · MCP tool: `rules_addKind` · undo: no — writes the rule sheets in the rules folder, outside the project (rules.reset brings back a built-in default) · takes `project`
 
 Add a kind of video of the user's own (e.g. "YouTube tutorial"): a new sheet in the rules folder, copied from an existing kind (from) or empty under its title; every-video still applies to it. Then project.setKind chooses it for a project. Returns the new sheet.
 
@@ -1985,7 +1986,7 @@ Returns: the sheets (kind, title, builtIn, edited, path, the switches written in
 
 ### `rules.removeKind`
 
-**Delete a kind of video** · MCP tool: `rules_removeKind` · undo: no — replaces or saves the project (opening or creating one clears the history) · takes `project`
+**Delete a kind of video** · MCP tool: `rules_removeKind` · undo: no — writes the rule sheets in the rules folder, outside the project (rules.reset brings back a built-in default) · takes `project`
 
 Delete a kind of video of the user's own (its sheet). Only when the user asked. A project that had it falls back to the kind of its format (rules.check says so). Built-in kinds cannot be removed (rules.reset restores their default). Returns the removed kind.
 
@@ -1997,7 +1998,7 @@ Returns: the removed kind.
 
 ### `rules.reset`
 
-**Restore a rule sheet** · MCP tool: `rules_reset` · undo: no — replaces or saves the project (opening or creating one clears the history) · takes `project`
+**Restore a rule sheet** · MCP tool: `rules_reset` · undo: no — writes the rule sheets in the rules folder, outside the project (rules.reset brings back a built-in default) · takes `project`
 
 Bring back the shipped default of a built-in sheet (every-video or a built-in kind): removes the user's copy. Only when the user asked. A kind of the user's own has no default (rules.removeKind deletes it). Returns the sheet and whether a copy was removed.
 
@@ -2010,7 +2011,7 @@ Returns: the sheet and whether a copy was removed.
 
 ### `rules.set`
 
-**Change a rule sheet** · MCP tool: `rules_set` · undo: no — replaces or saves the project (opening or creating one clears the history) · takes `project`
+**Change a rule sheet** · MCP tool: `rules_set` · undo: no — writes the rule sheets in the rules folder, outside the project (rules.reset brings back a built-in default) · takes `project`
 
 Write a rule sheet (the user's copy in the rules folder, which replaces the shipped default of that kind; rules.reset brings the default back): the whole text, or only the prose (the header is kept), and/or switches — checks {"logo-pause": {"on": true, "value": 0.4}, "text-size": false}. Only when the user asked to change their rules. Not an undo step. Returns the sheet as rules.get.
 
@@ -2661,7 +2662,7 @@ Returns: the path, size and what the window shows (timeline lanes and clip count
 
 ### `voice.enroll.add`
 
-**Record a voice sample** · MCP tool: `voice_enroll_add` · undo: no — replaces or saves the project (opening or creating one clears the history) · takes `project`
+**Record a voice sample** · MCP tool: `voice_enroll_add` · undo: no — adds clips to the active profile's voice, outside the project · takes `project`
 
 Add one recording of a tone block to the active profile's voice: transcribes it, checks the consent sentence (first take of a language), finds each script line, cuts one clip per line heard and picks a reference clip for the tone. After the neutral block the language works at once in zero-shot. Takes a minute or two per 10 min of audio. Returns {accepted, total, missing, reference, minutes}.
 
@@ -2699,7 +2700,7 @@ Returns: {profile, languages}.
 
 ### `voice.enroll.train`
 
-**Train the voice** · MCP tool: `voice_enroll_train` · undo: no — replaces or saves the project (opening or creating one clears the history) · takes `project`
+**Train the voice** · MCP tool: `voice_enroll_train` · undo: no — starts the training in the background, outside the project; voice.enroll.status follows it (no command stops it) · takes `project`
 
 Train the active profile's voice LoRA for a language in the background (VoxCPM2 trainer, Pro tier): ~10 min of clips → about 2 h on an M5 Pro; a 2-minute pilot → ~10 min. Poll voice.enroll.status; when it ends the LoRA is used automatically. Returns {status, estimatedMinutes}.
 
@@ -2711,7 +2712,7 @@ Returns: {status, estimatedMinutes}.
 
 ### `voice.lexicon`
 
-**Pronunciation** · MCP tool: `voice_lexicon` · undo: no — replaces or saves the project (opening or creating one clears the history) · takes `project`
+**Pronunciation** · MCP tool: `voice_lexicon` · undo: no — reads or writes the active profile's pronunciation lexicon, outside the project (remove takes an entry back out) · takes `project`
 
 The active profile's pronunciation lexicon for a language: how words the model mispronounces must be written for it (brand names keep their original pronunciation, never translated or adapted). Lists entries; `add` {word, say} with status confirmed (approved by ear) or pending (chosen by a Whisper read-back, waiting for the person's ear); `remove` a word. Applied only to the text sent to the model; captions keep the real spelling. Returns the entries.
 

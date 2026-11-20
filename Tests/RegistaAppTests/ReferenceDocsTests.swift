@@ -58,11 +58,13 @@ enum ReferenceDocs {
 
     static func undo(_ d: CommandDescriptor, kit: Set<String>) -> String {
         if kit.contains(d.id) { return "yes — history.undo puts the brand kit back" }
+        if let note = d.undoNote { return note }
         switch d.kind {
         case .edit: return "yes — one undo step"
         case .query: return "no — reads only"
         case .session: return "no — replaces or saves the project (opening or creating one clears the history)"
         case .history: return "– (moves through the undo history)"
+        case .job: return "no — starts work outside the project that goes on after it answers; the project is unchanged"
         }
     }
 
@@ -359,6 +361,18 @@ extension AppShortcut.Group {
         let kit = ReferenceDocs.kitUndoable
         #expect(kit.isSuperset(of: ["brandkit.create", "brandkit.update", "brandkit.setLogo", "brandkit.delete"]), "\(kit.sorted())")
         #expect(!kit.contains("brandkit.list"))
+    }
+
+    /// The undo line says what the command really does: «replaces or saves the project» only for the commands that do
+    /// (project.*); a download says how to stop it; a job is neither read-only nor an undo step.
+    @Test func theUndoLineSaysWhatTheCommandDoes() {
+        let kit = ReferenceDocs.kitUndoable
+        let all = Commands.all.map { $0.descriptor }
+        let replaces = all.filter { ReferenceDocs.undo($0, kit: kit).contains("replaces or saves the project") }.map(\.id)
+        #expect(Set(replaces) == ["project.new", "project.open", "project.save", "project.close"], "\(replaces.sorted())")
+        let fetch = all.first { $0.id == "generate.fetch" }!
+        #expect(fetch.kind == .job && ReferenceDocs.undo(fetch, kit: kit).contains("generate.status {jobId, cancel: true}"))
+        #expect(Set(all.filter { $0.kind == .job }.map(\.id)) == ["generate.fetch", "voice.enroll.train"])
     }
 
     /// With REGISTA_REFERENCE_OUT (scripts/reference-docs.sh): writes the files there. Without: docs/reference/ must be what

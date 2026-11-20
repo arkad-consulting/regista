@@ -79,7 +79,7 @@ public final class Engine {
                 ctx.history.record(.init(command: id, params: raw, before: before, after: after))
                 ctx.dirty = true
             }
-        case .query, .session, .history:
+        case .query, .session, .history, .job:
             break
         }
         if let change = ctx.kitChange {

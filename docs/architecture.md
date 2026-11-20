@@ -99,7 +99,8 @@ Regista         the SwiftUI app (recording, teleprompter, current auto-edit pipe
   and 44.1/48/96 kHz are all whole numbers of ticks — no Double drift. Seconds exist only in JSON params and
   summaries. Timeline times snap to the project frame grid, source times to the asset's frames.
 - **Commands** (`Command.swift`, `Commands/`): a `Command` has an id (`timeline.cut`), a summary, a
-  parameter description, a kind (`query`, `edit`, `session`, `history`) and a `run` on a copy of the engine
+  parameter description, a kind (`query`, `edit`, `session`, `history`, `job` — a download or a training that goes on
+  outside the project after it answers) and a `run` on a copy of the engine
   state — a failing command changes nothing. The parameter description drives validation (missing, unknown,
   mistyped params get explicit errors) and the MCP JSON schema; `CommandParams` refuses to read undeclared
   params, so code and schema can't drift.

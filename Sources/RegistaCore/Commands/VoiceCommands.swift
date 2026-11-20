@@ -34,6 +34,7 @@ enum ProfileCreate: Command {
     static let id = "profile.create"
     static let summary = "Create the profile of the person using Regista (their first name). It becomes active when no profile is active; otherwise the person switches to it in the Regista app (switching is human-only). A profile starts with no voice: they record theirs with voice.enroll.*. Returns the profile and whether it is active."
     static let kind = CommandKind.session
+    static let undoNote: String? = "no — writes the voice profiles, outside the project"
     static let params: [ParamSpec] = [.required("name", .string, "The person's first name (also said in the consent sentence).")]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
@@ -49,6 +50,7 @@ enum ProfileSwitch: Command {
     static let id = "profile.switch"
     static let summary = "Human only: make another profile active (the Regista app's Settings → Profile, or `regista-engine exec profile.switch '{\"id\": \"…\"}'` in the owner's terminal). Agents cannot call it: a voice belongs to its person."
     static let kind = CommandKind.session
+    static let undoNote: String? = "no — changes the active voice profile, outside the project"
     static let humanOnly = true
     static let params: [ParamSpec] = [.required("id", .string, "Profile id (profile.get).")]
 
@@ -62,6 +64,7 @@ enum ProfileAdopt: Command {
     static let id = "profile.adopt"
     static let summary = "Human only: bind a profile copied from another Mac to this one (the owner moving to a new Mac). Until then a copied profile is locked and its voice unusable."
     static let kind = CommandKind.session
+    static let undoNote: String? = "no — binds a copied voice profile to this Mac, outside the project"
     static let humanOnly = true
     static let params: [ParamSpec] = [.required("id", .string, "Profile id.")]
 
@@ -75,6 +78,7 @@ enum ProfileDelete: Command {
     static let id = "profile.delete"
     static let summary = "Human only: delete a profile and its voice data (recordings, clips, LoRAs) by moving its folder to the Trash."
     static let kind = CommandKind.session
+    static let undoNote: String? = "no — moves the profile's folder to the Trash (put it back from there), outside the project"
     static let humanOnly = true
     static let params: [ParamSpec] = [.required("id", .string, "Profile id.")]
 
@@ -167,6 +171,7 @@ enum VoiceEnrollAdd: Command {
     static let id = "voice.enroll.add"
     static let summary = "Add one recording of a tone block to the active profile's voice: transcribes it, checks the consent sentence (first take of a language), finds each script line, cuts one clip per line heard and picks a reference clip for the tone. After the neutral block the language works at once in zero-shot. Takes a minute or two per 10 min of audio. Returns {accepted, total, missing, reference, minutes}."
     static let kind = CommandKind.session
+    static let undoNote: String? = "no — adds clips to the active profile's voice, outside the project"
     static let params: [ParamSpec] = [
         .required("path", .string, "The recording (any audio or video file: phone memo, Regista take)."),
         .required("language", .string, "Language of the script read."),
@@ -233,7 +238,8 @@ enum VoiceEnrollStatus: Command {
 enum VoiceEnrollTrain: Command {
     static let id = "voice.enroll.train"
     static let summary = "Train the active profile's voice LoRA for a language in the background (VoxCPM2 trainer, Pro tier): ~10 min of clips → about 2 h on an M5 Pro; a 2-minute pilot → ~10 min. Poll voice.enroll.status; when it ends the LoRA is used automatically. Returns {status, estimatedMinutes}."
-    static let kind = CommandKind.session
+    static let kind = CommandKind.job
+    static let undoNote: String? = "no — starts the training in the background, outside the project; voice.enroll.status follows it (no command stops it)"
     static let params: [ParamSpec] = [.required("language", .string, "Language to train.")]
 
     /// Whether this Mac can train ({available, tier, reason?: "tier" | "trainer" | "engine", detail?}); voice.enroll.status reports it.
@@ -566,6 +572,7 @@ enum VoiceLexiconCommand: Command {
     static let id = "voice.lexicon"
     static let summary = "The active profile's pronunciation lexicon for a language: how words the model mispronounces must be written for it (brand names keep their original pronunciation, never translated or adapted). Lists entries; `add` {word, say} with status confirmed (approved by ear) or pending (chosen by a Whisper read-back, waiting for the person's ear); `remove` a word. Applied only to the text sent to the model; captions keep the real spelling. Returns the entries."
     static let kind = CommandKind.session
+    static let undoNote: String? = "no — reads or writes the active profile's pronunciation lexicon, outside the project (remove takes an entry back out)"
     static let params: [ParamSpec] = [
         .required("language", .string, "fr, it, en, pt…"),
         .optional("add", .object, "{\"word\": \"WeSites\", \"say\": \"We Sites\"}."),
