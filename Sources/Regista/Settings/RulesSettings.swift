@@ -305,7 +305,7 @@ struct RulesSettings: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            sheetsColumn.frame(width: 224)
+            sheetsColumn.frame(width: Self.listWidth)
             Ed.rule.frame(width: 1)
             sheetPane
         }
@@ -355,10 +355,14 @@ struct RulesSettings: View {
     private func row(_ s: RulesModel.Sheet) -> some View {
         SideRow(symbol: Self.symbol(s.kind), title: s.shownTitle,
                 // An edited built-in sheet: a dot (the header says «modificato da te»); a kind of the user's: «tuo».
-                detail: s.builtIn ? (s.edited ? "•" : nil) : loc("tuo"), on: s.kind == model.kind) {
+                detail: s.builtIn ? (s.edited ? "•" : nil) : loc("tuo"), on: s.kind == model.kind, truncation: .tail) {
             model.select(s.kind)
         }
     }
+
+    /// The list of sheets: the longest built-in kind name of the four languages on one line beside an edited sheet's dot
+    /// («Video con voce fuori campo», #130); a kind the user named longer is cut at its end, before its «tuo».
+    static let listWidth: CGFloat = 252
 
     static func symbol(_ kind: String) -> String {
         switch kind {

@@ -20,7 +20,8 @@ import SwiftUI
 //   RTextEditor    the one multi-line editor (grows with its text, or scrolls inside a fixed height)
 //   InspectorValueField  a value that becomes a field on click (numbers, timecodes)
 // Rows, cards, states
-//   SideRow        a one-line row of a side list: glyph, title, a dim detail on the right
+//   SideRow        a one-line row of a side list: glyph, title, a dim detail on the right (`truncation`: where a
+//                  title too long for the row is cut, the middle by default — file names keep their end)
 //   PickRow        a row to pick from: a leading thumbnail / glyph / radio, title, one dim line or the reason it is
 //                  greyed (amber), a mark on the right, an optional link under it (Installa…, Usa di nuovo)
 //   RowGlyph, RowThumb, RadioMark   the leading parts of a row
@@ -1111,6 +1112,7 @@ struct SideRow: View {
     let title: String
     var detail: String? = nil
     var on = false
+    var truncation: Text.TruncationMode = .middle
     let action: () -> Void
     @State private var hover = false
 
@@ -1118,8 +1120,9 @@ struct SideRow: View {
         Button(action: action) {
             HStack(spacing: Ed.Space.s) {
                 RowGlyph(symbol: symbol, on: on)
-                Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.control)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
-                Spacer(minLength: Ed.Space.xs)
+                // The title takes the row's free width (no spacer beside it: one gap before the detail, not three).
+                Text(verbatim: loc(title)).font(Ed.ui(Ed.TypeSize.control)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(truncation)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 if let detail { Text(verbatim: detail).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text4).fixedSize() }
             }
             .padding(.horizontal, Ed.Space.s)

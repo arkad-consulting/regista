@@ -125,6 +125,75 @@ extension MouseSuites {
         #expect(app.rig.elements(containing: "QX").isEmpty, "the edited prose is still on screen")
     }
 
+    /// #130: the list of sheets holds every built-in kind's name whole, on one line, in the four languages, beside an
+    /// edited sheet's dot (the narrowest room a built-in name gets); a kind the user named longer than the row keeps its
+    /// «tuo» inside the row; a click anywhere on a row (its glyph, its title, the empty space before its detail) selects
+    /// that sheet.
+    @Test(arguments: ["it", "en", "fr", "pt"])
+    func theKindNamesFitTheirList(_ language: String) async throws {
+        let saved = UserDefaults.standard.object(forKey: SettingsRoute.rulesKey)
+        defer { UserDefaults.standard.set(saved, forKey: SettingsRoute.rulesKey) }
+        UserDefaults.standard.set(RuleBook.everyVideo, forKey: SettingsRoute.rulesKey)
+        let app = try await AppRig()
+        defer { app.close() }
+        let e = Engine(services: app.store.engine.context.services)
+        let builtIn = [RuleBook.everyVideo] + RuleBook.builtInKinds
+        for kind in builtIn { _ = try e.execute("rules.set", params: ["kind": .string(kind), "checks": ["text-size": false]]) }
+        // A kind a user named, longer than the row.
+        let long = "Intervista lunga con due ospiti e le domande del pubblico in sala"
+        let added = try e.execute("rules.addKind", params: ["title": .string(long)])
+        let longKind = try #require(added["kind"]?.stringValue)
+        app.host(SettingsView(pinned: .rules).environment(\.colorScheme, .dark).background(Color(nsColor: .windowBackgroundColor)),
+                 size: SettingsView.size, language: language)
+        await app.settle()
+        let table = MouseRig.table(language)
+        let titles = builtIn.map { table.localizedString(forKey: rulesBook(app).title($0, language: RuleBook.interfaceLanguage()), value: nil, table: nil) }
+        _ = await app.until(3) { app.rig.controls().contains { $0.name.hasPrefix(titles.last!) } }
+        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+            try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("settings-rules-list-\(language).png"))
+        }
+        let font = NSFont.systemFont(ofSize: Ed.TypeSize.control)
+        let dot = naturalWidth("•", NSFont.systemFont(ofSize: Ed.TypeSize.small))
+        func row(_ title: String) -> RigElement? {
+            app.rig.controls().first { $0.visible && $0.role == "AXButton" && $0.name.hasPrefix(title) && $0.frame.maxX <= RulesSettings.listWidth + 1 }
+        }
+        for title in titles {
+            guard let r = row(title) else {
+                Issue.record("\(language): no row «\(title)»: \(app.rig.controls().map(\.description))"); continue
+            }
+            // The row: its padding, the glyph, a gap, the title, a gap, the detail.
+            let room = r.frame.width - 2 * Ed.Space.s - 18 - Ed.Space.s - Ed.Space.s - dot
+            let needed = naturalWidth(title, font)
+            #expect(needed <= room, "\(language): «\(title)» needs \(needed) pt, its row \(r.frame) leaves \(room) pt beside the dot")
+            #expect(r.name.contains("•"), "\(language): the edited sheet «\(title)» has no dot: «\(r.name)»")
+        }
+        // The user's kind: in the row (cut at its end), its «tuo» drawn inside the row.
+        let mine = table.localizedString(forKey: "tuo", value: nil, table: nil)
+        let longRow = try #require(row(String(long.prefix(12))), "\(language): no row for the user's kind")
+        #expect(longRow.name.contains(mine), "\(language): the user's kind has no «\(mine)»: «\(longRow.name)»")
+        if let badge = app.rig.elements().first(where: { $0.role == "AXStaticText" && $0.value == mine && $0.visible }) {
+            #expect(longRow.frame.insetBy(dx: -0.5, dy: -0.5).contains(badge.frame), "\(language): «\(mine)» at \(badge.frame) is outside its row \(longRow.frame)")
+        }
+
+        // A click selects the row it lands on: at the glyph, on the title, in the space before the detail.
+        let reel = try #require(row(titles[1]))
+        for (i, point) in [CGPoint(x: reel.frame.minX + 12, y: reel.centre.y), reel.centre, CGPoint(x: reel.frame.maxX - 22, y: reel.centre.y)].enumerated() {
+            app.rig.click(try #require(row(titles[0])).frame.origin.applying(.init(translationX: 30, y: 10)))
+            _ = await app.until(2) { UserDefaults.standard.string(forKey: SettingsRoute.rulesKey) == RuleBook.everyVideo }
+            #expect(UserDefaults.standard.string(forKey: SettingsRoute.rulesKey) == RuleBook.everyVideo, "\(language): «\(titles[0])» was not selected")
+            let n = app.store.activity.count
+            app.rig.click(point)
+            _ = await app.until(2) { UserDefaults.standard.string(forKey: SettingsRoute.rulesKey) == builtIn[1] }
+            await app.settle()
+            #expect(UserDefaults.standard.string(forKey: SettingsRoute.rulesKey) == builtIn[1], "\(language): click \(i) at \(point) did not select «\(titles[1])»")
+            #expect(app.commands(since: n).isEmpty, "\(language): a click on a row ran \(app.commands(since: n))")
+            #expect(row(titles[1]) != nil, "\(language): the row is gone after the click")
+        }
+        app.rig.click(CGPoint(x: longRow.frame.maxX - 6, y: longRow.centre.y))
+        _ = await app.until(2) { UserDefaults.standard.string(forKey: SettingsRoute.rulesKey) == longKind }
+        #expect(UserDefaults.standard.string(forKey: SettingsRoute.rulesKey) == longKind, "\(language): a click on «\(mine)» did not select the user's kind")
+    }
+
     /// A sheet on the left opens it; «Nuovo tipo…» adds a kind from it; a header problem shows under the checks with its
     /// line; Importa… asks for a file, Mostra nel Finder shows the sheet's file; Elimina il tipo… asks, then deletes.
     @Test func kindsAreAddedReportTheirHeaderAndAreDeleted() async throws {
