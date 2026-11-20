@@ -84,6 +84,10 @@ msg() {
     it.swift_old) echo 'Serve Swift 6 o successivo (trovato: %s). Aggiorna gli Strumenti da riga di comando in Impostazioni di Sistema › Generali › Aggiornamento Software.' ;;
     fr.swift_old) echo 'Swift 6 ou plus récent est nécessaire (trouvé : %s). Mets à jour les outils de ligne de commande dans Réglages Système › Général › Mise à jour de logiciels.' ;;
     pt.swift_old) echo 'É preciso o Swift 6 ou mais novo (encontrado: %s). Atualize as Ferramentas de Linha de Comando em Ajustes do Sistema › Geral › Atualização de Software.' ;;
+    en.sdk_needs_xcode) echo "No macOS SDK of the Command Line Tools on this Mac can build Regista's interface (SwiftUI's features need Xcode's plug-ins in the newest SDKs). Install Xcode from the App Store, open it once, then run the installer again." ;;
+    it.sdk_needs_xcode) echo "Nessun SDK macOS degli Strumenti da riga di comando di questo Mac riesce a compilare l'interfaccia di Regista (negli SDK più recenti SwiftUI richiede i plug-in di Xcode). Installa Xcode dall'App Store, aprilo una volta, poi rilancia il programma di installazione." ;;
+    fr.sdk_needs_xcode) echo "Aucun SDK macOS des outils de ligne de commande de ce Mac ne peut compiler l'interface de Regista (dans les SDK les plus récents, SwiftUI a besoin des modules d'Xcode). Installe Xcode depuis l'App Store, ouvre-le une fois, puis relance l'installation." ;;
+    pt.sdk_needs_xcode) echo 'Nenhum SDK do macOS das Ferramentas de Linha de Comando deste Mac consegue compilar a interface do Regista (nos SDKs mais novos o SwiftUI precisa dos plug-ins do Xcode). Instale o Xcode pela App Store, abra-o uma vez e execute o instalador de novo.' ;;
     en.brew_missing) echo 'Homebrew is missing. Install it with the official command below (https://brew.sh), then run the installer again:' ;;
     it.brew_missing) echo 'Manca Homebrew. Installalo con il comando ufficiale qui sotto (https://brew.sh), poi rilancia il programma di installazione:' ;;
     fr.brew_missing) echo "Homebrew manque. Installe-le avec la commande officielle ci-dessous (https://brew.sh), puis relance l'installation :" ;;

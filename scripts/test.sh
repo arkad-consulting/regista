@@ -17,6 +17,12 @@ cd "$(dirname "$0")/.."
 DEV=/Library/Developer/CommandLineTools/Library/Developer
 SWIFT="${REGISTA_SWIFT:-swift}"
 REPORTS="${REGISTA_CRASH_REPORTS:-$HOME/Library/Logs/DiagnosticReports}"
+# The macOS SDK it can build SwiftUI with, without Xcode (#136); not for the test of this script (its swift is a stand-in).
+if [ -z "${REGISTA_SWIFT:-}" ]; then
+  sdk="$(bash -c '. scripts/lib.sh; swift_sdk && printf %s "${SDKROOT:-}"')" \
+    || { bash -c '. scripts/lib.sh; t sdk_needs_xcode' >&2; echo >&2; exit 1; }
+  if [ -n "$sdk" ]; then export SDKROOT="$sdk"; fi
+fi
 args=()
 if [ -d "$DEV/Frameworks/Testing.framework" ] && ! xcode-select -p | grep -q Xcode.app; then
   args=(-Xswiftc -F -Xswiftc "$DEV/Frameworks"

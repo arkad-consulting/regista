@@ -21,7 +21,8 @@ the steps below.
 
 - A Mac with Apple silicon (M1 or later) and macOS 15 or later.
 - Apple's command line tools. If you do not have them, type `xcode-select --install` in Terminal and wait for Apple's
-  installer to finish.
+  installer to finish. Xcode is not needed: when the newest SDK of those tools needs it (macOS 27), the installer
+  builds with the older SDK they carry and says so; only when none works does it ask you to install Xcode.
 - Free disk space: about 4 GB for the Base tier, 16 GB for Medium and Pro. Local generation on the Pro tier, set up
   separately, takes much more (about 70 GB).
 - A good connection and 20 to 40 minutes the first time.

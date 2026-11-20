@@ -109,7 +109,9 @@ preflight_clt() {
   fi
   swiftv="$(swift --version 2>/dev/null | sed -n 's/.*Swift version \([0-9]*\)\..*/\1/p' | head -1)"
   [ "${swiftv:-0}" -ge 6 ] || die "$(t swift_old "${swiftv:-none}")"
-  ok "Command Line Tools ($(xcode-select -p)), Swift $swiftv"
+  # The SDK the app builds with (#136): exported here, so the app's build below uses it too.
+  swift_sdk || die "$(t sdk_needs_xcode)"
+  ok "Command Line Tools ($(xcode-select -p)), Swift $swiftv${SWIFT_SDK_NOTE:+, $SWIFT_SDK_NOTE (the newest needs Xcode)}"
 }
 
 # Official Homebrew bootstrap (not an engine): commit dated 2026-10-01, pinned 2026-11-13 (#87).

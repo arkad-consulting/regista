@@ -21,7 +21,9 @@ segui i passi qui sotto.
 
 - Un Mac con chip Apple (M1 o successivo) e macOS 15 o successivo.
 - Gli strumenti da riga di comando di Apple. Se non li hai, scrivi `xcode-select --install` nel Terminale e aspetta
-  che l'installazione di Apple finisca.
+  che l'installazione di Apple finisca. Xcode non serve: quando l'SDK più recente di questi strumenti lo richiede
+  (macOS 27), l'installazione usa l'SDK precedente che contengono e lo dice; solo se nessuno funziona ti chiede di
+  installare Xcode.
 - Spazio libero sul disco: circa 4 GB per il livello Base, 16 GB per Medio e Pro. La generazione locale del livello Pro,
   che si prepara a parte, ne chiede molti di più (circa 70 GB).
 - Una buona connessione e da 20 a 40 minuti la prima volta.

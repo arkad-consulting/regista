@@ -37,6 +37,9 @@ if ! scripts/test.sh >"$log" 2>&1; then
 fi
 grep -E "Test run with" "$log" | tail -1
 
+# The macOS SDK it can build SwiftUI with, without Xcode (#136): scripts/test.sh chose it in its own process.
+SDKROOT="$(bash -c '. scripts/lib.sh; swift_sdk && printf %s "${SDKROOT:-}"')" || fail "choosing a macOS SDK (scripts/lib.sh swift_sdk)"
+if [ -n "$SDKROOT" ]; then export SDKROOT; else unset SDKROOT; fi
 swift build --product regista-engine >"$log" 2>&1 || fail "swift build regista-engine"
 swift build --product regista-mcp >"$log" 2>&1 || fail "swift build regista-mcp"
 BIN="$(swift build --show-bin-path)"

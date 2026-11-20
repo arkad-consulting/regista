@@ -24,6 +24,9 @@
 set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 cd "$REPO"
+# The macOS SDK it can build SwiftUI with, without Xcode (#136); scripts/build-mcp.sh inherits it.
+swift_sdk || die "$(t sdk_needs_xcode)"
+[ -z "$SWIFT_SDK_NOTE" ] || echo "Building with the $SWIFT_SDK_NOTE (the newest SDK needs Xcode)"
 
 INSTALL=0; OPEN=1; BUNDLE_ENGINES=0
 for a in "$@"; do

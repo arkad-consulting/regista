@@ -4,6 +4,8 @@
 # or the MCP session silently runs the old tools. Prints the binary path.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+. scripts/lib.sh
+swift_sdk || die "$(t sdk_needs_xcode)"   # the SDK it can build with without Xcode (#136)
 echo "Build $(scripts/build-stamp.sh | cut -d' ' -f1)" >&2   # the id engines.status reports (BuildStamp.swift)
 # REGISTA_SWIFT_BUILD_FLAGS: the release build's extra flags (scripts/build-app.sh), the same for both products.
 # shellcheck disable=SC2086

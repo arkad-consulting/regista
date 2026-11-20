@@ -268,4 +268,50 @@ scripts_state() {
 }
 # The regista-mcp an installed app ships (scripts/build-app.sh): what both Claude configs run.
 bundled_mcp() { echo "$1/Contents/MacOS/regista-mcp"; }
+# swift_sdk: the macOS SDK SwiftPM builds Regista with (#136). Without Xcode, the newest SDK of the Command Line Tools
+# can declare SwiftUI features as macros whose plugin ships only with Xcode (macOS 27: `@State`, "external macro
+# implementation type 'SwiftUIMacros.StateMacro' could not be found"), while the same tools carry an older SDK that
+# builds. A probe typechecks a SwiftUI view with @State, plus the macOS 26 speech analyzer (an SDK older than 26 cannot
+# build the app), against the default SDK, then against each older SDK of the Command Line Tools, newest first; the
+# first that passes is exported as SDKROOT (nothing when the default passes). Skipped when SDKROOT is already set or
+# Xcode is selected (its plugins are there). A verdict is cached per SDK, compiler and probe, so only the first build
+# pays for the probe (~25 s). Sets SWIFT_SDK_NOTE ("macOS 26.5 SDK") when it chose one; returns 1 when no SDK passes
+# (the caller says to install Xcode).
+swift_sdk() {
+  SWIFT_SDK_NOTE=""
+  [ -z "${SDKROOT:-}" ] || return 0
+  local dev default dir probe compiler sdk version key verdict
+  dev="$(xcode-select -p 2>/dev/null)" || return 0
+  case "$dev" in *.app/Contents/Developer) return 0 ;; esac
+  default="$(xcrun --show-sdk-path 2>/dev/null)" || return 0
+  dir="${REGISTA_SDK_PROBE_DIR:-$HOME/Library/Caches/Regista/sdk-probe}"
+  mkdir -p "$dir" || return 0
+  probe="$dir/probe.swift"
+  # SwiftUI's @State, and the macOS 26 speech analyzer the teleprompter builds against (an older SDK lacks it).
+  printf '%s\n' 'import Speech' 'import SwiftUI' 'struct Probe: View {' '    @State private var n = 0' \
+    '    var body: some View { Text(verbatim: "\(n)") }' '}' \
+    '@available(macOS 26.0, *) func probeSpeech() -> Any.Type { SpeechAnalyzer.self }' >"$probe"
+  compiler="$(xcrun swiftc --version 2>/dev/null | head -1)"
+  # The default first, then the real (not linked) SDK folders of the tools, newest version first.
+  for sdk in "$default" $(for s in "$dev"/SDKs/MacOSX[0-9]*.sdk; do
+                            [ -d "$s" ] && [ ! -L "$s" ] || continue
+                            v="${s##*/MacOSX}"; echo "${v%.sdk} $s"
+                          done | sort -t. -k1,1nr -k2,2nr -k3,3nr | cut -d' ' -f2-); do
+    [ -d "$sdk" ] || continue
+    version="$(/usr/bin/plutil -extract Version raw "$sdk/SDKSettings.plist" 2>/dev/null || echo "?")"
+    key="$(printf '%s|%s|%s|%s' "$(cd "$sdk" && pwd -P)" "$version" "$compiler" "$(/sbin/md5 -q "$probe")" | /sbin/md5 -q)"
+    verdict="$(cat "$dir/$key" 2>/dev/null || true)"
+    if [ -z "$verdict" ]; then
+      if xcrun swiftc -typecheck -sdk "$sdk" -target arm64-apple-macos15 -module-cache-path "$dir/modules" "$probe" \
+           >"$dir/last-probe.log" 2>&1; then verdict=ok; else verdict=fail; fi
+      echo "$verdict" >"$dir/$key"
+    fi
+    [ "$verdict" = ok ] || continue
+    [ "$sdk" = "$default" ] && return 0
+    export SDKROOT="$sdk"
+    SWIFT_SDK_NOTE="macOS $version SDK"
+    return 0
+  done
+  return 1
+}
 WX_PUNKT="$WX_DIR/.venv/nltk_data/tokenizers/punkt_tab"
