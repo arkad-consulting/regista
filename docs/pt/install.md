@@ -89,7 +89,7 @@ podem deixar o Mac lento ou parar por falta de memória.
 
 ## Geração local com o ComfyUI
 
-No nível Pro, o Regista cria imagens, clipes, música e upscales no seu Mac, de graça, com o ComfyUI. O Regista fala
+No nível Pro, o Regista cria imagens, clipes, música e ampliações no seu Mac, de graça, com o ComfyUI. O Regista fala
 com o ComfyUI por conta própria, com os workflows que ele traz; o ComfyUI e os arquivos dos modelos são preparados à
 mão (cerca de 69 GB para os quatro modelos). **Ajustes › Motores › ComfyUI** mostra os passos; em resumo:
 
@@ -103,14 +103,14 @@ mão (cerca de 69 GB para os quatro modelos). **Ajustes › Motores › ComfyUI*
 3. Instale o pacote de nós ComfyUI-GGUF (https://github.com/city96/ComfyUI-GGUF) na pasta `custom_nodes` do ComfyUI e
    reinicie o ComfyUI: os clipes do Wan 2.2 precisam dele.
 4. Obtenha os arquivos de cada modelo. A linha de cada modelo (Z-Image Turbo, Wan 2.2 imagem para vídeo, ACE-Step 1.5,
-   Real-ESRGAN + RIFE) lista cada arquivo com a pasta, o tamanho, a licença e a página do editor e, quando o ComfyUI
+   Real-ESRGAN + RIFE) lista cada arquivo com a pasta, o tamanho, a licença e a página do autor e, quando o ComfyUI
    responde, quais ele já vê. **Baixar** ao lado de um arquivo que falta (com o tamanho), ou o botão acima de
    vários arquivos que baixa todos, o coloca na pasta `models` da pasta do ComfyUI que o Regista conhece, com o progresso e **Cancelar** na mesma
    linha. Um download cancelado ou interrompido retoma de onde parou; o arquivo é verificado com o seu sha256 antes de
    ir para o lugar; o espaço livre é verificado antes (os arquivos mais 2 GB). Um arquivo que já está lá com o tamanho
    certo não é baixado de novo, e um de outro tamanho nunca é substituído. O Regista só baixa em uma pasta do ComfyUI
    que conhece (a que você escolheu, ou uma encontrada nos locais habituais abaixo): se um programa inicia o ComfyUI, ou
-   só o endereço está definido, escolha a pasta dele para ter os botões, ou baixe cada arquivo da página do editor na
+   só o endereço está definido, escolha a pasta dele para ter os botões, ou baixe cada arquivo da página do autor na
    pasta indicada. O Claude pode fazer o mesmo com `generate.fetch`, depois de dizer o tamanho. Depois reinicie o
    ComfyUI para que ele veja os novos arquivos.
 5. Verifique: **Verificar de novo** na linha, ou peça ao Claude `generate.check`.

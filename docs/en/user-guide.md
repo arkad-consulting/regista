@@ -80,7 +80,7 @@ project: what you change in one, you see in the other.
   click a word to go there; select words (⌥-click, ⇧-click) and take them out of the edit with ⌫. **Takes** shows every
   reading of each sentence: approve the chosen one or pick another, then redo the cut.
 - **Audio** has two tabs. **Mix**: the loudness of the edit, the voice cleaning, the music (**Add music…**, its volume
-  and how far it goes down under the voice). **Sound effects**: search a sound, listen to it with a click and put it at
+  and how far it goes down under the voice). **Sound effects**: search for a sound, listen to it with a click and put it at
   the playhead.
 - **Graphics**: **Filters**, **Adjust**, **Effects**, **Styles**, **Motion graphics** and **Logo**. Each item says what
   it does and, where it can, shows a preview on your own frame. A click applies it to the selected clip or at the
@@ -119,7 +119,7 @@ sentence, that is one take.
   **Manual**.
 - **Follows your voice**: the language you read in. Recognition runs on the Mac: no audio leaves the computer.
 - **Mirrored** flips the text for teleprompter glass.
-- **Redo** and **Stop**: the words that, said out loud, restart the sentence or stop the recording.
+- **Let me redo** and **Stop**: the words that, said out loud, restart the sentence or stop the recording.
 - **Show the teleprompter**, **Listen and follow** and **Start over** try it without recording.
 
 Space starts and stops the scrolling; ↓ goes to the next sentence, ↑ restarts the sentence. A Bluetooth pedal or a

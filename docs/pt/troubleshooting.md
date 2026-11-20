@@ -45,7 +45,7 @@ embaixo. Os casos mais comuns:
 - *Um arquivo de modelo não baixa.* Sem o botão **Baixar**: escolha a **Pasta do ComfyUI** na linha do ComfyUI (o Regista
   só baixa em uma pasta que conhece). "Não há espaço suficiente": libere o que ele diz e **Baixar** de novo. "Não
   corresponde ao seu checksum": o arquivo foi apagado; baixe-o de novo, e se acontecer outra vez o arquivo na página do
-  editor mudou. "A conexão caiu": **Baixar** de novo retoma de onde parou. "Já existe um arquivo com este nome, mas de
+  autor mudou. "A conexão caiu": **Baixar** de novo retoma de onde parou. "Já existe um arquivo com este nome, mas de
   outro tamanho": mova esse arquivo e baixe.
 - *"ComfyUI ran out of memory".* Feche outros apps pesados, ou peça um tamanho menor ou um clipe mais curto.
 - *O app de desktop do ComfyUI.* Ele escuta em outra porta que não a 8188: defina o **Endereço** (por exemplo
