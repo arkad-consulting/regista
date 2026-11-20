@@ -623,7 +623,7 @@ struct TrackHeader: View {
     private func delete(_ t: Track) {
         if !t.clips.isEmpty {
             let a = NSAlert()
-            a.messageText = t.clips.count == 1 ? loc("Eliminare la pista %@ con 1 clip?", row.label)
+            a.messageText = Plural.singular(t.clips.count) ? String(format: Plural.one("Eliminare la pista %@ con 1 clip?", t.clips.count), row.label)
                 : loc("Eliminare la pista %@ con %@ clip?", row.label, String(t.clips.count))
             a.informativeText = loc("Si può annullare con ⌘Z.")
             a.addButton(withTitle: loc("Elimina"))
@@ -741,7 +741,7 @@ struct ZoomBar: View {
         HStack(spacing: Ed.Space.s) {
             if count, let p = store.project {
                 let clips = p.tracks.filter { $0.kind == .video }.flatMap(\.clips).count
-                Text(verbatim: clips == 1 ? loc("1 clip · %@", shortTime(p.duration.seconds))
+                Text(verbatim: Plural.singular(clips) ? String(format: Plural.one("1 clip · %@", clips), shortTime(p.duration.seconds))
                      : loc("%@ clip · %@", String(clips), shortTime(p.duration.seconds))).font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
                     .fixedSize()
             }

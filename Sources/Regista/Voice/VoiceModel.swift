@@ -46,10 +46,10 @@ enum VoiceCalls {
     static func replaced(_ r: JSONValue) -> String {
         func n(_ key: String) -> Int { Int(r[key]?.doubleValue ?? 0) }
         let remade = n("remade"), added = n("added"), removed = n("removed"), kept = n("unchanged")
-        var parts = [remade == 0 ? loc("Nessun paragrafo rifatto") : remade == 1 ? loc("1 paragrafo rifatto") : String(format: loc("%d paragrafi rifatti"), remade)]
-        if added > 0 { parts.append(added == 1 ? loc("1 aggiunto") : String(format: loc("%d aggiunti"), added)) }
-        if removed > 0 { parts.append(removed == 1 ? loc("1 tolto") : String(format: loc("%d tolti"), removed)) }
-        if kept > 0 { parts.append(kept == 1 ? loc("1 invariato") : String(format: loc("%d invariati"), kept)) }
+        var parts = [remade == 0 ? loc("Nessun paragrafo rifatto") : Plural.text(remade, "1 paragrafo rifatto", "%d paragrafi rifatti")]
+        if added > 0 { parts.append(Plural.text(added, "1 aggiunto", "%d aggiunti")) }
+        if removed > 0 { parts.append(Plural.text(removed, "1 tolto", "%d tolti")) }
+        if kept > 0 { parts.append(Plural.text(kept, "1 invariato", "%d invariati")) }
         return parts.joined(separator: ", ")
     }
 
@@ -261,7 +261,7 @@ final class VoiceModel: ObservableObject {
         guard !demo, let store, let jobs, let lang = activeLanguage?.code, !paragraphs.isEmpty else { return }
         stopPlayback()
         let text = self.text, tone = activeTone, placement = self.placement, n = paragraphs.count
-        let title = n == 1 ? loc("Voce: 1 paragrafo") : String(format: loc("Voce: %d paragrafi"), n)
+        let title = Plural.text(n, "Voce: 1 paragrafo", "Voce: %d paragrafi")
         jobs.start(kind: "voice", title: title, onCancel: { [weak store] in store?.cancelAside() }) { [weak self] h in
             guard let self else { return }
             for (i, p) in VoiceScript.paragraphs(text).enumerated() {

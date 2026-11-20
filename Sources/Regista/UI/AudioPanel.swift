@@ -85,7 +85,7 @@ struct AudioMixTab: View {
                         HStack(spacing: Ed.Space.s) {
                             Circle().fill(ClipPalette.edge(t.role == "music" ? .music : t.role == "sfx" ? .sfx : .voice)).frame(width: 6, height: 6)
                             Text(verbatim: trackName(t)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text).lineLimit(1)
-                            Text(verbatim: t.clips.count == 1 ? loc("1 clip") : String(format: loc("%d clip"), t.clips.count)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
+                            Text(verbatim: Plural.text(t.clips.count, "1 clip", "%d clip")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
                             if store.project?.asset(t.clips.first?.assetID ?? "")?.origin != nil {
                                 Text(verbatim: loc("voce pulita")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.ok)
                             }

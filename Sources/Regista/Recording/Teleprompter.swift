@@ -812,8 +812,8 @@ struct PrompterEditorView: View {
     /// «1 ripresa · 10 parole · circa 1 min»: each count in the singular when it is one (#63). The first is the script's
     /// lines, and a line is a take (the help under it says so): two sentences on one line are one take (#66).
     static func counts(takes: Int, words: Int) -> String {
-        [takes == 1 ? loc("1 ripresa") : String(format: loc("%d riprese"), takes),
-         words == 1 ? loc("1 parola") : loc("%@ parole", String(words)),
+        [Plural.text(takes, "1 ripresa", "%d riprese"),
+         Plural.text(words, "1 parola", "%@ parole"),
          String(format: loc("circa %d min"), max(1, Int((Double(words) / 160).rounded())))].joined(separator: " · ")
     }
 

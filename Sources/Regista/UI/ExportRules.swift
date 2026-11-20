@@ -187,7 +187,7 @@ struct ExportRulesCard: View {
     /// Everything passes: one line, the kind beside it; under it when a long kind's name leaves the line no room (the
     /// words were broken letter by letter beside «Tutorial dello schermo»).
     private var compact: some View {
-        let words = Text(verbatim: report.passed.count == 1 ? loc("1 controllo rispettato") : loc("%@ controlli rispettati", "\(report.passed.count)"))
+        let words = Text(verbatim: Plural.text(report.passed.count, "1 controllo rispettato", "%@ controlli rispettati"))
             .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2)
         let check = Image(systemName: "checkmark.circle.fill").font(Ed.icon(Ed.TypeSize.body)).foregroundStyle(Ed.ok)
         return ViewThatFits(in: .horizontal) {

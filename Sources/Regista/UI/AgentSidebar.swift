@@ -255,7 +255,7 @@ struct TranscriptView: View {
                 }
                 if let sel = store.wordSelection {
                     HStack(spacing: Ed.Space.s) {
-                        Text(verbatim: sel.count == 1 ? loc("1 parola") : loc("%@ parole", String(sel.count))).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text2)
+                        Text(verbatim: Plural.text(sel.count, "1 parola", "%@ parole")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text2)
                         Spacer()
                         EdButton(title: "Annulla") { store.wordSelection = nil; anchor = nil }
                         EdButton(title: "Elimina dal montaggio", symbol: "scissors", prominent: true) { store.deleteWords(sel); anchor = nil }

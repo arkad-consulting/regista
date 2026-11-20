@@ -371,7 +371,7 @@ private struct ApprovalCard: View {
                     .lineLimit(3).fixedSize(horizontal: false, vertical: true)
             }
             if let left = e.budgetRemaining {
-                Text(verbatim: left == 1 ? loc("Del budget resta 1 chiamata a pagamento: questa la usa.")
+                Text(verbatim: Plural.singular(left) ? Plural.one("Del budget resta 1 chiamata a pagamento: questa la usa.", left)
                                          : String(format: loc("Del budget restano %@ chiamate a pagamento: questa ne usa una."), String(left)))
                     .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).fixedSize(horizontal: false, vertical: true)
             }

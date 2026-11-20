@@ -394,7 +394,7 @@ struct RulesSettings: View {
 
     private var meta: String {
         let on = model.checks.filter(\.on).count
-        let count = on == 1 ? loc("1 controllo attivo") : loc("%@ controlli attivi", "\(on)")
+        let count = Plural.text(on, "1 controllo attivo", "%@ controlli attivi")
         guard let s = model.sheet else { return count }
         let origin = s.builtIn ? (s.edited ? loc("modificato da te") : loc("predefinito")) : loc("tipo tuo")
         return origin + " · " + count

@@ -457,6 +457,6 @@ enum GenWords {
         f.maximumFractionDigits = 2
         f.minimumFractionDigits = 0
         let n = f.string(from: NSNumber(value: c)) ?? String(c)
-        return c == 1 ? String(format: loc("%@ credito"), n) : String(format: loc("%@ crediti"), n)
+        return Plural.singular(c) ? String(format: loc("%@ credito"), n) : String(format: loc("%@ crediti"), n)
     }
 }

@@ -64,7 +64,7 @@ enum CommandLines {
         case "takes.list":
             let lines = r["lines"]?.arrayValue ?? []
             let takes = lines.reduce(0) { $0 + ($1["takes"]?.arrayValue?.count ?? 0) }
-            if takes == lines.count { return lines.count == 1 ? loc("1 ripresa trovata") : loc("%@ riprese trovate, una per riga", "\(takes)") }
+            if takes == lines.count { return Plural.singular(takes) ? Plural.one("1 ripresa trovata", takes) : loc("%@ riprese trovate, una per riga", "\(takes)") }
             return loc("%1$@ per %2$@", count(takes, "1 ripresa", "%@ riprese"), count(lines.count, "1 riga", "%@ righe"))
         case "takes.select": return loc("Riga %@: ripresa %@", "\(int(r["line"]) ?? 0)", "\(int(r["chosen"]) ?? 0)")
         case "recording.import": return loc("Registrazione importata · %@", time(r["duration"]))
@@ -205,8 +205,8 @@ enum CommandLines {
 
     // MARK: Pieces
 
-    /// "1 riga" or "2 righe": the singular key, or the plural format key with the count.
-    static func count(_ n: Int, _ one: String, _ many: String) -> String { n == 1 ? loc(one) : loc(many, "\(n)") }
+    /// "1 riga" or "2 righe": the singular key, or the plural format key with the count (Plural: French 0 is singular).
+    static func count(_ n: Int, _ one: String, _ many: String) -> String { Plural.text(n, one, many) }
 
     private static func int(_ v: JSONValue?) -> Int? { v?.doubleValue.map { Int($0.rounded()) } }
 

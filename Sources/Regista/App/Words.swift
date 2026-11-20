@@ -61,3 +61,27 @@ enum Words {
 func loc(_ format: String, _ args: CVarArg...) -> String {
     String(format: loc(format), locale: Locale.current, arguments: args)
 }
+
+/// Counted nouns (#133): every choice between a singular and a plural text. French says 0 — and any number under 2 —
+/// in the singular («0 mot clé», «1,5 crédit»); Italian, English and Portuguese only 1 («0 parole chiave»).
+enum Plural {
+    /// Whether `n` takes the singular in `language` (the words' language).
+    static func singular(_ n: Double, language: String = Words.language) -> Bool { language == "fr" ? abs(n) < 2 : n == 1 }
+    static func singular(_ n: Int, language: String = Words.language) -> Bool { singular(Double(n), language: language) }
+
+    /// The singular's text with its number: `one` is its key, written with the number 1 («1 parola chiave»); a singular
+    /// other than 1 (French 0) puts its number in place of the 1. Other placeholders are left for the caller.
+    static func one(_ one: String, _ n: Int, lookup: (String) -> String = loc) -> String {
+        let text = lookup(one)
+        guard n != 1, let r = text.range(of: #"(?<![\d.,])1(?![\d.,×])"#, options: .regularExpression) else { return text }
+        return text.replacingCharacters(in: r, with: "\(n)")
+    }
+
+    /// `n` with its noun: the singular's key `one` (written with 1) or the plural's `many` (the number as its one `%@` or
+    /// `%d`), in the words' language.
+    static func text(_ n: Int, _ one: String, _ many: String, lookup: (String) -> String = loc, language: String = Words.language) -> String {
+        if singular(n, language: language) { return Self.one(one, n, lookup: lookup) }
+        let format = lookup(many)
+        return many.contains("%d") ? String(format: format, n) : String(format: format, "\(n)")
+    }
+}

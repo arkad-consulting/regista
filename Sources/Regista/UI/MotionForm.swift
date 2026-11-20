@@ -99,7 +99,7 @@ struct MotionForm: View {
                 panel.allowedContentTypes = [.image]
                 if panel.runModal() == .OK { values[f.name] = .array(panel.urls.map { .string($0.path) }) }
             }
-            Text(verbatim: paths.isEmpty ? loc("Nessuna: pannelli di esempio") : paths.count == 1 ? loc("1 immagine") : loc("%@ immagini", String(paths.count)))
+            Text(verbatim: paths.isEmpty ? loc("Nessuna: pannelli di esempio") : Plural.text(paths.count, "1 immagine", "%@ immagini"))
                 .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
         }
     }

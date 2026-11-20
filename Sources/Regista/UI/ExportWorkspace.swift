@@ -226,7 +226,7 @@ struct ExportSettingsPanel: View {
                 store.selection = [first.clipID]
                 store.preview.seek(first.start.seconds)
             } label: {
-                check("Marca", off.count == 1 ? loc("1 titolo fuori dai colori del kit") : loc("%@ titoli fuori dai colori del kit", String(off.count)), ok: false)
+                check("Marca", Plural.text(off.count, "1 titolo fuori dai colori del kit", "%@ titoli fuori dai colori del kit"), ok: false)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)

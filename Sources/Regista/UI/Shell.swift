@@ -607,7 +607,7 @@ struct ApprovalSheet: View {
                 row("Modello", e.model)
                 row("Tipo", e.kind == .video ? loc("clip video") : e.kind == .image ? loc("immagine") : e.kind.rawValue)
                 row("Costo", loc("%@ crediti", String(format: "%g", e.credits)))
-                row("Budget", remaining == 1 ? loc("resta 1 chiamata su %@", String(cap(e.provider)))
+                row("Budget", Plural.singular(remaining) ? String(format: Plural.one("resta 1 chiamata su %@", remaining), String(cap(e.provider)))
                                              : loc("restano %@ chiamate su %@", String(remaining), String(cap(e.provider))))
             }
             Text(loc("Prompt")).font(Ed.ui(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.text3)

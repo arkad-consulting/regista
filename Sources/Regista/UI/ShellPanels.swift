@@ -715,7 +715,7 @@ struct ClaudePanel: View {
                         .font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2)
                     Spacer()
                     let steps = store.activity.filter { $0.isAgent && !$0.readOnly }.count
-                    Text(verbatim: steps == 1 ? loc("1 passo di Claude") : String(format: loc("%d passi di Claude"), steps))
+                    Text(verbatim: Plural.text(steps, "1 passo di Claude", "%d passi di Claude"))
                         .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text4)
                 }
                 .padding(.horizontal, Ed.Space.m)

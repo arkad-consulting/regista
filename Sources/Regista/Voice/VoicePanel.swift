@@ -179,7 +179,7 @@ struct VoicePanel: View {
         guard n > 0 else { return loc("Nessun testo") }
         let speech = model.estimatedSeconds
         let render = VoiceScript.estimatedRenderSeconds(speech: speech, paragraphs: n)
-        let paragraphs = n == 1 ? loc("1 paragrafo") : String(format: loc("%d paragrafi"), n)
+        let paragraphs = Plural.text(n, "1 paragrafo", "%d paragrafi")
         return String(format: loc("%@ · circa %@ di voce · resa circa %@"), paragraphs, VoiceFormat.duration(speech), VoiceFormat.duration(render))
     }
 

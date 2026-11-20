@@ -222,6 +222,69 @@ extension MouseSuites {
         #expect(CommandLines.line("timeline.link", ["linked": ["c1", "c2"]]) == nil)
     }
 
+    /// #133: zero takes the singular in French only («0 mot clé»), the plural in Italian, English and Portuguese; one
+    /// is singular and two plural everywhere — in the Claude panel's sentences (keywords, caption blocks, filler words,
+    /// transcribed words), the teleprompter's counts (a %d plural) and the credits.
+    @Test(arguments: [
+        ("it", ["0 blocchi di sottotitoli · 0 parole chiave", "1 blocco di sottotitoli · 1 parola chiave", "2 blocchi di sottotitoli · 2 parole chiave"],
+         ["0 intercalari trovati", "1 intercalare trovato", "2 intercalari trovati"], ["0 parole trascritte", "1 parola trascritta", "2 parole trascritte"],
+         ["0 riprese", "1 ripresa", "2 riprese"], ["0 crediti", "1 credito", "2 crediti"]),
+        ("en", ["0 caption blocks · 0 keywords", "1 caption block · 1 keyword", "2 caption blocks · 2 keywords"],
+         ["0 filler words found", "1 filler word found", "2 filler words found"], ["0 words transcribed", "1 word transcribed", "2 words transcribed"],
+         ["0 takes", "1 take", "2 takes"], ["0 credits", "1 credit", "2 credits"]),
+        ("fr", ["0 bloc de sous-titres · 0 mot clé", "1 bloc de sous-titres · 1 mot clé", "2 blocs de sous-titres · 2 mots clés"],
+         ["0 mot de remplissage trouvé", "1 mot de remplissage trouvé", "2 mots de remplissage trouvés"], ["0 mot transcrit", "1 mot transcrit", "2 mots transcrits"],
+         ["0 prise", "1 prise", "2 prises"], ["0 crédit", "1 crédit", "2 crédits"]),
+        ("pt", ["0 blocos de legendas · 0 palavras-chave", "1 bloco de legendas · 1 palavra-chave", "2 blocos de legendas · 2 palavras-chave"],
+         ["0 palavras de preenchimento encontradas", "1 palavra de preenchimento encontrada", "2 palavras de preenchimento encontradas"],
+         ["0 palavras transcritas", "1 palavra transcrita", "2 palavras transcritas"], ["0 tomadas", "1 tomada", "2 tomadas"], ["0 créditos", "1 crédito", "2 créditos"]),
+    ])
+    func zeroOneAndTwoInTheLanguage(_ language: String, captions: [String], fillers: [String], words: [String], takes: [String], credits: [String]) {
+        Words.override = MouseRig.table(language)
+        Words.applies = { true }
+        defer { Words.override = nil; Words.applies = nil }
+        for n in 0...2 {
+            let caption = CommandLines.line("captions.generate", ["trackId": "t3", "style": "talking-head-v1", "chunks": .number(Double(n)), "keywordsShown": .number(Double(n))])
+            #expect(caption == captions[n], "\(language) \(n): «\(caption ?? "")»")
+            let filler = CommandLines.line("transcript.fillers", ["trackId": "t1", "count": .number(Double(n)), "fillers": [], "delete": [:]])
+            #expect(filler == fillers[n], "\(language) \(n): «\(filler ?? "")»")
+            let word = CommandLines.line("transcript.run", ["words": .number(Double(n))])
+            #expect(word == words[n], "\(language) \(n): «\(word ?? "")»")
+            let take = PrompterEditorView.counts(takes: n, words: 160).components(separatedBy: " · ").first
+            #expect(take == takes[n], "\(language) \(n): «\(take ?? "")»")
+            #expect(GenWords.credits(Double(n)) == credits[n], "\(language) \(n): «\(GenWords.credits(Double(n)))»")
+        }
+        #expect(Plural.singular(1.5, language: language) == (language == "fr"), "\(language): 1.5 in the singular is French only")
+    }
+
+    /// Every singular handed to Plural (and to CommandLines.count) writes its number as a standalone 1 in French, where
+    /// it also stands for 0: «0 mot clé», never a singular without its number.
+    @Test func everyFrenchSingularCarriesItsNumber() throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let sources = root.appendingPathComponent("Sources/Regista")
+        let table = MouseRig.table("fr")
+        // The singular and plural keys side by side (Plural.text, count), or the singular alone (Plural.one).
+        let pair = try NSRegularExpression(pattern: #"(?:Plural\.text|\bcount)\(.*?"([^"]+)", "[^"]+"(?:, lookup: lookup)?\)"#)
+        let single = try NSRegularExpression(pattern: #"Plural\.one\("([^"]+)""#)
+        var keys = Set<String>()
+        for case let url as URL in FileManager.default.enumerator(at: sources, includingPropertiesForKeys: nil)! where url.pathExtension == "swift" {
+            let text = try String(contentsOf: url, encoding: .utf8)
+            for re in [pair, single] {
+                for m in re.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
+                    if let r = Range(m.range(at: 1), in: text) { keys.insert(String(text[r])) }
+                }
+            }
+        }
+        // Never asked with 0: the alert only comes for a track that holds clips («et son clip» says the one).
+        keys.remove("Eliminare la pista %@ con 1 clip?")
+        let wanted = ["1 parola chiave", "1 ripresa", "Foglio di 1 fotogramma", "1 controllo attivo", "Voce: 1 paragrafo"]
+        #expect(wanted.allSatisfy(keys.contains), "the scan missed some singulars: \(wanted.filter { !keys.contains($0) })")
+        for key in keys.sorted() where key.contains("1") {
+            let french = table.localizedString(forKey: key, value: nil, table: nil)
+            #expect(french.range(of: #"(?<![\d.,])1(?![\d.,×])"#, options: .regularExpression) != nil, "«\(key)» is «\(french)» in French: no number to write 0 in")
+        }
+    }
+
     /// The log's row: the sentence as the second line, the raw fields only in its tooltip; a failed command keeps its error.
     @Test func theLogShowsTheSentenceAndKeepsTheDetails() async throws {
         let app = try await AppRig(project: nil)

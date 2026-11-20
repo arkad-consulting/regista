@@ -384,7 +384,7 @@ struct SimpleSnapshot {
             }
             var parts: [String] = []
             if music { parts.append(lookup("Musica sotto la voce")) }
-            if effects > 0 { parts.append(effects == 1 ? lookup("1 effetto sonoro") : String(format: lookup("%d effetti sonori"), effects)) }
+            if effects > 0 { parts.append(Plural.text(effects, "1 effetto sonoro", "%d effetti sonori", lookup: lookup)) }
             return SimpleState(status: .done, line: parts.joined(separator: " · "))
         case .voice:
             let c = text[.clean]
@@ -399,7 +399,7 @@ struct SimpleSnapshot {
             guard p.duration > .zero else { return SimpleState(status: .blocked, line: lookup("Prima metti il video in timeline: taglia le pause."), needs: .cut) }
             let n = graphicClips(p)
             guard n > 0 else { return SimpleState(status: .notNeeded, line: lookup("Facoltativo: un titolo, il logo o una scheda animata.")) }
-            return SimpleState(status: .done, line: n == 1 ? lookup("1 grafica nel video") : String(format: lookup("%d grafiche nel video"), n))
+            return SimpleState(status: .done, line: Plural.text(n, "1 grafica nel video", "%d grafiche nel video", lookup: lookup))
         }
     }
 }

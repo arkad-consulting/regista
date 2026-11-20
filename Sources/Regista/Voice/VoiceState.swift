@@ -276,8 +276,8 @@ enum VoiceRailState: Equatable {
         switch self {
         case .toRecord: lookup("da registrare")
         case .training: lookup("allenamento in corso")
-        case .ready(let n): n == 1 ? lookup("pronta · 1 tono") : String(format: lookup("pronta · %d toni"), n)
-        case .trained(let n): n == 1 ? lookup("allenata · 1 tono") : String(format: lookup("allenata · %d toni"), n)
+        case .ready(let n): Plural.text(n, "pronta · 1 tono", "pronta · %d toni", lookup: lookup)
+        case .trained(let n): Plural.text(n, "allenata · 1 tono", "allenata · %d toni", lookup: lookup)
         }
     }
 }

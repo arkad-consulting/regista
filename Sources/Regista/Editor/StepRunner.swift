@@ -290,7 +290,7 @@ struct StepError: Error, CustomStringConvertible {
         let noLogo = #"kit "(.+)" has no logo yet:"#  // l10n-ignore
         if let m = match(rules), let count = Int(m[0]), let spec = RuleCheckSpec.named(m[1]) {
             let name = lookup(spec.title)
-            return count == 1 ? String(format: lookup("Export rifiutato: 1 regola non rispettata — %@"), name)
+            return Plural.singular(count) ? String(format: Plural.one("Export rifiutato: 1 regola non rispettata — %@", count, lookup: lookup), name)
                 : String(format: lookup("Export rifiutato: %1$@ regole non rispettate — la prima: %2$@"), "\(count)", name)
         }
         if let m = match(language) {
