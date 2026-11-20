@@ -10,7 +10,8 @@ Keep these the same everywhere in `*.lproj/Localizable.strings` (scheme and chec
   forms that read only as European Portuguese (*ecrã*, *ficheiro*, *utilizador*) and only as slang.
 - **Quotes** around a name or a typed text: « » in Italian and French, “ ” in English and Portuguese.
 - **Numbers** are written as the words' language writes them, whatever the Mac's region: a decimal point in English, a
-  decimal comma in the other three (`Words.locale`).
+  decimal comma in the other three (`Words.locale`); a percent as the language writes it ("50%", French "50 %"). Times
+  on the timeline's grid (`0:03.5`, `00:00:01:00`) keep their notation in every language.
 
 | Italian (key) | English | Français | Português |
 |---|---|---|---|

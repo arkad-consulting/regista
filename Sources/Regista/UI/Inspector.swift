@@ -219,7 +219,7 @@ struct InspectorPanel: View {
                 }
                 // A log scale: 0.25× … 4× with 1× in the middle.
                 InspectorSlider(label: loc("Velocità"), value: log2(value(.speed, target, p)), range: -2...2, step: 0.01,
-                                format: { String(format: "%.2f×", pow(2, $0)) },
+                                format: { String(format: "%.2f×", locale: Words.locale, pow(2, $0)) },
                                 parse: { s in Double(s.replacingOccurrences(of: ",", with: ".").filter { "0123456789.".contains($0) }).map { log2(max($0, 0.1)) } },
                                 onDrag: { drafts.drag(.speed, pow(2, $0)) },
                                 onCommit: { v in let r = (pow(2, v) * 100).rounded() / 100; drafts.drag(.speed, r); commit(.speed, r, target, p) })
@@ -646,18 +646,19 @@ struct InspectorEmpty: View {
 
 /// Number formats of the inspector.
 enum Fmt {
-    static func percent(_ v: Double) -> String { String(format: "%.0f %%", v * 100) }
+    /// "50%" ("50 %" in French): as the words' language writes a percent.
+    static func percent(_ v: Double) -> String { ((v * 100).rounded() / 100).formatted(.percent.precision(.fractionLength(0)).locale(Words.locale)) }
     static func parsePercent(_ s: String) -> Double? {
         Double(s.replacingOccurrences(of: ",", with: ".").filter { "0123456789.-".contains($0) }).map { $0 / 100 }
     }
     static func pixels(_ v: Double) -> String { String(format: "%.0f px", v) }
     static func degrees(_ v: Double) -> String { String(format: "%.0f°", v) }
-    static func seconds(_ v: Double) -> String { String(format: "%.2f s", v) }
+    static func seconds(_ v: Double) -> String { String(format: "%.2f s", locale: Words.locale, v) }
     static func decibels(_ v: Double) -> String { String(format: "%+.1f dB", locale: Words.locale, v) }
     /// "−12 dB": a ducking depth (whole dB, so it fits the value column).
     static func wholeDecibels(_ v: Double) -> String { String(format: "%.0f dB", v).replacingOccurrences(of: "-", with: "−") }
     static func signed(_ v: Double) -> String { String(format: "%+.0f", v * 100) }
-    static func factor(_ v: Double) -> String { String(format: "%.2f", v) }
+    static func factor(_ v: Double) -> String { String(format: "%.2f", locale: Words.locale, v) }
     /// "−14,9", "19": one decimal at most, written as the words' language writes numbers (Words.locale: "−1.5" in an
     /// English window on an Italian Mac), with a true minus sign.
     static func number(_ v: Double, decimals: Int = 1) -> String {

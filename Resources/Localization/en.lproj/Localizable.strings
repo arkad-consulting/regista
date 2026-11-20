@@ -38,7 +38,6 @@
 "%d clip sulla pista Voce" = "%d clips on the Voice track";
 "%d clip sulla pista Voce · %@" = "%d clips on the Voice track · %@";
 "%d effetti sonori" = "%d sound effects";
-"%d GB" = "%d GB";
 "%d GB di RAM" = "%d GB of RAM";
 "%d grafiche nel video" = "%d graphics in the video";
 "%d lavori" = "%d jobs";
@@ -508,6 +507,7 @@
 "completa" = "complete";
 "Con questo motore la lingua non si riconosce da sola: scegli la lingua e trascrivi di nuovo." = "This engine cannot detect the language on its own: choose the language and transcribe again.";
 "Conferma" = "Confirm";
+"brand.role.success" = "Confirmation";
 "Confronta due file" = "Compare two files";
 "Confronta le riprese" = "Compare takes";
 "Confronto v2" = "Comparison v2";
@@ -976,9 +976,9 @@
 "Lo schermo intero, con margine, angoli arrotondati e ombra." = "The whole screen, with a margin, rounded corners and a shadow.";
 "Lo schermo non è pronto: scegli cosa registrare (o consenti la registrazione dello schermo)." = "The screen is not ready: choose what to record (or allow screen recording).";
 "Lo usano anche: %@." = "Also used by: %@.";
-"local generated clips" = "local generated clips";
-"local generated images" = "local generated images";
-"local generated music" = "local generated music";
+"local generated clips" = "clips generated locally";
+"local generated images" = "images generated locally";
+"local generated music" = "music generated locally";
 "local images, clips, music and upscale (free)" = "local images, clips, music and upscale (free)";
 "Logo" = "Logo";
 "Logo nel video" = "Logo in the video";
@@ -1404,7 +1404,7 @@
 "Riduci" = "Zoom out";
 "Riduci la timeline" = "Zoom the timeline out";
 "Riduzione del rumore (Voice Isolator)" = "Noise reduction (Voice Isolator)";
-"Rifaccio" = "Redo";
+"Rifaccio" = "Let me redo";
 "rifaccio" = "rifaccio";
 "Rifai il taglio" = "Cut again";
 "Rifila" = "Trim";
@@ -1762,8 +1762,8 @@
 "Ultimo export" = "Last export";
 "Un allenamento è già in corso" = "A training is already running";
 "un cerchio su ogni clic" = "a circle on every click";
-"Un clic, tanti passi, nei colori del kit %@. Si annulla tutto in una volta (⌘Z)." = "One click, many steps, in the colours of the %@ kit. Undo it all at once (⌘Z).";
-"Un clic, tanti passi, nei colori del kit del progetto. Si annulla tutto in una volta (⌘Z)." = "One click, many steps, in the project kit's colours. Undo it all at once (⌘Z).";
+"Un clic, tanti passi, nei colori del kit %@. Si annulla tutto in una volta (⌘Z)." = "One click, many steps, in the colours of the %@ brand kit. Undo it all at once (⌘Z).";
+"Un clic, tanti passi, nei colori del kit del progetto. Si annulla tutto in una volta (⌘Z)." = "One click, many steps, in the colours of the project's brand kit. Undo it all at once (⌘Z).";
 "Un file solo con colori, caratteri e logo: mandalo ai partner" = "One file with colours, fonts and logo: send it to your partners";
 "Un fotogramma avanti (⇧: un secondo)" = "One frame forward (⇧: one second)";
 "Un fotogramma indietro (⇧: un secondo)" = "One frame back (⇧: one second)";

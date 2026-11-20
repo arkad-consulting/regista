@@ -38,7 +38,6 @@
 "%d clip sulla pista Voce" = "%d clips sur la piste Voix";
 "%d clip sulla pista Voce · %@" = "%d clips sur la piste Voix · %@";
 "%d effetti sonori" = "%d effets sonores";
-"%d GB" = "%d Go";
 "%d GB di RAM" = "%d Go de RAM";
 "%d grafiche nel video" = "%d graphismes dans la vidéo";
 "%d lavori" = "%d tâches";
@@ -508,6 +507,7 @@
 "completa" = "complète";
 "Con questo motore la lingua non si riconosce da sola: scegli la lingua e trascrivi di nuovo." = "Avec ce moteur, la langue n'est pas détectée automatiquement : choisissez la langue et transcrivez à nouveau.";
 "Conferma" = "Confirmer";
+"brand.role.success" = "Confirmation";
 "Confronta due file" = "Comparer deux fichiers";
 "Confronta le riprese" = "Comparer les prises";
 "Confronto v2" = "Comparaison v2";

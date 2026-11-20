@@ -334,7 +334,7 @@ struct EnginesSettings: View {
     static func freeDisk() -> String {
         let home = FileManager.default.homeDirectoryForCurrentUser
         guard let v = try? home.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]).volumeAvailableCapacityForImportantUsage else { return "?" }
-        return String(format: loc("%d GB"), Int(Double(v) / 1e9))
+        return loc("%@ GB", Int(Double(v) / 1e9).formatted(.number.locale(Words.locale)))
     }
 
     private func groupHeader(_ g: EngineCatalog.Group) -> some View {

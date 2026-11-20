@@ -40,9 +40,9 @@ func brightness(_ j: Journey, at p: CGPoint) -> Double {
     return Double(max(c.redComponent, c.greenComponent, c.blueComponent))
 }
 
-/// The number in an Inspector value ("62 %", "540 px").
+/// The number in an Inspector value ("62%", "540 px", "0,50 s": the words' language writes the decimals).
 func inspectorNumber(_ text: String?) -> Double? {
-    text.flatMap { Double($0.filter { "0123456789.-".contains($0) }) }
+    text.flatMap { Double($0.replacingOccurrences(of: ",", with: ".").replacingOccurrences(of: "−", with: "-").filter { "0123456789.-".contains($0) }) }
 }
 
 extension MouseSuites {

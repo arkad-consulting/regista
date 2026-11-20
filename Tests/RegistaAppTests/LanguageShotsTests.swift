@@ -77,7 +77,7 @@ extension MouseSuites {
 
     /// The states newer than the last sweeps that the screens above do not reach (#129): the Claude panel's second line for
     /// a few commands (the filler words found and deleted as ranges among them), an export that restarted once (the
-    /// Claude panel and «Ultimo export»), and the teleprompter window. The row's tooltip cannot be drawn offscreen: its
+    /// Claude panel and «Ultimo export»), the Inspector with a clip selected, and the teleprompter window. The row's tooltip cannot be drawn offscreen: its
     /// text is written beside the images (claude-lines-<language>.txt).
     @Test(arguments: shotLanguages)
     func theNewerStatesInTheLanguage(_ language: String) async throws {
@@ -112,6 +112,17 @@ extension MouseSuites {
                 let text = app.store.activity.map { "\($0.command) | \($0.status) | \($0.result) | tooltip: \([$0.params, $0.details].filter { !$0.isEmpty }.joined(separator: " / "))" }
                 try text.joined(separator: "\n").write(to: dir.appendingPathComponent("claude-lines-\(language).txt"), atomically: true, encoding: .utf8)
             }
+            app.close()
+        }
+        // The Inspector with a picture clip selected: its percents, seconds and decibels in the language's numbers.
+        do {
+            let app = try await AppRig(project: "rich")
+            app.hostEditor(Navigation(activity: .media, rightTab: .inspector), size: CGSize(width: 1440, height: 1300), language: language)
+            await app.settle()
+            app.store.selection = Set((app.store.project?.tracks.first { $0.kind == .video }?.clips.prefix(1).map(\.id)) ?? [])
+            await app.settle()
+            await app.idle(0.3)
+            try app.snapshot(to: dir.appendingPathComponent("inspector-clip-\(language).png"))
             app.close()
         }
         // The teleprompter window, as the speaker sees it, with its own sample text.

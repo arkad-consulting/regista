@@ -17,7 +17,7 @@ struct BrandKitSettings: View {
 
     static let roleNames: [(String, String)] = [("primary", "Principale"), ("accent", "Accento"), ("highlight", "Evidenza"),
                                                  ("onHighlight", "Su evidenza"), ("ink", "Inchiostro"), ("paper", "Carta"),
-                                                 ("surface", "Superficie"), ("success", "Conferma")]
+                                                 ("surface", "Superficie"), ("success", "brand.role.success")]
     static let fontNames: [(String, String)] = [("display", "Titoli"), ("text", "Testo"), ("textBold", "Testo forte"), ("mono", "Etichette")]
     static let logoNames: [(String, String)] = [("onDark", "Su video scuro"), ("onLight", "Su chiaro"), ("mark", "Simbolo")]
 

@@ -38,7 +38,6 @@
 "%d clip sulla pista Voce" = "%d clipes na faixa Voz";
 "%d clip sulla pista Voce · %@" = "%d clipes na faixa Voz · %@";
 "%d effetti sonori" = "%d efeitos sonoros";
-"%d GB" = "%d GB";
 "%d GB di RAM" = "%d GB de RAM";
 "%d grafiche nel video" = "%d gráficos no vídeo";
 "%d lavori" = "%d tarefas";
@@ -508,6 +507,7 @@
 "completa" = "completa";
 "Con questo motore la lingua non si riconosce da sola: scegli la lingua e trascrivi di nuovo." = "Com este motor o idioma não é detectado sozinho: escolha o idioma e transcreva de novo.";
 "Conferma" = "Confirmar";
+"brand.role.success" = "Confirmação";
 "Confronta due file" = "Comparar dois arquivos";
 "Confronta le riprese" = "Comparar tomadas";
 "Confronto v2" = "Comparação v2";
@@ -1714,7 +1714,7 @@
 "Tono" = "Tom";
 "Torna a tutto schermo" = "Voltar à tela inteira";
 "Totale" = "Total";
-"track any object by name" = "seguir qualquer objeto pelo nome";
+"track any object by name" = "rastrear qualquer objeto pelo nome";
 "track.footage" = "Filmagens";
 "track.sfx" = "Efeitos";
 "Tramonto" = "Pôr do sol";
@@ -1762,8 +1762,8 @@
 "Ultimo export" = "Última exportação";
 "Un allenamento è già in corso" = "Um treinamento já está em andamento";
 "un cerchio su ogni clic" = "um círculo em cada clique";
-"Un clic, tanti passi, nei colori del kit %@. Si annulla tutto in una volta (⌘Z)." = "Um clique, vários passos, nas cores do kit %@. Tudo se desfaz de uma vez (⌘Z).";
-"Un clic, tanti passi, nei colori del kit del progetto. Si annulla tutto in una volta (⌘Z)." = "Um clique, vários passos, nas cores do kit do projeto. Tudo se desfaz de uma vez (⌘Z).";
+"Un clic, tanti passi, nei colori del kit %@. Si annulla tutto in una volta (⌘Z)." = "Um clique, vários passos, nas cores do kit %@. Desfaça tudo de uma vez (⌘Z).";
+"Un clic, tanti passi, nei colori del kit del progetto. Si annulla tutto in una volta (⌘Z)." = "Um clique, vários passos, nas cores do kit de marca do projeto. Desfaça tudo de uma vez (⌘Z).";
 "Un file solo con colori, caratteri e logo: mandalo ai partner" = "Um único arquivo com cores, fontes e logo: envie aos parceiros";
 "Un fotogramma avanti (⇧: un secondo)" = "Um quadro para a frente (⇧: um segundo)";
 "Un fotogramma indietro (⇧: un secondo)" = "Um quadro para trás (⇧: um segundo)";
@@ -2439,7 +2439,7 @@
 "Install ComfyUI by following its own instructions (https://docs.comfy.org/installation/manual_install), in a folder with its own Python environment (.venv or venv inside that folder)." = "Instale o ComfyUI seguindo as instruções dele (https://docs.comfy.org/installation/manual_install), em uma pasta com seu próprio ambiente Python (.venv ou venv dentro dessa pasta).";
 "Install the ComfyUI-GGUF node pack (https://github.com/city96/ComfyUI-GGUF, Apache-2.0) in ComfyUI's custom_nodes folder as its page says, then restart ComfyUI: the Wan 2.2 clips need it. The other workflows use ComfyUI's own nodes (if generate.check says one is missing, update ComfyUI)." = "Instale o pacote de nós ComfyUI-GGUF (https://github.com/city96/ComfyUI-GGUF, Apache-2.0) na pasta custom_nodes do ComfyUI como a página dele explica, depois reinicie o ComfyUI: os clipes do Wan 2.2 precisam dele. Os outros workflows usam os nós do próprio ComfyUI (se o generate.check disser que falta um, atualize o ComfyUI).";
 "Get the model files: each model below lists every file, the folder it goes in, its size, its licence and the publisher's page (about 69 GB for all four). “Download” beside a missing file puts it in the models folder of the ComfyUI folder Regista knows, checked against its sha256; or download it from the publisher's page into the folder it names." = "Obtenha os arquivos dos modelos: cada modelo abaixo lista cada arquivo, a pasta onde vai, o tamanho, a licença e a página do autor (cerca de 69 GB para os quatro). “Baixar” ao lado de um arquivo que falta o coloca na pasta models da pasta do ComfyUI que o Regista conhece, verificado com o seu sha256; ou baixe-o da página do autor na pasta indicada.";
-"Part of the ComfyUI setup: “Download” beside each missing file puts it in the ComfyUI models folder it names (or download it from the publisher's page beside it), then restart ComfyUI and check again." = "Faz parte da preparação do ComfyUI: “Baixar” ao lado de cada arquivo que falta o coloca na pasta models do ComfyUI que ele indica (ou baixe-o da página do autor ao lado); depois reinicie o ComfyUI e verifique de novo.";
+"Part of the ComfyUI setup: “Download” beside each missing file puts it in the ComfyUI models folder it names (or download it from the publisher's page beside it), then restart ComfyUI and check again." = "Parte da configuração do ComfyUI: “Baixar”, ao lado de cada arquivo que falta, coloca-o na pasta models do ComfyUI indicada (ou baixe-o da página do autor ao lado); depois reinicie o ComfyUI e verifique de novo.";
 "Indirizzo" = "Endereço";
 "Cartella di ComfyUI" = "Pasta do ComfyUI";
 "Imposta" = "Configurar";
