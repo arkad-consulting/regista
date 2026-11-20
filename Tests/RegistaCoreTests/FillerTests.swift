@@ -91,12 +91,17 @@ func fillersAreFoundOnlyWhereTheyStandAlone(_ language: String, _ text: String, 
     #expect(try e.execute("transcript.timeline")["text"] == "Allora oggi parliamo di lavoro")
 }
 
-/// Hesitations written long («ehmmm», «Euhhh…») are the same hesitation; an unknown language still finds them.
+/// Hesitations written long («ehmmm», «Euhhh…») are the same hesitation, a lone «M» is the letter; a language without
+/// a table still finds the hesitations that are a word nowhere, and leaves its own words alone («er», «um» in German).
 @Test func longHesitationsAndOtherLanguages() throws {
-    let e = try fillersEngine("Ehmmm, | oggi mmm parliamo", language: "it")
+    let e = try fillersEngine("Ehmmm, | oggi mmm parliamo della taglia M", language: "it")
     #expect(listed(try e.execute("transcript.fillers")) == ["sure:Ehmmm,", "sure:mmm"])
     let es = try fillersEngine("Hola euh mundo", language: "es")
     #expect(listed(try es.execute("transcript.fillers")) == ["sure:euh"])
+    let de = try fillersEngine("Er kommt ähm um acht", language: "de")
+    #expect(listed(try de.execute("transcript.fillers")).isEmpty)
+    let de2 = try fillersEngine("Er kommt ehm um acht", language: "de")
+    #expect(listed(try de2.execute("transcript.fillers")) == ["sure:ehm"])
 }
 
 /// A removal inside a caption line takes the word out of the captions too.

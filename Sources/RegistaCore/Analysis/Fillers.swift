@@ -19,6 +19,10 @@ public enum Fillers {
         "pt": ["hã", "ã", "ãh", "ahn", "hum", "uhm", "ehm", "m", "hm", "mh"],
     ]
 
+    /// A language without a table: only the hesitations that are a word in no language. The tables' other entries are
+    /// words elsewhere («er» and «um» in German, «em» in Catalan), and a `sure` one is removed without being read out.
+    static let anyLanguage: Set<String> = ["ehm", "uhm", "euh", "euhm", "erm", "ahm", "hm", "mh", "m"]
+
     /// Words and phrases that are fillers only when they stand alone (lowercase, as spelled).
     static let maybe: [String: [[String]]] = [
         "it": [["allora"], ["cioè"], ["tipo"], ["ecco"], ["diciamo"], ["praticamente"], ["insomma"], ["come", "dire"]],
@@ -61,8 +65,8 @@ public enum Fillers {
     /// silence of at least `pause` between two words of one clip; a clip's edge counts as one (the take stops there).
     public static func candidates(_ words: [TimelineWord], track: Track, language: String, pause: MediaTime) -> [Candidate] {
         let lang = String(language.lowercased().prefix(2))
-        // A language without a table: the hesitations of every table, no `maybe` (they are words of their language).
-        let sureSet = sure[lang] ?? sure.values.reduce(into: Set<String>()) { $0.formUnion($1) }
+        // A language without a table: the hesitations no language uses as a word, no `maybe` (words of their language).
+        let sureSet = sure[lang] ?? anyLanguage
         let phrases = (maybe[lang] ?? []).sorted { $0.count > $1.count }
         let tokens = words.map { normalized($0.text) }
         let clips = Dictionary(track.clips.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
@@ -83,7 +87,8 @@ public enum Fillers {
         while i < words.count {
             let t = tokens[i]
             if t.isEmpty { i += 1; continue }
-            if sureSet.contains(collapsed(t)) { out.append(candidate(i, i, .sure)); i += 1; continue }
+            // A lone «m» is the letter («taglia M»); the hesitation is written «mm» or longer.
+            if t != "m", sureSet.contains(collapsed(t)) { out.append(candidate(i, i, .sure)); i += 1; continue }
             if i + 1 < words.count, tokens[i + 1] == t, !doubled.contains(t) { out.append(candidate(i, i, .repeat)); i += 1; continue }
             if let phrase = phrases.first(where: { p in i + p.count <= words.count && Array(tokens[i..<(i + p.count)]) == p }) {
                 let last = i + phrase.count - 1
