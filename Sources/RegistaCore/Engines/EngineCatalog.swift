@@ -66,6 +66,11 @@ public struct EngineCatalog: Equatable, Sendable {
         public let licence: String
         public let url: String
         public let present: Bool?
+        /// Its size in bytes and what Regista can do to download it (#121): ready, there, otherSize, manual, noFolder.
+        public var bytes: Int64 = 0
+        public var download: String? = nil
+        public var target: String? = nil
+        public var note: String? = nil
     }
 
     public struct ComfySetup: Equatable, Sendable {
@@ -133,7 +138,9 @@ public struct EngineCatalog: Equatable, Sendable {
                        files: (r?["files"]?.arrayValue ?? []).compactMap { f in
                            guard let name = f["name"]?.stringValue else { return nil }
                            return ModelFile(name: name, folder: f["folder"]?.stringValue ?? "", size: f["size"]?.stringValue ?? "?",
-                                            licence: f["licence"]?.stringValue ?? "", url: f["url"]?.stringValue ?? "", present: f["present"]?.boolValue)
+                                            licence: f["licence"]?.stringValue ?? "", url: f["url"]?.stringValue ?? "", present: f["present"]?.boolValue,
+                                            bytes: Int64(f["bytes"]?.doubleValue ?? 0), download: f["download"]?.stringValue,
+                                            target: f["target"]?.stringValue, note: f["downloadNote"]?.stringValue)
                        },
                        comfy: e.id == "comfyui" ? r.flatMap { r in r["server"]?.stringValue.map { server in
                            ComfySetup(server: server, running: r["running"]?.boolValue ?? false, start: r["path"]?.stringValue,

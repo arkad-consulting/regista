@@ -239,6 +239,10 @@ public struct EngineServices {
     /// none otherwise, so a test never finds the person's ComfyUI).
     public var comfyPlaces: [String] = []
 
+    /// Where ComfyUI model files are downloaded from and the free space read before (#121): the manifest's URLs and the
+    /// disk in the standard set; an address where nothing listens otherwise, so a test never reaches a publisher.
+    public var modelSource = ModelFetch.Source.unreachable
+
     /// What generate.check and engines.status say about ComfyUI: the server and what Regista would start.
     public var comfyLocation: ComfyServer.Location { ComfyServer.locate(config, places: comfyPlaces) }
 
@@ -267,6 +271,7 @@ public struct EngineServices {
                                cleaner: DeepFilterVoiceCleaner(config: config, audio: ffmpeg), faces: faces, renderer: renderer,
                                images: images, library: library)
         s.comfyPlaces = ComfyServer.usualPlaces
+        s.modelSource = ModelFetch.Source()
         // ComfyUI's address and folder are re-read from engines.json at each use: Settings › Motori writes them live (#6).
         let comfy = ComfyUIProvider(config: config, places: s.comfyPlaces, configFile: EngineConfig.defaultFile)
         s.comfyServer = { ComfyCheck.fetchObjectInfo(comfy.location.server) }

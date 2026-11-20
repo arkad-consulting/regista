@@ -74,6 +74,7 @@ enum CommandTitles {
         "generate.list": "Elenca le generazioni",
         "generate.providers": "Elenca i generatori",
         "generate.check": "Controlla ComfyUI",
+        "generate.fetch": "Scarica i file dei modelli",
         "cover.set": "Imposta la copertina",
         "cover.make": "Salva la copertina",
         "cover.check": "Controlla la copertina",

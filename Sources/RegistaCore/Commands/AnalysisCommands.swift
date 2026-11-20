@@ -186,6 +186,8 @@ enum EnginesStatus: Command {
         }
         // The ComfyUI model files: each with whether the running ComfyUI sees it (#6).
         let comfyFiles: (String) -> [ComfyCheck.FileState]? = { id in comfyInfo.map { ComfyCheck.files(engine: id, objectInfo: $0) } }
+        // …and whether Regista can download it into the ComfyUI folder it knows (#121).
+        let comfyLocation = (s.generators["comfyui"] as? ComfyUIProvider)?.location ?? s.comfyLocation
         // The rest of the manifest: what the entries above do not report (models, aligners, tools, capabilities, planned).
         let reported = Set(engines.compactMap { $0["id"]?.stringValue })
         let components: [JSONValue] = manifest.entries.filter { !reported.contains($0.id) }.map { m in
@@ -198,6 +200,7 @@ enum EnginesStatus: Command {
                 o["files"] = .array(m.modelFiles.map { f in
                     var j = ComfyCheck.FileState(file: f, present: false).json.objectValue!
                     if let present = states?.first(where: { $0.file.name == f.name })?.present { j["present"] = .bool(present) } else { j["present"] = nil }
+                    j.merge(ModelFetch.json(ModelFetch.plan(f, location: comfyLocation, source: s.modelSource), f)) { _, new in new }
                     return .object(j)
                 })
                 if let states { probe.state = states.allSatisfy(\.present) ? "installed" : "missing" }

@@ -100,9 +100,17 @@ quattro modelli). **Impostazioni › Motori › ComfyUI** mostra i passi; in bre
    memoria.
 3. Installa il pacchetto di nodi ComfyUI-GGUF (https://github.com/city96/ComfyUI-GGUF) nella cartella `custom_nodes` di
    ComfyUI, poi riavvia ComfyUI: serve alle clip di Wan 2.2.
-4. Metti i file di ogni modello nelle cartelle `models` di ComfyUI. La riga di ogni modello (Z-Image Turbo, Wan 2.2
-   image-to-video, ACE-Step 1.5, Real-ESRGAN + RIFE) elenca ogni file con la cartella, la dimensione, la licenza e la
-   pagina dell'editore da cui scaricarlo e, quando ComfyUI risponde, quali vede già.
+4. Procurati i file di ogni modello. La riga di ogni modello (Z-Image Turbo, Wan 2.2 image-to-video, ACE-Step 1.5,
+   Real-ESRGAN + RIFE) elenca ogni file con la cartella, la dimensione, la licenza e la pagina dell'editore e, quando
+   ComfyUI risponde, quali vede già. **Scarica** accanto a un file che manca (con la sua dimensione), o il pulsante sopra a più file che li
+   scarica tutti, lo mette nella cartella `models` della cartella di ComfyUI che Regista conosce, con l'avanzamento e
+   **Annulla** sulla stessa riga. Un download annullato o interrotto riprende da dove si era fermato; il file è
+   controllato con il suo sha256 prima di essere messo al suo posto; prima Regista controlla lo spazio libero (i file
+   più 2 GB). Un file che c'è già con la dimensione giusta non viene riscaricato, e uno di un'altra dimensione non viene
+   mai sovrascritto. Regista scarica solo in una cartella di ComfyUI che conosce (quella che hai scelto, o una trovata
+   nei posti consueti qui sotto): se ComfyUI lo avvia un programma, o c'è solo il suo indirizzo, scegli la sua cartella
+   per avere i pulsanti, oppure scarica ogni file dalla pagina dell'editore nella cartella indicata. Claude può fare lo
+   stesso con `generate.fetch`, dopo averti detto la dimensione. Poi riavvia ComfyUI perché veda i nuovi file.
 5. Controlla: **Controlla di nuovo** sulla riga, oppure chiedi a Claude `generate.check`.
 
 Senza una cartella impostata e senza nulla che risponda all'indirizzo, Regista cerca una cartella di ComfyUI (con il

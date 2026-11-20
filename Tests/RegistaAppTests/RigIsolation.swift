@@ -123,6 +123,8 @@ enum RigServices {
         s.config.comfyServer = "http://127.0.0.1:9"
         s.config.comfyStart = nil
         s.comfyPlaces = []
+        // Model file downloads (#121): an address where nothing listens.
+        s.modelSource = ModelFetch.Source.unreachable
         s.config.higgsfield = none.appendingPathComponent("higgsfield").path
         // Blender and the HyperFrames CLI (apps of their own, minutes of work per click) are not found either.
         s.config.blender = none.appendingPathComponent("Blender").path

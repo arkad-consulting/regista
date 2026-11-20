@@ -107,9 +107,18 @@ en bref :
    génération, Regista lui demande seulement de libérer sa mémoire.
 3. Installez le pack de nœuds ComfyUI-GGUF (https://github.com/city96/ComfyUI-GGUF) dans le dossier `custom_nodes` de
    ComfyUI, puis redémarrez ComfyUI : les clips Wan 2.2 en ont besoin.
-4. Placez les fichiers de chaque modèle dans les dossiers `models` de ComfyUI. La ligne de chaque modèle (Z-Image Turbo,
-   Wan 2.2 image vers vidéo, ACE-Step 1.5, Real-ESRGAN + RIFE) liste chaque fichier avec son dossier, sa taille, sa
-   licence et la page de l'éditeur où le télécharger et, dès que ComfyUI répond, ceux qu'il voit déjà.
+4. Obtenez les fichiers de chaque modèle. La ligne de chaque modèle (Z-Image Turbo, Wan 2.2 image vers vidéo,
+   ACE-Step 1.5, Real-ESRGAN + RIFE) liste chaque fichier avec son dossier, sa taille, sa licence et la page de l'éditeur
+   et, dès que ComfyUI répond, ceux qu'il voit déjà. **Télécharger** à côté d'un fichier manquant (avec sa taille), ou
+   le bouton au-dessus de plusieurs fichiers qui les télécharge tous, le place dans le dossier `models` du dossier de ComfyUI que Regista
+   connaît, avec la progression et **Annuler** sur la même ligne. Un téléchargement annulé ou interrompu reprend là où
+   il s'était arrêté ; le fichier est vérifié avec son sha256 avant d'être mis en place ; l'espace libre est vérifié
+   d'abord (les fichiers plus 2 Go). Un fichier déjà là avec la bonne taille n'est pas téléchargé à nouveau, et un
+   fichier d'une autre taille n'est jamais écrasé. Regista télécharge seulement dans un dossier de ComfyUI qu'il connaît
+   (celui que vous avez choisi, ou un dossier trouvé aux emplacements habituels ci-dessous) : si un programme démarre
+   ComfyUI, ou si seule son adresse est indiquée, choisissez son dossier pour avoir les boutons, ou téléchargez chaque
+   fichier depuis la page de l'éditeur dans le dossier indiqué. Claude peut faire de même avec `generate.fetch`, après
+   vous avoir dit la taille. Redémarrez ensuite ComfyUI pour qu'il voie les nouveaux fichiers.
 5. Vérifiez : **Vérifier à nouveau** sur la ligne, ou demandez à Claude `generate.check`.
 
 Sans dossier indiqué et sans réponse à l'adresse, Regista cherche un dossier de ComfyUI (avec son environnement Python)

@@ -28,6 +28,7 @@ final class EnginesModel: ObservableObject {
         if let r = try? await store.silent("engines.status") {
             status = r
             if let s = EngineSummary(status: r) { store.bench.engineSummary = s }
+            adoptDownloads(store)
         }
     }
 
@@ -121,6 +122,76 @@ final class EnginesModel: ObservableObject {
         ref.id = job
     }
 
+    // MARK: ComfyUI model files (#121)
+
+    static func fetchKind(_ file: String) -> String { "fetch.\(file)" }
+
+    /// Why the last «Scarica» of a row was refused (no room, no folder…), in the person's words, by row id.
+    @Published var fetchRefusal: [String: String] = [:]
+
+    /// generate.fetch for one file, or for a model's missing files («Scarica tutti»), on the tab's queue like any command;
+    /// it answers at once and each download it started is followed as a job of the tab on screen.
+    func fetch(_ files: [EngineCatalog.ModelFile], row: EngineCatalog.Row, store: EditorStore) {
+        guard let first = files.first else { return }
+        let model = ComfyCheck.workflows.first { $0.engine == row.id }?.model
+        let params: JSONValue = files.count > 1 && model != nil ? ["model": .string(model!)] : ["file": .string(first.name)]
+        fetchRefusal[row.id] = nil
+        Task {
+            do {
+                let r = try await store.perform("generate.fetch", params)
+                for j in r["jobs"]?.arrayValue ?? [] {
+                    guard let id = j["jobId"]?.stringValue, let name = j["file"]?.stringValue else { continue }
+                    follow(id, file: name, store: store)
+                }
+            } catch {
+                fetchRefusal[row.id] = FetchWords.readable(error)
+            }
+            await reload(store)
+        }
+    }
+
+    /// A download of this process (ModelDownloads) as a job: its bar and percent from the bytes received, the file's name
+    /// on its line, Cancel stops it (the partial file stays for the next «Scarica»), a failure in the person's words.
+    func follow(_ id: String, file: String, store: EditorStore) {
+        let jobs = store.jobs
+        let kind = Self.fetchKind(file)
+        guard jobs.latest(kind)?.isRunning != true, let total = ModelDownloads.shared.job(id)?.file.bytes, total > 0 else { return }
+        final class Ref: @unchecked Sendable { var id: UUID? }
+        let ref = Ref()
+        let job = jobs.start(kind: kind, title: String(format: loc("Scarico %@"), file), tab: loc("Motori"),
+                             onCancel: { ModelDownloads.shared.cancel(id) }) { [weak self, weak store, weak jobs] _ in
+            defer { if let store { Task { await self?.reload(store) } } }
+            let end: ModelDownloads.Job? = await withCheckedContinuation { cont in
+                Thread.detachNewThread {
+                    let j = ModelDownloads.shared.wait(id) { received in
+                        DispatchQueue.main.async {
+                            MainActor.assumeIsolated {
+                                if let uid = ref.id { jobs?.update(uid, progress: Double(received) / Double(total), detail: file) }
+                            }
+                        }
+                    }
+                    cont.resume(returning: j)
+                }
+            }
+            switch end?.state {
+            case .cancelled: throw CancellationError()
+            // The job's line reads the error's description: the sentence itself.
+            case .failed: throw CommandError(.io, end?.failure.map(FetchWords.sentence) ?? loc("Download non riuscito: %@", ""))
+            default: return
+            }
+        }
+        ref.id = job
+    }
+
+    /// Downloads started elsewhere (Claude's generate.fetch in this app) into the ComfyUI folder the status names.
+    private func adoptDownloads(_ store: EditorStore) {
+        let folder = (status?["engines"]?.arrayValue ?? []).first { $0["id"] == "comfyui" }?["path"]?.stringValue
+        guard let folder else { return }
+        for d in ModelDownloads.shared.all where d.state == .running && d.target.path.hasPrefix(folder + "/") {
+            follow(d.id, file: d.file.name, store: store)
+        }
+    }
+
     /// Deletes the engine's files in Regista's engines folder (the confirmation was shown by the view).
     func remove(_ id: String, store: EditorStore) {
         removing = id
@@ -164,7 +235,12 @@ struct EnginesSettings: View {
                                                       install: { if r.nonCommercial { confirmLicence = r } else { model.install(r, store: store) } }, remove: { confirmRemove = r },
                                                       checkAgain: { Task { await model.reload(store) } },
                                                       setComfy: { key, value in model.setComfy(key, value, store: store) },
-                                                      cancel: { if let j = jobs.latest(EnginesModel.jobKind(r.id)) { jobs.cancel(j.id) } })
+                                                      cancel: { if let j = jobs.latest(EnginesModel.jobKind(r.id)) { jobs.cancel(j.id) } },
+                                                      fetchJobs: demo == nil ? Dictionary(r.files.compactMap { f in jobs.latest(EnginesModel.fetchKind(f.name)).map { (f.name, $0) } },
+                                                                                          uniquingKeysWith: { a, _ in a }) : [:],
+                                                      fetchRefusal: model.fetchRefusal[r.id],
+                                                      fetch: { files in model.fetch(files, row: r, store: store) },
+                                                      cancelFetch: { name in if let j = jobs.latest(EnginesModel.fetchKind(name)) { jobs.cancel(j.id) } })
                                         }
                                         .id(r.id)
                                     }
@@ -311,6 +387,11 @@ private struct EngineRowView: View {
     /// Writes ComfyUI's address or folder in engines.json (#6).
     let setComfy: (_ key: String, _ value: String?) -> Void
     let cancel: () -> Void
+    /// The download job of each of its model files (#121), by file name.
+    var fetchJobs: [String: JobCenter.Job] = [:]
+    var fetchRefusal: String? = nil
+    var fetch: (_ files: [EngineCatalog.ModelFile]) -> Void = { _ in }
+    var cancelFetch: (_ file: String) -> Void = { _ in }
     /// This app: a release build names no script of the source folder (#113).
     @Environment(\.appBundle) private var appBundle
     @State private var expanded = false
@@ -439,24 +520,76 @@ private struct EngineRowView: View {
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
     }
 
-    /// A ComfyUI model's files: name, folder, size, licence, the publisher's page, and whether ComfyUI sees it.
+    /// A ComfyUI model's files: name, folder, size, licence, the publisher's page, whether ComfyUI sees it, and its
+    /// download (#121): «Scarica» with its size on a missing file with a direct URL, «Scarica tutti» above several, and
+    /// while a file downloads its bar, percent and «Annulla» in the same place.
     private var filesList: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            ForEach(row.files, id: \.name) { f in
-                VStack(alignment: .leading, spacing: 1) {
-                    HStack(spacing: 6) {
-                        Text(verbatim: f.name).font(.callout.monospaced()).textSelection(.enabled)
-                        if let present = f.present {
-                            Text(verbatim: present ? loc("c'è") : loc("manca")).font(.caption.weight(.medium)).foregroundStyle(present ? .green : .orange)
-                        }
-                    }
-                    Text(verbatim: "\(f.folder) · \(EnginesSettings.localDisk(f.size)) · \(loc(f.licence))").font(.caption).foregroundStyle(.secondary)
-                    Text(verbatim: f.url).font(.caption).foregroundStyle(.tertiary).textSelection(.enabled).lineLimit(1).truncationMode(.middle)
-                }
+        let ready = row.files.filter(canFetch)
+        return VStack(alignment: .leading, spacing: 8) {
+            if row.files.contains(where: { $0.download == "noFolder" && $0.present != true }) {
+                Text(loc("Regista non sa in quale cartella è ComfyUI (lo avvia un programma, o ne conosce solo l'indirizzo): imposta la «Cartella di ComfyUI» nella riga di ComfyUI per scaricare i file da qui."))
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
+            if ready.count > 1 {
+                EdButton(title: String(format: loc("Scarica tutti (%d file, %@)"), ready.count,
+                                       EnginesSettings.localDisk(EngineManifest.sizeText(ready.reduce(Int64(0)) { $0 + $1.bytes }))),
+                         symbol: "arrow.down.circle") { fetch(ready) }
+                    .fixedSize()
+            }
+            if let fetchRefusal {
+                Text(verbatim: fetchRefusal).font(.caption).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true)
+            }
+            ForEach(row.files, id: \.name) { f in fileRow(f) }
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+    }
+
+    private func fileRow(_ f: EngineCatalog.ModelFile) -> some View {
+        let job = fetchJobs[f.name]
+        return VStack(alignment: .leading, spacing: 1) {
+            HStack(spacing: 6) {
+                Text(verbatim: f.name).font(.callout.monospaced()).textSelection(.enabled).lineLimit(1).truncationMode(.middle)
+                if let present = f.present {
+                    Text(verbatim: present ? loc("c'è") : loc("manca")).font(.caption.weight(.medium)).foregroundStyle(present ? .green : .orange)
+                }
+                Spacer(minLength: 8)
+                if let job, job.isRunning {
+                    JobProgressBar(progress: job.progress).frame(width: 110)
+                    Text(verbatim: JobProgressBar.percent(job.progress ?? 0, estimated: false)).font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary).fixedSize()
+                    EdButton(title: "Annulla") { cancelFetch(f.name) }.fixedSize()
+                } else if canFetch(f) {
+                    Text(verbatim: EnginesSettings.localDisk(f.size)).font(.caption).foregroundStyle(.secondary).fixedSize()
+                    EdButton(title: "Scarica", symbol: "arrow.down.circle") { fetch([f]) }.fixedSize()
+                }
+            }
+            Text(verbatim: "\(f.folder) · \(EnginesSettings.localDisk(f.size)) · \(loc(f.licence))").font(.caption).foregroundStyle(.secondary)
+            Text(verbatim: f.url).font(.caption).foregroundStyle(.tertiary).textSelection(.enabled).lineLimit(1).truncationMode(.middle)
+            if let line = fetchLine(f, job) {
+                Text(verbatim: line.text).font(.caption).foregroundStyle(line.color).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    /// A missing file Regista can download now: a direct URL, the ComfyUI folder known, not there, not downloading.
+    private func canFetch(_ f: EngineCatalog.ModelFile) -> Bool {
+        f.download == "ready" && f.present != true && fetchJobs[f.name]?.isRunning != true
+    }
+
+    /// What the file's download says under it: a failure, a cancel, done, or why there is no «Scarica».
+    private func fetchLine(_ f: EngineCatalog.ModelFile, _ job: JobCenter.Job?) -> (text: String, color: Color)? {
+        if let job, case .failed(let why) = job.state, f.download == "ready" { return (why, .red) }
+        if job?.state == .cancelled, f.download == "ready" { return (loc("Download annullato: «Scarica» riprende da dove si è fermato."), .secondary) }
+        guard f.present != true else { return nil }
+        switch f.download {
+        case "there": return (loc("Scaricato: riavvia ComfyUI perché lo veda."), .green)
+        case "otherSize":
+            return (loc("C'è già un file con questo nome ma di un'altra dimensione: Regista non lo sovrascrive. Spostalo altrove per scaricarlo di nuovo."), .orange)
+        case "manual":
+            return (loc("Il suo autore chiede un accesso o di accettare la licenza sulla sua pagina: scaricalo da lì e mettilo nella cartella indicata."), .secondary)
+        default: return nil
+        }
     }
 
     private var intro: String {
@@ -544,5 +677,42 @@ private struct ComfySetupView: View {
         p.message = loc("La cartella di ComfyUI, o un programma che avvia ComfyUI")
         guard p.runModal() == .OK, let url = p.url else { return }
         save("comfyStart", url.path)
+    }
+}
+
+/// A download's refusal or failure in the person's words (#121): the engine's sentences are English.
+enum FetchWords {
+    static func sentence(_ f: FetchFailure) -> String {
+        switch f.kind {
+        case .checksum:
+            return loc("Il file scaricato non corrisponde al suo checksum e l'ho cancellato: scaricalo di nuovo. Se succede ancora, il file sulla pagina dell'autore è cambiato.")
+        case .space(let missing):
+            return loc("Non c'è abbastanza spazio sul disco di ComfyUI: libera altri %@, poi scarica di nuovo.", EnginesSettings.localDisk(EngineManifest.sizeText(missing)))
+        case .lost(let received, let total):
+            return loc("La connessione si è interrotta dopo %@ di %@: «Scarica» riprende da lì.",
+                       EnginesSettings.localDisk(EngineManifest.sizeText(received)), EnginesSettings.localDisk(EngineManifest.sizeText(total)))
+        case .otherSize:
+            return loc("C'è già un file con questo nome ma di un'altra dimensione: Regista non lo sovrascrive. Spostalo altrove per scaricarlo di nuovo.")
+        case .noFolder:
+            return loc("Regista non sa in quale cartella è ComfyUI (lo avvia un programma, o ne conosce solo l'indirizzo): imposta la «Cartella di ComfyUI» nella riga di ComfyUI per scaricare i file da qui.")
+        case .http(let code):
+            return loc("Il server ha risposto %d: riprova più tardi.", code)
+        case .manual, .cancelled, .io:
+            return loc("Download non riuscito: %@", f.message)
+        }
+    }
+
+    /// generate.fetch's refusal (a CommandError carrying the engine's sentence), else a failure.
+    static func readable(_ error: Error) -> String {
+        if let f = error as? FetchFailure { return sentence(f) }
+        let raw = JobCenter.message(error)
+        // The engine's words, matched (English, not UI).
+        if raw.contains("not enough free space"), let r = raw.range(of: #"free [0-9.]+ [GM]B more"#, options: .regularExpression) {  // l10n-ignore
+            let amount = String(raw[r].dropFirst(5).dropLast(5))
+            return loc("Non c'è abbastanza spazio sul disco di ComfyUI: libera altri %@, poi scarica di nuovo.", EnginesSettings.localDisk(amount))
+        }
+        if raw.contains("Settings › Motori › ComfyUI to download") { return sentence(FetchFailure(.noFolder, raw)) }  // l10n-ignore
+        if raw.contains("does not overwrite it") { return sentence(FetchFailure(.otherSize, raw)) }  // l10n-ignore
+        return loc("Download non riuscito: %@", raw)
     }
 }

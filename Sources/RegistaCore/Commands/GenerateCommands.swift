@@ -290,8 +290,24 @@ enum GenerateCheck: Command {
         let location = (s.generators["comfyui"] as? ComfyUIProvider)?.location ?? s.comfyLocation
         let info = s.comfyServer()
         let results = ComfyCheck.run(model: p.string("model"), location: location, objectInfo: info)
+        // Every file each model loads, whether the running ComfyUI sees it (absent when it is off) and whether Regista can
+        // download it into the ComfyUI folder it knows (#121).
+        var downloadable: [EngineManifest.ModelFile] = []
+        let models: [JSONValue] = results.map { r in
+            guard var o = r.json.objectValue, let w = ComfyCheck.workflow(r.model), let entry = EngineManifest.shared.entry(w.engine) else { return r.json }
+            let seen = Dictionary(r.files.map { ($0.file.name, $0.present) }, uniquingKeysWith: { a, _ in a })
+            o["files"] = .array(entry.modelFiles.map { f in
+                var j = ComfyCheck.FileState(file: f, present: seen[f.name] ?? false).json.objectValue!
+                if seen[f.name] == nil { j["present"] = nil }
+                let plan = ModelFetch.plan(f, location: location, source: s.modelSource)
+                if case .ready = plan, seen[f.name] != true, !downloadable.contains(f) { downloadable.append(f) }
+                j.merge(ModelFetch.json(plan, f)) { _, new in new }
+                return .object(j)
+            })
+            return .object(o)
+        }
         var o: [String: JSONValue] = [
-            "models": .array(results.map(\.json)),
+            "models": .array(models),
             "ready": .bool(results.allSatisfy { $0.state == "ready" }),
             "summary": .string(results.map(\.summary).joined(separator: "\n")),
             "server": .string(location.server.absoluteString),
@@ -302,7 +318,62 @@ enum GenerateCheck: Command {
         if let problem = location.startProblem { o["startProblem"] = .string(problem) }
         if info == nil, location.start == nil { o["setupSteps"] = .string(ComfyCheck.setupSteps); o["searched"] = .array(location.configured ? [] : (s.generators["comfyui"] as? ComfyUIProvider)?.places.map { .string($0) } ?? s.comfyPlaces.map { .string($0) }) }
         if s.tier < minimum { o["tierReason"] = .string("ComfyUI needs the \(minimum.rawValue) tier (this Mac: \(s.tier.rawValue))") }
+        if !downloadable.isEmpty {
+            let bytes = downloadable.reduce(Int64(0)) { $0 + $1.bytes }
+            o["downloadable"] = ["files": .number(Double(downloadable.count)), "bytes": .number(Double(bytes)), "size": .string(EngineManifest.sizeText(bytes)),
+                                 "how": .string("generate.fetch downloads them (\(EngineManifest.sizeText(bytes))) into the ComfyUI folder Regista knows: tell the user the size and ask first")]
+        }
         return .object(o)
+    }
+}
+
+enum GenerateFetch: Command {
+    static let id = "generate.fetch"
+    static let summary = "Download missing ComfyUI model files: tens of GB, so before calling tell the user the size (generate.check gives each file's size and the total of the missing ones) and ask first. Each file goes into the models folder of the ComfyUI folder Regista knows (set in Settings › Motori, or found in the usual places; never one guessed from a running server: with only an address or a start program it refuses and says what to set). Free space is checked first (the files plus the manifest's disk margin of \(Int(EngineManifest.shared.diskMarginGB)) GB: the refusal says how much is missing); a file already there with the right size is skipped, one with another size is never overwritten; a partial download resumes; the sha256 is checked before the file is moved into place. Answers at once with one job per file (jobId d1…); generate.status {jobId} follows each (received, bytes, percent, running / done / failed with the reason / cancelled). Restart ComfyUI afterwards so it sees the new files."
+    static let kind = CommandKind.session
+    static let params: [ParamSpec] = [
+        .optional("model", .oneOf(ComfyCheck.models), "Every missing file of one ComfyUI model."),
+        .optional("file", .string, "One model file by name (generate.check lists them)."),
+    ]
+
+    static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
+        let s = ctx.services
+        let manifest = EngineManifest.shared
+        let files: [EngineManifest.ModelFile]
+        switch (p.string("model"), p.string("file")) {
+        case (let m?, nil): files = manifest.entry(ComfyCheck.workflow(m)!.engine)?.modelFiles ?? []
+        case (nil, let name?):
+            guard let f = manifest.modelFile(name) else { throw CommandError.notFound("\(id): no model file \(name) (generate.check lists them)") }
+            files = [f]
+        default: throw CommandError.invalid("\(id): pass model or file (one of them)")
+        }
+        let location = (s.generators["comfyui"] as? ComfyUIProvider)?.location ?? s.comfyLocation
+        let folder: URL
+        switch ModelFetch.folder(location) {
+        case .success(let f): folder = f
+        case .failure(let e): throw CommandError(.io, "\(id): \(e.message)")
+        }
+        var start: [(file: EngineManifest.ModelFile, url: URL, target: URL)] = [], running: [ModelDownloads.Job] = [], skipped: [JSONValue] = []
+        for f in files {
+            let plan = ModelFetch.plan(f, location: location, source: s.modelSource)
+            if let job = ModelDownloads.shared.running(f.name), job.target == plan.target { running.append(job); continue }
+            if case .ready(let target, let url) = plan { start.append((f, url, target)); continue }
+            var o = ModelFetch.json(plan, f)
+            o["file"] = .string(f.name)
+            skipped.append(.object(o))
+            if files.count == 1, plan.state != "there" { throw CommandError(.conflict, "\(id): \(f.name): \(ModelFetch.note(plan, f) ?? plan.state)") }
+        }
+        // The room for everything this call starts, before the first byte (each download checks again for itself).
+        let remaining = start.reduce(Int64(0)) { $0 + $1.file.bytes - (ModelFetch.fileSize($1.target.appendingPathExtension("part")) ?? 0) }
+        if remaining > 0, let short = ModelFetch.shortfall(bytes: remaining, at: folder, source: s.modelSource) {
+            throw CommandError(.io, "\(id): \(short.message). Nothing was downloaded.")
+        }
+        let jobs = running + start.map { ModelDownloads.shared.start($0.file, from: $0.url, to: $0.target, source: s.modelSource) }
+        let bytes = jobs.reduce(Int64(0)) { $0 + $1.file.bytes }
+        return ["jobs": .array(jobs.map(\.json)), "skipped": .array(skipped), "comfyui": .string(folder.path),
+                "bytes": .number(Double(bytes)), "size": .string(EngineManifest.sizeText(bytes)),
+                "note": .string(jobs.isEmpty ? "nothing to download: every file asked for is already there (or cannot be downloaded: see skipped)"
+                                    : "downloading in the background: generate.status {jobId} follows each; restart ComfyUI once they are done so it sees them")]
     }
 }
 
@@ -427,16 +498,24 @@ enum GenerateUpscale: Command {
 
 enum GenerateStatus: Command {
     static let id = "generate.status"
-    static let summary = "Check generation jobs: a background job (generate.run wait: false) is collected into the media bin when its process has finished. Without jobId lists every job of the project. Returns the job(s) with status running / done / failed, asset and path when done."
+    static let summary = "Check generation jobs: a background job (generate.run wait: false) is collected into the media bin when its process has finished. Without jobId lists every job of the project. A download of generate.fetch (jobId d1…) answers with or without a project: file, received, bytes, percent, status running / done / failed (with the reason) / cancelled. Returns the job(s) with status running / done / failed, asset and path when done."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("jobId", .string, "Job (g1…)."),
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
+        // A model file's download (generate.fetch): the process's, not the project's.
+        if let jid = p.string("jobId"), let d = ModelDownloads.shared.job(jid) { return d.json }
+        let downloads = ModelDownloads.shared.all
+        if ctx.project == nil, p.string("jobId") == nil, !downloads.isEmpty { return ["jobs": [], "downloads": .array(downloads.map(\.json))] }
         var project = try ctx.requireProject()
         let jobs = project.generations ?? []
-        guard let jid = p.string("jobId") else { return ["jobs": .array(jobs.map { Generate.jobJSON($0, project) })] }
+        guard let jid = p.string("jobId") else {
+            var r: [String: JSONValue] = ["jobs": .array(jobs.map { Generate.jobJSON($0, project) })]
+            if !downloads.isEmpty { r["downloads"] = .array(downloads.map(\.json)) }
+            return .object(r)
+        }
         guard let i = jobs.firstIndex(where: { $0.id == jid }) else { throw CommandError.notFound("\(id): no job \(jid)") }
         var job = jobs[i]
         if job.status == .running {

@@ -41,6 +41,11 @@ The most common cases:
   ComfyUI node, update ComfyUI.
 - *"model file … is missing: put it in ComfyUI's models/… folder".* The ComfyUI row of the model in
   **Settings › Engines** lists each file with its folder and the page to download it from. Restart ComfyUI after adding files.
+- *A model file does not download.* No **Download** button: choose the **ComfyUI folder** on the ComfyUI row (Regista
+  downloads only into a folder it knows). "Not enough space": free the amount it says, then **Download** again. "Does not
+  match its checksum": the file was deleted; download it again, and if it happens again the file on the publisher's page
+  has changed. "The connection dropped": **Download** again resumes where it stopped. "A file with this name but another
+  size": move that file away, then download.
 - *"ComfyUI ran out of memory".* Close other heavy apps, or ask for a smaller size or a shorter clip.
 - *The desktop app of ComfyUI.* It listens on another port than 8188: set its **Address** (for example
   `http://127.0.0.1:8000`).

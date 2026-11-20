@@ -100,9 +100,16 @@ models). **Settings › Engines › ComfyUI** shows the steps; in short:
    there instead: a ComfyUI you started stays on; Regista only asks it to free its memory after a generation.
 3. Install the ComfyUI-GGUF node pack (https://github.com/city96/ComfyUI-GGUF) in ComfyUI's `custom_nodes` folder, then
    restart ComfyUI: the Wan 2.2 clips need it.
-4. Put each model's files in ComfyUI's `models` folders. Each model's row (Z-Image Turbo, Wan 2.2 image-to-video,
-   ACE-Step 1.5, Real-ESRGAN + RIFE) lists every file with its folder, size, licence and the publisher's page to
-   download it from, and, once ComfyUI answers, which ones it already sees.
+4. Get each model's files. Each model's row (Z-Image Turbo, Wan 2.2 image-to-video, ACE-Step 1.5, Real-ESRGAN + RIFE)
+   lists every file with its folder, size, licence and the publisher's page and, once ComfyUI answers, which ones it
+   already sees. **Download** beside a missing file (with its size), or the button above several files that downloads them all, puts it in the
+   `models` folder of the ComfyUI folder Regista knows, with its progress and **Cancel** on the same line. A cancelled or
+   interrupted download resumes where it stopped; the file is checked against its sha256 before it is moved into place;
+   the free space is checked first (the files plus 2 GB). A file already there with the right size is not downloaded
+   again, and one with another size is never overwritten. Regista downloads only into a ComfyUI folder it knows (the one
+   you chose, or one found in the usual places below): if a program starts ComfyUI, or only its address is set, choose
+   its folder to get the buttons, or download each file from the publisher's page into the folder it names. Claude can
+   do the same with `generate.fetch`, after telling you the size. Restart ComfyUI afterwards so it sees the new files.
 5. Check: **Check again** on the row, or ask Claude for `generate.check`.
 
 With no folder set and nothing answering at the address, Regista looks for a ComfyUI folder (with its Python

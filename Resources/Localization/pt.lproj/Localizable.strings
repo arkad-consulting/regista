@@ -2438,8 +2438,8 @@
 "Avvio ComfyUI e aspetto che risponda…" = "Iniciando o ComfyUI e esperando que responda…";
 "Install ComfyUI by following its own instructions (https://docs.comfy.org/installation/manual_install), in a folder with its own Python environment (.venv or venv inside that folder)." = "Instale o ComfyUI seguindo as instruções dele (https://docs.comfy.org/installation/manual_install), em uma pasta com seu próprio ambiente Python (.venv ou venv dentro dessa pasta).";
 "Install the ComfyUI-GGUF node pack (https://github.com/city96/ComfyUI-GGUF, Apache-2.0) in ComfyUI's custom_nodes folder as its page says, then restart ComfyUI: the Wan 2.2 clips need it. The other workflows use ComfyUI's own nodes (if generate.check says one is missing, update ComfyUI)." = "Instale o pacote de nós ComfyUI-GGUF (https://github.com/city96/ComfyUI-GGUF, Apache-2.0) na pasta custom_nodes do ComfyUI como a página dele explica, depois reinicie o ComfyUI: os clipes do Wan 2.2 precisam dele. Os outros workflows usam os nós do próprio ComfyUI (se o generate.check disser que falta um, atualize o ComfyUI).";
-"Put the model files in ComfyUI's models folders: each model below lists every file, the folder it goes in, its size, its licence and the publisher's page to download it from (about 69 GB for all four)." = "Coloque os arquivos dos modelos nas pastas models do ComfyUI: cada modelo abaixo lista cada arquivo, a pasta onde vai, o tamanho, a licença e a página do editor de onde baixá-lo (cerca de 69 GB para os quatro).";
-"Part of the ComfyUI setup: put each file listed here in the ComfyUI models folder it names (download it from the publisher's page beside it), restart ComfyUI, then check again." = "Faz parte da preparação do ComfyUI: coloque cada arquivo listado aqui na pasta models do ComfyUI que ele indica (baixe-o da página do editor ao lado), reinicie o ComfyUI e verifique de novo.";
+"Get the model files: each model below lists every file, the folder it goes in, its size, its licence and the publisher's page (about 69 GB for all four). “Download” beside a missing file puts it in the models folder of the ComfyUI folder Regista knows, checked against its sha256; or download it from the publisher's page into the folder it names." = "Obtenha os arquivos dos modelos: cada modelo abaixo lista cada arquivo, a pasta onde vai, o tamanho, a licença e a página do editor (cerca de 69 GB para os quatro). “Baixar” ao lado de um arquivo que falta o coloca na pasta models da pasta do ComfyUI que o Regista conhece, verificado com o seu sha256; ou baixe-o da página do editor na pasta indicada.";
+"Part of the ComfyUI setup: “Download” beside each missing file puts it in the ComfyUI models folder it names (or download it from the publisher's page beside it), then restart ComfyUI and check again." = "Faz parte da preparação do ComfyUI: “Baixar” ao lado de cada arquivo que falta o coloca na pasta models do ComfyUI que ele indica (ou baixe-o da página do editor ao lado); depois reinicie o ComfyUI e verifique de novo.";
 "Indirizzo" = "Endereço";
 "Cartella di ComfyUI" = "Pasta do ComfyUI";
 "Imposta" = "Configurar";
@@ -2485,3 +2485,18 @@
 "Questo fotogramma come copertina del reel, per lo scaffale degli Shorts e la griglia di Instagram." = "Este quadro como capa do reel, para a prateleira dos Shorts e a grade do Instagram.";
 "Nessuna copertina" = "Nenhuma capa ainda";
 "«%@»" = "«%@»";
+
+/* ComfyUI model files downloaded from their row (#121) */
+"Scarica tutti (%d file, %@)" = "Baixar todos (%d arquivos, %@)";
+"Scarico %@" = "Baixando %@";
+"Regista non sa in quale cartella è ComfyUI (lo avvia un programma, o ne conosce solo l'indirizzo): imposta la «Cartella di ComfyUI» nella riga di ComfyUI per scaricare i file da qui." = "O Regista não sabe em que pasta está o ComfyUI (um programa o inicia, ou só o endereço está definido): defina a “Pasta do ComfyUI” na linha do ComfyUI para baixar os arquivos daqui.";
+"Scaricato: riavvia ComfyUI perché lo veda." = "Baixado: reinicie o ComfyUI para que ele o veja.";
+"Download annullato: «Scarica» riprende da dove si è fermato." = "Download cancelado: “Baixar” retoma de onde parou.";
+"C'è già un file con questo nome ma di un'altra dimensione: Regista non lo sovrascrive. Spostalo altrove per scaricarlo di nuovo." = "Já existe um arquivo com este nome, mas de outro tamanho: o Regista não o substitui. Mova-o para outro lugar para baixá-lo de novo.";
+"Il suo autore chiede un accesso o di accettare la licenza sulla sua pagina: scaricalo da lì e mettilo nella cartella indicata." = "O editor pede login ou que se aceite a licença na página dele: baixe-o de lá e coloque-o na pasta indicada.";
+"Il file scaricato non corrisponde al suo checksum e l'ho cancellato: scaricalo di nuovo. Se succede ancora, il file sulla pagina dell'autore è cambiato." = "O arquivo baixado não corresponde ao seu checksum e foi apagado: baixe-o de novo. Se acontecer outra vez, o arquivo na página do editor mudou.";
+"Non c'è abbastanza spazio sul disco di ComfyUI: libera altri %@, poi scarica di nuovo." = "Não há espaço suficiente no disco do ComfyUI: libere mais %@ e baixe de novo.";
+"La connessione si è interrotta dopo %@ di %@: «Scarica» riprende da lì." = "A conexão caiu depois de %@ de %@: “Baixar” retoma a partir daí.";
+"Il server ha risposto %d: riprova più tardi." = "O servidor respondeu %d: tente de novo mais tarde.";
+"Download non riuscito: %@" = "Falha no download: %@";
+"Scarica i file dei modelli" = "Baixar os arquivos dos modelos";

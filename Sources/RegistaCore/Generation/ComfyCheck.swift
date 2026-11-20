@@ -180,7 +180,8 @@ public enum ComfyCheck {
     static func modelHint(cls: String, value v: String) -> String {
         let folder = folders[cls] ?? "<folder \(cls) reads>"
         if let f = EngineManifest.shared.modelFile(v) {
-            return "model file \(v) is missing: put it in ComfyUI's models/\(f.folder) folder (\(f.sizeText), \(f.licence), from \(f.url)), then restart ComfyUI"
+            let fetch = f.download != nil ? " (generate.fetch {\"file\": \"\(v)\"} downloads it there, after the user agreed to its size)" : ""
+            return "model file \(v) is missing: put it in ComfyUI's models/\(f.folder) folder (\(f.sizeText), \(f.licence), from \(f.url))\(fetch), then restart ComfyUI"
         }
         let stem = (v as NSString).deletingPathExtension
         return "model file \(v) is missing: put it in ComfyUI's models/\(folder) folder (find it: https://huggingface.co/models?search=\(stem.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? stem)), then restart ComfyUI"

@@ -43,6 +43,11 @@ motivo. I casi più comuni:
   per un nodo di ComfyUI stesso, aggiorna ComfyUI.
 - *«model file … is missing: put it in ComfyUI's models/… folder».* La riga del modello in **Impostazioni › Motori**
   elenca ogni file con la sua cartella e la pagina da cui scaricarlo. Riavvia ComfyUI dopo aver aggiunto dei file.
+- *Un file del modello non si scarica.* Nessun pulsante **Scarica**: scegli la **Cartella di ComfyUI** nella riga di
+  ComfyUI (Regista scarica solo in una cartella che conosce). «Non c'è abbastanza spazio»: libera quanto dice, poi
+  **Scarica** di nuovo. «Non corrisponde al suo checksum»: il file è stato cancellato; scaricalo di nuovo, e se succede
+  ancora il file sulla pagina dell'editore è cambiato. «La connessione si è interrotta»: **Scarica** di nuovo riprende da
+  dove si era fermato. «C'è già un file con questo nome ma di un'altra dimensione»: sposta quel file, poi scarica.
 - *«ComfyUI ran out of memory».* Chiudi altre app pesanti, oppure chiedi una dimensione più piccola o una clip più breve.
 - *L'app desktop di ComfyUI.* Ascolta su una porta diversa dalla 8188: imposta il suo **Indirizzo** (per esempio
   `http://127.0.0.1:8000`).

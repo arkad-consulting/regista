@@ -21,6 +21,7 @@
 """
 import json
 import math
+import re
 import os
 import sys
 
@@ -193,6 +194,11 @@ def validate(m, lock):
                     errs.append("%s: shipped.bytes must be a positive whole number" % i)
         if e.get("artifacts") and "version" in e:
             errs.append("%s: version comes from engines.lock when artifacts are named; drop it" % i)
+    for e in m.get("engines", []):
+        for f in e.get("modelFiles", []):
+            d = f.get("download")
+            if d is not None and not re.match(r"^https://(huggingface\.co/[^/]+/[^/]+/resolve/[0-9a-f]{40}/|github\.com/[^/]+/[^/]+/releases/download/v[^/]+/).+", d):
+                errs.append("%s: %s's download is not pinned to a commit or a release tag" % (e.get("id"), f.get("name")))
     places = m.get("comfyPlaces")
     if not isinstance(places, list) or not places or not all(isinstance(p, str) and (p.startswith("~/") or p.startswith("/")) for p in places):
         errs.append("comfyPlaces must be a non-empty list of absolute or ~/ paths")
@@ -290,15 +296,18 @@ def docs(m, lock):
     if with_files:
         w("## ComfyUI model files")
         w("")
-        w("Every file Regista's ComfyUI workflows load, by model: put it in the ComfyUI models folder named here. Regista never")
-        w("downloads them; the size and sha256 are the publisher's (checked against the files on a Mac that runs them).")
+        w("Every file Regista's ComfyUI workflows load, by model, and the ComfyUI models folder it goes in. A file with a direct")
+        w("download is downloaded by Regista (Settings › Engines, generate.fetch) into the ComfyUI folder it knows, from a URL")
+        w("pinned to a revision, and checked against its sha256 (the publisher's, checked against the files on a Mac that runs")
+        w("them); a file without one is downloaded by hand from its page.")
         w("")
-        w("| Model | File | ComfyUI folder | Size | Licence | sha256 | Where to get it |")
-        w("|---|---|---|---|---|---|---|")
+        w("| Model | File | ComfyUI folder | Size | Licence | sha256 | Where to get it | Direct download |")
+        w("|---|---|---|---|---|---|---|---|")
         for e in with_files:
             for f in e["modelFiles"]:
-                w("| %s | `%s` | `models/%s` | %s | %s | %s | %s |" % (e["name"], f["name"], f["folder"], gb(f["bytes"]), f["licence"],
-                                                          "`%s…`" % f["sha256"][:12] if f.get("sha256") else "–", f["url"]))
+                w("| %s | `%s` | `models/%s` | %s | %s | %s | %s | %s |" % (e["name"], f["name"], f["folder"], gb(f["bytes"]), f["licence"],
+                                                          "`%s…`" % f["sha256"][:12] if f.get("sha256") else "–", f["url"],
+                                                          "yes (pinned)" if f.get("download") else "no (by hand)"))
         w("")
     return "\n".join(L)
 

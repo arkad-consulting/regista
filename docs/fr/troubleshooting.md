@@ -44,6 +44,12 @@ côté ou dessous. Les cas les plus fréquents :
   pour un nœud de ComfyUI lui-même, mettez ComfyUI à jour.
 - *« model file … is missing: put it in ComfyUI's models/… folder ».* La ligne du modèle dans **Réglages › Moteurs**
   liste chaque fichier avec son dossier et la page où le télécharger. Redémarrez ComfyUI après avoir ajouté des fichiers.
+- *Un fichier de modèle ne se télécharge pas.* Pas de bouton **Télécharger** : choisissez le **Dossier de ComfyUI** sur
+  la ligne de ComfyUI (Regista télécharge seulement dans un dossier qu'il connaît). « Pas assez d'espace » : libérez ce
+  qu'il indique, puis **Télécharger** à nouveau. « Ne correspond pas à sa somme de contrôle » : le fichier a été
+  supprimé ; téléchargez-le à nouveau, et si cela se reproduit le fichier sur la page de l'éditeur a changé. « La
+  connexion s'est interrompue » : **Télécharger** à nouveau reprend là où il s'était arrêté. « Un fichier de ce nom mais
+  d'une autre taille » : déplacez ce fichier, puis téléchargez.
 - *« ComfyUI ran out of memory ».* Fermez d'autres apps lourdes, ou demandez une taille plus petite ou un clip plus court.
 - *L'app de bureau de ComfyUI.* Elle écoute sur un autre port que 8188 : indiquez son **Adresse** (par exemple
   `http://127.0.0.1:8000`).

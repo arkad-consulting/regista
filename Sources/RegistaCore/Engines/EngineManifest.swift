@@ -26,7 +26,8 @@ public struct EngineManifest: Sendable {
         public let bytes: Int64
     }
 
-    /// A model file a ComfyUI workflow loads (#6): where it goes, its facts, the publisher's page. Regista never downloads it.
+    /// A model file a ComfyUI workflow loads (#6): where it goes, its facts, the publisher's page, and the direct URL Regista
+    /// downloads it from (#121).
     public struct ModelFile: Codable, Hashable, Sendable {
         public let name: String
         /// The ComfyUI models folder it goes in (`models/<folder>`).
@@ -36,6 +37,9 @@ public struct EngineManifest: Sendable {
         public let licence: String
         /// The publisher's page to download it from.
         public let url: String
+        /// The direct URL, pinned to a revision (a Hugging Face commit, a GitHub release tag); nil when the publisher asks
+        /// for a login or an accepted licence (the person downloads it from `url`).
+        public var download: String? = nil
 
         /// "12.31 GB", "23 MB".
         public var sizeText: String { EngineManifest.sizeText(bytes) }
@@ -141,7 +145,7 @@ public struct EngineManifest: Sendable {
         entry(id)?.shipped.map { Self.sizeText($0.bytes) }
     }
 
-    static func sizeText(_ b: Int64) -> String {
+    public static func sizeText(_ b: Int64) -> String {
         if b == 0 { return "–" }
         return b < 100_000_000 ? String(format: "%.0f MB", Double(b) / 1e6) : String(format: "%.2f GB", Double(b) / 1e9)
     }
