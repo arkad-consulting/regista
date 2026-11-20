@@ -317,6 +317,20 @@ final class AppRig {
         }
     }
 
+    /// Waits until `condition` holds (at most `timeout` seconds, returning whether it did), idling between looks so the
+    /// main actor runs meanwhile: a job's end, a store refresh's result. `rig.wait` pumps the run loop from inside the
+    /// test's own main-actor job, where no other main-actor work can run: a condition only such work makes true never
+    /// turns true during it (#127).
+    @discardableResult
+    func until(_ timeout: Double, _ condition: () -> Bool) async -> Bool {
+        let end = Date().addingTimeInterval(timeout)
+        while !condition() {
+            if Date() > end { return false }
+            await idle(0.05)
+        }
+        return true
+    }
+
     /// Waits for the commands started by a click to finish: a read on the engine's serial queue returns after every
     /// command queued before it, then a short wait lets their results land.
     func settle() async {

@@ -75,7 +75,7 @@ extension MouseSuites {
             .environment(\.firstStepsInstaller, installer.map { i in { i } })
             .frame(width: size.width, height: size.height), size: size, language: language)
         await app.settle()
-        _ = app.rig.wait(5) { app.store.engineSummary != nil }
+        await app.until(30) { app.store.engineSummary != nil }
         await app.settle()
     }
 
@@ -104,8 +104,8 @@ extension MouseSuites {
         let before = rigOutside.installs.filter { $0.contains("--only whisper-model") }.count
         let download = try #require(app.rig.element(Self.word("Scarica", language)), "no «Scarica»")
         app.rig.click(download.centre)
-        _ = app.rig.wait(5) { rigOutside.installs.filter { $0.contains("--only whisper-model") }.count > before }
-        _ = app.rig.wait(5) { app.store.jobs.latest(EnginesModel.jobKind("whisper-model"))?.isRunning == false }
+        await app.until(30) { rigOutside.installs.filter { $0.contains("--only whisper-model") }.count > before }
+        await app.until(30) { app.store.jobs.latest(EnginesModel.jobKind("whisper-model"))?.isRunning == false }
         await app.settle()
         #expect(rigOutside.installs.filter { $0.contains("--only whisper-model") }.count == before + 1, "the download did not start once")
         #expect(app.store.jobs.latest(EnginesModel.jobKind("whisper-model"))?.title == String(format: loc("Installo %@"), loc("Whisper large-v3-turbo (ggml)")),
@@ -128,7 +128,7 @@ extension MouseSuites {
         try Self.snapshot(app, "n26-home-first-steps-downloading-\(language).png")
         let cancel = try #require(app.rig.element(Self.word("Annulla", language)), "no «Annulla»")
         app.rig.click(cancel.centre)
-        _ = app.rig.wait(3) { app.store.jobs.job(job)?.isRunning == false }
+        await app.until(30) { app.store.jobs.job(job)?.isRunning == false }
         #expect(app.store.jobs.job(job)?.state == .cancelled, "«Annulla» did not stop the download")
         await app.settle()
         #expect(app.rig.element(Self.word("Scarica", language)) != nil, "the row did not come back to «Scarica»")
@@ -155,7 +155,7 @@ extension MouseSuites {
         .environment(\.appBundle, try shippedApp()).environment(\.settingsWindowOpener, { raised += 1 })
         .environment(\.claudeClientsReader, { Self.noClient }), size: size)
         await app.settle()
-        _ = app.rig.wait(5) { app.store.engineSummary != nil }
+        await app.until(30) { app.store.engineSummary != nil }
         await app.settle()
         #expect(app.rig.element("Scarica") == nil, "the model row with the model there")
         #expect(!app.rig.elements(containing: "Lingua dell'interfaccia").isEmpty, "Settings does not start on Generale")
@@ -163,7 +163,7 @@ extension MouseSuites {
         let connect = try #require(app.rig.element("Collega…"), "no «Collega…»")
         app.rig.click(connect.centre)
         await app.settle()
-        _ = app.rig.wait(3) { !app.rig.elements(containing: "Build di questa app").isEmpty }
+        await app.until(30) { !app.rig.elements(containing: "Build di questa app").isEmpty }
         #expect(raised == 1, "the Settings window was brought up \(raised) times")
         #expect(UserDefaults.standard.string(forKey: SettingsRoute.tabKey) == SettingsTab.claude.rawValue)
         #expect(!app.rig.elements(containing: "Build di questa app").isEmpty, "Settings does not show the Claude tab after the click")
@@ -186,8 +186,8 @@ extension MouseSuites {
         #expect(before.modelMissing, "the model is not missing before the download")
         let download = try #require(app.rig.element("Scarica"), "no «Scarica»")
         app.rig.click(download.centre)
-        _ = app.rig.wait(10) { app.store.jobs.latest(EnginesModel.jobKind("whisper-model"))?.isRunning == false }
-        _ = app.rig.wait(5) { app.store.engineSummary?.modelMissing == false }
+        await app.until(30) { app.store.jobs.latest(EnginesModel.jobKind("whisper-model"))?.isRunning == false }
+        await app.until(30) { app.store.engineSummary?.modelMissing == false }
         await app.settle()
         #expect((try? String(contentsOf: calls, encoding: .utf8))?.contains("--only whisper-model") == true, "the installer was not run for the model")
         #expect(app.store.jobs.latest(EnginesModel.jobKind("whisper-model"))?.state == .done)
@@ -209,7 +209,7 @@ extension MouseSuites {
         await Self.host(app, bundle: try shippedApp(), language: language, installer: stand)
         let download = try #require(app.rig.element(Self.word("Scarica", language)), "no «Scarica»")
         app.rig.click(download.centre)
-        _ = app.rig.wait(10) { app.store.jobs.latest(EnginesModel.jobKind("whisper-model"))?.isRunning == false }
+        await app.until(30) { app.store.jobs.latest(EnginesModel.jobKind("whisper-model"))?.isRunning == false }
         await app.settle()
         #expect(!FileManager.default.fileExists(atPath: file.path))
         #expect(!app.rig.elements(containing: "the model could not be downloaded (test installer)").isEmpty, "\(language): the reason is not shown")
