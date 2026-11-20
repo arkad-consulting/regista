@@ -381,3 +381,16 @@ func theInstallersComfyUILineSaysWhatRegistaWouldUse(_ lang: String) throws {
     let places = ComfyServer.usualPlaces.map { $0.hasPrefix("~/") ? home.path + $0.dropFirst() : $0 }
     #expect(ComfyServer.find(in: places)?.path == real)
 }
+
+/// The optional apps' lines (Blender, Shotcut) read in the language of the run, like every other installer line.
+@Test(arguments: [("it", "titoli 3D; aggiungilo", "apre i progetti export.mlt", "non serve al livello Base"),
+                  ("fr", "titres 3D ; ajoutez-le", "ouvre les projets export.mlt", "pas utilisé au niveau Base"),
+                  ("pt", "títulos 3D; adicione-o", "abre os projetos export.mlt", "não é usado no nível Base"),
+                  ("en", "3D titles; add it", "opens the export.mlt projects", "not used on the base tier")])
+func theOptionalAppsLinesAreTranslated(_ lang: String, _ blender: String, _ shotcut: String, _ base: String) throws {
+    let r = try Subprocess.run(URL(fileURLWithPath: "/bin/bash"), ["-c", ". \"$0/scripts/lib.sh\"; optional \"Blender 4\" \"$(t opt_blender)\"; optional \"Shotcut 25\" \"$(t opt_shotcut)\"; ok \"$(t blender_base)\"", repo.path],
+                               environment: ["REGISTA_LANG": lang, "REGISTA_HELPER": ""])
+    #expect(r.stdoutText.contains(blender) && r.stdoutText.contains(shotcut) && r.stdoutText.contains(base), "\(lang): \(r.stdoutText)")
+    let script = try String(contentsOf: repo.appendingPathComponent("scripts/install.sh"), encoding: .utf8)
+    #expect(script.contains("optional \"Blender $BV\" \"$(t opt_blender)\"") && script.contains("optional \"Shotcut $SV\" \"$(t opt_shotcut)\""))
+}

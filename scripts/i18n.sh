@@ -166,6 +166,18 @@ msg() {
     it.comfy_steps) echo 'ComfyUI si configura a mano (%s con i modelli):' ;;
     fr.comfy_steps) echo "ComfyUI s'installe à la main (%s avec ses modèles) :" ;;
     pt.comfy_steps) echo 'O ComfyUI é configurado à mão (%s com os modelos):' ;;
+    en.opt_blender) echo '3D titles; add it with scripts/install.sh --with blender' ;;
+    it.opt_blender) echo 'titoli 3D; aggiungilo con scripts/install.sh --with blender' ;;
+    fr.opt_blender) echo 'titres 3D ; ajoutez-le avec scripts/install.sh --with blender' ;;
+    pt.opt_blender) echo 'títulos 3D; adicione-o com scripts/install.sh --with blender' ;;
+    en.opt_shotcut) echo 'opens the export.mlt projects; add it with scripts/install.sh --with shotcut' ;;
+    it.opt_shotcut) echo 'apre i progetti export.mlt; aggiungilo con scripts/install.sh --with shotcut' ;;
+    fr.opt_shotcut) echo 'ouvre les projets export.mlt ; ajoutez-le avec scripts/install.sh --with shotcut' ;;
+    pt.opt_shotcut) echo 'abre os projetos export.mlt; adicione-o com scripts/install.sh --with shotcut' ;;
+    en.blender_base) echo 'Blender: not used on the base tier' ;;
+    it.blender_base) echo 'Blender: non serve al livello Base' ;;
+    fr.blender_base) echo "Blender : pas utilisé au niveau Base" ;;
+    pt.blender_base) echo 'Blender: não é usado no nível Base' ;;
     en.comfy_found) echo '%s (found in a usual place: Regista starts ComfyUI from there)' ;;
     it.comfy_found) echo '%s (trovata in un posto consueto: Regista avvia ComfyUI da qui)' ;;
     fr.comfy_found) echo '%s (trouvé à un emplacement habituel : Regista démarre ComfyUI depuis ce dossier)' ;;

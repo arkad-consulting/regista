@@ -440,9 +440,9 @@ install_blender() {
     install_dmg blender Blender.app
     BLENDER="$APP_DIR/Blender.app/Contents/MacOS/Blender"; found "Blender $BV" "$APP_DIR/Blender.app (sha256 ok)"
   elif medium_up; then
-    optional "Blender $BV" "3D titles; add it with scripts/install.sh --with blender"
+    optional "Blender $BV" "$(t opt_blender)"
   else
-    ok "Blender: not used on the base tier"
+    ok "$(t blender_base)"
   fi
   [ -z "$BLENDER" ] || KV+=(blender "$BLENDER")
 }
@@ -453,7 +453,7 @@ install_shotcut() {
   elif [ "${1:-}" != ask ] || wants shotcut || ask "$(t ask_shotcut "$SV" "$(human "$(lock_get shotcut 6)")")" n; then
     install_dmg shotcut Shotcut.app; found "Shotcut $SV" "$APP_DIR/Shotcut.app (sha256 ok)"
   else
-    optional "Shotcut $SV" "opens the export.mlt projects; add it with scripts/install.sh --with shotcut"
+    optional "Shotcut $SV" "$(t opt_shotcut)"
   fi
 }
 
