@@ -1,5 +1,6 @@
 import CoreGraphics
 import CoreImage
+import CoreText
 import Foundation
 import RegistaCore
 

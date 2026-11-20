@@ -1,6 +1,7 @@
 import AVFoundation
 import CoreImage
 import Foundation
+import ImageIO
 import Testing
 @testable import RegistaCore
 @testable import RegistaEngines

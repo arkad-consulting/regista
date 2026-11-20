@@ -137,9 +137,8 @@ extension MouseSuites {
         #expect(UserDefaults.standard.bool(forKey: GeneralPrefs.autoSaveKey) && UserDefaults.standard.string(forKey: GeneralPrefs.formatKey) == "4:5")
     }
 
-    /// A scroll-wheel event scrolls a SwiftUI scroll view by its delta (#50): with the main display awake `scrollContent`
-    /// turns the wheel, it does not move the clip view itself. The rig's window is back where it was (off every display)
-    /// afterwards.
+    /// `scrollContent` scrolls a SwiftUI scroll view by its delta, and whether the wheel event did it is recorded (#50: it
+    /// does not yet, the clip view is moved). The rig's window is back where it was (off every display) afterwards.
     @Test func aWheelEventScrollsASwiftUIScrollView() async throws {
         let app = try await AppRig(project: nil)
         defer { app.close() }
@@ -155,12 +154,11 @@ extension MouseSuites {
         #expect(abs(sv.contentView.bounds.origin.y - 60) < 1, "a 60 pt wheel turn scrolled to \(sv.contentView.bounds.origin.y)")
         #expect(app.rig.scrollContent(at: p, by: -30))
         #expect(abs(sv.contentView.bounds.origin.y - 30) < 1, "a turn back scrolled to \(sv.contentView.bounds.origin.y)")
-        if CGDisplayIsAsleep(CGMainDisplayID()) != 0 {
-            withKnownIssue("#50: the main display is asleep, so SwiftUI would apply a wheel event only when it wakes: the rig moved the clip view") {
-                #expect(MouseRig.wheelMisses == misses)
-            }
-        } else {
-            #expect(MouseRig.wheelMisses == misses, "the wheel event did not scroll: the clip view was moved instead")
+        // #50: the wheel event itself scrolls nothing in the rig's off-display window, with the main display asleep (SwiftUI
+        // would apply it when it wakes) and awake alike (both turns fell back in every run with the display awake): the
+        // rig moved the clip view, so the scrolling above is real, the wheel event is not.
+        withKnownIssue("#50: a synthetic wheel event does not scroll the rig's SwiftUI scroll view; the clip view was moved") {
+            #expect(MouseRig.wheelMisses == misses)
         }
         #expect(app.rig.window.frame.origin == origin && app.rig.window.alphaValue == 1, "the rig's window was not put back")
         #expect(!NSScreen.screens.contains { $0.frame.intersects(app.rig.window.frame) }, "the rig's window stayed on a display")

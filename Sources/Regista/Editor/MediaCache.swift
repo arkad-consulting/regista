@@ -1,5 +1,6 @@
 import AVFoundation
 import AppKit
+import ImageIO
 import RegistaCore
 
 /// Thumbnails and audio of the project's media, decoded once in the background and cached by file path.

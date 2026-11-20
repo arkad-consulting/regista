@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import ImageIO
 import Testing
 @testable import Regista
 @testable import RegistaCore
