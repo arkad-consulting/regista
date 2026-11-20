@@ -64,6 +64,10 @@ Este é o caminho mais simples: você grava, o Regista edita sozinho, você conf
 O Regista tira as pausas longas e mantém a melhor tomada de cada frase. Ele ainda não tira palavras de preenchimento
 como "é…" no meio de uma frase: se encontrar uma, tire à mão na transcrição (veja mais abaixo).
 
+Com o Claude: peça para ele tirar as palavras de preenchimento. Ele diz quantas hesitações ("hã") encontrou e
+quantos segundos elas ocupam, tira se você concordar, e palavras como "então" ou "tipo" só as que você indicar. A
+transcrição muitas vezes não escreve as hesitações: elas ficam como pausa, e o corte das pausas longas geralmente as tira.
+
 ## O que o Pro acrescenta
 
 Escolha **Pro** (⌥⌘2) na barra acima da edição. Você tem dois monitores, **Origem** e **Programa**, e embaixo a linha do

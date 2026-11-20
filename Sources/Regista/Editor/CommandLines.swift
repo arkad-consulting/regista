@@ -55,7 +55,10 @@ enum CommandLines {
             return loc("Importato «%@»", name)
         case "media.extractAudio": return loc("Audio estratto")
         case "transcript.run": return count(int(r["words"]) ?? 0, "1 parola trascritta", "%@ parole trascritte")
-        case "transcript.deleteWords": return loc("Tolte le parole da %@ a %@", time(r["from"]), time(r["to"]))
+        case "transcript.deleteWords":
+            if let pieces = r["ranges"]?.arrayValue { return count(pieces.count, "Tolto 1 pezzo dal montaggio", "Tolti %@ pezzi dal montaggio") }
+            return loc("Tolte le parole da %@ a %@", time(r["from"]), time(r["to"]))
+        case "transcript.fillers": return count(int(r["count"]) ?? 0, "1 intercalare trovato", "%@ intercalari trovati")
         case "script.set", "script.fromTranscript":
             return count(int(r["count"]) ?? r["lines"]?.arrayValue?.count ?? 0, "1 riga di copione", "%@ righe di copione")
         case "takes.list":

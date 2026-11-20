@@ -2500,3 +2500,8 @@
 "Il server ha risposto %d: riprova più tardi." = "The server answered %d: try again later.";
 "Download non riuscito: %@" = "Download failed: %@";
 "Scarica i file dei modelli" = "Download model files";
+"Cerca gli intercalari" = "Find filler words";
+"1 intercalare trovato" = "1 filler word found";
+"%@ intercalari trovati" = "%@ filler words found";
+"Tolto 1 pezzo dal montaggio" = "1 piece removed from the edit";
+"Tolti %@ pezzi dal montaggio" = "%@ pieces removed from the edit";

@@ -2500,3 +2500,8 @@
 "Il server ha risposto %d: riprova più tardi." = "Le serveur a répondu %d : réessayez plus tard.";
 "Download non riuscito: %@" = "Échec du téléchargement : %@";
 "Scarica i file dei modelli" = "Télécharger les fichiers des modèles";
+"Cerca gli intercalari" = "Chercher les mots de remplissage";
+"1 intercalare trovato" = "1 mot de remplissage trouvé";
+"%@ intercalari trovati" = "%@ mots de remplissage trouvés";
+"Tolto 1 pezzo dal montaggio" = "1 passage retiré du montage";
+"Tolti %@ pezzi dal montaggio" = "%@ passages retirés du montage";

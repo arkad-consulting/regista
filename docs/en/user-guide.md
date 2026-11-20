@@ -61,6 +61,10 @@ This is the simplest path: you record, Regista edits by itself, you check and ex
 Regista removes long pauses and keeps the best take of each sentence. It does not yet remove filler words such as "um"
 inside a sentence: if you find one, remove it by hand from the transcript (see below).
 
+With Claude: ask it to remove the filler words. It tells you how many hesitations ("um") it found and how many seconds
+they take, removes them if you agree, and words such as "so" or "like" only when you name them. The transcript often
+leaves hesitations out: they stay a pause, and cutting the long pauses usually removes them.
+
 ## What Pro adds
 
 Choose **Pro** (⌥⌘2) in the bar above the edit. You get two monitors, **Source** and **Program**, and under them the

@@ -43,9 +43,11 @@ extension Recipes {
            drawn: false the cursor is baked in the video and stays as it is — say so, do not insist.
         7. Shortcuts: keys_overlay {} shows the ⌘ / ⌃ / ⌥ shortcuts that were pressed as badges; allKeys: true also
            shows typing (only when the lesson is about typing). clear: true removes them.
-        8. Words (only with a microphone): transcript_run {assetId: <assets.mic>, language}. Then
-           transcript_timeline lists the words with an index: remove stumbles, fillers and false starts with
-           transcript_deleteWords {from, to} (it cuts picture and sound together). Keep the silent stretches
+        8. Words (only with a microphone): transcript_run {assetId: <assets.mic>, language}. Then transcript_fillers
+           finds the filler words: say how many sure ones (hesitations) there are and the seconds they take, list the
+           maybe ones and the repeats in words; remove the sure ones with its delete.sure when the user agrees, a maybe
+           word or a repeat only when named. transcript_timeline lists every word with an index: remove stumbles and
+           false starts with transcript_deleteWords {from, to} (it cuts picture and sound together). Keep the silent stretches
            where something happens on screen; speed up a long wait with clip_speed {clipId: <screen clip>,
            rate: 2…4} instead of cutting through an action.
         9. Voice: audio_clean {} (denoise, −15 LUFS, true peak ≤ −1.5). Run it after the cuts.

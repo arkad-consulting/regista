@@ -210,7 +210,7 @@ enum TakesSelect: Command {
 
 enum EditAutoCut: Command {
     static let id = "edit.autoCut"
-    static let summary = "Build the rough cut from the chosen takes: one clip per kept range (each chosen take, the pauses longer than maxPause inside it cut out; filler words stay: transcript.deleteWords removes them) on a video track and the same ranges on an audio track, linked and frame-snapped so picture and sound cut together; 15 ms audio fades. replace: true rebuilds after takes.select. Expressed as ordinary track.add / timeline.delete / timeline.place commands, undone as one step. Returns the segments (line, take, source in/out, timeline start), track ids and duration."
+    static let summary = "Build the rough cut from the chosen takes: one clip per kept range (each chosen take, the pauses longer than maxPause inside it cut out; filler words stay: transcript.fillers lists them, transcript.deleteWords removes them) on a video track and the same ranges on an audio track, linked and frame-snapped so picture and sound cut together; 15 ms audio fades. replace: true rebuilds after takes.select. Expressed as ordinary track.add / timeline.delete / timeline.place commands, undone as one step. Returns the segments (line, take, source in/out, timeline start), track ids and duration."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("videoTrackId", .string, "Video track (default: the first one, created if missing)."),
@@ -348,7 +348,7 @@ enum TakesCompare: Command {
 
 enum TranscriptTimeline: Command {
     static let id = "transcript.timeline"
-    static let summary = "The words as the timeline now plays them, with an index per word and the clip it belongs to. Use it to find a repeated word, a filler or a stumble left in the edit, then remove it with transcript.deleteWords. Returns {count, text, words: [{i, text, start, end, clip}]}."
+    static let summary = "The words as the timeline now plays them, with an index per word and the clip it belongs to. Use it to find a repeated word, a filler or a stumble left in the edit (transcript.fillers lists the filler candidates), then remove it with transcript.deleteWords. Returns {count, text, words: [{i, text, start, end, clip}]}."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [
         .optional("trackId", .string, "Track to read (default: the first video track with clips)."),
@@ -373,59 +373,152 @@ enum TranscriptTimeline: Command {
     }
 }
 
-enum TranscriptDeleteWords: Command {
-    static let id = "transcript.deleteWords"
-    static let summary = "Text-based editing: remove a range of words (indices from transcript.timeline, inclusive) from the timeline — a stumble, a filler, a repeated word. Cuts every video/audio track at the range edges (frame-snapped) and ripple-deletes the pieces in between, one undo step; captions, if any, are regenerated. Re-run edit.punchIns afterwards if the clip pattern changed. Returns the commands it ran."
-    static let kind = CommandKind.edit
+enum TranscriptFillers: Command {
+    static let id = "transcript.fillers"
+    static let summary = "Find the filler words left in the edit (changes nothing): the candidates of the timeline's transcript, each with its word index (as transcript.timeline), text, start/end, the pause before and after it and a class — sure (pure hesitations: «ehm», «uhm», «euh», «um», «hã»…), maybe (words that are fillers only when they stand alone: «allora», «cioè», «so», «like», «du coup», «então», «né»…, listed only when they open a take or a pause separates them on both sides) or repeat (a word said twice in a row, «the the»: the first one). Per class: the seconds removing them would save and delete, the exact parameters of transcript.deleteWords that removes them all in one undo step (for maybe, send only the ranges the person named). Speech engines often leave hesitations out of the text: an empty sure list does not mean the speaker never hesitated (the long pauses edit.autoCut removes are where they were). Returns {language, count, fillers, seconds, delete}."
+    static let kind = CommandKind.query
     static let params: [ParamSpec] = [
-        .required("from", .integer, "First word index to remove."),
-        .optional("to", .integer, "Last word index to remove (default: from)."),
-        .optional("trackId", .string, "Track whose words the indices refer to (default: as transcript.timeline)."),
-        .optional("expect", .string, "Safety check: the removed words must read this (case and punctuation ignored)."),
+        .optional("trackId", .string, "Track to read (default: as transcript.timeline)."),
+        .optional("language", .string, "Language of the tables (it, en, fr, pt; default: the transcript's)."),
+        .optional("pause", .number, "Shortest silence that sets a maybe word apart, seconds (default 0.25)."),
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         let project = try ctx.requireProject()
         let track = try TranscriptTimeline.track(p, project, command: id)
         let words = TimelineTranscript.words(of: track, in: project)
-        let from = p.int("from") ?? 0, to = p.int("to") ?? from
-        guard from <= to, words.indices.contains(from), words.indices.contains(to) else {
-            throw CommandError.invalid("\(id): need 0 ≤ from ≤ to < \(words.count)")
-        }
-        let removed = words[from...to].map(\.text).joined(separator: " ")
-        if let expected = p.string("expect"), TextNorm.tokens(expected) != TextNorm.tokens(removed) {
-            throw CommandError.conflict("\(id): words \(from)…\(to) read \"\(removed)\", not \"\(expected)\"")
-        }
+        let language = p.string("language") ?? transcriptLanguage(track, project) ?? "it"
+        let pause = MediaTime(seconds: p.number("pause") ?? 0.25)
+        let found = Fillers.candidates(words, track: track, language: language, pause: pause)
         let rate = project.settings.frameRate
-        func clip(_ id: String) -> Clip { track.clips.first { $0.id == id }! }
+        func seconds(_ c: Fillers.Candidate) -> MediaTime {
+            let s = TranscriptDeleteWords.span(words, from: c.from, to: c.to, track: track, rate: rate)
+            return s.end - s.start
+        }
+        var perClass: [String: JSONValue] = [:], delete: [String: JSONValue] = [:]
+        for kind in Fillers.Kind.allCases {
+            let of = found.filter { $0.kind == kind }
+            let spans = TranscriptDeleteWords.merged(of.map { TranscriptDeleteWords.span(words, from: $0.from, to: $0.to, track: track, rate: rate) })
+            perClass[kind.rawValue] = ProjectState.seconds(spans.reduce(MediaTime.zero) { $0 + ($1.end - $1.start) })
+            guard !of.isEmpty else { continue }
+            delete[kind.rawValue] = ["trackId": .string(track.id), "ranges": .array(of.map { c in
+                ["from": .number(Double(c.from)), "to": .number(Double(c.to)), "expect": .string(c.text)]
+            })]
+        }
+        return ["trackId": .string(track.id), "language": .string(language), "count": .number(Double(found.count)),
+                "fillers": .array(found.map { c in
+                    ["i": .number(Double(c.from)), "to": .number(Double(c.to)), "text": .string(c.text), "class": .string(c.kind.rawValue),
+                     "start": ProjectState.seconds(c.start), "end": ProjectState.seconds(c.end),
+                     "pauseBefore": ProjectState.seconds(c.pauseBefore), "pauseAfter": ProjectState.seconds(c.pauseAfter),
+                     "seconds": ProjectState.seconds(seconds(c))]
+                }),
+                "seconds": .object(perClass), "delete": .object(delete)]
+    }
+
+    /// The language of the transcript under the track's first clip that has one.
+    static func transcriptLanguage(_ track: Track, _ project: Project) -> String? {
+        for c in track.clips {
+            if let a = project.asset(c.assetID), let t = TimelineTranscript.transcript(of: a, in: project) { return t.language }
+        }
+        return nil
+    }
+}
+
+enum TranscriptDeleteWords: Command {
+    static let id = "transcript.deleteWords"
+    static let summary = "Text-based editing: remove a range of words (indices from transcript.timeline, inclusive) from the timeline — a stumble, a filler, a repeated word — or several ranges in one go (ranges: what transcript.fillers gives under delete). Cuts every video/audio track at the range edges (frame-snapped) and ripple-deletes the pieces in between, one undo step; each sound piece keeps its clip's edge fades (edit.autoCut's 15 ms) at the new cuts; captions, if any, are regenerated. Re-run edit.punchIns afterwards if the clip pattern changed. Returns the commands it ran."
+    static let kind = CommandKind.edit
+    static let params: [ParamSpec] = [
+        .optional("from", .integer, "First word index to remove (or ranges)."),
+        .optional("to", .integer, "Last word index to remove (default: from)."),
+        .optional("ranges", .array(.object), "Several ranges instead of from/to, removed in one undo step: [{from, to?, expect?}], every index as transcript.timeline gives it before this call."),
+        .optional("trackId", .string, "Track whose words the indices refer to (default: as transcript.timeline)."),
+        .optional("expect", .string, "Safety check: the removed words must read this (case and punctuation ignored)."),
+    ]
+
+    /// The timeline span removing words `from`…`to` takes: from the first word's start (its clip's start when it opens the
+    /// clip) to the next word's start in the same clip (the clip's end when it closes it), frame-snapped.
+    static func span(_ words: [TimelineWord], from: Int, to: Int, track: Track, rate: Rational) -> (start: MediaTime, end: MediaTime) {
+        func clip(_ id: String) -> Clip? { track.clips.first { $0.id == id } }
         let first = words[from], last = words[to]
         var a = first.start, b = last.end
-        if from == 0 || words[from - 1].clipID != first.clipID { a = clip(first.clipID).start }
+        if from == 0 || words[from - 1].clipID != first.clipID { a = clip(first.clipID)?.start ?? a }
         if to + 1 < words.count, words[to + 1].clipID == last.clipID { b = words[to + 1].start }
-        else { b = clip(last.clipID).end }
-        a = a.snapped(to: rate); b = b.snapped(to: rate)
-        guard b > a else { throw CommandError.invalid("\(id): the range is shorter than a frame") }
+        else { b = clip(last.clipID)?.end ?? b }
+        return (a.snapped(to: rate), b.snapped(to: rate))
+    }
+
+    /// Spans in timeline order, the ones that touch or overlap made one.
+    static func merged(_ spans: [(start: MediaTime, end: MediaTime)]) -> [(start: MediaTime, end: MediaTime)] {
+        var out: [(start: MediaTime, end: MediaTime)] = []
+        for s in spans.sorted(by: { $0.start < $1.start }) {
+            if let last = out.last, s.start <= last.end { out[out.count - 1].end = max(last.end, s.end) } else { out.append(s) }
+        }
+        return out
+    }
+
+    static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
+        let project = try ctx.requireProject()
+        let track = try TranscriptTimeline.track(p, project, command: id)
+        let words = TimelineTranscript.words(of: track, in: project)
+        var asked: [(from: Int, to: Int, expect: String?)] = []
+        if let ranges = p.json("ranges")?.arrayValue {
+            guard p.int("from") == nil, p.int("to") == nil, p.string("expect") == nil else {
+                throw CommandError.invalid("\(id): pass from/to/expect or ranges, not both")
+            }
+            guard !ranges.isEmpty else { throw CommandError.invalid("\(id): ranges is empty") }
+            for r in ranges {
+                guard let from = r["from"]?.doubleValue.map({ Int($0) }) else { throw CommandError.invalid("\(id): every range needs from") }
+                asked.append((from, r["to"]?.doubleValue.map { Int($0) } ?? from, r["expect"]?.stringValue))
+            }
+        } else {
+            guard let from = p.int("from") else { throw CommandError.invalid("\(id): pass from (and to), or ranges") }
+            asked = [(from, p.int("to") ?? from, p.string("expect"))]
+        }
+        var removed: [String] = []
+        for r in asked {
+            guard r.from <= r.to, words.indices.contains(r.from), words.indices.contains(r.to) else {
+                throw CommandError.invalid("\(id): need 0 ≤ from ≤ to < \(words.count)")
+            }
+            let text = words[r.from...r.to].map(\.text).joined(separator: " ")
+            if let expected = r.expect, TextNorm.tokens(expected) != TextNorm.tokens(text) {
+                throw CommandError.conflict("\(id): words \(r.from)…\(r.to) read \"\(text)\", not \"\(expected)\"")
+            }
+            removed.append(text)
+        }
+        let rate = project.settings.frameRate
+        let spans = merged(asked.map { span(words, from: $0.from, to: $0.to, track: track, rate: rate) })
+        for s in spans where s.end <= s.start { throw CommandError.invalid("\(id): the range at \(s.start.displaySeconds)s is shorter than a frame") }
 
         var work = ctx
         var log: [JSONValue] = []
         let edited = project.tracks.filter { ($0.kind == .video || $0.kind == .audio || $0.kind == .overlay) && !$0.locked }.map(\.id)
-        for at in [a, b] {
-            for tid in edited {
-                let tr = work.project!.tracks.first { $0.id == tid }!
-                if tr.clips.contains(where: { $0.start < at && at < $0.end }) {
-                    try work.perform(TimelineCut.self, ["at": .number(at.seconds), "trackId": .string(tid), "linked": false], log: &log)
+        // The last span first: a ripple delete moves only what comes after it, so the earlier spans keep their times.
+        for (a, b) in spans.reversed() {
+            for at in [a, b] {
+                for tid in edited {
+                    let tr = work.project!.tracks.first { $0.id == tid }!
+                    if tr.clips.contains(where: { $0.start < at && at < $0.end }) {
+                        try work.perform(TimelineCut.self, ["at": .number(at.seconds), "trackId": .string(tid), "linked": false], log: &log)
+                    }
                 }
             }
+            let doomed = work.project!.tracks.filter { edited.contains($0.id) }.flatMap(\.clips).filter { $0.start >= a && $0.end <= b }.map(\.id)
+            guard !doomed.isEmpty else { throw CommandError.conflict("\(id): nothing on the timeline between \(a.displaySeconds)s and \(b.displaySeconds)s") }
+            try work.perform(TimelineDelete.self, ["clipIds": .array(doomed.map { .string($0) }), "ripple": true, "linked": false], log: &log)
         }
-        let doomed = work.project!.tracks.filter { edited.contains($0.id) }.flatMap(\.clips).filter { $0.start >= a && $0.end <= b }.map(\.id)
-        guard !doomed.isEmpty else { throw CommandError.conflict("\(id): nothing on the timeline between \(a.displaySeconds)s and \(b.displaySeconds)s") }
-        try work.perform(TimelineDelete.self, ["clipIds": .array(doomed.map { .string($0) }), "ripple": true, "linked": false], log: &log)
         if let captions = work.project!.tracks.first(where: { $0.kind == .caption && $0.captions != nil }) {
             try work.perform(CaptionsGenerate.self, ["trackId": .string(captions.id)], log: &log)
         }
         ctx = work
-        return ["removed": .string(removed), "from": ProjectState.seconds(a), "to": ProjectState.seconds(b),
-                "duration": ProjectState.seconds(b - a), "commands": .array(log)]
+        let total = spans.reduce(MediaTime.zero) { $0 + ($1.end - $1.start) }
+        var out: [String: JSONValue] = ["removed": .string(removed.joined(separator: " … ")), "from": ProjectState.seconds(spans[0].start),
+                                        "to": ProjectState.seconds(spans[spans.count - 1].end), "duration": ProjectState.seconds(total),
+                                        "commands": .array(log)]
+        if p.json("ranges") != nil {
+            out["ranges"] = .array(spans.map { ["from": ProjectState.seconds($0.start), "to": ProjectState.seconds($0.end)] })
+        }
+        return .object(out)
     }
 }
 

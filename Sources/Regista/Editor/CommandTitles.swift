@@ -169,6 +169,7 @@ enum CommandTitles {
         "transcript.deleteWords": "Togli parole dal montaggio",
         "transcript.editText": "Correggi la trascrizione",
         "transcript.evaluate": "Valuta la trascrizione",
+        "transcript.fillers": "Cerca gli intercalari",
         "transcript.get": "Leggi la trascrizione",
         "transcript.run": "Trascrivi",
         "transcript.timeline": "Trascrizione della timeline",

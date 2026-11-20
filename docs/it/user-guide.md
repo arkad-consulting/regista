@@ -63,6 +63,10 @@ Questo è il percorso più semplice: registri, Regista monta da solo, tu control
 Regista toglie le pause lunghe e tiene la ripresa migliore di ogni frase. Non toglie ancora gli intercalari come «ehm»
 dentro una frase: se ne trovi uno, toglilo a mano dalla trascrizione (vedi più sotto).
 
+Con Claude: chiedigli di togliere gli intercalari. Ti dice quante esitazioni («ehm») ha trovato e quanti secondi
+toglierebbe, le toglie se sei d'accordo, e parole come «allora» o «cioè» solo quelle che gli indichi. Spesso la
+trascrizione non scrive le esitazioni: restano una pausa, e il taglio delle pause lunghe di solito le toglie.
+
 ## Cosa aggiunge Pro
 
 Scegli **Pro** (⌥⌘2) nella barra sopra il montaggio. Vedi due monitor, **Sorgente** e **Programma**, e sotto la

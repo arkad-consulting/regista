@@ -67,6 +67,11 @@ Regista retire les longues pauses et garde la meilleure prise de chaque phrase. 
 remplissage comme « euh » à l'intérieur d'une phrase : si vous en trouvez un, enlevez-le à la main dans la transcription
 (voir plus bas).
 
+Avec Claude : demandez-lui de retirer les mots de remplissage. Il vous dit combien d'hésitations (« euh ») il a
+trouvées et combien de secondes elles prennent, les retire si vous êtes d'accord, et des mots comme « alors » ou
+« du coup » seulement si vous les nommez. La transcription omet souvent les hésitations : elles restent une pause, et
+la coupe des longues pauses les retire le plus souvent.
+
 ## Ce qu'ajoute Pro
 
 Choisissez **Pro** (⌥⌘2) dans la barre au-dessus du montage. Vous avez deux moniteurs, **Source** et **Programme**, et

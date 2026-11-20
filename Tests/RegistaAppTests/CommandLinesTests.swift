@@ -136,6 +136,7 @@ private let sampleResults: [String: JSONValue] = {
         "transcript.deleteWords": ["removed": "ehm allora", "from": 2.2, "to": 2.9, "commands": []],
         "transcript.run": ["assetId": "a1", "engine": "whisperx", "model": "small", "language": "it", "words": 10, "cached": false, "seconds": 4.2,
                            "text": "Oggi Regista monta il reel. Le pause spariscono da sole."],
+        "transcript.fillers": ["trackId": "t1", "language": "it", "count": 3, "fillers": [], "seconds": ["sure": 0.7, "maybe": 0.4, "repeat": 0], "delete": [:]],
         "transcript.timeline": ["trackId": "t1", "count": 10, "text": "Oggi Regista…", "words": [["i": 0, "text": "Oggi", "start": 0.4, "end": 0.7]]],
         "transition.add": ["transition": ["id": "x1", "kind": "flash", "at": 1.7, "duration": 0.2]],
         "voice.lexicon": ["language": "it", "file": "/scratch/lexicon.json", "entries": [["word": "Regista", "say": "Re-gì-sta"]]],

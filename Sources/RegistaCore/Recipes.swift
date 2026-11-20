@@ -64,9 +64,15 @@ public enum Recipes {
            LIST AS TEXT for the user (line → take, its words, in/out) before building. If a pick is wrong (a
            stumble, a cut-off ending, a weaker reading) use takes_select {line, take}.
         6. edit_autoCut: one linked picture+sound clip per kept range (long pauses inside a take removed; ~0.2–0.3 s
-           between lines; filler words stay: transcript_deleteWords removes them). After changing picks later:
+           between lines; filler words stay: step 6b). After changing picks later:
            edit_autoCut {replace: true, picks: [{line, take}]} (the new picks and the cut are one undo step; or
-           takes_select, then edit_autoCut {replace: true}), then redo steps 7–10.
+           takes_select, then edit_autoCut {replace: true}), then redo steps 6b–10.
+        6b. Filler words: transcript_fillers (it changes nothing). Tell the user the sure ones (hesitations: «ehm», «euh»,
+           «um») as a count with the seconds they take, and the maybe ones («allora», «so», «du coup» standing alone)
+           and the repeats («il il») as a list in words. When the user agrees, transcript_deleteWords with its
+           delete.sure as it is (one undo step); a maybe word or a repeat only when the user names it (send only those
+           entries of delete.maybe.ranges / delete.repeat.ranges). The list is often empty: the speech engines leave
+           most hesitations out of the text, and the long pauses edit_autoCut removed are where they were.
         7. audio_clean (defaults: DeepFilterNet + voice chain, −15 LUFS, true peak ≤ −1.5 dBTP). Expect ≈ −15 LUFS
            and lag ≈ 0 in its result. audio_clean {restore: true} puts the original sound back if the user prefers it.
         8. faces_track {assetId}, then edit_punchIns {by: "line"}: a base framing alternating with a punch-in to hide

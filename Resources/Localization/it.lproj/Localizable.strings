@@ -2500,3 +2500,8 @@
 "Il server ha risposto %d: riprova più tardi." = "Il server ha risposto %d: riprova più tardi.";
 "Download non riuscito: %@" = "Download non riuscito: %@";
 "Scarica i file dei modelli" = "Scarica i file dei modelli";
+"Cerca gli intercalari" = "Cerca gli intercalari";
+"1 intercalare trovato" = "1 intercalare trovato";
+"%@ intercalari trovati" = "%@ intercalari trovati";
+"Tolto 1 pezzo dal montaggio" = "Tolto 1 pezzo dal montaggio";
+"Tolti %@ pezzi dal montaggio" = "Tolti %@ pezzi dal montaggio";

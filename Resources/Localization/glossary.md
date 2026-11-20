@@ -35,6 +35,7 @@ Keep these the same everywhere in `*.lproj/Localizable.strings` (scheme and chec
 | Sorgente / Programma (monitors) | Source / Program | Source / Programme | Origem / Programa |
 | Semplice / Pro | Simple / Pro | Simple / Pro | Simples / Pro |
 | taglio / taglia | cut | coupe / couper | corte / cortar |
+| intercalari (ehm, allora, cioè… left in the edit) | filler words | mots de remplissage | palavras de preenchimento |
 | parola chiave | keyword | mot clé | palavra-chave |
 | Voce | Voice | Voix | Voz |
 | voce fuori campo | voice-over | voix off | narração |
