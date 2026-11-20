@@ -73,18 +73,27 @@ final class BrandKitLibrary: ObservableObject {
         return json + "|" + backdrop
     }
 
+    /// The preview caption's words (#131): the kit's name when it fits a caption line (three words, 16 characters at
+    /// most), else the generic sample in the interface language: never an invented brand name.
+    static func sample(_ kit: BrandKit) -> String {
+        let name = kit.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let words = name.split(whereSeparator: \.isWhitespace)
+        return !words.isEmpty && words.count <= 3 && name.count <= 16 ? name : loc("Il tuo brand")
+    }
+
     /// Renders (once per content) the 9:16 preview of `kit` over the open project's footage.
     func preview(_ kit: BrandKit, slot: String? = nil, store: EditorStore, width: Int = 360) {
         let slot = slot ?? kit.id
         let backdrop = store.project.map { p in p.tracks.filter { $0.kind == .video }.flatMap(\.clips).map(\.id).joined(separator: ",") + p.name } ?? ""
-        let key = Self.key(kit, backdrop: backdrop)
+        let sample = Self.sample(kit)
+        let key = Self.key(kit, backdrop: backdrop) + "|" + sample
         guard keys[slot] != key else { return }
         keys[slot] = key
         rendering.insert(slot)
         let out = FileManager.default.temporaryDirectory.appendingPathComponent("regista-kit-preview-\(slot)-\(UUID().uuidString.prefix(6)).png")
         let project = store.project
         queue.async {
-            let ok = (try? BrandKitPreview.render(kit, project: project, services: Self.services, prober: FFProbe(), width: width, to: out)) != nil
+            let ok = (try? BrandKitPreview.render(kit, project: project, services: Self.services, prober: FFProbe(), width: width, sample: sample, to: out)) != nil
             let img = ok ? NSImage(contentsOf: out) : nil
             try? FileManager.default.removeItem(at: out)
             DispatchQueue.main.async { [self] in

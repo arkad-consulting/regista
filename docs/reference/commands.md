@@ -218,7 +218,7 @@ Returns: the kits and the project's active kit.
 
 **Brand kit preview** · MCP tool: `brandkit_preview` · undo: no — reads only · takes `project`
 
-Render a 9:16 preview of a brand kit through the real compositor: a caption with its keyword box, a hook title in the kit's display font, the logo at its placement, over a frame of the open project (or a backdrop in the kit's colours). Does not change the project. Returns the PNG and the fonts used.
+Render a 9:16 preview of a brand kit through the real compositor: a caption with its keyword box, a hook title in the kit's display font, the logo at its placement, over a frame of the open project (or a backdrop in the kit's colours). Does not change the project. Returns the PNG, the fonts used and the caption's words drawn (sample, keyword).
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -228,9 +228,10 @@ Render a 9:16 preview of a brand kit through the real compositor: a caption with
 | `width` | integer | no | 540 | Width in px (default 540; height 16:9 of it). |
 | `time` | seconds | no | a third in | Project time for the backdrop frame (default: a third in). |
 | `title` | string | no | the kit's name | Title text (default: the kit's name). |
+| `sample` | string | no | IL TUO BRAND | The caption's words, the last one boxed as the keyword (default: IL TUO BRAND; the app passes its own, in the interface language). |
 | `backdrop` | boolean | no | true | Use a frame of the open project behind (default true). |
 
-Returns: the PNG and the fonts used.
+Returns: the PNG, the fonts used and the caption's words drawn (sample, keyword).
 
 ### `brandkit.setFont`
 

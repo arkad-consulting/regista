@@ -1056,8 +1056,10 @@ the kit, `project.brand`, holds the kit's own files, #101: font files and logo v
 Marca popover compares the copy with the kit through it, #98 — so deleting or changing the kit leaves the video as it
 was; bundled files and fonts installed on the Mac are not copied),
 `logo.add {corner?, width?, opacity?, animation?, start?, duration?, replace?}` (track role `logo`, the whole timeline by
-default; SVG rasterised at 2× the drawn size), `brandkit.preview {kit | definition, width}` (9:16 PNG through the
-compositor: hook title, caption with keyword, logo, over a frame of the open project or a backdrop in the kit's colours),
+default; SVG rasterised at 2× the drawn size), `brandkit.preview {kit | definition, width, sample?}` (9:16 PNG through the
+compositor: hook title, caption with keyword, logo, over a frame of the open project or a backdrop in the kit's colours;
+the caption's words are `sample`, the last one boxed — the app passes the kit's name when it fits a caption line, else
+the generic sample in the interface language — and the result names the words drawn),
 `brandkit.check {path?}` (rendered keyword box pixels vs the kit highlight, logos inside the safe zone, fonts).
 SVGs are normalised before rasterising (root width/height moved into the viewBox: CoreSVG otherwise leaves
 userSpaceOnUse gradients unscaled), tested sharp at 64/600/2400 px.

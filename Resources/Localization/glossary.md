@@ -50,6 +50,7 @@ Keep these the same everywhere in `*.lproj/Localizable.strings` (scheme and chec
 | Grafica | Graphics | Graphismes | Gráficos |
 | Genera | Generate | Générer | Gerar |
 | Marca / brand kit | Brand / brand kit | Marque / kit de marque | Marca / kit de marca |
+| Il tuo brand (the brand kit preview's sample caption, when the kit's name does not fit) | Your brand | Votre marque | Sua marca |
 | look / stile / filtro | look / style / filter | look / style / filtre | look / estilo / filtro |
 | movimento del logo (Grafica › Logo: Sting finale, Giro…, `logo.animate`) | logo motion | mouvement du logo | movimento do logo |
 | Lavori (jobs) | Jobs | Tâches | Tarefas |

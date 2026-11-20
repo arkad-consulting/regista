@@ -645,7 +645,7 @@ enum BrandkitCheck: Command {
 
 enum BrandkitPreview: Command {
     static let id = "brandkit.preview"
-    static let summary = "Render a 9:16 preview of a brand kit through the real compositor: a caption with its keyword box, a hook title in the kit's display font, the logo at its placement, over a frame of the open project (or a backdrop in the kit's colours). Does not change the project. Returns the PNG and the fonts used."
+    static let summary = "Render a 9:16 preview of a brand kit through the real compositor: a caption with its keyword box, a hook title in the kit's display font, the logo at its placement, over a frame of the open project (or a backdrop in the kit's colours). Does not change the project. Returns the PNG, the fonts used and the caption's words drawn (sample, keyword)."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [
         .optional("kit", .string, "Kit id (default: the applied kit)."),
@@ -654,6 +654,7 @@ enum BrandkitPreview: Command {
         .optional("width", .integer, "Width in px (default 540; height 16:9 of it)."),
         .optional("time", .time, "Project time for the backdrop frame (default: a third in)."),
         .optional("title", .string, "Title text (default: the kit's name)."),
+        .optional("sample", .string, "The caption's words, the last one boxed as the keyword (default: IL TUO BRAND; the app passes its own, in the interface language)."),
         .optional("backdrop", .boolean, "Use a frame of the open project behind (default true)."),
     ]
 
@@ -668,21 +669,32 @@ enum BrandkitPreview: Command {
         let out = try p.string("path").map { try Render.output($0, command: id) }
             ?? Previews.directory().appendingPathComponent("brandkit-\(kit.id)-\(UUID().uuidString.prefix(8)).png")
         let r = try BrandKitPreview.render(kit, project: (p.bool("backdrop") ?? true) ? ctx.project : nil, services: ctx.services, prober: ctx.prober,
-                                           width: w, time: p.time("time"), title: p.string("title"), to: out)
+                                           width: w, time: p.time("time"), title: p.string("title"), sample: p.string("sample"), to: out)
         return ["path": .string(out.path), "width": .number(Double(r.width)), "height": .number(Double(r.height)), "kit": .string(kit.id),
-                "fonts": BrandKits.fontsJSON(kit), "logo": r.logo.map { .string($0) } ?? .null]
+                "fonts": BrandKits.fontsJSON(kit), "logo": r.logo.map { .string($0) } ?? .null,
+                "sample": .array(r.sample.map { .string($0) }), "keyword": .string(r.sample.last ?? "")]
     }
 }
 
 /// The in-memory project brandkit.preview renders: backdrop, hook title, logo, a caption with a keyword.
 public enum BrandKitPreview {
     static let time0 = MediaTime(seconds: 1)
+    /// The caption's words when the caller passes none (an agent's call without `sample`).
+    public static let defaultSample = "IL TUO BRAND"
+
+    /// The caption's words: `sample` split on spaces, the default when it has none.
+    public static func words(_ sample: String?) -> [String] {
+        let w = (sample ?? "").split(whereSeparator: \.isWhitespace).map(String.init)
+        return w.isEmpty ? words(defaultSample) : w
+    }
 
     /// Renders the preview of `kit` to `out` (PNG, `width` × 16:9) with the compositor of `services`, over a frame
     /// of `project`'s picture when it has one (else a backdrop in the kit's colours). The app calls this off the
-    /// engine queue; brandkit.preview calls it on the engine.
+    /// engine queue; brandkit.preview calls it on the engine. `sample`: the caption's words (the last one is the keyword);
+    /// the result's `sample` is the words drawn.
     public static func render(_ kit: BrandKit, project source: Project?, services: EngineServices, prober: MediaProber, width w: Int,
-                              time: MediaTime? = nil, title: String? = nil, to out: URL) throws -> (width: Int, height: Int, logo: String?) {
+                              time: MediaTime? = nil, title: String? = nil, sample: String? = nil,
+                              to out: URL) throws -> (width: Int, height: Int, logo: String?, sample: [String]) {
         guard let renderer = services.renderer else { throw CommandError(.io, "brandkit.preview: this host cannot render frames") }
         guard let images = services.images else { throw CommandError(.io, "brandkit.preview: this host cannot draw images") }
         let h = Int((Double(w) * 16 / 9).rounded())
@@ -731,10 +743,11 @@ public enum BrandKitPreview {
             try Subprocess.check(services.config.url(services.config.ffmpeg),
                                  FFmpegAudio.quiet + ["-f", "lavfi", "-i", "color=c=black:s=108x192:r=30:d=2", "-c:v", "h264_videotoolbox", "-pix_fmt", "yuv420p", blank.path])
         }
-        let project = Self.project(kit, blank: blank.path, backdrop: (backdrop!.path, w, h), logo: logo, title: title ?? kit.name)
+        let words = Self.words(sample)
+        let project = Self.project(kit, blank: blank.path, backdrop: (backdrop!.path, w, h), logo: logo, title: title ?? kit.name, sample: words)
         let job = RenderJob(project: project, preset: ExportPreset(id: "preview", width: w, height: h))
         try renderer.renderFrames(job, at: [time0], to: [out])
-        return (w, h, logo?.path)
+        return (w, h, logo?.path, words)
     }
 
     /// FNV-1a, hex (stable cache names).
@@ -744,7 +757,8 @@ public enum BrandKitPreview {
         return String(h, radix: 16)
     }
 
-    static func project(_ kit: BrandKit, blank: String, backdrop: (path: String, width: Int, height: Int), logo: (path: String, width: Int, height: Int)?, title text: String) -> Project {
+    static func project(_ kit: BrandKit, blank: String, backdrop: (path: String, width: Int, height: Int), logo: (path: String, width: Int, height: Int)?, title text: String,
+                        sample: [String] = words(nil)) -> Project {
         var project = Project(name: "preview-\(kit.id)")
         project.assets.append(MediaAsset(id: "a0", name: "blank", path: blank, duration: MediaTime(seconds: 2),
                                          video: VideoInfo(width: 108, height: 192, frameRate: Rational(30), codec: "h264", alpha: false), audio: nil))
@@ -786,11 +800,12 @@ public enum BrandKitPreview {
             project.tracks.append(tt)
         }
         let style = (try? kit.captionStyle(over: .talkingHeadV1)) ?? .talkingHeadV1
-        let words = ["IL", "TUO", "BRAND"].enumerated().map { i, w in
-            CaptionWord(text: w, start: MediaTime(seconds: 0.1 * Double(i)), end: MediaTime(seconds: 0.1 * Double(i + 1)), keyword: w == "BRAND")
+        let keyword = sample.count - 1
+        let words = sample.enumerated().map { i, w in
+            CaptionWord(text: w, start: MediaTime(seconds: 0.1 * Double(i)), end: MediaTime(seconds: 0.1 * Double(i + 1)), keyword: i == keyword)
         }
         var ct = Track(id: "t4", kind: .caption, name: "Sottotitoli")
-        ct.captions = Captions(style: style, keywords: ["BRAND"], fixes: [:], sourceTrack: "t1", sourceSignature: "",
+        ct.captions = Captions(style: style, keywords: [sample[keyword]], fixes: [:], sourceTrack: "t1", sourceSignature: "",
                                chunks: [CaptionChunk(words: words, end: MediaTime(seconds: 2))])
         project.tracks.append(ct)
         return project
