@@ -94,9 +94,10 @@ struct JobProgressBar: View {
     let progress: Double?
     var estimated = false
 
-    /// "45 %", or "45 % · stima" for an estimate.
+    /// "45 %" (French), "45%" (English, Italian, Portuguese), or "45% · stima" for an estimate: the percent as the
+    /// words' language writes it.
     static func percent(_ p: Double, estimated: Bool) -> String {
-        String(Int((p * 100).rounded())) + " %" + (estimated ? " · " + loc("stima") : "")
+        ((p * 100).rounded() / 100).formatted(.percent.precision(.fractionLength(0)).locale(Words.locale)) + (estimated ? " · " + loc("stima") : "")
     }
 
     var body: some View {

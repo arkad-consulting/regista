@@ -176,7 +176,7 @@ struct ActivityRow: View {
                     }
                     if !a.isAgent { Text(loc("tu")).font(Ed.ui(Ed.TypeSize.micro)).foregroundStyle(Ed.text3) }
                     Spacer(minLength: Ed.Space.xs)
-                    Text(verbatim: a.status == .running ? "…" : (a.seconds >= 0.1 ? String(format: "%.1f s", a.seconds) : ""))
+                    Text(verbatim: a.status == .running ? "…" : (a.seconds >= 0.1 ? String(format: "%.1f s", locale: Words.locale, a.seconds) : ""))
                         .font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.text3)
                     if !compact { Text(verbatim: Self.clock.string(from: a.started)).font(Ed.mono(Ed.TypeSize.micro)).foregroundStyle(Ed.text3) }
                 }

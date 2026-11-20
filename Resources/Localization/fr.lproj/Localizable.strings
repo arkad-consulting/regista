@@ -1,7 +1,7 @@
 /* Français. Clés : le texte italien ou des clés sémantiques `area.meaning`. Schéma : Sources/Regista/App/Words.swift ; contrôle : scripts/l10n.py ; termes : glossary.md. */
 "%@ (copia)" = "%@ (copie)";
 "%@ (parziale)" = "%@ (partiel)";
-"%@ blocchi · stile %@ · %@ parole chiave" = "%@ blocs · style %@ · %@ mots clés";
+"%@ · stile %@ · %@" = "%@ · style %@ · %@";
 "%@ canali" = "%@ canaux";
 "%@ chiede di generare con %@. Approva solo lo scatto finale: per le prove c'è ComfyUI, gratis." = "%@ demande à générer avec %@. N'approuvez que le plan final : pour les essais, il y a ComfyUI, gratuit.";
 "%@ clip · %@" = "%@ clips · %@";

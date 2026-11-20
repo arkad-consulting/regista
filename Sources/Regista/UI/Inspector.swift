@@ -653,15 +653,16 @@ enum Fmt {
     static func pixels(_ v: Double) -> String { String(format: "%.0f px", v) }
     static func degrees(_ v: Double) -> String { String(format: "%.0f°", v) }
     static func seconds(_ v: Double) -> String { String(format: "%.2f s", v) }
-    static func decibels(_ v: Double) -> String { String(format: "%+.1f dB", v) }
+    static func decibels(_ v: Double) -> String { String(format: "%+.1f dB", locale: Words.locale, v) }
     /// "−12 dB": a ducking depth (whole dB, so it fits the value column).
     static func wholeDecibels(_ v: Double) -> String { String(format: "%.0f dB", v).replacingOccurrences(of: "-", with: "−") }
     static func signed(_ v: Double) -> String { String(format: "%+.0f", v * 100) }
     static func factor(_ v: Double) -> String { String(format: "%.2f", v) }
-    /// "−14,9", "19": one decimal at most, in the user's locale, with a true minus sign.
+    /// "−14,9", "19": one decimal at most, written as the words' language writes numbers (Words.locale: "−1.5" in an
+    /// English window on an Italian Mac), with a true minus sign.
     static func number(_ v: Double, decimals: Int = 1) -> String {
         let r = (v * pow(10, Double(decimals))).rounded() / pow(10, Double(decimals))
-        return r.formatted(.number.precision(.fractionLength(0...decimals))).replacingOccurrences(of: "-", with: "−")
+        return r.formatted(.number.precision(.fractionLength(0...decimals)).locale(Words.locale)).replacingOccurrences(of: "-", with: "−")
     }
 
     static func ratio(_ w: Int, _ h: Int) -> String {

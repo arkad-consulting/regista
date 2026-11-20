@@ -1,7 +1,7 @@
 /* English. Keys are the Italian text or semantic `area.meaning` keys. Scheme: Sources/Regista/App/Words.swift; check: scripts/l10n.py; terms: glossary.md. */
 "%@ (copia)" = "%@ (copy)";
 "%@ (parziale)" = "%@ (partial)";
-"%@ blocchi · stile %@ · %@ parole chiave" = "%@ blocks · style %@ · %@ keywords";
+"%@ · stile %@ · %@" = "%@ · %@ style · %@";
 "%@ canali" = "%@ channels";
 "%@ chiede di generare con %@. Approva solo lo scatto finale: per le prove c'è ComfyUI, gratis." = "%@ wants to generate with %@. Approve only the final shot: for tests there is ComfyUI, free.";
 "%@ clip · %@" = "%@ clips · %@";
@@ -123,7 +123,7 @@
 "Le tue voci" = "Your voices";
 "Le tue voci: lingue, toni e allenamento" = "Your voices: languages, tones and training";
 "Leggi ad alta voce un testo che ti mostra Regista. Regista impara la tua voce su questo Mac e poi dice per te qualsiasi testo." = "Read aloud a text Regista shows you. Regista learns your voice on this Mac, then says any text for you.";
-"Leggi il tono neutro" = "Read the neutral tone";
+"Leggi il tono neutro" = "Read in the neutral tone";
 "LOGO" = "LOGO";
 "LUCE" = "LIGHT";
 "La luce e il colore di tutto il video." = "The light and colour of the whole video.";
@@ -174,7 +174,7 @@
 "Registrazione salvata in «%@»" = "Recording saved in “%@”";
 "RIPRESE" = "TAKES";
 "Reel 9:16 a −15 LUFS, con i controlli prima di salvare." = "Reel 9:16 at −15 LUFS, with the checks before saving.";
-"Resta un respiro prima e dopo ogni frase." = "A breath stays before and after each sentence.";
+"Resta un respiro prima e dopo ogni frase." = "A short breath is kept before and after each sentence.";
 "Ripresa %d" = "Take %d";
 "Risoluzione dei problemi" = "Troubleshooting";
 "Scegli la lingua" = "Choose the language";
@@ -345,7 +345,7 @@
 "Aumenta la risoluzione" = "Upscale";
 "Automatica" = "Automatic";
 "Automatico" = "Automatic";
-"Automatico sceglie il livello dalla RAM. Un livello più alto mostra e installa motori che possono rallentare il Mac o fermarsi per mancanza di memoria; uno più basso li nasconde. Vale per questa schermata subito, per il resto dell'app alla prossima apertura di Regista." = "Automatic picks the tier from the RAM. A higher tier shows and installs engines that can slow the Mac down or stop for lack of memory; a lower one hides them. It applies to this screen at once, to the rest of the app the next time Regista opens.";
+"Automatico sceglie il livello dalla RAM. Un livello più alto mostra e installa motori che possono rallentare il Mac o fermarsi per mancanza di memoria; uno più basso li nasconde. Vale per questa schermata subito, per il resto dell'app alla prossima apertura di Regista." = "“Automatic” picks the tier from the RAM. A higher tier shows and installs engines that can slow the Mac down or stop for lack of memory; a lower one hides them. It applies to this screen at once, to the rest of the app the next time Regista opens.";
 "Avanzamento" = "Progress";
 "Avvia" = "Start";
 "Avvia / Ferma registrazione" = "Start / Stop recording";
@@ -423,9 +423,9 @@
 "Carta" = "Paper";
 "Cartella di Regista" = "Regista folder";
 "Cartellino" = "Name tag";
-"Cerca un comando o un tasto" = "Search a command or a key";
+"Cerca un comando o un tasto" = "Search for a command or key";
 "Cerca un effetto" = "Search effects";
-"Cerca un suono (whoosh, clic, ding…)" = "Search a sound (whoosh, click, ding…)";
+"Cerca un suono (whoosh, clic, ding…)" = "Search for a sound (whoosh, click, ding…)";
 "Cerchio" = "Circle";
 "Cerco le letture di ogni riga…" = "Finding every reading of each line…";
 "Cerco le parole da evidenziare…" = "Looking for words to highlight…";
@@ -440,7 +440,7 @@
 "Chiudendo la scheda la registrazione si ferma; il file si apre in una nuova scheda." = "Closing the tab stops the recording; the file opens in a new tab.";
 "Chiudi" = "Close";
 "Chiudi il progetto" = "Close the project";
-"Chiudi la scheda" = "Close Tab";
+"Chiudi la scheda" = "Close tab";
 "Chiudi le altre" = "Close Others";
 "Chroma key" = "Chroma key";
 "Ciambella" = "Donut";
@@ -534,7 +534,7 @@
 "Controlla la grafica dietro al soggetto" = "Check graphics behind the subject";
 "Controlla la registrazione" = "Check the recording";
 "Controlla la sincronia" = "Check the sync";
-"Controlla sotto la voce" = "Check under the voice";
+"Controlla sotto la voce" = "Check the music under the voice";
 "Controlla sottotitoli e volto" = "Check captions against the face";
 "Controlla una posizione" = "Check a placement";
 "Controlla una sovrapposizione" = "Check an overlay";
@@ -717,7 +717,7 @@
 "Forma d'onda" = "Waveform";
 "Formato" = "Format";
 "Formato %@ · %d×%d · %d fps" = "Format %@ · %d×%d · %d fps";
-"Formato dei progetti nuovi" = "Format of new projects";
+"Formato dei progetti nuovi" = "Format for new projects";
 "formato della camera" = "camera format";
 "Formato di uscita" = "Output format";
 "formato sconosciuto" = "unknown format";
@@ -780,7 +780,7 @@
 "HyperFrames" = "HyperFrames";
 "I clic vengono registrati; i tasti premuti solo con il permesso Accessibilità." = "Clicks are recorded; key presses only with the Accessibility permission.";
 "I file del motore vanno via dalla cartella dei motori di Regista; si può reinstallare da qui." = "The engine's files leave Regista's engines folder; you can install it again from here.";
-"I progetti, le registrazioni e gli export vanno nella cartella di Regista. Con il salvataggio automatico, ogni minuto Regista salva i progetti aperti che hanno già una cartella; quelli mai salvati li salvi tu con ⌘S. Una registrazione dello schermo resta sempre in 16:9." = "Projects, recordings and exports go into the Regista folder. With automatic saving, every minute Regista saves the open projects that already have a folder; the ones never saved you save with ⌘S. A screen recording always stays 16:9.";
+"I progetti, le registrazioni e gli export vanno nella cartella di Regista. Con il salvataggio automatico, ogni minuto Regista salva i progetti aperti che hanno già una cartella; quelli mai salvati li salvi tu con ⌘S. Una registrazione dello schermo resta sempre in 16:9." = "Projects, recordings and exports go into the Regista folder. With automatic saving, every minute Regista saves the open projects that already have a folder; save the others yourself with ⌘S. A screen recording always stays 16:9.";
 "I reel sono in 9:16 con inquadratura centrata sul volto e sottotitoli impressi (disattivabili nelle Impostazioni)." = "Reels are 9:16, framed on the face, with burned-in captions (can be turned off in Settings).";
 "I tuoi suoni" = "Your sounds";
 "Icona" = "Icon";
@@ -883,7 +883,7 @@
 "Installa…" = "Install…";
 "Installo %@" = "Installing %@";
 "Installo…" = "Installing…";
-"integrato" = "built in";
+"integrato" = "built-in";
 "Intensità" = "Amount";
 "Intensità di %@" = "Intensity of %@";
 "Interruttore" = "Toggle";
@@ -1110,7 +1110,7 @@
 "Nessun profilo" = "No profile";
 "Nessun profilo su questo Mac: crea il tuo per registrare e clonare la tua voce." = "No profile on this Mac: create yours to record and clone your voice.";
 "Nessun progetto aperto" = "No project open";
-"Nessun progetto recente" = "No recent project";
+"Nessun progetto recente" = "No recent projects";
 "Nessun progetto recente. I progetti che apri o salvi compaiono qui." = "No recent projects. The projects you open or save show up here.";
 "Nessun sottotitolo." = "No captions.";
 "Nessun suono con questo nome." = "No sound with this name.";
@@ -1172,7 +1172,7 @@
 "Notte" = "Night";
 "Numero" = "Number";
 "Nuova registrazione" = "New recording";
-"Nuova scheda" = "New Tab";
+"Nuova scheda" = "New tab";
 "Nuova scheda: un nuovo progetto, uno recente o una registrazione (Inizio)" = "New tab: a new project, a recent one or a recording (Home)";
 "Nuovo kit" = "New kit";
 "Nuovo progetto" = "New project";
@@ -1340,7 +1340,7 @@
 "Reel 9:16" = "Reel 9:16";
 "Reel energico" = "Energetic reel";
 "Reel lancio" = "Launch reel";
-"Reel parlato" = "Talking reel";
+"Reel parlato" = "Talking-head reel";
 "Regista compositor" = "Regista compositor";
 "Regista ha chiesto il permesso a macOS: consentilo nella finestra di macOS o in Impostazioni › Registrazione schermo, poi premi «Riapri Regista»." = "Regista asked macOS for the permission: allow it in the macOS window or in System Settings › Screen Recording, then press “Reopen Regista”.";
 "Regista non si riapre da solo: %@" = "Regista cannot reopen itself: %@";
@@ -1455,7 +1455,7 @@
 "Salita breve" = "Short riser";
 "Salite e discese" = "Risers and drops";
 "Salva" = "Save";
-"Salva con nome…" = "Save As…";
+"Salva con nome…" = "Save as…";
 "Salva il progetto" = "Save the project";
 "Salva prima il progetto (⌘S), poi riapri Regista" = "Save the project first (⌘S), then reopen Regista";
 "Salva tutti" = "Save All";
@@ -1515,7 +1515,7 @@
 "Scorrimento automatico" = "Automatic scrolling";
 "Scossa" = "Shake";
 "Scrivi il testo" = "Type the text";
-"Scrivi il testo e Regista lo dice con la tua voce clonata: un progetto nuovo in Monta Pro, sul pannello Voce, poi grafica e musica." = "Write the text and Regista says it in your cloned voice: a new project in Edit Pro, on the Voice panel, then graphics and music.";
+"Scrivi il testo e Regista lo dice con la tua voce clonata: un progetto nuovo in Monta Pro, sul pannello Voce, poi grafica e musica." = "Write the text and Regista reads it in your cloned voice: a new project in Edit Pro, on the Voice panel, then graphics and music.";
 "Scrivi qui il testo della voce. Una riga vuota separa i paragrafi: ognuno diventa una clip." = "Write the voice-over here. A blank line separates paragraphs: each becomes a clip.";
 "Scurisci il video" = "Dim the video";
 "Scuro" = "Dark";
@@ -1527,7 +1527,7 @@
 "Segui il viso" = "Follow the face";
 "Segui il volto" = "Follow the face";
 "Segui le mani" = "Track the hands";
-"Seleziona una clip nella timeline per regolarla qui. Con ⇧ ne scegli più di una: i valori comuni cambiano insieme." = "Select a clip on the timeline to adjust it here. With ⇧ you pick several: their shared values change together.";
+"Seleziona una clip nella timeline per regolarla qui. Con ⇧ ne scegli più di una: i valori comuni cambiano insieme." = "Select a clip in the timeline to adjust it here. Hold ⇧ to select more than one: the values they share change together.";
 "Seleziona una clip nella timeline: qui compariranno posizione, scala, ritaglio, opacità, colore, velocità, dissolvenze e volume." = "Select a clip in the timeline: its position, scale, crop, opacity, colour, speed, fades and volume will show here.";
 "Selezione" = "Select";
 "Semplice" = "Simple";
@@ -1662,7 +1662,7 @@
 "Tema" = "Theme";
 "Tempo" = "Timing";
 "Testi" = "Texts";
-"Testi e sottotitoli" = "Text and captions";
+"Testi e sottotitoli" = "Text & captions";
 "Testi e sottotitoli › Passi: dal video ai sottotitoli, un passo alla volta" = "Text & captions › Steps: from the video to captions, one step at a time";
 "Testi e sottotitoli: sottotitoli, copione, trascrizione e riprese" = "Text and captions: captions, script, transcript and takes";
 "Testo" = "Text";
@@ -1974,7 +1974,7 @@
 "Tanti passi in un clic, nei colori della marca" = "Many steps in one click, in the brand's colours";
 "Schede animate, liste, contatori, grafici e cornici" = "Animated cards, lists, counters, charts and frames";
 "Il logo della marca nel video e le sue animazioni" = "The brand's logo in the video and its animations";
-"Clic: si applica alla clip selezionata o alla testina. Si può anche trascinare sulla timeline." = "Click: applies to the selected clip or at the playhead. You can also drag it onto the timeline.";
+"Clic: si applica alla clip selezionata o alla testina. Si può anche trascinare sulla timeline." = "Click to apply it to the selected clip, or at the playhead. You can also drag it onto the timeline.";
 "Nessun effetto con questo nome." = "No effect with this name.";
 "Regolazioni rapide" = "Quick adjustments";
 "Regolazioni" = "Adjustments";
@@ -2068,7 +2068,7 @@
 "Rimette queste parole e questo generatore nel modulo" = "Puts these words and this generator back in the form";
 "Scegli l'immagine da cui parte la clip." = "Choose the image the clip starts from.";
 "Scegli la clip da ingrandire." = "Choose the clip to upscale.";
-"Scrivi prima cosa vuoi ottenere." = "First write what you want to get.";
+"Scrivi prima cosa vuoi ottenere." = "First describe what you want to generate.";
 "Serve un Mac con almeno %@ GB di memoria." = "It needs a Mac with at least %@ GB of memory.";
 "Serve un account Higgsfield collegato a questo Mac." = "It needs a Higgsfield account connected to this Mac.";
 "Sono in Media: trascinali sulla timeline." = "They are in Media: drag them to the timeline.";
@@ -2087,7 +2087,7 @@
 "Uno sfondo astratto e morbido, toni del blu" = "A soft abstract background, shades of blue";
 "Usa di nuovo" = "Use again";
 "Usa questa idea: poi la puoi cambiare" = "Use this idea: you can change it afterwards";
-"Voce fuori campo con %@: si fa nel pannello Voce." = "Voice-over with %@: made in the Voice panel.";
+"Voce fuori campo con %@: si fa nel pannello Voce." = "Voice-over with %@ is made in the Voice panel.";
 "circa %d min" = "about %d min";
 "circa %d s" = "about %d s";
 "È già a piena risoluzione." = "It is already at full resolution.";
@@ -2117,13 +2117,13 @@
 "Minimum text size" = "Minimum text size";
 "Smallest text, in pixels on a 1080-wide frame" = "Smallest text, in pixels on a 1080-wide frame";
 "The header has no closing ---: its switches are ignored." = "The header has no closing ---: its switches are ignored.";
-"Line %1$@: write «id: on» or «id: off», then the number when the check has one." = "Line %1$@: write «id: on» or «id: off», then the number when the check has one.";
-"Line %1$@: unknown check «%2$@»." = "Line %1$@: unknown check «%2$@».";
+"Line %1$@: write «id: on» or «id: off», then the number when the check has one." = "Line %1$@: write “id: on” or “id: off”, then the number when the check has one.";
+"Line %1$@: unknown check «%2$@»." = "Line %1$@: unknown check “%2$@”.";
 "Line %1$@: %2$@ takes no number." = "Line %1$@: %2$@ takes no number.";
-"Line %1$@: «%2$@» is not a number." = "Line %1$@: «%2$@» is not a number.";
+"Line %1$@: «%2$@» is not a number." = "Line %1$@: “%2$@” is not a number.";
 "Line %1$@: %2$@ must be between %3$@ and %4$@." = "Line %1$@: %2$@ must be between %3$@ and %4$@.";
 "Line %1$@: %2$@ is listed twice; the first line counts." = "Line %1$@: %2$@ is listed twice; the first line counts.";
-"The project's kind «%1$@» no longer exists: the rules of «%2$@» apply." = "The project's kind «%1$@» no longer exists: the rules of «%2$@» apply.";
+"The project's kind «%1$@» no longer exists: the rules of «%2$@» apply." = "The project's kind “%1$@” no longer exists: the rules of “%2$@” apply.";
 "Captions show while the opening title is on screen (%1$@–%2$@ s)." = "Captions show while the opening title is on screen (%1$@–%2$@ s).";
 "Start the captions when the title leaves" = "Start the captions when the title leaves";
 "Captions show on the closing logo (from %1$@ s)." = "Captions show on the closing logo (from %1$@ s).";
@@ -2139,8 +2139,8 @@
 "A logo in the middle of the video (%1$@ s): the logo goes only at the end." = "A logo in the middle of the video (%1$@ s): the logo goes only at the end.";
 "No face track on the picture: run faces.track to check the face." = "No face track on the picture: run faces.track to check the face.";
 "The logo covers the speaker's face at %1$@ s." = "The logo covers the speaker's face at %1$@ s.";
-"The title «%1$@» covers the speaker's face at %2$@ s." = "The title «%1$@» covers the speaker's face at %2$@ s.";
-"The title «%1$@» is %2$@ px on this frame: at least %3$@ px." = "The title «%1$@» is %2$@ px on this frame: at least %3$@ px.";
+"The title «%1$@» covers the speaker's face at %2$@ s." = "The title “%1$@” covers the speaker's face at %2$@ s.";
+"The title «%1$@» is %2$@ px on this frame: at least %3$@ px." = "The title “%1$@” is %2$@ px on this frame: at least %3$@ px.";
 "The captions are %1$@ px on this frame: at least %2$@ px." = "The captions are %1$@ px on this frame: at least %2$@ px.";
 
 /* Editing rules (#31): Impostazioni › Regole and the Export card. */
@@ -2178,7 +2178,7 @@
 "Vai a %@" = "Go to %@";
 "Sistema" = "Fix";
 "«Sistema» applica la correzione come un comando qualsiasi: un passo di annulla." = "“Fix” applies the correction like any other command: one undo step.";
-"Le regole si cambiano in Impostazioni › Regole" = "Rules are changed in Settings › Rules";
+"Le regole si cambiano in Impostazioni › Regole" = "Change the rules in Settings › Rules";
 "Claude non consegna un video con una regola rotta. Tu puoi sempre esportare lo stesso." = "Claude does not deliver a video that breaks a rule. You can always export anyway.";
 "Esporta lo stesso" = "Export anyway";
 "Sistema tutto ed esporta" = "Fix all and export";
@@ -2444,11 +2444,11 @@
 "Cartella di ComfyUI" = "ComfyUI folder";
 "Imposta" = "Set up";
 "Non impostata" = "Not set";
-"c'è" = "there";
+"c'è" = "present";
 "manca" = "missing";
 "Spento: non risponde nessuno a questo indirizzo" = "Off: nothing answers at this address";
-"Risponde · avviato da Regista" = "Answers · started by Regista";
-"Risponde" = "Answers";
+"Risponde · avviato da Regista" = "Responding · started by Regista";
+"Risponde" = "Responding";
 "Questa cartella non avvia ComfyUI: serve una cartella di ComfyUI con il suo ambiente Python (.venv o venv), o un programma che lo avvia." = "This folder does not start ComfyUI: choose a ComfyUI folder with its own Python environment (.venv or venv), or a program that starts it.";
 "Non trovata: scegli la cartella dove hai installato ComfyUI, oppure avvialo da te e scrivi il suo indirizzo." = "Not found: choose the folder where you installed ComfyUI, or start it yourself and enter its address.";
 "La cartella di ComfyUI, o un programma che avvia ComfyUI" = "The ComfyUI folder, or a program that starts ComfyUI";
@@ -2457,7 +2457,7 @@
 "ripartito una volta dal fotogramma %@" = "started again once from frame %@";
 "Copertina" = "Cover";
 "copertina" = "cover";
-"Nessuna copertina: porta la testina sul fotogramma e premi «Usa questo fotogramma»." = "No cover yet: move the playhead to the frame and click «Use this frame».";
+"Nessuna copertina: porta la testina sul fotogramma e premi «Usa questo fotogramma»." = "No cover yet: move the playhead to the frame and click “Use this frame”.";
 "Usa questo fotogramma" = "Use this frame";
 "Titolo della copertina" = "Cover title";
 "Stile del titolo" = "Title style";
@@ -2474,7 +2474,7 @@
 "%@ px a sinistra" = "%@ px on the left";
 "%@ px a destra" = "%@ px on the right";
 "Il titolo esce dalla zona che resta in entrambi i ritagli: %@." = "The title leaves the area both crops keep: %@.";
-"Con «%@» rientra." = "With «%@» it fits.";
+"Con «%@» rientra." = "With “%@” it fits.";
 "Accorcia il titolo o mandalo a capo (⌥Invio)." = "Shorten the title or break it onto two lines (⌥Return).";
 "Imposta la copertina" = "Set the cover";
 "Controlla la copertina" = "Check the cover";
@@ -2484,13 +2484,13 @@
 "Copertina nei ritagli" = "Cover fits the crops";
 "Questo fotogramma come copertina del reel, per lo scaffale degli Shorts e la griglia di Instagram." = "This frame as the reel's cover, for the Shorts shelf and the Instagram grid.";
 "Nessuna copertina" = "No cover yet";
-"«%@»" = "«%@»";
+"«%@»" = "“%@”";
 
 /* ComfyUI model files downloaded from their row (#121) */
 "Scarica tutti (%d file, %@)" = "Download all (%d files, %@)";
 "Scarico %@" = "Downloading %@";
 "Regista non sa in quale cartella è ComfyUI (lo avvia un programma, o ne conosce solo l'indirizzo): imposta la «Cartella di ComfyUI» nella riga di ComfyUI per scaricare i file da qui." = "Regista does not know which folder ComfyUI is in (a program starts it, or only its address is set): set the “ComfyUI folder” on the ComfyUI row to download the files from here.";
-"Scaricato: riavvia ComfyUI perché lo veda." = "Downloaded: restart ComfyUI so it sees it.";
+"Scaricato: riavvia ComfyUI perché lo veda." = "Downloaded: restart ComfyUI so it finds the file.";
 "Download annullato: «Scarica» riprende da dove si è fermato." = "Download cancelled: “Download” resumes where it stopped.";
 "C'è già un file con questo nome ma di un'altra dimensione: Regista non lo sovrascrive. Spostalo altrove per scaricarlo di nuovo." = "A file with this name but another size is already there: Regista does not overwrite it. Move it elsewhere to download it again.";
 "Il suo autore chiede un accesso o di accettare la licenza sulla sua pagina: scaricalo da lì e mettilo nella cartella indicata." = "Its publisher asks you to sign in or accept the licence on its page: download it from there and put it in the folder shown.";

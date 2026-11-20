@@ -1,7 +1,7 @@
 /* Português (Brasil). Chaves: o texto italiano ou chaves semânticas `area.meaning`. Esquema: Sources/Regista/App/Words.swift; verificação: scripts/l10n.py; termos: glossary.md. */
 "%@ (copia)" = "%@ (cópia)";
 "%@ (parziale)" = "%@ (parcial)";
-"%@ blocchi · stile %@ · %@ parole chiave" = "%@ blocos · estilo %@ · %@ palavras-chave";
+"%@ · stile %@ · %@" = "%@ · estilo %@ · %@";
 "%@ canali" = "%@ canais";
 "%@ chiede di generare con %@. Approva solo lo scatto finale: per le prove c'è ComfyUI, gratis." = "%@ quer gerar com %@. Aprove só a imagem final: para testes há o ComfyUI, grátis.";
 "%@ clip · %@" = "%@ clipes · %@";
@@ -91,8 +91,8 @@
 "COLORE" = "COR";
 "Come funziona" = "Como funciona";
 "Controllo la tua voce…" = "Verificando sua voz…";
-"Diventa un nuovo progetto in questa scheda" = "Vira um novo projeto nesta aba";
-"Diventa un nuovo progetto in una nuova scheda" = "Vira um novo projeto em uma nova aba";
+"Diventa un nuovo progetto in questa scheda" = "Torna-se um novo projeto nesta aba";
+"Diventa un nuovo progetto in una nuova scheda" = "Torna-se um novo projeto em uma nova aba";
 "E risale nelle pause." = "E volta a subir nas pausas.";
 "EFFETTI SONORI" = "EFEITOS SONOROS";
 "Effetti sonori sui tagli" = "Efeitos sonoros nos cortes";
@@ -123,7 +123,7 @@
 "Le tue voci" = "Suas vozes";
 "Le tue voci: lingue, toni e allenamento" = "Suas vozes: idiomas, tons e treinamento";
 "Leggi ad alta voce un testo che ti mostra Regista. Regista impara la tua voce su questo Mac e poi dice per te qualsiasi testo." = "Leia em voz alta um texto que o Regista mostra. O Regista aprende sua voz neste Mac e depois diz qualquer texto por você.";
-"Leggi il tono neutro" = "Leia o tom neutro";
+"Leggi il tono neutro" = "Leia no tom neutro";
 "LOGO" = "LOGO";
 "LUCE" = "LUZ";
 "La luce e il colore di tutto il video." = "A luz e a cor do vídeo inteiro.";
@@ -174,7 +174,7 @@
 "Registrazione salvata in «%@»" = "Gravação salva em “%@”";
 "RIPRESE" = "TOMADAS";
 "Reel 9:16 a −15 LUFS, con i controlli prima di salvare." = "Reel 9:16 a −15 LUFS, com as verificações antes de salvar.";
-"Resta un respiro prima e dopo ogni frase." = "Fica uma respiração antes e depois de cada frase.";
+"Resta un respiro prima e dopo ogni frase." = "Fica uma pequena pausa para respirar antes e depois de cada frase.";
 "Ripresa %d" = "Tomada %d";
 "Risoluzione dei problemi" = "Solução de problemas";
 "Scegli la lingua" = "Escolha o idioma";
@@ -231,7 +231,7 @@
 "Affiancati" = "Lado a lado";
 "Aggiorna" = "Atualizar";
 "Aggiorna dispositivi" = "Atualizar dispositivos";
-"aggiornati" = "atualizados";
+"aggiornati" = "atualizadas";
 "Aggiungi" = "Adicionar";
 "Aggiungi al cursore (pista Effetti)" = "Adicionar no indicador de reprodução (faixa Efeitos)";
 "Aggiungi il logo" = "Adicionar o logo";
@@ -306,8 +306,8 @@
 "Apre Impostazioni di Sistema › Privacy e sicurezza › Registrazione schermo e audio di sistema" = "Abre Ajustes do Sistema › Privacidade e Segurança › Gravação de Tela e Áudio do Sistema";
 "Apre Impostazioni di Sistema › Privacy e sicurezza, dove si consente Regista" = "Abre Ajustes do Sistema › Privacidade e Segurança, onde o Regista é permitido";
 "Apri altro…" = "Abrir outro…";
-"Collega Claude Desktop o Claude Code in Impostazioni › Claude. Lo stato diventa «collegato» alla prima richiesta di Claude." = "Conecte o Claude Desktop ou o Claude Code em Ajustes › Claude. O status passa a «conectado» no primeiro pedido do Claude.";
-"Collega Claude Desktop o Claude Code in Impostazioni › Claude. Lo stato diventa «collegato» alla prima richiesta di Claude. Qui vedrai, in parole semplici, ogni passo che fa." = "Conecte o Claude Desktop ou o Claude Code em Ajustes › Claude. O status passa a «conectado» no primeiro pedido do Claude. Cada passo que ele dá aparece aqui, em palavras simples.";
+"Collega Claude Desktop o Claude Code in Impostazioni › Claude. Lo stato diventa «collegato» alla prima richiesta di Claude." = "Conecte o Claude Desktop ou o Claude Code em Ajustes › Claude. O status passa a “conectado” no primeiro pedido do Claude.";
+"Collega Claude Desktop o Claude Code in Impostazioni › Claude. Lo stato diventa «collegato» alla prima richiesta di Claude. Qui vedrai, in parole semplici, ogni passo che fa." = "Conecte o Claude Desktop ou o Claude Code em Ajustes › Claude. O status passa a “conectado” no primeiro pedido do Claude. Cada passo que ele dá aparece aqui, em palavras simples.";
 "Apri il passo Copione" = "Abrir o passo Roteiro";
 "Apri il progetto" = "Abrir o projeto";
 "Apri Impostazioni" = "Abrir Ajustes";
@@ -345,7 +345,7 @@
 "Aumenta la risoluzione" = "Aumentar a resolução";
 "Automatica" = "Automática";
 "Automatico" = "Automático";
-"Automatico sceglie il livello dalla RAM. Un livello più alto mostra e installa motori che possono rallentare il Mac o fermarsi per mancanza di memoria; uno più basso li nasconde. Vale per questa schermata subito, per il resto dell'app alla prossima apertura di Regista." = "Automático escolhe o nível pela RAM. Um nível mais alto mostra e instala motores que podem deixar o Mac lento ou parar por falta de memória; um mais baixo os oculta. Vale na hora para esta tela e, para o resto do app, na próxima vez que o Regista abrir.";
+"Automatico sceglie il livello dalla RAM. Un livello più alto mostra e installa motori che possono rallentare il Mac o fermarsi per mancanza di memoria; uno più basso li nasconde. Vale per questa schermata subito, per il resto dell'app alla prossima apertura di Regista." = "“Automático” escolhe o nível pela RAM. Um nível mais alto mostra e instala motores que podem deixar o Mac lento ou parar por falta de memória; um mais baixo os oculta. Vale na hora para esta tela e, para o resto do app, na próxima vez que o Regista abrir.";
 "Avanzamento" = "Progresso";
 "Avvia" = "Iniciar";
 "Avvia / Ferma registrazione" = "Iniciar / parar gravação";
@@ -363,7 +363,7 @@
 "Barra di avanzamento" = "Barra de progresso";
 "barra di avanzamento" = "barra de progresso";
 "Barra di stato" = "Barra de status";
-"barra REC con timer e capitoli" = "barra REC com timer e capítulos";
+"barra REC con timer e capitoli" = "barra REC com cronômetro e capítulos";
 "Barra spaziatrice" = "Barra de espaço";
 "Barre" = "Barras";
 "Base" = "Base";
@@ -534,7 +534,7 @@
 "Controlla la grafica dietro al soggetto" = "Verificar gráficos atrás da pessoa";
 "Controlla la registrazione" = "Verificar a gravação";
 "Controlla la sincronia" = "Verificar a sincronia";
-"Controlla sotto la voce" = "Verificar sob a voz";
+"Controlla sotto la voce" = "Verificar a música sob a voz";
 "Controlla sottotitoli e volto" = "Verificar legendas e rosto";
 "Controlla una posizione" = "Verificar uma posição";
 "Controlla una sovrapposizione" = "Verificar uma sobreposição";
@@ -585,7 +585,7 @@
 "Da confermare" = "A confirmar";
 "Da misurare" = "Não medido";
 "da registrare" = "não gravada";
-"da rigenerare" = "a gerar de novo";
+"da rigenerare" = "para gerar de novo";
 "Dal gobbo" = "Do teleprompter";
 "Dal progetto" = "Do projeto";
 "Dal video ai sottotitoli, un passo alla volta" = "Do vídeo às legendas, um passo de cada vez";
@@ -717,7 +717,7 @@
 "Forma d'onda" = "Forma de onda";
 "Formato" = "Formato";
 "Formato %@ · %d×%d · %d fps" = "Formato %@ · %d×%d · %d fps";
-"Formato dei progetti nuovi" = "Formato dos projetos novos";
+"Formato dei progetti nuovi" = "Formato dos novos projetos";
 "formato della camera" = "formato da câmera";
 "Formato di uscita" = "Formato de saída";
 "formato sconosciuto" = "formato desconhecido";
@@ -807,7 +807,7 @@
 "Il server MCP collegato è più vecchio di questa app: esegui scripts/build-mcp.sh e riavvia la sessione di Claude." = "O servidor MCP conectado é mais antigo que este app: execute scripts/build-mcp.sh e reinicie a sessão do Claude.";
 "Il suono delle app, senza la voce" = "O som dos apps, sem a sua voz";
 "Il taglio è cambiato: la voce va ripulita." = "O corte mudou: limpe a voz de novo.";
-"IL TUO" = "SUA";
+"IL TUO" = "SEU";
 "Il tuo nome" = "Seu nome";
 "Il volto si può spostare anche mentre registri: in montaggio ogni cambio diventa un tratto modificabile della timeline." = "Você também pode mover o rosto enquanto grava: na edição, cada mudança vira um trecho editável da linha do tempo.";
 "Il volto è stato rilevato nel video sotto: l'elemento può seguirlo per tutta la sua durata." = "Um rosto foi encontrado no vídeo abaixo: este elemento pode segui-lo por toda a duração.";
@@ -845,7 +845,7 @@
 "In basso" = "Embaixo";
 "In basso a destra" = "Embaixo à direita";
 "In basso a sinistra" = "Embaixo à esquerda";
-"In modalità **Voce** il gobbo ti ascolta: avanza mentre leggi, si ferma se parli d'altro e, se ricominci una frase, torna al suo inizio e segna una nuova ripresa. Una riga numerata = una ripresa; \" / \" = pausa, *parola* = parola chiave. La finestra non compare mai nelle registrazioni dello schermo." = "No modo **Voz**, o teleprompter ouve você: avança enquanto você lê, para se você fala de outra coisa e, se você recomeça uma frase, volta ao início dela e marca uma nova tomada. Uma linha numerada = uma tomada; \" / \" = pausa, *palavra* = palavra-chave. A janela nunca aparece nas gravações de tela.";
+"In modalità **Voce** il gobbo ti ascolta: avanza mentre leggi, si ferma se parli d'altro e, se ricominci una frase, torna al suo inizio e segna una nuova ripresa. Una riga numerata = una ripresa; \" / \" = pausa, *parola* = parola chiave. La finestra non compare mai nelle registrazioni dello schermo." = "No modo **Voz**, o teleprompter ouve você: avança enquanto você lê, para se você falar de outra coisa e, se recomeçar uma frase, volta ao início dela e marca uma nova tomada. Uma linha numerada = uma tomada; \" / \" = pausa, *palavra* = palavra-chave. A janela nunca aparece nas gravações de tela.";
 "In montaggio Regista lo ridisegna più grande e fluido, con un'onda a ogni clic" = "Na edição, o Regista o redesenha maior e mais fluido, com uma onda a cada clique";
 "In pausa · %@" = "Em pausa · %@";
 "In pausa · spazio per partire" = "Em pausa · Espaço para começar";
@@ -979,7 +979,7 @@
 "local generated clips" = "clipes gerados localmente";
 "local generated images" = "imagens geradas localmente";
 "local generated music" = "música gerada localmente";
-"local images, clips, music and upscale (free)" = "imagens, clipes, música e upscale locais (grátis)";
+"local images, clips, music and upscale (free)" = "imagens, clipes, música e ampliação locais (grátis)";
 "Logo" = "Logo";
 "Logo nel video" = "Logo no vídeo";
 "Look: %@" = "Look: %@";
@@ -1133,7 +1133,7 @@
 "Nessuna voce nel progetto: la musica resta al suo livello." = "Nenhuma voz no projeto: a música fica no seu nível.";
 "Nessuna: pannelli di esempio" = "Nenhuma: painéis de exemplo";
 "Nessuno" = "Nenhum";
-"nessuno" = "nenhum";
+"nessuno" = "nenhuma";
 "Nessuno schermo da registrare." = "Nenhuma tela para gravar.";
 "Neutro" = "Neutro";
 "Niente da registrare" = "Nada para gravar";
@@ -1485,7 +1485,7 @@
 "Scegli un file .registakit ricevuto da un partner" = "Escolha um arquivo .registakit recebido de um parceiro";
 "Scegli un'area…" = "Escolher uma área…";
 "Scegli una cartella di progetto .regista" = "Escolha uma pasta de projeto .regista";
-"Scegli una ripresa" = "Escolha uma tomada";
+"Scegli una ripresa" = "Escolher uma tomada";
 "Scegli uno o più video già girati: nuovo progetto, e si apre il montaggio Pro." = "Escolha um ou mais vídeos já gravados: um projeto novo abre na edição Pro.";
 "Scegli…" = "Escolher…";
 "Scelgo le parole chiave…" = "Escolhendo as palavras-chave…";
@@ -1515,7 +1515,7 @@
 "Scorrimento automatico" = "Rolagem automática";
 "Scossa" = "Tremor";
 "Scrivi il testo" = "Digite o texto";
-"Scrivi il testo e Regista lo dice con la tua voce clonata: un progetto nuovo in Monta Pro, sul pannello Voce, poi grafica e musica." = "Escreva o texto e o Regista o diz com sua voz clonada: um projeto novo em Editar Pro, no painel Voz, depois gráficos e música.";
+"Scrivi il testo e Regista lo dice con la tua voce clonata: un progetto nuovo in Monta Pro, sul pannello Voce, poi grafica e musica." = "Escreva o texto e o Regista o lê com sua voz clonada: um projeto novo em Editar Pro, no painel Voz, depois gráficos e música.";
 "Scrivi qui il testo della voce. Una riga vuota separa i paragrafi: ognuno diventa una clip." = "Escreva aqui o texto da narração. Uma linha em branco separa os parágrafos: cada um vira um clipe.";
 "Scurisci il video" = "Escurecer o vídeo";
 "Scuro" = "Escuro";
@@ -1527,7 +1527,7 @@
 "Segui il viso" = "Seguir o rosto";
 "Segui il volto" = "Seguir o rosto";
 "Segui le mani" = "Seguir as mãos";
-"Seleziona una clip nella timeline per regolarla qui. Con ⇧ ne scegli più di una: i valori comuni cambiano insieme." = "Selecione um clipe na linha do tempo para ajustá-lo aqui. Com ⇧ você escolhe vários: os valores em comum mudam juntos.";
+"Seleziona una clip nella timeline per regolarla qui. Con ⇧ ne scegli più di una: i valori comuni cambiano insieme." = "Selecione um clipe na linha do tempo para ajustá-lo aqui. Com ⇧ você seleciona mais de um: os valores em comum mudam juntos.";
 "Seleziona una clip nella timeline: qui compariranno posizione, scala, ritaglio, opacità, colore, velocità, dissolvenze e volume." = "Selecione um clipe na linha do tempo: aqui aparecerão posição, escala, recorte, opacidade, cor, velocidade, fades e volume.";
 "Selezione" = "Seleção";
 "Semplice" = "Simples";
@@ -1771,7 +1771,7 @@
 "un'altra scheda" = "outra aba";
 "Una sola dissolvenza per l'immagine e il suo audio." = "Um único fade para a imagem e seu áudio.";
 "Una stanza silenziosa e morbida, sempre la stessa distanza dal microfono. Un telefono con un microfono esterno va benissimo: poi importi il file." = "Um cômodo silencioso e abafado, sempre à mesma distância do microfone. Um celular com microfone externo funciona muito bem: depois importe o arquivo.";
-"upscale generated clips" = "upscale dos clipes gerados";
+"upscale generated clips" = "ampliação dos clipes gerados";
 "Usa il permesso dello Schermo: segui i passi qui sopra" = "Usa a permissão da Tela: siga os passos acima";
 "Usa questo audio come musica" = "Usar este áudio como música";
 "Usa questo copione" = "Usar este roteiro";
@@ -1806,7 +1806,7 @@
 "Voce di %@" = "Voz de %@";
 "Voce fuori campo" = "Narração";
 "voce pulita" = "voz limpa";
-"Voce pulita, a −15 LUFS." = "Voz limpa, a −15 LUFS.";
+"Voce pulita, a −15 LUFS." = "Voz limpa e levada a −15 LUFS.";
 "Voce: %d paragrafi" = "Voz: %d parágrafos";
 "Voce: 1 paragrafo" = "Voz: 1 parágrafo";
 "Voce: 2 paragrafi" = "Voz: 2 parágrafos";
@@ -1974,7 +1974,7 @@
 "Tanti passi in un clic, nei colori della marca" = "Vários passos em um clique, nas cores da marca";
 "Schede animate, liste, contatori, grafici e cornici" = "Cartões animados, listas, contadores, gráficos e molduras";
 "Il logo della marca nel video e le sue animazioni" = "O logo da marca no vídeo e suas animações";
-"Clic: si applica alla clip selezionata o alla testina. Si può anche trascinare sulla timeline." = "Clique: aplica ao clipe selecionado ou no indicador de reprodução. Também dá para arrastar para a linha do tempo.";
+"Clic: si applica alla clip selezionata o alla testina. Si può anche trascinare sulla timeline." = "Clique para aplicar ao clipe selecionado ou na posição do indicador de reprodução. Você também pode arrastá-lo para a linha do tempo.";
 "Nessun effetto con questo nome." = "Nenhum efeito com esse nome.";
 "Regolazioni rapide" = "Ajustes rápidos";
 "Regolazioni" = "Ajustes de imagem";
@@ -2068,7 +2068,7 @@
 "Rimette queste parole e questo generatore nel modulo" = "Coloca de volta estas palavras e este gerador no formulário";
 "Scegli l'immagine da cui parte la clip." = "Escolha a imagem de onde o clipe começa.";
 "Scegli la clip da ingrandire." = "Escolha o clipe para ampliar.";
-"Scrivi prima cosa vuoi ottenere." = "Escreva primeiro o que você quer obter.";
+"Scrivi prima cosa vuoi ottenere." = "Descreva primeiro o que você quer gerar.";
 "Serve un Mac con almeno %@ GB di memoria." = "Precisa de um Mac com pelo menos %@ GB de memória.";
 "Serve un account Higgsfield collegato a questo Mac." = "Precisa de uma conta Higgsfield conectada a este Mac.";
 "Sono in Media: trascinali sulla timeline." = "Estão em Mídia: arraste-os para a linha do tempo.";
@@ -2087,7 +2087,7 @@
 "Uno sfondo astratto e morbido, toni del blu" = "Um fundo abstrato e suave, tons de azul";
 "Usa di nuovo" = "Usar de novo";
 "Usa questa idea: poi la puoi cambiare" = "Use esta ideia: depois você pode mudar";
-"Voce fuori campo con %@: si fa nel pannello Voce." = "Narração com %@: é feita no painel Voz.";
+"Voce fuori campo con %@: si fa nel pannello Voce." = "A narração com %@ é feita no painel Voz.";
 "circa %d min" = "cerca de %d min";
 "circa %d s" = "cerca de %d s";
 "È già a piena risoluzione." = "Já está em resolução máxima.";
@@ -2117,13 +2117,13 @@
 "Minimum text size" = "Tamanho mínimo do texto";
 "Smallest text, in pixels on a 1080-wide frame" = "O menor texto, em pixels num quadro de 1080 de largura";
 "The header has no closing ---: its switches are ignored." = "O cabeçalho não tem o --- de fechamento: suas chaves são ignoradas.";
-"Line %1$@: write «id: on» or «id: off», then the number when the check has one." = "Linha %1$@: escreva «id: on» ou «id: off», depois o número quando a verificação tiver um.";
-"Line %1$@: unknown check «%2$@»." = "Linha %1$@: verificação desconhecida «%2$@».";
+"Line %1$@: write «id: on» or «id: off», then the number when the check has one." = "Linha %1$@: escreva “id: on” ou “id: off”, depois o número quando a verificação tiver um.";
+"Line %1$@: unknown check «%2$@»." = "Linha %1$@: verificação desconhecida “%2$@”.";
 "Line %1$@: %2$@ takes no number." = "Linha %1$@: %2$@ não leva número.";
-"Line %1$@: «%2$@» is not a number." = "Linha %1$@: «%2$@» não é um número.";
+"Line %1$@: «%2$@» is not a number." = "Linha %1$@: “%2$@” não é um número.";
 "Line %1$@: %2$@ must be between %3$@ and %4$@." = "Linha %1$@: %2$@ deve ficar entre %3$@ e %4$@.";
 "Line %1$@: %2$@ is listed twice; the first line counts." = "Linha %1$@: %2$@ aparece duas vezes; vale a primeira linha.";
-"The project's kind «%1$@» no longer exists: the rules of «%2$@» apply." = "O tipo do projeto «%1$@» não existe mais: valem as regras de «%2$@».";
+"The project's kind «%1$@» no longer exists: the rules of «%2$@» apply." = "O tipo do projeto “%1$@” não existe mais: valem as regras de “%2$@”.";
 "Captions show while the opening title is on screen (%1$@–%2$@ s)." = "Há legendas enquanto o título de abertura está na tela (%1$@–%2$@ s).";
 "Start the captions when the title leaves" = "Começar as legendas quando o título sair";
 "Captions show on the closing logo (from %1$@ s)." = "Há legendas sobre o logo final (a partir de %1$@ s).";
@@ -2139,8 +2139,8 @@
 "A logo in the middle of the video (%1$@ s): the logo goes only at the end." = "Um logo no meio do vídeo (%1$@ s): o logo vai só no final.";
 "No face track on the picture: run faces.track to check the face." = "Sem rastreamento do rosto: execute faces.track para verificar o rosto.";
 "The logo covers the speaker's face at %1$@ s." = "O logo cobre o rosto de quem fala em %1$@ s.";
-"The title «%1$@» covers the speaker's face at %2$@ s." = "O título «%1$@» cobre o rosto de quem fala em %2$@ s.";
-"The title «%1$@» is %2$@ px on this frame: at least %3$@ px." = "O título «%1$@» tem %2$@ px neste quadro: pelo menos %3$@ px.";
+"The title «%1$@» covers the speaker's face at %2$@ s." = "O título “%1$@” cobre o rosto de quem fala em %2$@ s.";
+"The title «%1$@» is %2$@ px on this frame: at least %3$@ px." = "O título “%1$@” tem %2$@ px neste quadro: pelo menos %3$@ px.";
 "The captions are %1$@ px on this frame: at least %2$@ px." = "As legendas têm %1$@ px neste quadro: pelo menos %2$@ px.";
 
 /* Editing rules (#31): Impostazioni › Regole and the Export card. */
@@ -2178,7 +2178,7 @@
 "Vai a %@" = "Ir para %@";
 "Sistema" = "Corrigir";
 "«Sistema» applica la correzione come un comando qualsiasi: un passo di annulla." = "“Corrigir” aplica a correção como qualquer outro comando: um passo de desfazer.";
-"Le regole si cambiano in Impostazioni › Regole" = "As regras são alteradas em Ajustes › Regras";
+"Le regole si cambiano in Impostazioni › Regole" = "Altere as regras em Ajustes › Regras";
 "Claude non consegna un video con una regola rotta. Tu puoi sempre esportare lo stesso." = "O Claude não entrega um vídeo que quebra uma regra. Você sempre pode exportar mesmo assim.";
 "Esporta lo stesso" = "Exportar mesmo assim";
 "Sistema tutto ed esporta" = "Corrigir tudo e exportar";
@@ -2310,7 +2310,7 @@
 "Sottotitoli spostati" = "Legendas movidas";
 "Rimesso l'audio originale" = "Som original restaurado";
 "Voce pulita" = "Voz limpa";
-"Voce pulita a %@ LUFS" = "Voz limpa a %@ LUFS";
+"Voce pulita a %@ LUFS" = "Voz limpa e levada a %@ LUFS";
 "Musica aggiunta, abbassata sotto la voce" = "Música adicionada, abaixada sob a voz";
 "Effetto sonoro a %@" = "Efeito sonoro em %@";
 "1 effetto sonoro tolto" = "1 efeito sonoro removido";
@@ -2434,30 +2434,30 @@
 "Questa copia di Regista non contiene l'installatore: installala di nuovo dalla sua immagine disco" = "Esta cópia do Regista não contém o instalador: instale-a de novo a partir da imagem de disco";
 "L'app e il server MCP collegato vengono da copie diverse di Regista: in Impostazioni › Claude ricollega Claude a questa app, poi riavvia la sessione di Claude." = "O app e o servidor MCP conectado vêm de cópias diferentes do Regista: reconecte o Claude a este app em Ajustes › Claude e reinicie a sessão do Claude.";
 "Check it: ask Claude for generate.check. It lists every missing node pack and model file, with the ComfyUI folder it goes in." = "Para verificar: peça ao Claude o generate.check. Ele lista cada pacote de nós e arquivo de modelo que falta, com a pasta do ComfyUI onde vai.";
-"Tell Regista where it is: Settings › Engines › ComfyUI › ComfyUI folder (Regista starts it when a generation needs it and stops it afterwards). If you start ComfyUI yourself, or use its desktop app, set its Address there instead (the desktop app does not listen on 8188)." = "Diga ao Regista onde ele está: Ajustes › Motores › ComfyUI › Pasta do ComfyUI (o Regista o inicia quando uma geração precisa e o para depois). Se você inicia o ComfyUI por conta própria, ou usa o app de desktop dele, defina ali o Endereço (o app de desktop não escuta na 8188).";
+"Tell Regista where it is: Settings › Engines › ComfyUI › ComfyUI folder (Regista starts it when a generation needs it and stops it afterwards). If you start ComfyUI yourself, or use its desktop app, set its Address there instead (the desktop app does not listen on 8188)." = "Diga ao Regista onde ele está: Ajustes › Motores › ComfyUI › Pasta do ComfyUI (o Regista o inicia quando uma geração precisa dele e o encerra depois). Se você iniciar o ComfyUI por conta própria, ou usar o app de desktop dele, defina ali o Endereço (o app de desktop não escuta na 8188).";
 "Avvio ComfyUI e aspetto che risponda…" = "Iniciando o ComfyUI e esperando que responda…";
 "Install ComfyUI by following its own instructions (https://docs.comfy.org/installation/manual_install), in a folder with its own Python environment (.venv or venv inside that folder)." = "Instale o ComfyUI seguindo as instruções dele (https://docs.comfy.org/installation/manual_install), em uma pasta com seu próprio ambiente Python (.venv ou venv dentro dessa pasta).";
 "Install the ComfyUI-GGUF node pack (https://github.com/city96/ComfyUI-GGUF, Apache-2.0) in ComfyUI's custom_nodes folder as its page says, then restart ComfyUI: the Wan 2.2 clips need it. The other workflows use ComfyUI's own nodes (if generate.check says one is missing, update ComfyUI)." = "Instale o pacote de nós ComfyUI-GGUF (https://github.com/city96/ComfyUI-GGUF, Apache-2.0) na pasta custom_nodes do ComfyUI como a página dele explica, depois reinicie o ComfyUI: os clipes do Wan 2.2 precisam dele. Os outros workflows usam os nós do próprio ComfyUI (se o generate.check disser que falta um, atualize o ComfyUI).";
-"Get the model files: each model below lists every file, the folder it goes in, its size, its licence and the publisher's page (about 69 GB for all four). “Download” beside a missing file puts it in the models folder of the ComfyUI folder Regista knows, checked against its sha256; or download it from the publisher's page into the folder it names." = "Obtenha os arquivos dos modelos: cada modelo abaixo lista cada arquivo, a pasta onde vai, o tamanho, a licença e a página do editor (cerca de 69 GB para os quatro). “Baixar” ao lado de um arquivo que falta o coloca na pasta models da pasta do ComfyUI que o Regista conhece, verificado com o seu sha256; ou baixe-o da página do editor na pasta indicada.";
-"Part of the ComfyUI setup: “Download” beside each missing file puts it in the ComfyUI models folder it names (or download it from the publisher's page beside it), then restart ComfyUI and check again." = "Faz parte da preparação do ComfyUI: “Baixar” ao lado de cada arquivo que falta o coloca na pasta models do ComfyUI que ele indica (ou baixe-o da página do editor ao lado); depois reinicie o ComfyUI e verifique de novo.";
+"Get the model files: each model below lists every file, the folder it goes in, its size, its licence and the publisher's page (about 69 GB for all four). “Download” beside a missing file puts it in the models folder of the ComfyUI folder Regista knows, checked against its sha256; or download it from the publisher's page into the folder it names." = "Obtenha os arquivos dos modelos: cada modelo abaixo lista cada arquivo, a pasta onde vai, o tamanho, a licença e a página do autor (cerca de 69 GB para os quatro). “Baixar” ao lado de um arquivo que falta o coloca na pasta models da pasta do ComfyUI que o Regista conhece, verificado com o seu sha256; ou baixe-o da página do autor na pasta indicada.";
+"Part of the ComfyUI setup: “Download” beside each missing file puts it in the ComfyUI models folder it names (or download it from the publisher's page beside it), then restart ComfyUI and check again." = "Faz parte da preparação do ComfyUI: “Baixar” ao lado de cada arquivo que falta o coloca na pasta models do ComfyUI que ele indica (ou baixe-o da página do autor ao lado); depois reinicie o ComfyUI e verifique de novo.";
 "Indirizzo" = "Endereço";
 "Cartella di ComfyUI" = "Pasta do ComfyUI";
 "Imposta" = "Configurar";
 "Non impostata" = "Não definida";
 "c'è" = "presente";
-"manca" = "falta";
+"manca" = "ausente";
 "Spento: non risponde nessuno a questo indirizzo" = "Desligado: nada responde neste endereço";
-"Risponde · avviato da Regista" = "Responde · iniciado pelo Regista";
-"Risponde" = "Responde";
+"Risponde · avviato da Regista" = "Respondendo · iniciado pelo Regista";
+"Risponde" = "Respondendo";
 "Questa cartella non avvia ComfyUI: serve una cartella di ComfyUI con il suo ambiente Python (.venv o venv), o un programma che lo avvia." = "Esta pasta não inicia o ComfyUI: escolha uma pasta do ComfyUI com seu próprio ambiente Python (.venv ou venv), ou um programa que o inicie.";
 "Non trovata: scegli la cartella dove hai installato ComfyUI, oppure avvialo da te e scrivi il suo indirizzo." = "Não encontrada: escolha a pasta onde você instalou o ComfyUI, ou inicie-o por conta própria e digite o endereço dele.";
 "La cartella di ComfyUI, o un programma che avvia ComfyUI" = "A pasta do ComfyUI, ou um programa que inicia o ComfyUI";
-"Regista avvia ComfyUI quando una generazione ne ha bisogno e lo ferma dopo." = "O Regista inicia o ComfyUI quando uma geração precisa e o para depois.";
+"Regista avvia ComfyUI quando una generazione ne ha bisogno e lo ferma dopo." = "O Regista inicia o ComfyUI quando uma geração precisa dele e o encerra depois.";
 "Trovata in un posto consueto: Regista avvia ComfyUI da qui quando serve. Sceglila per fissarla." = "Encontrada em um lugar habitual: o Regista inicia o ComfyUI daqui quando precisa. Escolha-a para fixá-la.";
 "ripartito una volta dal fotogramma %@" = "recomeçou uma vez no quadro %@";
 "Copertina" = "Capa";
 "copertina" = "capa";
-"Nessuna copertina: porta la testina sul fotogramma e premi «Usa questo fotogramma»." = "Nenhuma capa ainda: leve o indicador de reprodução até o quadro e clique em «Usar este quadro».";
+"Nessuna copertina: porta la testina sul fotogramma e premi «Usa questo fotogramma»." = "Nenhuma capa ainda: leve o indicador de reprodução até o quadro e clique em “Usar este quadro”.";
 "Usa questo fotogramma" = "Usar este quadro";
 "Titolo della copertina" = "Título da capa";
 "Stile del titolo" = "Estilo do título";
@@ -2474,7 +2474,7 @@
 "%@ px a sinistra" = "%@ px à esquerda";
 "%@ px a destra" = "%@ px à direita";
 "Il titolo esce dalla zona che resta in entrambi i ritagli: %@." = "O título sai da área que os dois recortes mantêm: %@.";
-"Con «%@» rientra." = "Com «%@», ele cabe.";
+"Con «%@» rientra." = "Com “%@”, ele cabe.";
 "Accorcia il titolo o mandalo a capo (⌥Invio)." = "Encurte o título ou quebre-o em duas linhas (⌥Return).";
 "Imposta la copertina" = "Definir a capa";
 "Controlla la copertina" = "Verificar a capa";
@@ -2484,17 +2484,17 @@
 "Copertina nei ritagli" = "Capa dentro dos recortes";
 "Questo fotogramma come copertina del reel, per lo scaffale degli Shorts e la griglia di Instagram." = "Este quadro como capa do reel, para a prateleira dos Shorts e a grade do Instagram.";
 "Nessuna copertina" = "Nenhuma capa ainda";
-"«%@»" = "«%@»";
+"«%@»" = "“%@”";
 
 /* ComfyUI model files downloaded from their row (#121) */
 "Scarica tutti (%d file, %@)" = "Baixar todos (%d arquivos, %@)";
 "Scarico %@" = "Baixando %@";
 "Regista non sa in quale cartella è ComfyUI (lo avvia un programma, o ne conosce solo l'indirizzo): imposta la «Cartella di ComfyUI» nella riga di ComfyUI per scaricare i file da qui." = "O Regista não sabe em que pasta está o ComfyUI (um programa o inicia, ou só o endereço está definido): defina a “Pasta do ComfyUI” na linha do ComfyUI para baixar os arquivos daqui.";
-"Scaricato: riavvia ComfyUI perché lo veda." = "Baixado: reinicie o ComfyUI para que ele o veja.";
+"Scaricato: riavvia ComfyUI perché lo veda." = "Baixado: reinicie o ComfyUI para que ele reconheça o arquivo.";
 "Download annullato: «Scarica» riprende da dove si è fermato." = "Download cancelado: “Baixar” retoma de onde parou.";
 "C'è già un file con questo nome ma di un'altra dimensione: Regista non lo sovrascrive. Spostalo altrove per scaricarlo di nuovo." = "Já existe um arquivo com este nome, mas de outro tamanho: o Regista não o substitui. Mova-o para outro lugar para baixá-lo de novo.";
-"Il suo autore chiede un accesso o di accettare la licenza sulla sua pagina: scaricalo da lì e mettilo nella cartella indicata." = "O editor pede login ou que se aceite a licença na página dele: baixe-o de lá e coloque-o na pasta indicada.";
-"Il file scaricato non corrisponde al suo checksum e l'ho cancellato: scaricalo di nuovo. Se succede ancora, il file sulla pagina dell'autore è cambiato." = "O arquivo baixado não corresponde ao seu checksum e foi apagado: baixe-o de novo. Se acontecer outra vez, o arquivo na página do editor mudou.";
+"Il suo autore chiede un accesso o di accettare la licenza sulla sua pagina: scaricalo da lì e mettilo nella cartella indicata." = "O autor pede login ou que se aceite a licença na página dele: baixe-o de lá e coloque-o na pasta indicada.";
+"Il file scaricato non corrisponde al suo checksum e l'ho cancellato: scaricalo di nuovo. Se succede ancora, il file sulla pagina dell'autore è cambiato." = "O arquivo baixado não corresponde ao seu checksum e foi apagado: baixe-o de novo. Se acontecer outra vez, o arquivo na página do autor mudou.";
 "Non c'è abbastanza spazio sul disco di ComfyUI: libera altri %@, poi scarica di nuovo." = "Não há espaço suficiente no disco do ComfyUI: libere mais %@ e baixe de novo.";
 "La connessione si è interrotta dopo %@ di %@: «Scarica» riprende da lì." = "A conexão caiu depois de %@ de %@: “Baixar” retoma a partir daí.";
 "Il server ha risposto %d: riprova più tardi." = "O servidor respondeu %d: tente de novo mais tarde.";

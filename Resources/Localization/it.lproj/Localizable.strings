@@ -1,7 +1,7 @@
 /* Italian. Keys are the Italian text (the value repeats it) or semantic `area.meaning` keys with their Italian text. Scheme: Sources/Regista/App/Words.swift; check: scripts/l10n.py; terms: glossary.md. */
 "%@ (copia)" = "%@ (copia)";
 "%@ (parziale)" = "%@ (parziale)";
-"%@ blocchi · stile %@ · %@ parole chiave" = "%@ blocchi · stile %@ · %@ parole chiave";
+"%@ · stile %@ · %@" = "%@ · stile %@ · %@";
 "%@ canali" = "%@ canali";
 "%@ chiede di generare con %@. Approva solo lo scatto finale: per le prove c'è ComfyUI, gratis." = "%@ chiede di generare con %@. Approva solo lo scatto finale: per le prove c'è ComfyUI, gratis.";
 "%@ clip · %@" = "%@ clip · %@";

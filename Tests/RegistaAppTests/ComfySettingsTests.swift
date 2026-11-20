@@ -63,7 +63,7 @@ extension MouseSuites {
     }
 
     /// The ComfyUI row's detail and a model's files, drawn in Italian and French and read at full size.
-    @Test(arguments: ["it", "fr"])
+    @Test(arguments: shotLanguages)
     func theComfyUISetupAndTheModelFilesReadInEachLanguage(_ language: String) async throws {
         let app = try await AppRig()
         defer { app.close() }

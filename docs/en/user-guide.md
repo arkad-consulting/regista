@@ -8,12 +8,12 @@ It installs with one command in Terminal: everything is in [Installation and eng
 
 ## The window
 
-- *The bar on the left* has one icon per activity: **Home**, **Record**, **Media**, **Text and captions**, **Audio**,
+- *The bar on the left* has one icon per activity: **Home**, **Record**, **Media**, **Text & captions**, **Audio**,
   **Voice**, **Graphics**, **Generate**, **Export**. At the bottom are **Engines** and **Settings**. ⌘1 to ⌘9 open the
   activities in the same order. Rest the pointer on an icon to see its name.
 - *The side panel* shows the content of the chosen activity. Hide and show it with ⌃⌘S; drag its edge to widen it.
 - *The project tabs* sit at the top, in the middle. Each open project has its tab; the dot says whether it is saved.
-  The + opens a **New Tab**.
+  The + opens a **New tab**.
 - *The main area* changes with the activity: in **Home** you choose where to start, in **Record** you see the preview,
   in the editing activities you see the edit, in **Export** the result.
 - *The right panel* is the same everywhere and has three tabs: **Teleprompter** (the text you read while recording),
@@ -29,7 +29,7 @@ Every button makes one step you can undo with ⌘Z and redo with ⇧⌘Z, Claude
 
 This is the simplest path: you record, Regista edits by itself, you check and export.
 
-1. In **Home** choose **Talking reel**, then **Open Record**. If you already have a video, choose
+1. In **Home** choose **Talking-head reel**, then **Open Record**. If you already have a video, choose
    **or import a video** instead and skip to step 6.
 2. In **Record**, under **What you record**, choose **Face only**. **Camera** and **Microphone** must be on. The first
    time, macOS asks permission for the camera and the microphone: allow it.
@@ -74,7 +74,7 @@ project: what you change in one, you see in the other.
 
 - **Media**: the project's files. **Import…** adds videos, sounds and images. Double-click a file to see it in the
   **Source** monitor.
-- **Text and captions** has four tabs. **Steps** goes from the video to the captions one step at a time
+- **Text & captions** has four tabs. **Steps** goes from the video to the captions one step at a time
   (**Transcribe**, **Script**, **Choose the takes**, **Cut the pauses**, **Clean the voice**, **Captions**), or all at
   once with **Do everything**. **Captions** changes the style and the keywords. **Transcript** follows the playhead:
   click a word to go there; select words (⌥-click, ⇧-click) and take them out of the edit with ⌫. **Takes** shows every

@@ -224,7 +224,8 @@ struct TextSteps: Equatable {
             if let src = p.tracks.first(where: { $0.id == c.sourceTrack }), RegistaCore.Captions.signature(of: src) != c.sourceSignature {
                 return StepState(status: .stale, line: lookup("Il montaggio è cambiato: rigenera i sottotitoli."))
             }
-            return StepState(status: .done, line: String(format: lookup("%d blocchi · %d parole chiave"), c.chunks.count, c.keywords.count))
+            return StepState(status: .done, line: CommandLines.count(c.chunks.count, "1 blocco", "%@ blocchi") + " · "
+                             + CommandLines.count(c.keywords.count, "1 parola chiave", "%@ parole chiave"))
         }
     }
 

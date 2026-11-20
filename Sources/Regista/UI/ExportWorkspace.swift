@@ -88,9 +88,9 @@ struct ExportSettingsPanel: View {
                 }
                 section("Controlli") {
                     check("Durata", store.project.map { shortTime($0.duration.seconds) } ?? "–", ok: (store.project?.duration ?? .zero) > .zero)
-                    check("Loudness", meter.curve.integrated.isFinite ? String(format: "%.1f LUFS", meter.curve.integrated) : "–",
+                    check("Loudness", meter.curve.integrated.isFinite ? Fmt.number(meter.curve.integrated) + " LUFS" : "–",
                           ok: LoudnessTarget.verdict(integrated: meter.curve.integrated) == .ok)
-                    check("Picco reale", meter.curve.truePeak.isFinite ? String(format: "%.1f dBTP", meter.curve.truePeak) : "–",
+                    check("Picco reale", meter.curve.truePeak.isFinite ? Fmt.number(meter.curve.truePeak) + " dBTP" : "–",
                           ok: meter.curve.truePeak.isFinite && !LoudnessTarget.peakOver(meter.curve.truePeak))
                     check("Sottotitoli", staleCaptions ? "da rigenerare" : (hasCaptions ? "aggiornati" : "nessuno"), ok: !staleCaptions)
                     if let p = store.project, let kit = p.brand { brandCheck(kit, p) }

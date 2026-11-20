@@ -20,7 +20,7 @@ Abra a atividade **Voz**. Enquanto você não tem uma voz, o painel é a porta p
 **Como funciona**, as quatro etapas com o tempo de cada uma.
 
 1. **Escolha o idioma**: cada idioma tem sua voz. Comece pelo idioma dos seus vídeos; os outros você adiciona depois.
-2. **Leia o tom neutro**, cerca de dez minutos: assim que terminar, a voz já pode ser usada.
+2. **Leia no tom neutro**, cerca de dez minutos: assim que terminar, a voz já pode ser usada.
 3. **Adicione outros tons**, opcional, cerca de dois minutos cada.
 4. **Treine a voz**, opcional, em geral umas duas horas: deixa a voz mais fiel. Requer um Mac com pelo menos 32 GB
    (nível Pro).

@@ -23,7 +23,7 @@ connecting Claude and updating: [Installation and engines](docs/en/install.md).
 
 ## Your first reel
 
-1. **Home › Talking reel › Open Record**: camera and microphone on, your text in the teleprompter tab, ⇧⌘R to record.
+1. **Home › Talking-head reel › Open Record**: camera and microphone on, your text in the teleprompter tab, ⇧⌘R to record.
 2. When you stop, Regista imports the take and makes the basic edit: cuts, best takes, clean voice, captions.
 3. In the **Simple** level, check the six steps (cut and takes, captions, appearance, music and sounds, voice, graphics).
 4. **Export the reel**: a 9:16 mp4 at −15 LUFS, plus `.srt` captions and a Shotcut project if you want them.

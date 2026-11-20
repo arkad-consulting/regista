@@ -9,12 +9,12 @@ Every shortcut of the app, from the one catalog the menus take their keys from a
 | Keys | Action | Id |
 |---|---|---|
 | ⌘N | New project… | `newProject` |
-| ⌘T | New Tab | `newTab` |
+| ⌘T | New tab | `newTab` |
 | ⌘O | Open project… | `openProject` |
 | ⌘I | Import media… | `importMedia` |
-| ⌘W | Close Tab | `closeTab` |
+| ⌘W | Close tab | `closeTab` |
 | ⌘S | Save | `save` |
-| ⇧⌘S | Save As… | `saveAs` |
+| ⇧⌘S | Save as… | `saveAs` |
 | ⌘, | Settings | `settings` |
 
 ## Edit
@@ -45,7 +45,7 @@ Every shortcut of the app, from the one catalog the menus take their keys from a
 | ⌘1 | Home | `activity.1` |
 | ⌘2 | Record | `activity.2` |
 | ⌘3 | Media | `activity.3` |
-| ⌘4 | Text and captions | `activity.4` |
+| ⌘4 | Text & captions | `activity.4` |
 | ⌘5 | Audio | `activity.5` |
 | ⌘6 | Voice | `activity.6` |
 | ⌘7 | Graphics | `activity.7` |

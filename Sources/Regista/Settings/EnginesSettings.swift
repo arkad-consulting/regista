@@ -319,7 +319,7 @@ struct EnginesSettings: View {
         let parts = text.split(separator: " ")
         guard parts.count == 2, let value = Double(parts[0]), ["GB", "MB"].contains(String(parts[1])) else { return text }
         let digits = parts[0].split(separator: ".").dropFirst().first?.count ?? 0
-        let number = value.formatted(.number.precision(.fractionLength(digits)))
+        let number = value.formatted(.number.precision(.fractionLength(digits)).locale(Words.locale))
         return parts[1] == "GB" ? loc("%@ GB", number) : loc("%@ MB", number)
     }
 

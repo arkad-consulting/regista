@@ -61,7 +61,7 @@ extension MouseSuites {
         while !done() && Date() < end { await app.idle(0.1) }
     }
 
-    @Test(arguments: ["it", "fr"])
+    @Test(arguments: shotLanguages)
     func aMissingFileIsDownloadedFromItsRowWithItsBarAndCancel(_ language: String) async throws {
         let server = try StandInFiles()
         let rife = try #require(EngineManifest.shared.modelFile("rife_v4.26.safetensors"))
@@ -94,7 +94,7 @@ extension MouseSuites {
         let job = try #require(app.store.jobs.latest(kind), "«Scarica» started no job")
         #expect(job.isRunning && server.requests.filter { $0.path == "/" + rife.name }.count == 1, "one download of that file")
         #expect(Self.button(w("Annulla"), of: rife.name, in: app) != nil, "«Annulla» in the line")
-        #expect(!rig.elements(containing: "44 %").isEmpty || !rig.elements(containing: "%").isEmpty, "the percent")
+        #expect(!rig.elements(containing: "%").isEmpty, "the percent")
         #expect(Self.button(w("Scarica"), of: esrgan.name, in: app) != nil, "the other file keeps its «Scarica»")
         #expect(RigGuard.events.dropFirst(events).isEmpty, "nothing else reacted: \(RigGuard.events.dropFirst(events))")
         try shot("downloading")

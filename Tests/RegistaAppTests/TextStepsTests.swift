@@ -330,7 +330,7 @@ extension MouseSuites {
         // The card in the jobs list: the bar's value and the line both say it is an estimate.
         let rig = MouseRig(JobsListView(groups: [(tab: "Reel", jobs: [running])], bench: nil).frame(width: 360), size: CGSize(width: 360, height: 220))
         defer { rig.close() }
-        let percent = String(Int(((running.progress ?? 0) * 100).rounded())) + " %"
+        let percent = JobProgressBar.percent(running.progress ?? 0, estimated: false)
         let bar = try #require(rig.element("Avanzamento"))
         #expect(bar.value == percent + " · " + loc("stima") || bar.valueDescription == percent + " · " + loc("stima"), "\(bar)")
         #expect(!rig.elements(containing: percent + " · " + loc("stima") + " · ").isEmpty)

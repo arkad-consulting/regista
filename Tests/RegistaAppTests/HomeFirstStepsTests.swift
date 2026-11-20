@@ -90,7 +90,7 @@ extension MouseSuites {
     /// Both rows pending (no model, no Claude client on this app's server), in Italian and French: «Scarica» starts the
     /// install job of Settings › Motori once (the rig's installer writes down `--only whisper-model` and installs
     /// nothing); the row is still there afterwards with its button, and the start cards are still on screen.
-    @Test(arguments: ["it", "fr"])
+    @Test(arguments: shotLanguages)
     func bothRowsAndTheDownload(_ language: String) async throws {
         let app = try await AppRig(project: nil, services: model(present: false))
         defer { app.close() }
@@ -115,7 +115,7 @@ extension MouseSuites {
     }
 
     /// A download running (the job Settings › Motori shows): the row shows its progress and «Annulla», which stops it.
-    @Test(arguments: ["it", "fr"])
+    @Test(arguments: shotLanguages)
     func aDownloadRunning(_ language: String) async throws {
         let app = try await AppRig(project: nil, services: model(present: false))
         defer { app.close() }
@@ -124,7 +124,7 @@ extension MouseSuites {
         app.store.jobs.update(job, progress: 0.42, detail: nil)
         await Self.host(app, bundle: try shippedApp(), language: language)
         #expect(app.rig.element(Self.word("Scarica", language)) == nil, "«Scarica» while the download runs")
-        #expect(!app.rig.elements(containing: "42 %").isEmpty, "\(language): the progress is not shown")
+        #expect(!app.rig.elements(containing: JobProgressBar.percent(0.42, estimated: false)).isEmpty, "\(language): the progress is not shown")
         try Self.snapshot(app, "n26-home-first-steps-downloading-\(language).png")
         let cancel = try #require(app.rig.element(Self.word("Annulla", language)), "no «Annulla»")
         app.rig.click(cancel.centre)
@@ -200,7 +200,7 @@ extension MouseSuites {
     }
 
     /// #119: the installer fails: the row stays, with the installer's own reason under it, and «Scarica» again.
-    @Test(arguments: ["it", "fr"])
+    @Test(arguments: shotLanguages)
     func aFailedDownloadKeepsTheRowWithItsReason(_ language: String) async throws {
         let file = modelFile(present: false)
         let (stand, _) = try installer(writing: file, fails: true)
@@ -268,7 +268,7 @@ extension MouseSuites {
 
     /// Nothing pending (the model there, Claude Code connected to this app — the rig's client runs the test process's
     /// server): the block is not in the view tree, in Italian and French.
-    @Test(arguments: ["it", "fr"])
+    @Test(arguments: shotLanguages)
     func nothingPendingNoBlock(_ language: String) async throws {
         let app = try await AppRig(project: nil, services: model(present: true))
         defer { app.close() }

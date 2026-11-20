@@ -20,7 +20,7 @@ under **How it works**, the four steps with how long each takes.
 
 1. **Choose the language**: each language has its own voice. Start with the language of your videos; add the others
    later.
-2. **Read the neutral tone**, about ten minutes: as soon as it is done, the voice is ready to use.
+2. **Read in the neutral tone**, about ten minutes: as soon as it is done, the voice is ready to use.
 3. **Add more tones**, optional, about two minutes each.
 4. **Train the voice**, optional, usually a couple of hours: it makes the voice more faithful. It needs a Mac with at
    least 32 GB (Pro tier).

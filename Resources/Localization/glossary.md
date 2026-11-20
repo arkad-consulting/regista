@@ -8,6 +8,9 @@ Keep these the same everywhere in `*.lproj/Localizable.strings` (scheme and chec
 - **French**: *vous*, as macOS ("Importez votre vidéo"); a space before `: ; ? !` and inside « guillemets », as macOS.
 - **Portuguese**: Brazilian wording kept as neutral as possible, as macOS pt-BR ("Importe seu vídeo"); avoid
   forms that read only as European Portuguese (*ecrã*, *ficheiro*, *utilizador*) and only as slang.
+- **Quotes** around a name or a typed text: « » in Italian and French, “ ” in English and Portuguese.
+- **Numbers** are written as the words' language writes them, whatever the Mac's region: a decimal point in English, a
+  decimal comma in the other three (`Words.locale`).
 
 | Italian (key) | English | Français | Português |
 |---|---|---|---|
@@ -19,6 +22,7 @@ Keep these the same everywhere in `*.lproj/Localizable.strings` (scheme and chec
 | Motori | Engines | Moteurs | Motores |
 | Media | Media | Médias | Mídia |
 | Testi e sottotitoli | Text & captions | Textes et sous-titres | Textos e legendas |
+| Reel parlato (the kind of video, Inizio's first card) | Talking-head reel | Reel face caméra | Reel falado |
 | sottotitoli | captions | sous-titres | legendas |
 | gobbo | teleprompter | prompteur | teleprompter |
 | copione | script | script | roteiro |

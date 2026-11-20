@@ -109,16 +109,18 @@ extension MouseSuites {
         #expect(image.pixelsWide == 1080 && image.pixelsHigh == 1920)
         #expect(RigGuard.events.dropFirst(events).allSatisfy { $0.kind == .panel }, "something besides the save panel showed: \(RigGuard.events.dropFirst(events))")
 
-        // French: the same three states.
-        try await app.store.perform("cover.set", ["title": "Tre parole qui", "place": "center"])
-        await host("fr")
-        try shot("closed-fr")
-        app.rig.click(try #require(app.rig.element(MouseRig.table("fr").localizedString(forKey: "Copertina", value: nil, table: nil))).centre)
-        await settleRender()
-        try shot("open-fits-fr")
-        try await app.store.perform("cover.set", ["title": "uno\\ndue\\ntre\\nquattro\\ncinque", "place": "top"])
-        await settleRender()
-        try shot("open-fails-fr")
+        // The other languages of the renders (French, unless REGISTA_SHOT_LANGUAGES names others): the same three states.
+        for lang in shotLanguages where lang != "it" {
+            try await app.store.perform("cover.set", ["title": "Tre parole qui", "place": "center"])
+            await host(lang)
+            try shot("closed-\(lang)")
+            app.rig.click(try #require(app.rig.element(MouseRig.table(lang).localizedString(forKey: "Copertina", value: nil, table: nil))).centre)
+            await settleRender()
+            try shot("open-fits-\(lang)")
+            try await app.store.perform("cover.set", ["title": "uno\\ndue\\ntre\\nquattro\\ncinque", "place": "top"])
+            await settleRender()
+            try shot("open-fails-\(lang)")
+        }
 
         // Closed again by its header; still there.
         await host("it")

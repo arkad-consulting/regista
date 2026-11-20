@@ -466,10 +466,10 @@ struct RulesSettings: View {
         .frame(minHeight: 34)
     }
 
-    /// "0,3", "28": a number as the person reads it.
+    /// "0,3", "28": a number as the person reads it, in the words' language.
     static func number(_ v: Double) -> String {
         let f = NumberFormatter()
-        f.locale = Locale.current
+        f.locale = Words.locale
         f.maximumFractionDigits = 2
         f.minimumFractionDigits = 0
         return f.string(from: NSNumber(value: v)) ?? "\(v)"
