@@ -1454,7 +1454,7 @@ before every export (`Sources/RegistaCore/Rules/`, commands in `Commands/RulesCo
 
 Scenarios name their footage through variables with overridable `defaults` (`REGISTA_GOLDEN_MEDIA`, the folder of
 the WeSites test take, default `~/.config/regista/test-media/wesites-2026-10-26`; `REGISTA_TEST_MEDIA`, its raw take;
-`REGISTA_TEST_MEDIA_DIR`, the French takes, default `~/Movies/Regista`; `REGISTA_SFX_LIBRARY`, `REGISTA_COMFY_RUN`).
+`REGISTA_TEST_MEDIA_DIR`, the French takes, default `~/Movies/Regista`; `REGISTA_SFX_LIBRARY`).
 The footage is not in the repository: a clone without it prints `skipped (footage missing …)` and passes. Code
 defaults never name a personal folder: `EngineConfig` defaults are where `scripts/install.sh` puts the engines, and a
 different setup goes in `engines.json`.

@@ -159,6 +159,22 @@ private func statusIDs(tier: MachineTier) throws -> (engines: [JSONValue], compo
     for lang in ["en", "pt", "it", "fr"] { #expect(manifest.entry("aligner-\(lang)")?.install.method == "installer") }
 }
 
+/// LICENSES.md's ComfyUI row names every ComfyUI model of the manifest, in bold, with its files' licences: a model added to
+/// the manifest, or a file with a new licence, fails here until the licence table says it.
+@Test func everyComfyUIModelOfTheManifestIsInTheLicenceTable() throws {
+    let text = try String(contentsOf: repo.appendingPathComponent("LICENSES.md"), encoding: .utf8)
+    let row = try #require(text.split(separator: "\n").first { $0.hasPrefix("| ComfyUI") }, "LICENSES.md has no ComfyUI row")
+    #expect(row.contains(try #require(manifest.entry("comfyui")).licence))
+    let models = manifest.entries.filter { $0.dependsOn.contains("comfyui") && !$0.modelFiles.isEmpty }
+    #expect(!models.isEmpty)
+    for m in models {
+        #expect(row.contains("**\(m.name)**"), "the ComfyUI row of LICENSES.md does not name \(m.name) (\(m.id))")
+        for licence in Set(m.modelFiles.map(\.licence)) {
+            #expect(row.contains(licence), "the ComfyUI row of LICENSES.md does not give \(m.name)'s licence \(licence)")
+        }
+    }
+}
+
 @Test func manifestParsingErrorsAreReadable() throws {
     let lock = "a | 1 | - | - | - | 10 | https://x/a\n"
     func error(_ json: String, lock: String = lock) -> String {
