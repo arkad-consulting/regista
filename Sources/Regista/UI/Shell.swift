@@ -568,7 +568,10 @@ enum KeyMonitor {
         case (124, _): p.step(frames: flags.contains(.shift) ? 30 : 1)     // →
         case (115, _): p.seek(0)                                       // home
         case (119, _): p.seek(p.duration)                              // end
-        case (51, _), (117, _): store.deleteSelection(ripple: flags.contains(.shift))   // ⌫, ⌦
+        case (51, _), (117, _):                                        // ⌫, ⌦
+            // Media has the focus: the selected tile's file leaves the project (#142); otherwise the timeline's selection goes.
+            if store.nav.activity == .media, store.mediaFocus, let id = store.sourceAssetID { store.removeAsset(id) }
+            else { store.deleteSelection(ripple: flags.contains(.shift)) }
         case (_, "v"): store.tool = .select
         case (_, "c"): store.tool = .razor
         case (_, "t"): store.tool = .text

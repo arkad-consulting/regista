@@ -1419,6 +1419,17 @@
 "Rimonta con le riprese scelte (poi riapplica voce pulita e inquadrature)" = "Remonter avec les prises choisies (puis réappliquer la voix nettoyée et les cadrages)";
 "Rimuovere %@?" = "Supprimer %@ ?";
 "Rimuovi" = "Supprimer";
+"Rimuovi dal progetto" = "Retirer du projet";
+"Tolto «%@» dal progetto" = "« %@ » retiré du projet";
+"Tolto «%@» dal progetto con %@" = "« %@ » retiré du projet avec %@";
+"Rimuovere «%@»?" = "Retirer « %@ » ?";
+"È usato in 1 clip della timeline: sparisce anche da lì." = "Il est utilisé dans 1 clip de la timeline : ce clip disparaît aussi.";
+"È usato in %@ clip della timeline: spariscono anche da lì." = "Il est utilisé dans %@ clips de la timeline : ces clips disparaissent aussi.";
+"Rimetti il file nel progetto" = "Remettre le fichier dans le projet";
+"Sposta il file nel Cestino" = "Placer le fichier dans la corbeille";
+"Sposta il file nel Cestino di macOS: la rimozione non si potrà più annullare da qui" = "Placer le fichier dans la corbeille de macOS : le retrait ne pourra plus être annulé d'ici";
+"Il file di «%@» è nel Cestino: la rimozione non si annulla più da qui." = "Le fichier de « %@ » est dans la corbeille : le retrait ne peut plus être annulé d'ici.";
+"Togli un file dal progetto" = "Retirer un fichier du projet";
 "Rimuovi…" = "Supprimer…";
 "Rimuovo…" = "Suppression…";
 "Rinomina" = "Renommer";

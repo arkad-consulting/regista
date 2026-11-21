@@ -387,10 +387,19 @@ final class Workbench: ObservableObject {
             var assetID: String
         }
 
+        /// A file taken out of the project (#142): its tab (Annulla), its name, and its file when Regista made it (the
+        /// only kind «Sposta il file nel Cestino» is offered for).
+        struct Removal: Equatable {
+            var tabID: String
+            var name: String
+            var trash: URL?
+        }
+
         var text: String
         /// The file "Mostra nel Finder" shows.
         var file: URL?
         var take: Take?
+        var removal: Removal?
     }
 
     // MARK: Unsaved work

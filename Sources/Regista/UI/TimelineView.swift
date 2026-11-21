@@ -461,6 +461,7 @@ struct TimelinePanel: View {
     }
 
     private func begin(_ p: CGPoint, _ rows: [LaneRow]) -> DragState {
+        store.mediaFocus = false   // a press on the timeline takes the focus from Media (#142: ⌫ acts here again)
         if store.tool == .hand { return DragState(kind: .hand, start: p) }
         if p.y < Self.rulerHeight { return DragState(kind: .scrub, start: p) }
         guard let row = rowAt(p.y, rows), let track = row.track else { return DragState(kind: .empty, start: p) }

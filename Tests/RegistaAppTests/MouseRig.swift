@@ -865,6 +865,7 @@ enum RigGuard {
         holdTheMainLoop()
         guardProcesses()
         guardTrash()
+        guardRecycle()
         guardPasteboard()
         atexit {
             let stack = Thread.callStackSymbols
@@ -979,6 +980,23 @@ enum RigGuard {
                 error?.pointee = e
                 return false
             }
+        }
+        method_setImplementation(m, imp_implementationWithBlock(block))
+    }
+
+    /// NSWorkspace's recycle (the Finder's Trash, «Sposta il file nel Cestino», #142) never reaches the Trash of the person
+    /// running the tests either: each file goes to RigTrash.folder and the completion gets the new places.
+    private static func guardRecycle() {
+        typealias Done = @convention(block) (NSDictionary, NSError?) -> Void
+        let sel = NSSelectorFromString("recycleURLs:completionHandler:")
+        guard let m = class_getInstanceMethod(NSWorkspace.self, sel) else { return }
+        let block: @convention(block) (AnyObject, NSArray, AnyObject?) -> Void = { _, urls, handler in
+            var moved: [URL: URL] = [:]
+            var failure: NSError?
+            for case let url as URL in urls {
+                do { moved[url] = try RigTrash.take(url) } catch let e as NSError { failure = e }
+            }
+            if let handler { unsafeBitCast(handler, to: Done.self)(moved as NSDictionary, failure) }
         }
         method_setImplementation(m, imp_implementationWithBlock(block))
     }

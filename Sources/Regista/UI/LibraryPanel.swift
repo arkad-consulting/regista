@@ -8,6 +8,8 @@ import UniformTypeIdentifiers
 struct MediaTab: View {
     @EnvironmentObject private var store: EditorStore
     @EnvironmentObject private var media: MediaCache
+    /// The tile under the pointer (its trash icon shows, #142).
+    @State private var hovered: String?
 
     var body: some View {
         let assets = store.project?.assets ?? []
@@ -82,6 +84,21 @@ struct MediaTab: View {
                 }
             .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.s))
             .overlay(RoundedRectangle(cornerRadius: Ed.Radius.s).strokeBorder(selected ? Ed.gold : Ed.line, lineWidth: selected ? 1.5 : 1))
+            // Remove from the project (#142): a one-off action, small and inside the tile, on the hovered or selected one.
+            .overlay(alignment: .topTrailing) {
+                if selected || hovered == a.id {
+                    Button { store.removeAsset(a.id) } label: {
+                        Image(systemName: "trash").font(Ed.icon(Ed.TypeSize.micro, .semibold)).foregroundStyle(Ed.text)
+                            .frame(width: 20, height: 20)
+                            .background(Circle().fill(Color.black.opacity(0.65)))
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .tip("Rimuovi dal progetto")
+                    .accessibilityLabel(Text(verbatim: loc("Rimuovi dal progetto")))
+                    .padding(Ed.Space.xs)
+                }
+            }
             .overlay(alignment: .bottomTrailing) {
                 Text(verbatim: a.image?.kind == .still ? loc("Immagine") : shortTime(a.duration.seconds)).font(Ed.mono(Ed.TypeSize.micro, .medium)).foregroundStyle(Ed.text)
                     .padding(.horizontal, Ed.Space.xs).padding(.vertical, 1)
@@ -94,8 +111,9 @@ struct MediaTab: View {
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture(count: 2) { store.sourceAssetID = a.id }
-        .onTapGesture { store.sourceAssetID = a.id }
+        .onHover { inside in hovered = inside ? a.id : (hovered == a.id ? nil : hovered) }
+        .onTapGesture(count: 2) { pick(a) }
+        .onTapGesture { pick(a) }
         // Drag it onto a track of the timeline (E1 #53).
         .draggable(MediaDrop.assetPrefix + a.id) {
             Label(a.name, systemImage: a.image != nil ? "photo" : a.video == nil ? "waveform" : "film")
@@ -105,8 +123,16 @@ struct MediaTab: View {
             Button(loc("Mostra in Sorgente")) { store.sourceAssetID = a.id }
             Button(loc("Metti in timeline al cursore")) { store.placeAtPlayhead(asset: a.id) }
             Button(loc("Mostra nel Finder")) { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: a.path)]) }
+            Divider()
+            Button(loc("Rimuovi dal progetto")) { store.removeAsset(a.id) }
         }
         .groupTip(a.origin.map { loc("Generato (%@) da %@", $0.process, $0.assetID) } ?? a.path)
+    }
+
+    /// A click on a tile: its file in Source, and the focus on Media (⌫ then removes it, #142).
+    private func pick(_ a: MediaAsset) {
+        store.sourceAssetID = a.id
+        store.mediaFocus = true
     }
 }
 

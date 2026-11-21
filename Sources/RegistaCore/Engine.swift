@@ -96,7 +96,7 @@ public final class Engine {
 public enum Commands {
     public static let all: [any Command.Type] = [
         ProjectNew.self, ProjectFormat.self, ProjectOpen.self, ProjectSave.self, ProjectClose.self, ProjectState.self, ProjectList.self,
-        RecipeGet.self, MediaList.self, TextRead.self, MediaImport.self,
+        RecipeGet.self, MediaList.self, TextRead.self, MediaImport.self, MediaRemove.self,
         TrackAdd.self, TrackSet.self, TrackDelete.self,
         TimelinePlace.self, TimelineCut.self, TimelineTrim.self, TimelineMove.self, TimelineDelete.self, TimelineLink.self, TimelineDuplicate.self, ClipSet.self,
         HistoryUndo.self, HistoryRedo.self,

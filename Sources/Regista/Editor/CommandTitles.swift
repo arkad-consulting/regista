@@ -107,6 +107,7 @@ enum CommandTitles {
         "media.list": "Elenca i file",
         "media.measureLoudness": "Misura il volume",
         "media.probe": "Leggi un file",
+        "media.remove": "Togli un file dal progetto",
         "media.synthesize": "Crea un file di prova",
         "meters.add": "Aggiungi un indicatore",
         "motion.add": "Aggiungi un'animazione",

@@ -1419,6 +1419,17 @@
 "Rimonta con le riprese scelte (poi riapplica voce pulita e inquadrature)" = "Rimonta con le riprese scelte (poi riapplica voce pulita e inquadrature)";
 "Rimuovere %@?" = "Rimuovere %@?";
 "Rimuovi" = "Rimuovi";
+"Rimuovi dal progetto" = "Rimuovi dal progetto";
+"Tolto «%@» dal progetto" = "Tolto «%@» dal progetto";
+"Tolto «%@» dal progetto con %@" = "Tolto «%@» dal progetto con %@";
+"Rimuovere «%@»?" = "Rimuovere «%@»?";
+"È usato in 1 clip della timeline: sparisce anche da lì." = "È usato in 1 clip della timeline: sparisce anche da lì.";
+"È usato in %@ clip della timeline: spariscono anche da lì." = "È usato in %@ clip della timeline: spariscono anche da lì.";
+"Rimetti il file nel progetto" = "Rimetti il file nel progetto";
+"Sposta il file nel Cestino" = "Sposta il file nel Cestino";
+"Sposta il file nel Cestino di macOS: la rimozione non si potrà più annullare da qui" = "Sposta il file nel Cestino di macOS: la rimozione non si potrà più annullare da qui";
+"Il file di «%@» è nel Cestino: la rimozione non si annulla più da qui." = "Il file di «%@» è nel Cestino: la rimozione non si annulla più da qui.";
+"Togli un file dal progetto" = "Togli un file dal progetto";
 "Rimuovi…" = "Rimuovi…";
 "Rimuovo…" = "Rimuovo…";
 "Rinomina" = "Rinomina";

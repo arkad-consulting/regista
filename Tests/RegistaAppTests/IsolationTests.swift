@@ -257,6 +257,13 @@ extension MouseSuites {
         try FileManager.default.trashItem(at: file, resultingItemURL: &out)
         #expect(!FileManager.default.fileExists(atPath: file.path))
         #expect((out as URL?)?.path.hasPrefix(RigTrash.folder.path) == true && RigTrash.taken.contains("gone.txt"))
+        // NSWorkspace's recycle (#142) lands there too, and its completion says where.
+        let recycled = rigTempDir("trash").appendingPathComponent("recycled.txt")
+        try Data("x".utf8).write(to: recycled)
+        nonisolated(unsafe) var places: [URL: URL] = [:]
+        NSWorkspace.shared.recycle([recycled]) { moved, _ in places = moved }
+        #expect(!FileManager.default.fileExists(atPath: recycled.path) && RigTrash.taken.contains("recycled.txt"))
+        #expect(places[recycled]?.path.hasPrefix(RigTrash.folder.path) == true, "\(places)")
         let general = NSPasteboard.general.changeCount, writes = RigPasteboard.generalWrites.count
         NSPasteboard.general.clearContents()
         #expect(!NSPasteboard.general.setString("rig", forType: .string))

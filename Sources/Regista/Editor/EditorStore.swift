@@ -115,12 +115,21 @@ final class EditorStore: ObservableObject {
     var engineSummary: EngineSummary? { bench.engineSummary }
     @Published var tool: Tool = .select
     @Published var selection: Set<String> = [] {
-        didSet { if !selection.isEmpty, captionPick != nil { captionPick = nil } }
+        didSet {
+            if !selection.isEmpty, captionPick != nil { captionPick = nil }
+            if !selection.isEmpty { mediaFocus = false }
+        }
     }
     /// A caption block picked on the timeline (the inspector shows its style, keywords and text).
     @Published var captionPick: CaptionPick? {
-        didSet { if captionPick != nil, !selection.isEmpty { selection = [] } }
+        didSet {
+            if captionPick != nil, !selection.isEmpty { selection = [] }
+            if captionPick != nil { mediaFocus = false }
+        }
     }
+    /// The Media panel has the focus (a tile was clicked, nothing chosen on the timeline since): ⌫ removes the selected
+    /// tile's file from the project (#142) instead of deleting clips.
+    @Published var mediaFocus = false
     /// Clips copied with ⌘C (pasted at the playhead with ⌘V).
     var clipboard: [String] = []
     /// Asset shown in the Source monitor.
@@ -138,7 +147,9 @@ final class EditorStore: ObservableObject {
         set { bench.showBrandKits = newValue }
     }
     /// Selected transcript word range (timeline word indices).
-    @Published var wordSelection: ClosedRange<Int>?
+    @Published var wordSelection: ClosedRange<Int>? {
+        didSet { if wordSelection != nil { mediaFocus = false } }
+    }
     /// Timeline zoom, points per second; `autoFit` keeps the whole edit in view until the user zooms.
     @Published var pxPerSec: Double = 20
     @Published var autoFit = true

@@ -54,6 +54,10 @@ enum CommandLines {
             if let d = r.value(at: "asset.duration")?.doubleValue, d > 0 { return loc("Importato «%@» · %@", name, shortTime(d)) }
             return loc("Importato «%@»", name)
         case "media.extractAudio": return loc("Audio estratto")
+        case "media.remove":
+            let name = r["name"]?.stringValue ?? ""
+            let n = int(r["removedClips"]) ?? 0
+            return n == 0 ? loc("Tolto «%@» dal progetto", name) : loc("Tolto «%@» dal progetto con %@", name, count(n, "1 clip", "%d clip"))
         case "transcript.run": return count(int(r["words"]) ?? 0, "1 parola trascritta", "%@ parole trascritte")
         case "transcript.deleteWords":
             if let pieces = r["ranges"]?.arrayValue { return count(pieces.count, "Tolto 1 pezzo dal montaggio", "Tolti %@ pezzi dal montaggio") }

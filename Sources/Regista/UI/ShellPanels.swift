@@ -155,8 +155,9 @@ struct MainArea: View {
 }
 
 /// One line under the project tabs saying where a finished recording went, with "Vai al montaggio" (the take in the
-/// editor), "Mostra nel Finder" for its file and a close button (#39, #140). It stays until closed or the next recording
-/// starts.
+/// editor), "Mostra nel Finder" for its file and a close button (#39, #140), or that a file left the project, with
+/// Annulla and, for Regista's own recording, «Sposta il file nel Cestino» (#142). It stays until closed or the next
+/// recording starts.
 struct NoticeBar: View {
     @ObservedObject var bench: Workbench
 
@@ -180,6 +181,18 @@ struct NoticeBar: View {
             list.append(Action(title: "Mostra nel Finder", symbol: "folder", tip: "Mostra il file della registrazione nel Finder") {
                 NSWorkspace.shared.activateFileViewerSelecting([file])
             })
+        }
+        if let r = n.removal {
+            list.append(Action(title: "menu.undo", symbol: "arrow.uturn.backward", tip: "Rimetti il file nel progetto") {
+                bench.notice = nil
+                bench.tab(r.tabID)?.undoRemoval()
+            })
+            if let file = r.trash {
+                list.append(Action(title: "Sposta il file nel Cestino", symbol: "trash",
+                                   tip: "Sposta il file nel Cestino di macOS: la rimozione non si potrà più annullare da qui") {
+                    bench.tab(r.tabID)?.trashRemovedFile(file, name: r.name)
+                })
+            }
         }
         return list
     }

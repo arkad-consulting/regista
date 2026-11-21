@@ -1419,6 +1419,17 @@
 "Rimonta con le riprese scelte (poi riapplica voce pulita e inquadrature)" = "Re-cut with the chosen takes (then reapply clean voice and framing)";
 "Rimuovere %@?" = "Remove %@?";
 "Rimuovi" = "Remove";
+"Rimuovi dal progetto" = "Remove from project";
+"Tolto «%@» dal progetto" = "Removed “%@” from the project";
+"Tolto «%@» dal progetto con %@" = "Removed “%@” from the project with %@";
+"Rimuovere «%@»?" = "Remove “%@”?";
+"È usato in 1 clip della timeline: sparisce anche da lì." = "It is used in 1 clip on the timeline: that clip goes too.";
+"È usato in %@ clip della timeline: spariscono anche da lì." = "It is used in %@ clips on the timeline: those clips go too.";
+"Rimetti il file nel progetto" = "Put the file back in the project";
+"Sposta il file nel Cestino" = "Move the file to the Trash";
+"Sposta il file nel Cestino di macOS: la rimozione non si potrà più annullare da qui" = "Move the file to the macOS Trash: the removal can no longer be undone from here";
+"Il file di «%@» è nel Cestino: la rimozione non si annulla più da qui." = "The file of “%@” is in the Trash: the removal can no longer be undone from here.";
+"Togli un file dal progetto" = "Remove a file from the project";
 "Rimuovi…" = "Remove…";
 "Rimuovo…" = "Removing…";
 "Rinomina" = "Rename";
