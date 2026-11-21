@@ -7,7 +7,7 @@ import Testing
 
 /// A stereo 48 kHz float WAV of `seconds` (a quiet 220 Hz tone): stands in for a voice.say voice-over and its mix.
 func syntheticVoice(seconds: Double) throws -> URL {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-voice-\(UUID().uuidString).wav")
+    let url = TemporaryFolder.url.appendingPathComponent("regista-voice-\(UUID().uuidString).wav")
     let format = AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 2)!
     let n = AVAudioFrameCount(seconds * 48_000)
     let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: n)!
@@ -47,7 +47,7 @@ func voiceOnlyProject(_ voice: URL, seconds: Double, width: Int = 1080, height: 
     p.brand = BrandKit.arkad   // surface #14100A
     let job = RenderJob(project: p, preset: .named(nil, project: p))
     #expect(job.background == "#14100A")
-    let out = FileManager.default.temporaryDirectory.appendingPathComponent("regista-faceless-\(UUID().uuidString).mp4")
+    let out = TemporaryFolder.url.appendingPathComponent("regista-faceless-\(UUID().uuidString).mp4")
     defer { try? FileManager.default.removeItem(at: out) }
     let report = try AVRenderer().export(job, audio: voice, to: out, bitrate: 4_000_000)
     #expect(report.frames == 60)

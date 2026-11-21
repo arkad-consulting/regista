@@ -37,7 +37,7 @@ import RegistaEngines
 /// A circle overlay rendered through the export compositor (the one the Program player uses) for each format, then
 /// drawn by the monitor's own drawing code into a monitor area: the circle stays a circle in the frame and on screen.
 @Test func circleStaysACircleInEveryFormat() throws {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-e0-\(UUID().uuidString)")
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-e0-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: dir) }
     let png = dir.appendingPathComponent("circle.png")

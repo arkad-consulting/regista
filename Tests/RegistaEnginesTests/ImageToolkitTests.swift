@@ -22,7 +22,7 @@ private func jpegSize(_ url: URL) throws -> (Int, Int, String?) {
 }
 
 @Test func previewsAndContactSheetsAreDownscaledJPEGs() throws {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-img-\(UUID().uuidString)")
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-img-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     let tk = CGImageToolkit()
     let png = try framePNG(in: dir, "f.png")

@@ -55,8 +55,17 @@ if [ -d "$DEV/Frameworks/Testing.framework" ] && ! xcode-select -p | grep -q Xco
         -Xlinker -rpath -Xlinker "$DEV/usr/lib")
 fi
 
-scratch="$(mktemp -d -t regista-test)"
-trap 'rm -rf "$scratch"' EXIT
+# The run's own temporary folder (#138): every temporary file of the tests and of the processes they start goes there
+# (REGISTA_TMPDIR, read by TemporaryFolder; Foundation's temporary directory ignores TMPDIR on macOS), and the folder
+# goes when the run ends, whatever its result. A run that was stopped leaves its folder: such folders go once they are
+# a day old.
+system_tmp="${TMPDIR:-/tmp}"; system_tmp="${system_tmp%/}"
+find "$system_tmp" -maxdepth 1 -name 'regista-run-*' -mtime +0 -exec rm -rf {} + 2>/dev/null || true
+run_tmp="$system_tmp/regista-run-$$"
+rm -rf "$run_tmp"; mkdir -p "$run_tmp"
+export REGISTA_TMPDIR="$run_tmp"
+scratch="$(mktemp -d "$run_tmp/regista-test.XXXXXX")"
+trap 'rm -rf "$run_tmp"' EXIT
 cpus="$(sysctl -n hw.activecpu 2>/dev/null || echo 4)"
 width=$(( cpus * 2 / 3 )); [ "$width" -ge 2 ] || width=2
 export SWT_EXPERIMENTAL_MAXIMUM_PARALLELIZATION_WIDTH="${SWT_EXPERIMENTAL_MAXIMUM_PARALLELIZATION_WIDTH:-$width}"

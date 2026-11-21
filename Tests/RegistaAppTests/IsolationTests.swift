@@ -37,7 +37,7 @@ import Testing
 @Test func theRigServicesStayInScratchFolders() throws {
     _ = rigOutside
     let s = RigServices.factory()()
-    let tmp = FileManager.default.temporaryDirectory.path
+    let tmp = TemporaryFolder.url.path
     #expect(s.generationState.path.hasPrefix(tmp) && s.profiles.directory.path.hasPrefix(tmp) && s.config.cacheDirectory.hasPrefix(tmp))
     #expect(s.rules.directory.path.hasPrefix(tmp) && RuleBook.defaultDirectory.path.hasPrefix(tmp))
     #expect(Set(s.generators.keys) == ["comfyui", "higgsfield", "voxcpm"])
@@ -107,7 +107,7 @@ import Testing
     #expect(FileManager.default.fileExists(atPath: s.generationState.path))
 
     // The record cannot cut those folders off (#60). It keeps the executable whole and each of the first four arguments up
-    // to 120 characters: both folders are shorter, so a recorded argument that starts with one keeps it whole…
+    // to 200 characters: both folders are shorter, so a recorded argument that starts with one keeps it whole…
     for folder in mine {
         #expect(folder.count < RigProcesses.argumentLimit, "\(folder) (\(folder.count) characters) can be cut off a recorded argument")
     }
@@ -237,7 +237,7 @@ extension MouseSuites {
         #expect(RigProcesses.refusal("/opt/homebrew/bin/uv", ["run"]) != nil)
         #expect(RigProcesses.refusal("/usr/bin/python3", ["-I", "/opt/elsewhere/claude_desktop.py", "set"]) != nil)
         // The generation wrapper on a scratch fake, a repository script, a stub of the rig: allowed.
-        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("x/fake").path
+        let tmp = TemporaryFolder.url.appendingPathComponent("x/fake").path
         #expect(RigProcesses.refusal("/bin/sh", ["-c", #""$0" "$@" > stdout.txt 2> stderr.txt; echo $? > exit.tmp && exec mv exit.tmp exit"#, tmp, "a"]) == nil)
         #expect(RigProcesses.refusal("/bin/bash", [RigOutside.repository.appendingPathComponent("scripts/install.sh").path, "--only", "x"]) == nil)
         #expect(RigProcesses.refusal("/bin/bash", [rigOutside.installer.appendingPathComponent("scripts/install.sh").path]) == nil)
@@ -280,7 +280,7 @@ extension MouseSuites {
         #expect(s.config.uv == app.store.engine.context.services.config.uv, "the tab's voice is not the rig's environment")
         #expect(tab.generationState == app.store.generationState)
         #expect(s.profiles.directory == app.store.engine.context.services.profiles.directory)
-        #expect(s.generationState.path.hasPrefix(FileManager.default.temporaryDirectory.path))
+        #expect(s.generationState.path.hasPrefix(TemporaryFolder.url.path))
     }
 }
 }

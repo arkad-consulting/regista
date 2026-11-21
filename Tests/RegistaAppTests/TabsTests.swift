@@ -9,7 +9,7 @@ import Testing
 // they name, without switching the user's view.
 
 private func tempDir() -> URL {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tabs-tests-\(UUID().uuidString)")
+    let url = TemporaryFolder.url.appendingPathComponent("regista-tabs-tests-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     return url
 }

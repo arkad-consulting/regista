@@ -58,6 +58,7 @@ Read by the app, `regista-mcp` and `regista-engine` (developers and tests; nobod
 | `REGISTA_OUTPUT_DIR` | Where projects and exports go when Claude does not say (as regista-mcp's --output-dir). |
 | `REGISTA_SUPPORT_DIR` | Regista's support folder for the engines and the user's editing-rule sheets (`rules/`) (default ~/Library/Application Support/Regista), as in scripts/lib.sh. |
 | `REGISTA_TIER` | Force a tier (base, medium, pro) for this process, before engines.json and the RAM. |
+| `REGISTA_TMPDIR` | Folder for Regista's temporary files instead of the system's temporary folder (which ignores TMPDIR on macOS). scripts/test.sh and the commit hook set it to a folder of their own run and remove it at the end; the app never sets it. |
 | `REGISTA_WESITES_ASSETS` | Folder of the WeSites brand kit's fonts and logo (not in the repository). |
 
 ## The app's own choices

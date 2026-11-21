@@ -90,7 +90,7 @@ final class BrandKitLibrary: ObservableObject {
         guard keys[slot] != key else { return }
         keys[slot] = key
         rendering.insert(slot)
-        let out = FileManager.default.temporaryDirectory.appendingPathComponent("regista-kit-preview-\(slot)-\(UUID().uuidString.prefix(6)).png")
+        let out = TemporaryFolder.url.appendingPathComponent("regista-kit-preview-\(slot)-\(UUID().uuidString.prefix(6)).png")
         let project = store.project
         queue.async {
             let ok = (try? BrandKitPreview.render(kit, project: project, services: Self.services, prober: FFProbe(), width: width, sample: sample, to: out)) != nil

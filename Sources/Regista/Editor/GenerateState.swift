@@ -178,7 +178,7 @@ final class GenerateState: ObservableObject {
     private func prepare(_ request: GenRequest) async throws -> GenRequest {
         guard request.start == Self.monitorFrame, let store else { return request }
         var r = request
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-start-frames", isDirectory: true)
+        let dir = TemporaryFolder.url.appendingPathComponent("regista-start-frames", isDirectory: true)
         let path = dir.appendingPathComponent("frame-\(UUID().uuidString.prefix(8)).png").path
         let call = GenerateCalls.frame(at: store.preview.time, path: path)
         r.start = try await store.perform(call.id, call.params)["path"]?.stringValue ?? path

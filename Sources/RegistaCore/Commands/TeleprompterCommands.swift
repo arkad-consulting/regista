@@ -259,7 +259,7 @@ enum TeleprompterSimulate: Command {
         // The log: a LiveTakeLog (takes.live reads it) plus the cursor trail.
         let output: URL
         if let o = p.string("output") { output = try Render.output(o, command: id) }
-        else { output = FileManager.default.temporaryDirectory.appendingPathComponent("teleprompter-sim-\(UUID().uuidString.prefix(8)).json") }
+        else { output = TemporaryFolder.url.appendingPathComponent("teleprompter-sim-\(UUID().uuidString.prefix(8)).json") }
         let full: JSONValue = [
             "sentences": .array(script.lines.map { .string($0) }), "markers": markerJSON,
             "recognizer": .string(result.engine), "language": .string(language), "summary": summary,

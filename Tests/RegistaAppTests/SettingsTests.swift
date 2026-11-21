@@ -8,7 +8,7 @@ import Testing
 // tab lists the catalog the menus use, Generale's choices, the forced tier written into engines.json without losing a key.
 
 private func settingsTempDir() -> URL {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-settings-tests-\(UUID().uuidString)")
+    let url = TemporaryFolder.url.appendingPathComponent("regista-settings-tests-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     return url
 }

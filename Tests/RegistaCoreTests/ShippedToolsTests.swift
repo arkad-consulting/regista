@@ -6,7 +6,7 @@ import Testing
 // them as part of the app, with nothing to install, and CMake (only there to build whisper.cpp) as not needed.
 
 private func scratch() -> URL {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-shipped-tests-\(UUID().uuidString)", isDirectory: true)
+    let url = TemporaryFolder.url.appendingPathComponent("regista-shipped-tests-\(UUID().uuidString)", isDirectory: true)
     try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     return url
 }

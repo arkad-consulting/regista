@@ -20,13 +20,13 @@ struct FakeProber: MediaProber {
 /// `tempDir()` and `editingEngine()`, which nearly every test calls first, and by the brand kit tests. Named after the
 /// pid, so RegistaEnginesTests (same process, no access to this file) sets the very same value.
 let testKitsDirectory: URL = {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tests-kits-\(ProcessInfo.processInfo.processIdentifier)")
+    let url = TemporaryFolder.url.appendingPathComponent("regista-tests-kits-\(ProcessInfo.processInfo.processIdentifier)")
     try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     setenv("REGISTA_BRANDKITS", url.path, 1)
     // The editing-rule sheets (#31) live in `rules/` of the support folder: a scratch one too, unless the app's rig
     // already set its own (RigIsolation.swift).
     if (ProcessInfo.processInfo.environment["REGISTA_SUPPORT_DIR"] ?? "").isEmpty {
-        let support = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tests-support-\(ProcessInfo.processInfo.processIdentifier)")
+        let support = TemporaryFolder.url.appendingPathComponent("regista-tests-support-\(ProcessInfo.processInfo.processIdentifier)")
         setenv("REGISTA_SUPPORT_DIR", support.path, 1)
     }
     return url
@@ -35,7 +35,7 @@ let testKitsDirectory: URL = {
 /// A fresh temporary directory per call.
 func tempDir() -> URL {
     _ = testKitsDirectory
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tests-\(UUID().uuidString)")
+    let url = TemporaryFolder.url.appendingPathComponent("regista-tests-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     return url
 }

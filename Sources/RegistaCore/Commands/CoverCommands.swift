@@ -193,7 +193,7 @@ enum CoverRender {
         let (W, H) = (project.settings.width, project.settings.height)
         guard title != nil else { return CoverCheck.of(box: nil, width: W, height: H, place: cover.place) }
         guard let images = ctx.services.images else { throw CommandError(.io, "\(command): no image toolkit in this host (use regista-engine / regista-mcp)") }
-        let bare = FileManager.default.temporaryDirectory.appendingPathComponent("regista-cover-bare-\(UUID().uuidString.prefix(8)).png")
+        let bare = TemporaryFolder.url.appendingPathComponent("regista-cover-bare-\(UUID().uuidString.prefix(8)).png")
         defer { try? FileManager.default.removeItem(at: bare) }
         try renderer.renderFrames(RenderJob(project: project, preset: preset, captions: false), at: [cover.time], to: [bare])
         let a = try images.rgba(of: output, width: W, height: H), b = try images.rgba(of: bare, width: W, height: H)
@@ -225,7 +225,7 @@ enum CoverRender {
 
     /// Where the cover goes by default: next to the exports, named after the project.
     static func defaultOutput(_ project: Project, _ ctx: CommandContext) -> URL {
-        let folder = ctx.services.library.exportsDirectory ?? ctx.projectURL?.deletingLastPathComponent() ?? FileManager.default.temporaryDirectory
+        let folder = ctx.services.library.exportsDirectory ?? ctx.projectURL?.deletingLastPathComponent() ?? TemporaryFolder.url
         return folder.appendingPathComponent("\(project.name)-cover.png")
     }
 
@@ -320,7 +320,7 @@ enum CoverCheckCommand: Command {
         let project = try ctx.requireProject()
         try Cover.requireVertical(project, command: id)
         guard let cover = project.cover else { throw CommandError.conflict("\(id): the project has no cover yet: cover.set {time, title} first") }
-        let png = FileManager.default.temporaryDirectory.appendingPathComponent("regista-cover-check-\(UUID().uuidString.prefix(8)).png")
+        let png = TemporaryFolder.url.appendingPathComponent("regista-cover-check-\(UUID().uuidString.prefix(8)).png")
         defer { try? FileManager.default.removeItem(at: png) }
         return ["cover": cover.json, "check": try CoverRender.render(project, cover, to: png, ctx, command: id).json]
     }

@@ -413,7 +413,7 @@ enum MediaCheckPlacement: Command {
         }
         let preset = ExportPreset.named(nil, project: project)
         let W = preset.width, H = preset.height
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-place-\(UUID().uuidString.prefix(8))")
+        let dir = TemporaryFolder.url.appendingPathComponent("regista-place-\(UUID().uuidString.prefix(8))")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let base = dir.appendingPathComponent("base.png"), full = dir.appendingPathComponent("full.png"), decoded = dir.appendingPathComponent("file.png")

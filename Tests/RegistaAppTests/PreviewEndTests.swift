@@ -22,7 +22,7 @@ import RegistaEngines
     #expect(PreviewController.resume(at: 10, lastFrame: last, wasPlaying: false) == (10, false))
 
     // The last frame has a picture (a red full-frame still), the end time does not exist as a frame.
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-32-\(UUID().uuidString)")
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-32-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: dir) }
     let png = dir.appendingPathComponent("red.png")

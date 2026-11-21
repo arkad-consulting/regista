@@ -9,7 +9,7 @@ import Testing
 @Test func theClaudeCodeSkillComesFromTheApp() throws {
     _ = rigOutside   // the Claude clients' home is the test process's scratch folder (REGISTA_CLAUDE_HOME), never the real one
     #expect(ClaudeClients.homeOverride != nil)
-    let root = FileManager.default.temporaryDirectory.appendingPathComponent("regista-skill-\(UUID().uuidString)", isDirectory: true)
+    let root = TemporaryFolder.url.appendingPathComponent("regista-skill-\(UUID().uuidString)", isDirectory: true)
     let app = root.appendingPathComponent("Regista.app", isDirectory: true)
     let skill = app.appendingPathComponent("Contents/Resources/Skill/regista/SKILL.md")
     try FileManager.default.createDirectory(at: skill.deletingLastPathComponent(), withIntermediateDirectories: true)

@@ -49,7 +49,7 @@ struct RigOutside {
 
     static func install() -> RigOutside {
         let fm = FileManager.default
-        let root = fm.temporaryDirectory.appendingPathComponent("regista-tests-outside-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true)
+        let root = TemporaryFolder.url.appendingPathComponent("regista-tests-outside-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true)
         try? fm.removeItem(at: root)
         try! fm.createDirectory(at: root, withIntermediateDirectories: true)
         func script(_ url: URL, _ text: String) {
@@ -478,8 +478,8 @@ enum RigProcesses {
     static let interpreters: Set<String> = ["/bin/sh", "/bin/bash", "/usr/bin/python3"]
     /// Where scripts and fakes may live: the temporary folder (the tests' scratch folders) and the repository.
     static let places: [String] = {
-        let tmp = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().path
-        return [tmp, "/private" + tmp, FileManager.default.temporaryDirectory.path, RigOutside.repository.path].map { $0.hasSuffix("/") ? $0 : $0 + "/" }
+        let tmp = TemporaryFolder.url.resolvingSymlinksInPath().path
+        return [tmp, "/private" + tmp, TemporaryFolder.url.path, RigOutside.repository.path].map { $0.hasSuffix("/") ? $0 : $0 + "/" }
     }()
 
     static func inside(_ path: String) -> Bool { places.contains { path.hasPrefix($0) || path + "/" == $0 } }
@@ -507,9 +507,9 @@ enum RigProcesses {
     }
 
     /// What a recorded line keeps (#60): the executable whole, then the first `keptArguments` arguments, each cut after
-    /// `argumentLimit` characters.
+    /// `argumentLimit` characters (200: a scratch folder inside a test run's own temporary folder, #138, is about 120).
     static let keptArguments = 4
-    static let argumentLimit = 120
+    static let argumentLimit = 200
 
     /// The line `check` records for a start.
     static func line(_ executable: String, _ arguments: [String]) -> String {
@@ -533,7 +533,7 @@ enum RigProcesses {
 /// running the tests.
 enum RigTrash {
     static let folder: URL = {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tests-trash-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true)
+        let url = TemporaryFolder.url.appendingPathComponent("regista-tests-trash-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true)
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         return url
     }()
@@ -611,7 +611,7 @@ enum OwnerSide {
 /// (its temporary folder). This is the hard part of the proof: it holds whatever else runs on the Mac.
 enum RigScratch {
     static var roots: [String] {
-        let t = FileManager.default.temporaryDirectory
+        let t = TemporaryFolder.url
         return Set([t.path, t.resolvingSymlinksInPath().path, t.standardizedFileURL.path]).map { $0.hasSuffix("/") ? $0 : $0 + "/" }
     }
 

@@ -17,7 +17,7 @@ private let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().d
     #expect(m.artifact("uv") == nil, "no Homebrew row for uv")
     #expect(EngineConfig.developerDefaults["uv"] == nil && EngineConfig().uv.hasSuffix("/uv/uv-\(bin.version)/uv"), "\(EngineConfig().uv)")
     // What Settings › Engines runs: the WhisperX and VoxCPM2 steps need uv (installed by the installer), never brew.
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-uv-tests-\(UUID().uuidString)")
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-uv-tests-\(UUID().uuidString)")
     let env = ["REGISTA_SUPPORT_DIR": dir.appendingPathComponent("support").path, "REGISTA_CACHE_DIR": dir.appendingPathComponent("cache").path,
                "REGISTA_ENGINES": dir.appendingPathComponent("support/engines.json").path, "REGISTA_LANG": "en"]
     for (id, expected) in [("uv", "uv \(bin.version) and Python \(python.version.split(separator: "+")[0])"),

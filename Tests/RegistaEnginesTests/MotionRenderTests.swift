@@ -29,7 +29,7 @@ func mattedProject(_ clip: URL, person: Bool, in dir: URL) throws -> Project {
 }
 
 func tempFolder() throws -> URL {
-    let d = FileManager.default.temporaryDirectory.appendingPathComponent("regista-motion-\(UUID().uuidString)")
+    let d = TemporaryFolder.url.appendingPathComponent("regista-motion-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
     return d
 }

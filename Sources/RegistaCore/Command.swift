@@ -246,7 +246,7 @@ public struct CommandContext {
         if let projectURL { dir = projectURL.appendingPathComponent("media") }
         else if let scratch { dir = scratch }
         else {
-            dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-media-\(UUID().uuidString.prefix(8))")
+            dir = TemporaryFolder.url.appendingPathComponent("regista-media-\(UUID().uuidString.prefix(8))")
             scratch = dir
         }
         do { try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true) }

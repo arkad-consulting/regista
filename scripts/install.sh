@@ -131,7 +131,7 @@ preflight_brew() {
     [ -t 0 ] || die "$(t brew_terminal)"
     warn "$(t brew_bootstrap)"
     ask "$(t ask_brew)" y || die "$(t brew_terminal)"
-    bootstrap="$(mktemp -t regista-homebrew)" || die "$(t brew_failed)"
+    bootstrap="$(mktemp "${REGISTA_TMPDIR:-${TMPDIR:-/tmp}}/regista-homebrew.XXXXXX")" || die "$(t brew_failed)"
     if ! curl -fL --retry 3 -sS -o "$bootstrap" "$BREW_INSTALL_URL"; then
       rm -f "$bootstrap"; die "$(t brew_failed)"
     fi
@@ -425,7 +425,7 @@ install_dmg() {
   local dmg mnt
   dmg="$CACHE/$1/$(lock_get "$1" 7 | sed 's#.*/##')"
   fetch "$1" "$dmg"
-  mnt="$(mktemp -d)"
+  mnt="$(mktemp -d "${REGISTA_TMPDIR:-${TMPDIR:-/tmp}}/regista-dmg.XXXXXX")"
   echo Y | hdiutil attach -nobrowse -readonly -noautoopen -quiet -mountpoint "$mnt" "$dmg" >/dev/null || die "cannot open $dmg"
   mkdir -p "$APP_DIR"; rm -rf "${APP_DIR:?}/.$2.part"
   cp -R "$mnt/$2" "$APP_DIR/.$2.part" || { rm -rf "${APP_DIR:?}/.$2.part"; hdiutil detach -quiet "$mnt"; die "copy of $2 failed"; }

@@ -1,11 +1,13 @@
 import Foundation
+import RegistaCore
 import Testing
 
 // #19: scripts/test.sh on a crashed test process (signal 11). A fake `swift` plays the cases: a crash in a run that
 // compiled (maybe a stale build: one clean rebuild and one retry), a crash with nothing compiled (the code's: no
 // retry), an ordinary failure (no retry, no crash talk), a process that ends with 0 before the run's summary (the run
 // did not finish: taken up again without what passed, never green by itself, a failure before the early end stands) and a test that hangs (stopped after the time limit). The crashed thread of the crash
-// report is printed. Also what test.sh sets for every run: the parallelism cap (#80).
+// report is printed. Also what test.sh sets for every run: the parallelism cap (#80) and a temporary folder of its own,
+// removed at the end (#138).
 
 private let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 
@@ -14,6 +16,7 @@ private let fakeSwift = #"""
 if [ "$2" = list ]; then printf '%s\n' 'Mod.Suite/first()' 'Mod.Suite/second(_:)' 'Mod.Other/second(_:)'; exit 0; fi
 n=$(( $(cat "$FAKE_STATE" 2>/dev/null || echo 0) + 1 )); echo $n > "$FAKE_STATE"
 echo "width=$SWT_EXPERIMENTAL_MAXIMUM_PARALLELIZATION_WIDTH"
+echo "tmpdir=$REGISTA_TMPDIR"; [ -d "$REGISTA_TMPDIR" ] && echo "tmpdir is a folder" && : > "$REGISTA_TMPDIR/made-by-a-test"
 crash() {
   printf '%s\n%s\n' '{"app_name":"swiftpm-testing-helper"}' \
     '{"exception":{"type":"EXC_BAD_ACCESS","subtype":"KERN_INVALID_ADDRESS at 0x10"},"usedImages":[{"name":"RegistaPackageTests"}],"threads":[{"queue":"regista.export.video","triggered":true,"frames":[{"imageIndex":0,"symbol":"closure #2 in AVRenderer.export"}]}]}' \
@@ -38,12 +41,15 @@ case "$FAKE_MODE:$n" in
 esac
 """#
 
-private func runTestScript(_ mode: String, _ arguments: [String] = [], environment extra: [String: String] = [:]) throws
-    -> (status: Int32, output: String, calls: Int, debugKept: Bool) {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-testsh-\(UUID().uuidString)")
+/// Runs a copy of scripts/test.sh on the fake `swift`. Its system temporary folder (TMPDIR) is `tmp`, a scratch folder
+/// `prepare` fills first; `leftInTmp` is what that folder holds when the script has ended.
+private func runTestScript(_ mode: String, _ arguments: [String] = [], environment extra: [String: String] = [:],
+                           prepare: (_ tmp: URL) throws -> Void = { _ in }) throws
+    -> (status: Int32, output: String, calls: Int, debugKept: Bool, tmp: URL, leftInTmp: Set<String>) {
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-testsh-\(UUID().uuidString)")
     let fm = FileManager.default
     defer { try? fm.removeItem(at: dir) }
-    for sub in ["scripts", "reports", "bin", ".build/arm64-apple-macosx/debug"] {
+    for sub in ["scripts", "reports", "bin", "tmp", ".build/arm64-apple-macosx/debug"] {
         try fm.createDirectory(at: dir.appendingPathComponent(sub), withIntermediateDirectories: true)
     }
     try fm.copyItem(at: repo.appendingPathComponent("scripts/test.sh"), to: dir.appendingPathComponent("scripts/test.sh"))
@@ -53,6 +59,8 @@ private func runTestScript(_ mode: String, _ arguments: [String] = [], environme
     let debug = dir.appendingPathComponent(".build/arm64-apple-macosx/debug/marker")
     fm.createFile(atPath: debug.path, contents: Data())
     let state = dir.appendingPathComponent("calls")
+    let tmp = dir.appendingPathComponent("tmp")
+    try prepare(tmp)
 
     let p = Process()
     p.executableURL = URL(fileURLWithPath: "/bin/bash")
@@ -63,6 +71,8 @@ private func runTestScript(_ mode: String, _ arguments: [String] = [], environme
     env["FAKE_MODE"] = mode
     if mode == "hang" { env["REGISTA_TEST_TIMEOUT"] = "1" } else { env.removeValue(forKey: "REGISTA_TEST_TIMEOUT") }
     env["FAKE_STATE"] = state.path
+    env["TMPDIR"] = tmp.path + "/"
+    env.removeValue(forKey: "REGISTA_TMPDIR")
     env.removeValue(forKey: "SWT_EXPERIMENTAL_MAXIMUM_PARALLELIZATION_WIDTH")
     env.removeValue(forKey: "REGISTA_PREFERENCES_DIR")
     env.merge(extra) { $1 }
@@ -74,7 +84,8 @@ private func runTestScript(_ mode: String, _ arguments: [String] = [], environme
     let data = out.fileHandleForReading.readDataToEndOfFile()
     p.waitUntilExit()
     let calls = Int((try? String(contentsOf: state, encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "") ?? 0
-    return (p.terminationStatus, String(decoding: data, as: UTF8.self), calls, fm.fileExists(atPath: debug.path))
+    let left = Set((try? fm.contentsOfDirectory(atPath: tmp.path)) ?? [])
+    return (p.terminationStatus, String(decoding: data, as: UTF8.self), calls, fm.fileExists(atPath: debug.path), tmp, left)
 }
 
 @Test func testScriptRetriesASignal11OnceFromACleanBuildOnlyWhenItCompiled() throws {
@@ -126,7 +137,7 @@ private func runTestScript(_ mode: String, _ arguments: [String] = [], environme
 /// touched.
 @Test func testScriptCleansOnlyTheTestSuitesPropertyLists() throws {
     let fm = FileManager.default
-    let prefs = fm.temporaryDirectory.appendingPathComponent("regista-testsh-prefs-\(UUID().uuidString)")
+    let prefs = TemporaryFolder.url.appendingPathComponent("regista-testsh-prefs-\(UUID().uuidString)")
     try fm.createDirectory(at: prefs, withIntermediateDirectories: true)
     defer { try? fm.removeItem(at: prefs) }
     let uuid = "0A1B2C3D-4E5F-6789-ABCD-EF0123456789"
@@ -149,4 +160,26 @@ private func runTestScript(_ mode: String, _ arguments: [String] = [], environme
     #expect(args.contains("--filter x") && !args.contains("clean"), "\(clean.output)")
     let again = try runTestScript("pass", ["--clean-preferences"], environment: ["REGISTA_PREFERENCES_DIR": prefs.path])
     #expect(again.status == 0 && again.output.contains("removed 0 file(s)") && present() == Set(kept), "\(again.output)")
+}
+
+/// #138: every run of test.sh gets a temporary folder of its own, `<system temporary folder>/regista-run-<pid>`, set as
+/// REGISTA_TMPDIR for the tests, and removes it when the run ends, whatever the result (passed, failed, stopped after
+/// the time limit). Run folders left a day ago (a stopped run) go; a newer one and anything else stay.
+@Test func testScriptGivesEachRunATemporaryFolderOfItsOwnAndRemovesIt() throws {
+    let fm = FileManager.default
+    let twoDaysAgo = Date().addingTimeInterval(-2 * 86_400)
+    func prepare(_ tmp: URL) throws {
+        for name in ["regista-run-1", "regista-run-2", "regista-media-old", "other-run-3"] {
+            let url = tmp.appendingPathComponent(name)
+            try fm.createDirectory(at: url, withIntermediateDirectories: true)
+            if name != "regista-run-2" { try fm.setAttributes([.modificationDate: twoDaysAgo], ofItemAtPath: url.path) }
+        }
+    }
+    for mode in ["pass", "fail", "hang"] {
+        let r = try runTestScript(mode, prepare: prepare)
+        let line = r.output.split(separator: "\n").first { $0.hasPrefix("tmpdir=") }.map { String($0.dropFirst(7)) } ?? ""
+        #expect(line.hasPrefix(r.tmp.path + "/regista-run-") && Int(line.dropFirst(r.tmp.path.count + 13)) != nil, "\(mode): \(r.output)")
+        #expect(r.output.contains("tmpdir is a folder"), "\(mode): \(r.output)")
+        #expect(r.leftInTmp == ["regista-run-2", "regista-media-old", "other-run-3"], "\(mode): \(r.leftInTmp.sorted())")
+    }
 }

@@ -220,13 +220,13 @@ public struct EngineServices {
     public var generators: [String: GeneratorProvider] = [:]
     /// Where budget.json and approvals.json live (`~/Library/Application Support/Regista` in the standard set;
     /// a throwaway folder otherwise, so tests never touch the real budget).
-    public var generationState = FileManager.default.temporaryDirectory.appendingPathComponent("regista-generation-\(UUID().uuidString.prefix(8))")
+    public var generationState = TemporaryFolder.url.appendingPathComponent("regista-generation-\(UUID().uuidString.prefix(8))")
     /// Voice profiles (#41): `~/Library/Application Support/Regista/profiles` in the standard set; a throwaway folder
     /// otherwise, so tests never see a real voice.
-    public var profiles = ProfileStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent("regista-profiles-\(UUID().uuidString.prefix(8))"))
+    public var profiles = ProfileStore(directory: TemporaryFolder.url.appendingPathComponent("regista-profiles-\(UUID().uuidString.prefix(8))"))
     /// The editing-rule sheets (#31): `rules/` of the support folder in the standard set (`RuleBook.defaultDirectory`); a
     /// throwaway folder otherwise, so tests never write the user's sheets.
-    public var rules = RuleBook(directory: FileManager.default.temporaryDirectory.appendingPathComponent("regista-rules-\(UUID().uuidString.prefix(8))"))
+    public var rules = RuleBook(directory: TemporaryFolder.url.appendingPathComponent("regista-rules-\(UUID().uuidString.prefix(8))"))
     /// The engines folder whose helper scripts engines.status compares with the app's copy (#61): the installer's
     /// (`EngineCatalog.enginesDirectory`) in the standard set; nil otherwise, so nothing is reported.
     public var enginesFolder: URL?

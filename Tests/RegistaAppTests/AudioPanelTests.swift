@@ -11,7 +11,7 @@ import Testing
 // track at the playhead; a preview never touches the project.
 
 private func tempDir() -> URL {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-audio-tests-\(UUID().uuidString)")
+    let url = TemporaryFolder.url.appendingPathComponent("regista-audio-tests-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     return url
 }

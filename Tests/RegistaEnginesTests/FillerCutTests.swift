@@ -12,7 +12,7 @@ private let tone = 227.0   // not a whole number of cycles per frame: a cut on t
 
 /// A 4 s stereo sine at half amplitude.
 private func toneFile() throws -> URL {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-fillercut-\(UUID().uuidString).wav")
+    let url = TemporaryFolder.url.appendingPathComponent("regista-fillercut-\(UUID().uuidString).wav")
     let samples = (0..<(4 * rate)).flatMap { n -> [Float] in
         let x = Float(0.5 * sin(2 * Double.pi * tone * Double(n) / Double(rate)))
         return [x, x]
@@ -52,7 +52,7 @@ private func cuts(fades: Double) throws -> [(step: Float, level: Float)] {
     try e.execute("transcript.deleteWords", params: ["ranges": .array(ranges)])
     let clips = e.project!.tracks[0].clips
     #expect(clips.count == 3 && e.project!.tracks[0].clips.allSatisfy { $0.fadeIn?.seconds ?? 0 == fades })
-    let out = FileManager.default.temporaryDirectory.appendingPathComponent("regista-fillercut-mix-\(UUID().uuidString).wav")
+    let out = TemporaryFolder.url.appendingPathComponent("regista-fillercut-mix-\(UUID().uuidString).wav")
     defer { try? FileManager.default.removeItem(at: out) }
     let length = Int((e.project!.duration.seconds * Double(rate)).rounded())
     try FFmpegAudio(config: EngineConfig()).mix(AudioPlan.clips(e.project!, rate: rate), length: length, rate: rate, ceiling: 0, to: out)

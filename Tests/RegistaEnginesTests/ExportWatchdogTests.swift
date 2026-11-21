@@ -25,7 +25,7 @@ import Testing
         TimelineCompositor.testHook.set(name, nil)
         for _ in 0..<64 { release.signal() }
     }
-    let out = FileManager.default.temporaryDirectory.appendingPathComponent("regista-stall-\(UUID().uuidString).mp4")
+    let out = TemporaryFolder.url.appendingPathComponent("regista-stall-\(UUID().uuidString).mp4")
     defer { try? FileManager.default.removeItem(at: out) }
     var message = ""
     do {
@@ -75,7 +75,7 @@ import Testing
         TimelineCompositor.testHook.set(name, nil)
         for _ in 0..<64 { release.signal() }
     }
-    let out = FileManager.default.temporaryDirectory.appendingPathComponent("regista-restart-\(UUID().uuidString).mp4")
+    let out = TemporaryFolder.url.appendingPathComponent("regista-restart-\(UUID().uuidString).mp4")
     defer { try? FileManager.default.removeItem(at: out) }
     let began = Date()
     let report = try AVRenderer(stallTimeout: 60, startTimeout: start)

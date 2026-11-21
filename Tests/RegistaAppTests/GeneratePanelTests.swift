@@ -13,7 +13,7 @@ import Testing
 // reaches it. Scratch folders only (budget, approvals, cache).
 
 private func tempDir() -> URL {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-generate-tests-\(UUID().uuidString)")
+    let url = TemporaryFolder.url.appendingPathComponent("regista-generate-tests-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     return url
 }

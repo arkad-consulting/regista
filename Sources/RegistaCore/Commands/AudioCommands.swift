@@ -378,7 +378,7 @@ enum AudioCheckDucking: Command {
         }
         let rate = project.settings.sampleRate
         let length = Int((project.duration.seconds * Double(rate)).rounded())
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-duck-\(UUID().uuidString.prefix(8))")
+        let dir = TemporaryFolder.url.appendingPathComponent("regista-duck-\(UUID().uuidString.prefix(8))")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let envelopes = try AudioPlan.writeEnvelopes(project, rate: rate, to: dir)
@@ -432,7 +432,7 @@ enum SFXCheckOnsets: Command {
         let project = try ctx.requireProject()
         let url = try MediaCheck.file(p, "path", command: id)
         let rate = 48000
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-onsets-\(UUID().uuidString.prefix(8))")
+        let dir = TemporaryFolder.url.appendingPathComponent("regista-onsets-\(UUID().uuidString.prefix(8))")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let ffmpeg = MediaCheck.ffmpeg(ctx)

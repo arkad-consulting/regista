@@ -12,7 +12,7 @@ import Testing
 // stand-ins (the speech is synthetic).
 
 private func tempDir() -> URL {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-simple-tests-\(UUID().uuidString)")
+    let url = TemporaryFolder.url.appendingPathComponent("regista-simple-tests-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     return url
 }

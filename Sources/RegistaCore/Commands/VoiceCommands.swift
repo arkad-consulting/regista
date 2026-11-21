@@ -317,7 +317,7 @@ enum VoiceSay: Command {
             let k = project.assets.firstIndex { $0.id == aid }!
             if project.assets[k].analysis?.transcript != nil { continue }
             guard let transcriber = s.transcribers[engine], transcriber.unavailableReason() == nil else { break }
-            let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("regista-vo-\(UUID().uuidString)")
+            let tmp = TemporaryFolder.url.appendingPathComponent("regista-vo-\(UUID().uuidString)")
             try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
             defer { try? FileManager.default.removeItem(at: tmp) }
             let speech = tmp.appendingPathComponent("speech.wav")

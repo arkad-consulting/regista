@@ -117,7 +117,7 @@ public struct BrandKitStore {
     /// Zips the kit (self-contained: outside assets copied in) into one `.registakit` file.
     public func export(_ kit: BrandKit, to file: URL) throws -> URL {
         let out = file.pathExtension == Self.fileExtension ? file : file.appendingPathExtension(Self.fileExtension)
-        let staging = FileManager.default.temporaryDirectory.appendingPathComponent("regista-kit-\(UUID().uuidString.prefix(8))")
+        let staging = TemporaryFolder.url.appendingPathComponent("regista-kit-\(UUID().uuidString.prefix(8))")
         defer { try? FileManager.default.removeItem(at: staging) }
         let stored = try BrandKitStore(directory: staging).save(kit)
         try FileManager.default.createDirectory(at: out.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -132,7 +132,7 @@ public struct BrandKitStore {
         let fm = FileManager.default
         var isDir: ObjCBool = false
         guard fm.fileExists(atPath: file.path, isDirectory: &isDir) else { throw CommandError.notFound("no kit at \(file.path)") }
-        let staging = fm.temporaryDirectory.appendingPathComponent("regista-kit-\(UUID().uuidString.prefix(8))")
+        let staging = TemporaryFolder.url.appendingPathComponent("regista-kit-\(UUID().uuidString.prefix(8))")
         defer { try? fm.removeItem(at: staging) }
         var kit: BrandKit
         if isDir.boolValue || file.pathExtension == "json" {

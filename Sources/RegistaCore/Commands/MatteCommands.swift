@@ -131,7 +131,7 @@ enum GraphicsCheckBehindSubject: Command {
         inFront.tracks[t].clips[c].behindSubject = nil
         let preset = ExportPreset.named(nil, project: project)
         let W = preset.width, H = preset.height
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-behind-\(UUID().uuidString.prefix(8))")
+        let dir = TemporaryFolder.url.appendingPathComponent("regista-behind-\(UUID().uuidString.prefix(8))")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         func render(_ pr: Project, _ tag: String) throws -> [URL] {

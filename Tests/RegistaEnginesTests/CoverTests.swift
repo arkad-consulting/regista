@@ -10,7 +10,7 @@ import Testing
 
 /// An engine on the live compositor with a saved voice-only project (captions at 0–1.2 s) of `seconds`, in a scratch folder.
 private func coverEngine(seconds: Double = 2, width: Int = 1080, height: Int = 1920) throws -> (Engine, URL) {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-cover-\(UUID().uuidString)")
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-cover-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     let voice = dir.appendingPathComponent("voice.wav")
     try FileManager.default.moveItem(at: try syntheticVoice(seconds: seconds), to: voice)

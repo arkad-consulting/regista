@@ -11,7 +11,7 @@ private let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().d
 /// A tools folder with MacOSX27.0, 26.5 and 15.4 SDKs (MacOSX.sdk → 27.0, MacOSX27.sdk → 27.0, MacOSX26.sdk → 26.5) and
 /// stand-in tools on a bin folder: xcrun's swiftc fails for the SDKs named in FAKE_FAILS and logs each probe.
 private func tools() throws -> URL {
-    let root = FileManager.default.temporaryDirectory.appendingPathComponent("regista-sdk-\(UUID().uuidString)", isDirectory: true)
+    let root = TemporaryFolder.url.appendingPathComponent("regista-sdk-\(UUID().uuidString)", isDirectory: true)
     let sdks = root.appendingPathComponent("dev/SDKs"), bin = root.appendingPathComponent("bin")
     try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
     for v in ["27.0", "26.5", "15.4"] {

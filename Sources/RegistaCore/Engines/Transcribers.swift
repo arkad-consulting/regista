@@ -41,7 +41,7 @@ public struct WhisperCppTranscriber: Transcriber {
 
     public func transcribe(_ speech16k: URL, language: String) throws -> Transcript {
         if let reason = unavailableReason() { throw CommandError(.io, reason) }
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-whisper-\(UUID().uuidString)")
+        let dir = TemporaryFolder.url.appendingPathComponent("regista-whisper-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let base = dir.appendingPathComponent("out")
@@ -200,7 +200,7 @@ public struct WhisperXTranscriber: Transcriber {
         if let reason = unavailableReason() { throw CommandError(.io, reason) }
         if let reason = alignerReason(language) { throw CommandError(.io, reason) }
         EngineScripts.refresh([Self.engineID])   // the app's wx_align.py / textnorm.py, if an update changed them (#61)
-        let out = FileManager.default.temporaryDirectory.appendingPathComponent("regista-wx-\(UUID().uuidString).json")
+        let out = TemporaryFolder.url.appendingPathComponent("regista-wx-\(UUID().uuidString).json")
         defer { try? FileManager.default.removeItem(at: out) }
         // --frozen: use the locked environment as is, never re-resolve. -u: WhisperX's progress lines arrive as printed
         // (one per batch it transcribed, #13); until the first one — loading, voice detection — and with a wx_align.py

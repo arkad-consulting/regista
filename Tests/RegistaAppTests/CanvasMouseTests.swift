@@ -38,7 +38,7 @@ private final class CanvasRig {
 
     private static func setUp() throws -> (EditorStore, URL) {
         _ = NSApplication.shared
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-canvas-\(UUID().uuidString)")
+        let dir = TemporaryFolder.url.appendingPathComponent("regista-canvas-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         setenv("REGISTA_ENGINE_SOCKET", dir.appendingPathComponent("e.sock").path, 1)
         return (EditorStore(defaults: scratchDefaults(), seedFolders: []), dir)
@@ -80,7 +80,7 @@ private final class CanvasRig {
         if let take {
             r = try await store.perform("media.import", ["path": .string(take.path)])
         } else {
-            let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-canvas-take-\(UUID().uuidString)/take.mov")
+            let url = TemporaryFolder.url.appendingPathComponent("regista-canvas-take-\(UUID().uuidString)/take.mov")
             r = try await store.perform("media.synthesize", ["path": .string(url.path), "duration": 3])
             take = url
         }

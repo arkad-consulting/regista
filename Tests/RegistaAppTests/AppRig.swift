@@ -14,7 +14,7 @@ import Testing
 
 /// Scratch folders of this test file.
 func rigTempDir(_ tag: String = "rig") -> URL {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-\(tag)-\(UUID().uuidString)")
+    let url = TemporaryFolder.url.appendingPathComponent("regista-\(tag)-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     return url
 }
@@ -22,7 +22,7 @@ func rigTempDir(_ tag: String = "rig") -> URL {
 /// The test process's user brand-kit folder (the one RegistaCoreTests and RegistaEnginesTests set): a click on a kit
 /// editor never writes the kits of the person running the suite.
 let rigKitsDirectory: URL = {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tests-kits-\(ProcessInfo.processInfo.processIdentifier)")
+    let url = TemporaryFolder.url.appendingPathComponent("regista-tests-kits-\(ProcessInfo.processInfo.processIdentifier)")
     try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     setenv("REGISTA_BRANDKITS", url.path, 1)
     return url
@@ -31,7 +31,7 @@ let rigKitsDirectory: URL = {
 /// The test process's Regista folder (projects, recordings, exports): a project a click or a finished recording saves
 /// never lands in the folder of the person running the suite (#39).
 let rigFolder: URL = {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tests-folder-\(ProcessInfo.processInfo.processIdentifier)")
+    let url = TemporaryFolder.url.appendingPathComponent("regista-tests-folder-\(ProcessInfo.processInfo.processIdentifier)")
     try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     setenv("REGISTA_FOLDER", url.path, 1)
     return url
@@ -205,7 +205,7 @@ final class AppRig {
         _ = rigOutside
         RigGuard.install()
         // A socket nobody listens to, with a path short enough for a Unix socket.
-        setenv("REGISTA_ENGINE_SOCKET", FileManager.default.temporaryDirectory.appendingPathComponent("rg-\(UUID().uuidString.prefix(8)).sock").path, 1)
+        setenv("REGISTA_ENGINE_SOCKET", TemporaryFolder.url.appendingPathComponent("rg-\(UUID().uuidString.prefix(8)).sock").path, 1)
         suite = TestDefaults.make("rig")
         defaults = suite
         let factory = RigServices.factory()
@@ -245,7 +245,7 @@ final class AppRig {
     /// and its tabs come back as at launch (`Workbench.restoreTabs`).
     init(relaunching old: AppRig, services adjust: (@MainActor (inout EngineServices) -> Void)? = nil) async throws {
         old.close(keepingDefaults: true)
-        setenv("REGISTA_ENGINE_SOCKET", FileManager.default.temporaryDirectory.appendingPathComponent("rg-\(UUID().uuidString.prefix(8)).sock").path, 1)
+        setenv("REGISTA_ENGINE_SOCKET", TemporaryFolder.url.appendingPathComponent("rg-\(UUID().uuidString.prefix(8)).sock").path, 1)
         suite = old.suite
         defaults = UserDefaults(suiteName: TestDefaults.domain(of: old.suite)!)!
         let factory = RigServices.factory()

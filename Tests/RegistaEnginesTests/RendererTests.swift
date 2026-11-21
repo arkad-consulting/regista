@@ -8,7 +8,7 @@ import Testing
 
 /// A 1 s 1080×1920 30 fps H.264 clip: top half red, bottom half blue.
 func syntheticClip() throws -> URL {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-synth-\(UUID().uuidString).mov")
+    let url = TemporaryFolder.url.appendingPathComponent("regista-synth-\(UUID().uuidString).mov")
     let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
     let input = AVAssetWriterInput(mediaType: .video, outputSettings: [AVVideoCodecKey: AVVideoCodecType.h264, AVVideoWidthKey: 1080, AVVideoHeightKey: 1920])
     let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [
@@ -74,7 +74,7 @@ func pixel(_ png: URL, _ x: Int, _ y: Int) throws -> (Int, Int, Int) {
     caps.captions = Captions(style: .talkingHeadV1, keywords: ["SITO"], fixes: [:], sourceTrack: "t1", sourceSignature: "", chunks: chunks)
     p.tracks.append(caps)
     let job = RenderJob(project: p, preset: .vertical)
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-render-\(UUID().uuidString)")
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-render-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: dir) }
     let a = dir.appendingPathComponent("a.png"), b = dir.appendingPathComponent("b.png")
@@ -102,7 +102,7 @@ func pixel(_ png: URL, _ x: Int, _ y: Int) throws -> (Int, Int, Int) {
 @Test func exportWritesFastStartH264() throws {
     let clip = try syntheticClip()
     defer { try? FileManager.default.removeItem(at: clip) }
-    let out = FileManager.default.temporaryDirectory.appendingPathComponent("regista-export-\(UUID().uuidString).mp4")
+    let out = TemporaryFolder.url.appendingPathComponent("regista-export-\(UUID().uuidString).mp4")
     defer { try? FileManager.default.removeItem(at: out) }
     let report = try AVRenderer().export(RenderJob(project: project(clip), preset: .square), audio: nil, to: out, bitrate: 4_000_000)
     #expect(report.frames == 30)
@@ -120,7 +120,7 @@ func pixel(_ png: URL, _ x: Int, _ y: Int) throws -> (Int, Int, Int) {
     defer { try? FileManager.default.removeItem(at: clip) }
     var p = project(clip)
     // A white 200×100 PNG overlay at the centre of the top band, a yellow box title lower down.
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-gfx-\(UUID().uuidString)")
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-gfx-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: dir) }
     let png = dir.appendingPathComponent("white.png")
@@ -167,7 +167,7 @@ func pixel(_ png: URL, _ x: Int, _ y: Int) throws -> (Int, Int, Int) {
     var p = project(clip)
     p.tracks[0].clips[0].transform = nil   // whole frame: red top, blue bottom
     // Matte: the left half of the frame is "the person".
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-matte-\(UUID().uuidString)")
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-matte-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: dir) }
     let mask = (0..<96 * 54).map { $0 % 54 < 27 ? UInt8(255) : 0 }
@@ -190,7 +190,7 @@ func pixel(_ png: URL, _ x: Int, _ y: Int) throws -> (Int, Int, Int) {
     above.clips = [title("c3", "#FFFF00", y: 0.75, behind: false)]
     p.tracks += [titles, above]
 
-    let out = FileManager.default.temporaryDirectory.appendingPathComponent("regista-behind-\(UUID().uuidString)")
+    let out = TemporaryFolder.url.appendingPathComponent("regista-behind-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: out) }
     let a = out.appendingPathComponent("a.png")
@@ -241,7 +241,7 @@ func pixel(_ png: URL, _ x: Int, _ y: Int) throws -> (Int, Int, Int) {
     let states = try AVRenderer().captionStates(job, downscale: 2)
     #expect(states[0].width == 810 && states[0].height == 150)
     // Drawn there: pink keyword box at its new place, the old band clean (blue).
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-place-\(UUID().uuidString)")
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-place-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: dir) }
     let b = dir.appendingPathComponent("b.png")

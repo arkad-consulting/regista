@@ -19,7 +19,7 @@ private struct Prober: MediaProber {
 }
 
 private func file(_ name: String) -> String {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-inspector-\(UUID().uuidString)")
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-inspector-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     let url = dir.appendingPathComponent(name)
     FileManager.default.createFile(atPath: url.path, contents: Data())

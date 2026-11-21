@@ -1,4 +1,5 @@
 import AppKit
+import RegistaCore
 import SwiftUI
 import Testing
 @testable import Regista
@@ -407,7 +408,7 @@ struct ClickAudit {
             md += "| \(r.control.replacingOccurrences(of: "|", with: "/")) | \(Int(r.at.x)),\(Int(r.at.y)) | \(effect.replacingOccurrences(of: "|", with: "/")) |\n"
         }
         let dir = ProcessInfo.processInfo.environment["REGISTA_CLICK_AUDIT"].map { URL(fileURLWithPath: $0) }
-            ?? FileManager.default.temporaryDirectory.appendingPathComponent("regista-click-audit")
+            ?? TemporaryFolder.url.appendingPathComponent("regista-click-audit")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         try? md.write(to: dir.appendingPathComponent("\(screen).md"), atomically: true, encoding: .utf8)
     }

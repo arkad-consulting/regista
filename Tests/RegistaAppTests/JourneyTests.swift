@@ -34,7 +34,7 @@ final class Journey {
 
     static let folder: URL = {
         let base = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"].map { URL(fileURLWithPath: $0) }
-            ?? FileManager.default.temporaryDirectory.appendingPathComponent("regista-journeys-\(ProcessInfo.processInfo.processIdentifier)")
+            ?? TemporaryFolder.url.appendingPathComponent("regista-journeys-\(ProcessInfo.processInfo.processIdentifier)")
         let url = base.appendingPathComponent("journeys", isDirectory: true)
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         return url

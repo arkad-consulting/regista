@@ -9,7 +9,7 @@ import Testing
 
 /// The scratch folder of this file's tests (REGISTA_UI_SNAPSHOTS keeps the frames for a look).
 private func scratch() throws -> URL {
-    let d = FileManager.default.temporaryDirectory.appendingPathComponent("regista-faceclear-\(UUID().uuidString)")
+    let d = TemporaryFolder.url.appendingPathComponent("regista-faceclear-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
     return d
 }

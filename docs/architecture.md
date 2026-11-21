@@ -394,6 +394,14 @@ Runs before #137 left one `regista-<kind>-<UUID>.plist` per test in the Preferen
 --clean-preferences` removes exactly those (kind in lowercase letters and hyphens, the UUID in its upper-case form;
 nothing else, never by default), says how many, then runs the tests as usual.
 
+Tests leave nothing in the system's temporary folder (#138). Every temporary file of Regista and of its tests goes under
+`TemporaryFolder.url` (RegistaCore): `REGISTA_TMPDIR` when set, the system's temporary folder otherwise. Foundation's
+temporary directory ignores `TMPDIR` on macOS, so the variable is Regista's own; a test refuses any other use of the
+system's temporary directory in Sources and Tests, and nothing in the app sets the variable. `scripts/test.sh` and the
+commit hook each make `<system temporary folder>/regista-run-<pid>`, point `REGISTA_TMPDIR` at it (the processes they
+start inherit it) and remove it when they end, whatever the result; `scripts/test.sh` also removes such folders a day
+old (a run that was stopped).
+
 ## Teleprompter (P2-T1, issue #1)
 
 ```

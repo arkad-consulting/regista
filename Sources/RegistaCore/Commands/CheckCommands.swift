@@ -343,7 +343,7 @@ enum MediaCheckSync: Command {
             track = a
         }
         let rate = 48000
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-sync-\(UUID().uuidString.prefix(8))")
+        let dir = TemporaryFolder.url.appendingPathComponent("regista-sync-\(UUID().uuidString.prefix(8))")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let wav = dir.appendingPathComponent("render.wav")

@@ -17,7 +17,7 @@ final class CoverModel: ObservableObject {
     @Published var check: JSONValue?
     @Published var failure: String?
     weak var store: EditorStore?
-    private let file = FileManager.default.temporaryDirectory.appendingPathComponent("regista-cover-row-\(UUID().uuidString.prefix(8)).png")
+    private let file = TemporaryFolder.url.appendingPathComponent("regista-cover-row-\(UUID().uuidString.prefix(8)).png")
 
     func refresh() async {
         guard let store, store.project?.cover != nil else { image = nil; check = nil; failure = nil; return }

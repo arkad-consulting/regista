@@ -8,7 +8,7 @@ import Testing
 // right panel's tab; N0 (#49): the recent projects.
 
 private func appTempDir() -> URL {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-app-tests-\(UUID().uuidString)")
+    let url = TemporaryFolder.url.appendingPathComponent("regista-app-tests-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     return url
 }

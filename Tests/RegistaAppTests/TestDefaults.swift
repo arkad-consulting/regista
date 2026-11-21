@@ -1,19 +1,21 @@
 import Foundation
+import RegistaCore
 
 // A test's own defaults suite (#137). A suite named `regista-<kind>-<UUID>` kept its property list in the Preferences
 // folder of whoever ran the tests, one file per test, for ever: removing the domain empties the file but leaves it, and
 // a file deleted at the end of a test comes back, because the preferences daemon writes a changed domain to disk a while
 // after the change (up to about half a minute, also after the process has exited; synchronizing does not force the
 // write). So the suite's file lives in a scratch folder of the test process instead (a suite named by an absolute path
-// is kept at that path): `<temporary folder>/regista-tests-defaults-<pid>/regista-<kind>-<UUID>.plist`. At its end a
-// suite's domain is removed and its file deleted; at the process's exit every suite not ended yet is ended and the
-// folder goes, and the daemon never creates a missing folder, so a late write lands nowhere.
+// is kept at that path): `<Regista's temporary folder>/regista-tests-defaults-<pid>/regista-<kind>-<UUID>.plist`, inside
+// the run's own folder under scripts/test.sh (#138). At its end a suite's domain is removed and its file deleted; at the
+// process's exit every suite not ended yet is ended and the folder goes, and the daemon never creates a missing folder,
+// so a late write lands nowhere.
 
 enum TestDefaults {
     /// The test process's folder of suites (named after the pid, like the other scratch folders of the test targets).
     static let folder: URL = {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tests-defaults-\(ProcessInfo.processInfo.processIdentifier)",
-                                                                                 isDirectory: true)
+        let url = TemporaryFolder.url.appendingPathComponent("regista-tests-defaults-\(ProcessInfo.processInfo.processIdentifier)",
+                                                          isDirectory: true)
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         atexit { TestDefaults.endAll() }
         return url

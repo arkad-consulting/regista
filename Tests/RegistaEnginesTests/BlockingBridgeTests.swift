@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import RegistaCore
 import Testing
 @testable import RegistaEngines
 
@@ -35,7 +36,7 @@ import Testing
     while started.value < width - 1, Date() < deadline { Thread.sleep(forTimeInterval: 0.01) }
 
     // Measured on a plain thread, which also releases the blockers: nothing here needs the pool.
-    let missing = FileManager.default.temporaryDirectory.appendingPathComponent("regista-bridge-\(UUID().uuidString).mov")
+    let missing = TemporaryFolder.url.appendingPathComponent("regista-bridge-\(UUID().uuidString).mov")
     let measured = DispatchSemaphore(value: 0)
     let elapsed = Counter()
     Thread {

@@ -16,7 +16,7 @@ private var helpers: URL? { ShippedTools.directory.flatMap { ShippedTools.path("
 
 @Test(.enabled(if: helpers != nil, "needs REGISTA_HELPERS pointing at scripts/build-engines.sh's output"))
 func aTransparentWebmKeepsItsAlphaWithTheShippedFFmpeg() throws {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-webm-\(UUID().uuidString)", isDirectory: true)
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-webm-\(UUID().uuidString)", isDirectory: true)
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: dir) }
     let webm = dir.appendingPathComponent("alpha.webm")
@@ -45,7 +45,7 @@ func aTransparentWebmKeepsItsAlphaWithTheShippedFFmpeg() throws {
 
 /// With an ffmpeg that has no libvpx (a developer's build), the import says what to do instead of ffmpeg's own error.
 @Test func aWebmWithoutLibvpxSaysWhatToDo() throws {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-webm-\(UUID().uuidString)", isDirectory: true)
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-webm-\(UUID().uuidString)", isDirectory: true)
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: dir) }
     let stub = dir.appendingPathComponent("ffmpeg")

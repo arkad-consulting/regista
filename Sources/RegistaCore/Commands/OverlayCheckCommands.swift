@@ -104,7 +104,7 @@ enum MediaCheckOverlay: Command {
             if c.start >= frame, !insideChecked(c.start - frame) { probes.append((c.id, "before", c.start - frame)) }
             if c.end < project.duration, !insideChecked(c.end) { probes.append((c.id, "after", c.end)) }
         }
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-overlay-\(UUID().uuidString.prefix(8))")
+        let dir = TemporaryFolder.url.appendingPathComponent("regista-overlay-\(UUID().uuidString.prefix(8))")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let pngs = probes.indices.map { dir.appendingPathComponent("b\($0).png") }

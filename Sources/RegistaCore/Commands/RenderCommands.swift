@@ -66,7 +66,7 @@ enum ExportRender: Command {
         if p.bool("appendCover") == true {
             try Cover.requireVertical(project, command: id)
             guard let cover = project.cover else { throw CommandError.conflict("\(id): appendCover needs the reel's cover: cover.set {time, title} first") }
-            let png = FileManager.default.temporaryDirectory.appendingPathComponent("regista-cover-end-\(UUID().uuidString.prefix(8)).png")
+            let png = TemporaryFolder.url.appendingPathComponent("regista-cover-end-\(UUID().uuidString.prefix(8)).png")
             coverPNG = png
             _ = try CoverRender.render(project, cover, to: png, ctx, command: id)
             project = CoverRender.appended(project, cover: png)
@@ -136,7 +136,7 @@ public enum Previews {
     public static let sheetSize = 1600
 
     static func directory() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-previews")
+        let dir = TemporaryFolder.url.appendingPathComponent("regista-previews")
         do { try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true) }
         catch { throw CommandError(.io, "cannot create \(dir.path)") }
         return dir

@@ -125,7 +125,7 @@ private final class FixedHost: EngineHost {
 private let pngBytes = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")!
 
 @Test func toolResultsInlineTheirImagesAsImageContent() throws {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-mcp-\(UUID().uuidString)")
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-mcp-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     let png = dir.appendingPathComponent("f.png"), jpg = dir.appendingPathComponent("f.jpg")
     try pngBytes.write(to: png)

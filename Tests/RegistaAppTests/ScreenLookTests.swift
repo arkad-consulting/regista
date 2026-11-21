@@ -20,7 +20,7 @@ private struct Prober: MediaProber {
 /// A session folder (empty media files, a session.json with three clicks, one key and the cursor path), imported into
 /// a 16:9 project. `cursorInVideo` false: the compositor draws the cursor.
 private func engine(keys: Bool = true) throws -> Engine {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-screenlook-\(UUID().uuidString)")
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-screenlook-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     let sources = [RecordingSession.Source(id: "screen", file: "screen.mov", offset: 0), RecordingSession.Source(id: "camera", file: "camera.mov", offset: 0.25),
                    RecordingSession.Source(id: "mic", file: "mic.wav", offset: 0.18)]

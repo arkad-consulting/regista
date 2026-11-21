@@ -230,7 +230,7 @@ public enum VoiceEnrollment {
         while FileManager.default.fileExists(atPath: takes.appendingPathComponent("\(tone)-\(n).wav").path) { n += 1 }
         let take = "\(tone)-\(n)"
         let working = takes.appendingPathComponent("\(take).wav")
-        let speech = FileManager.default.temporaryDirectory.appendingPathComponent("regista-enroll-\(UUID().uuidString).wav")
+        let speech = TemporaryFolder.url.appendingPathComponent("regista-enroll-\(UUID().uuidString).wav")
         defer { try? FileManager.default.removeItem(at: speech) }
         try audio.extractAudio(from: source, channels: 2, speech: speech, working: working)
         if let why = transcriber.unavailableReason() { throw CommandError(.io, "\(command): \(why)") }

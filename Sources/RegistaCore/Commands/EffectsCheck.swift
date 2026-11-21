@@ -19,7 +19,7 @@ enum EffectsCheck: Command {
         let rate = project.settings.frameRate
         let frame = MediaTime.frameDuration(at: rate)
         let preset = ExportPreset(id: "check", width: project.settings.width / 4, height: project.settings.height / 4)
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-fxcheck-\(UUID().uuidString.prefix(8))")
+        let dir = TemporaryFolder.url.appendingPathComponent("regista-fxcheck-\(UUID().uuidString.prefix(8))")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         var n = 0

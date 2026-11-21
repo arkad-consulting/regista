@@ -19,7 +19,7 @@ private func table(_ lang: String) -> [String: String] {
 
 /// A 9:16 project with one synthetic talking head on V1 (6 s), on the real engines.
 private func footageEngine() throws -> Engine {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-e4-\(UUID().uuidString)")
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-e4-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     let e = Engine(services: .live())
     try e.execute("project.new", params: ["name": "grafica", "directory": .string(dir.path)])

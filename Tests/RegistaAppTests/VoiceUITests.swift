@@ -221,7 +221,7 @@ private func readRender<V: View>(_ root: V, size: CGSize) async throws -> [Strin
 /// Gestisci voci…, + Lingua, + Tono and the hint; with no voice it is the way into cloning, the four steps with their times.
 @MainActor
 @Test func thePanelRendersTheTextToolOrTheWayIntoCloning() async throws {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-voice-panel-\(UUID().uuidString)")
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-voice-panel-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: dir) }
     setenv("REGISTA_ENGINE_SOCKET", dir.appendingPathComponent("e.sock").path, 1)
@@ -296,7 +296,7 @@ private func spoken(_ sentences: [String], start: Double = 1) -> [RegistaCore.Wo
 }
 
 @Test func fromAnEmptyProfileToAVoiceOnTheTimelineWithTheCallsTheUIMakes() throws {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-voice-e2e-\(UUID().uuidString)")
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-voice-e2e-\(UUID().uuidString)")
     let fm = FileManager.default
     defer { try? fm.removeItem(at: dir) }
     // The engine files VoxCPM needs, with a fake uv that writes a WAV per request.

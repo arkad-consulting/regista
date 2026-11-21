@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import RegistaCore
 import Testing
 
 // #40: which call stops the test runner's loop. Before each await that can run AppKit (and each event or accessibility
@@ -16,7 +17,7 @@ enum RigTrace {
     nonisolated(unsafe) private static var fd: Int32 = -1
     static let size = 60
     nonisolated(unsafe) private static var allFD: Int32? = ProcessInfo.processInfo.environment["REGISTA_RIG_TRACE"].map { open($0, O_WRONLY | O_CREAT | O_APPEND, 0o644) }
-    static let file = FileManager.default.temporaryDirectory.appendingPathComponent("regista-rig-trace-\(ProcessInfo.processInfo.processIdentifier).txt")
+    static let file = TemporaryFolder.url.appendingPathComponent("regista-rig-trace-\(ProcessInfo.processInfo.processIdentifier).txt")
 
     /// Writes down `op` (with the current test) before it runs.
     static func note(_ op: String) {

@@ -8,7 +8,7 @@ import Testing
 private let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 
 private func scratch() -> URL {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("regista-helper-tests-\(UUID().uuidString)", isDirectory: true)
+    let url = TemporaryFolder.url.appendingPathComponent("regista-helper-tests-\(UUID().uuidString)", isDirectory: true)
     try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     return url
 }

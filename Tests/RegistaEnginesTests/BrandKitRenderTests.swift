@@ -23,7 +23,7 @@ private func pixels(_ url: URL) throws -> (width: Int, height: Int, data: [UInt8
 /// targets run in one process, and two different values of the variable made a kit command write where the other
 /// target's test was not looking.
 private let testKitsFolder: URL = {
-    let d = FileManager.default.temporaryDirectory.appendingPathComponent("regista-tests-kits-\(ProcessInfo.processInfo.processIdentifier)")
+    let d = TemporaryFolder.url.appendingPathComponent("regista-tests-kits-\(ProcessInfo.processInfo.processIdentifier)")
     try! FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
     setenv("REGISTA_BRANDKITS", d.path, 1)
     return d
@@ -31,7 +31,7 @@ private let testKitsFolder: URL = {
 
 private func scratch() -> URL {
     _ = testKitsFolder
-    let d = FileManager.default.temporaryDirectory.appendingPathComponent("regista-brand-\(UUID().uuidString)")
+    let d = TemporaryFolder.url.appendingPathComponent("regista-brand-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
     return d
 }

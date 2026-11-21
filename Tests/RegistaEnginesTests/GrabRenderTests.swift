@@ -30,7 +30,7 @@ private func blueBox(_ png: URL) throws -> [Double] {
     let clip = try syntheticClip()
     defer { try? FileManager.default.removeItem(at: clip) }
     let e = Engine(scratch: project(clip), services: .live())
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-grab-\(UUID().uuidString)")
+    let dir = TemporaryFolder.url.appendingPathComponent("regista-grab-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: dir) }
     let t = MediaTime(seconds: 0.5)

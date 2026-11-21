@@ -56,7 +56,7 @@ private struct Look: Sendable {
 
 @Test func theScreenLookControlsChangeTheRenderedFrameAndUndoRestoresIt() async throws {
     let m = try await offThePool { () throws -> Look in
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-screenlook-\(UUID().uuidString)")
+        let dir = TemporaryFolder.url.appendingPathComponent("regista-screenlook-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let e = Engine(prober: FFProbe(), services: .live())
@@ -130,7 +130,7 @@ private struct Look: Sendable {
         defer { try? FileManager.default.removeItem(at: clip) }
         let e = Engine(scratch: project(clip), services: .live())
         try e.execute("clip.set", params: ["clipId": "c1", "pictureFadeIn": 0.5, "pictureFadeOut": 0.3])
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-fade-\(UUID().uuidString)")
+        let dir = TemporaryFolder.url.appendingPathComponent("regista-fade-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         var out = try [0, 0.1, 0.6].map { mean(try thumbnail(try frame(e, at: $0, dir, "f\($0)"), 16, 16)) }

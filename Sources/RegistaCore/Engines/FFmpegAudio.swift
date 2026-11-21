@@ -52,7 +52,7 @@ public struct FFmpegAudio: AudioToolkit {
 
     public func mix(_ clips: [AudioMixClip], length: Int, rate: Int, gain: Double = 0, ceiling: Double, to output: URL) throws {
         guard length > 0 else { throw CommandError.invalid("mix: empty timeline") }
-        let work = FileManager.default.temporaryDirectory.appendingPathComponent("regista-stretch-\(UUID().uuidString.prefix(8))")
+        let work = TemporaryFolder.url.appendingPathComponent("regista-stretch-\(UUID().uuidString.prefix(8))")
         defer { try? FileManager.default.removeItem(at: work) }
         let clips = try prestretched(clips, rate: rate, in: work)
         var args = Self.quiet

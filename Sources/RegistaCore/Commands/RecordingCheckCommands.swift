@@ -153,7 +153,7 @@ enum RecordingCheck: Command {
     }
 
     static func temp() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-reccheck-\(UUID().uuidString.prefix(8))")
+        let dir = TemporaryFolder.url.appendingPathComponent("regista-reccheck-\(UUID().uuidString.prefix(8))")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }

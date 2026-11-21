@@ -7,8 +7,15 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
-log="$(mktemp -t regista-precommit)"
-trap 'rm -f "$log"' EXIT
+# The hook's own temporary folder (#138): the scenarios' projects and renders, and what their regista-mcp and
+# regista-engine children make, go there (REGISTA_TMPDIR), and it goes when the hook ends, whatever the result.
+# scripts/test.sh makes and removes a folder of its own the same way (and removes such folders left a day ago).
+system_tmp="${TMPDIR:-/tmp}"; system_tmp="${system_tmp%/}"
+run_tmp="$system_tmp/regista-run-$$"
+rm -rf "$run_tmp"; mkdir -p "$run_tmp"
+export REGISTA_TMPDIR="$run_tmp"
+log="$run_tmp/precommit.log"
+trap 'rm -rf "$run_tmp"' EXIT
 fail() { echo "pre-commit: $1 failed:" >&2; tail -40 "$log" >&2; exit 1; }
 
 scripts/check-voice-data.sh --staged || exit 1
@@ -46,8 +53,7 @@ BIN="$(swift build --show-bin-path)"
 # Scenarios never reach the owner's running app: regista-engine already starts regista-mcp with REGISTA_ENGINE=local, and
 # the engine socket points at a path where nothing listens. A scenario that hangs (e.g. an export stuck in AVFoundation,
 # #71) fails after SCENARIO_TIMEOUT seconds, its regista-mcp child included, instead of blocking the commit forever.
-sockdir="$(mktemp -d -t regista-precommit-sock)"
-trap 'rm -f "$log"; rm -rf "$sockdir" 2>/dev/null || true' EXIT
+sockdir="$(mktemp -d "$run_tmp/sock.XXXXXX")"
 export REGISTA_ENGINE_SOCKET="$sockdir/none.sock"
 # …nor the owner's editing-rule sheets (#31): the support folder is a scratch one, so the defaults apply.
 export REGISTA_SUPPORT_DIR="$sockdir/support"

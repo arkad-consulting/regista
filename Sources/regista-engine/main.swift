@@ -92,7 +92,7 @@ func run(_ positional: [String], _ options: [String: String]) {
     if let w = options["work"] {
         work = URL(fileURLWithPath: (w as NSString).expandingTildeInPath)
     } else {
-        work = FileManager.default.temporaryDirectory.appendingPathComponent("regista-\(scenario.name)-\(UUID().uuidString.prefix(8))")
+        work = TemporaryFolder.url.appendingPathComponent("regista-\(scenario.name)-\(UUID().uuidString.prefix(8))")
     }
     do { try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true) } catch { fail("\(error)") }
     print("work: \(work.path)")
