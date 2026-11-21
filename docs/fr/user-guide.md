@@ -39,8 +39,11 @@ C'est le chemin le plus simple : vous enregistrez, Regista monte tout seul, vous
    allumé dans **Sources**, le prompteur s'ouvre et démarre avec l'enregistrement.
 4. Appuyez sur **Enregistrer** (⇧⌘R) et lisez. Si vous ratez une phrase, reprenez-la : le prompteur revient au début de
    la phrase et marque une nouvelle prise. Pour finir, appuyez de nouveau sur ⇧⌘R.
-5. Si **Montage automatique en fin d'enregistrement** est allumé, Regista importe la vidéo, ouvre le montage et fait le
-   montage de base tout seul. Vous le suivez dans **Tâches**, dans la barre d'état.
+5. À la fin de l'enregistrement, vous restez dans **Enregistrer** : la prise va dans le projet de l'onglet et vous pouvez
+   en enregistrer une autre, qui rejoint le même projet. L'avis en haut indique où elle est rangée et combien de prises
+   compte le projet ; **Aller au montage** ouvre le montage avec la prise. Si vous allumez **Montage automatique en fin
+   d'enregistrement** (éteint par défaut), Regista ouvre le montage et fait le montage de base tout seul. Vous le suivez
+   dans **Tâches**, dans la barre d'état.
 6. Dans la barre au-dessus du montage, choisissez **Simple** (⌥⌘1). À gauche, six étapes : **Coupe et prises**,
    **Sous-titres**, **Apparence**, **Musique et sons**, **Voix**, **Graphismes**. Chacune indique si elle est faite, à
    faire ou facultative.

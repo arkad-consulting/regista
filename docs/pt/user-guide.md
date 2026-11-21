@@ -38,8 +38,10 @@ Este é o caminho mais simples: você grava, o Regista edita sozinho, você conf
    **Origens**, o teleprompter abre e começa junto com a gravação.
 4. Aperte **Gravar** (⇧⌘R) e leia. Se errar uma frase, comece de novo: o teleprompter volta ao início da frase e marca
    uma nova tomada. Para terminar, aperte ⇧⌘R de novo.
-5. Se **Edição automática ao fim da gravação** estiver ligada, o Regista importa o vídeo, abre a edição e faz a edição
-   básica sozinho. Você acompanha em **Tarefas**, na barra de status.
+5. Ao fim da gravação você continua em **Gravar**: a tomada vai para o projeto da aba e você pode gravar outra, que
+   entra no mesmo projeto. O aviso no alto diz para onde ela foi e quantas tomadas o projeto tem; **Ir para a edição**
+   abre a edição com a tomada. Se você ligar **Edição automática ao fim da gravação** (desligada por padrão), o Regista
+   abre a edição e faz a edição básica sozinho. Você acompanha em **Tarefas**, na barra de status.
 6. Na barra acima da edição, escolha **Simples** (⌥⌘1). À esquerda aparecem seis passos: **Corte e tomadas**,
    **Legendas**, **Aparência**, **Música e sons**, **Voz**, **Gráficos**. Cada um mostra se está feito, por fazer ou se
    é opcional.

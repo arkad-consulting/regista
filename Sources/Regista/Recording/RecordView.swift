@@ -33,7 +33,7 @@ struct RecordView: View {
     @EnvironmentObject private var store: EditorStore
     @ObservedObject private var prompter = TeleprompterController.shared
     @Environment(\.recordDemo) private var demo
-    @AppStorage(Prefs.autoEditKey) private var autoEdit = true
+    @AppStorage(Prefs.autoEditKey) private var autoEdit = false
     @State private var openRow: RecordingSources.Source?
     /// The Schermo row was closed by hand while it had no valid target (it does not open by itself again until the
     /// target changes).

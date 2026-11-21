@@ -276,6 +276,8 @@ extension Journey {
         try await tap("Avvia / Ferma registrazione")
         #expect(await until(40) { app.store.bench.notice != nil && store.project?.recordings?.isEmpty == false }, "the session went nowhere: \(screen())")
         await app.settle()
+        // Registra stays on screen after a take (#140): the notice's «Vai al montaggio» opens the editor.
+        try await tap("Apri il montaggio con questa ripresa in Sorgente")
         // The take's session.json, where the recorder left it (the recording's project names it).
         let session = URL(fileURLWithPath: try #require(store.project?.recordings?.first?.session, "no screen session")).deletingLastPathComponent()
         step("The person records the screen with the camera (Registra › Schermo + volto)", sees: "the session's project in its tab")

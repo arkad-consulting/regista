@@ -170,7 +170,9 @@
 "Registra un altro tono di questa voce" = "Gravar outro tom desta voz";
 "Registra · ~%@" = "Gravar · ~%@";
 "Registrare la tua voce" = "Gravar sua voz";
-"Registrazione salvata in «%@»" = "Gravação salva em “%@”";
+"Ripresa salvata in «%@» · %@" = "Tomada salva em “%@” · %@";
+"Vai al montaggio" = "Ir para a edição";
+"Apri il montaggio con questa ripresa in Sorgente" = "Abrir a edição com esta tomada em Origem";
 "RIPRESE" = "TOMADAS";
 "Reel 9:16 a −15 LUFS, con i controlli prima di salvare." = "Reel 9:16 a −15 LUFS, com as verificações antes de salvar.";
 "Resta un respiro prima e dopo ogni frase." = "Fica uma pequena pausa para respirar antes e depois de cada frase.";

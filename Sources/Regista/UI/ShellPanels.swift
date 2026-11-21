@@ -154,34 +154,56 @@ struct MainArea: View {
     }
 }
 
-/// One line under the project tabs saying where a finished recording went, with "Mostra nel Finder" for its file and a
-/// close button (#39). It stays until closed or the next recording starts.
+/// One line under the project tabs saying where a finished recording went, with "Vai al montaggio" (the take in the
+/// editor), "Mostra nel Finder" for its file and a close button (#39, #140). It stays until closed or the next recording
+/// starts.
 struct NoticeBar: View {
     @ObservedObject var bench: Workbench
 
+    /// A button of the notice: its title, icon and tooltip (keys) and what it does.
+    struct Action {
+        let title: String
+        let symbol: String
+        let tip: String
+        let run: () -> Void
+    }
+
+    private func actions(_ n: Workbench.Notice) -> [Action] {
+        var list: [Action] = []
+        if let take = n.take {
+            list.append(Action(title: "Vai al montaggio", symbol: "film", tip: "Apri il montaggio con questa ripresa in Sorgente") {
+                bench.notice = nil
+                bench.tab(take.tabID)?.showTake(take.assetID)
+            })
+        }
+        if let file = n.file {
+            list.append(Action(title: "Mostra nel Finder", symbol: "folder", tip: "Mostra il file della registrazione nel Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting([file])
+            })
+        }
+        return list
+    }
+
     var body: some View {
         if let n = bench.notice {
+            let list = Array(actions(n).enumerated())
             HStack(spacing: Ed.Space.s) {
                 Image(systemName: "checkmark.circle.fill").font(Ed.icon(Ed.TypeSize.body, .semibold)).foregroundStyle(Ed.ok)
-                // The line and the titled button side by side when both fit; else the button gives way to its icon, so the
-                // line is read, on more lines when it must (#80: in a narrow main area it was squeezed to «Enreg....43 »»).
+                // The line and the titled buttons side by side when they fit; else the buttons give way to their icons, so
+                // the line is read, on more lines when it must (#80: in a narrow main area it was squeezed to «Enreg....43 »»).
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: Ed.Space.s) {
                         line(n.text).fixedSize()
                         Spacer(minLength: Ed.Space.s)
-                        if let file = n.file {
-                            EdButton(title: "Mostra nel Finder", symbol: "folder") { NSWorkspace.shared.activateFileViewerSelecting([file]) }
-                                .tip("Mostra il file della registrazione nel Finder")
-                                .fixedSize()
+                        ForEach(list, id: \.offset) { _, a in
+                            EdButton(title: a.title, symbol: a.symbol, action: a.run).tip(a.tip).fixedSize()
                         }
                     }
                     HStack(spacing: Ed.Space.s) {
                         line(n.text, lines: 3).fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: Ed.Space.s)
-                        if let file = n.file {
-                            IconButton(symbol: "folder", help: "Mostra il file della registrazione nel Finder") {
-                                NSWorkspace.shared.activateFileViewerSelecting([file])
-                            }
+                        ForEach(list, id: \.offset) { _, a in
+                            IconButton(symbol: a.symbol, help: a.tip, action: a.run)
                         }
                     }
                 }

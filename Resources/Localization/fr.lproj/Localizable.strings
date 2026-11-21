@@ -170,7 +170,9 @@
 "Registra un altro tono di questa voce" = "Enregistrer un autre ton de cette voix";
 "Registra · ~%@" = "Enregistrer · ~%@";
 "Registrare la tua voce" = "Enregistrer votre voix";
-"Registrazione salvata in «%@»" = "Enregistrement rangé dans « %@ »";
+"Ripresa salvata in «%@» · %@" = "Prise rangée dans « %@ » · %@";
+"Vai al montaggio" = "Aller au montage";
+"Apri il montaggio con questa ripresa in Sorgente" = "Ouvrir le montage avec cette prise dans Source";
 "RIPRESE" = "PRISES";
 "Reel 9:16 a −15 LUFS, con i controlli prima di salvare." = "Reel 9:16 à −15 LUFS, avec les contrôles avant d'enregistrer.";
 "Resta un respiro prima e dopo ogni frase." = "Une respiration reste avant et après chaque phrase.";

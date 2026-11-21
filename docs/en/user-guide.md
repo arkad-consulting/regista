@@ -37,8 +37,10 @@ This is the simplest path: you record, Regista edits by itself, you check and ex
    **Sources**, the teleprompter opens and starts with the recording.
 4. Press **Record** (⇧⌘R) and read. If you get a sentence wrong, start it again: the teleprompter goes back to the start
    of the sentence and marks a new take. To finish, press ⇧⌘R again.
-5. If **Automatic edit when the recording ends** is on, Regista imports the video, opens the editor and makes the basic
-   edit by itself. You follow it in **Jobs**, in the status bar.
+5. When the recording ends you stay in **Record**: the take goes into the tab's project and you can record another one,
+   which joins the same project. The notice at the top says where it went and how many takes the project holds; **Go to
+   edit** opens the editor with the take. If you turn on **Automatic edit when the recording ends** (off by default),
+   Regista opens the editor and makes the basic edit by itself. You follow it in **Jobs**, in the status bar.
 6. In the bar above the edit choose **Simple** (⌥⌘1). On the left are six steps: **Cut & takes**, **Captions**,
    **Appearance**, **Music & sounds**, **Voice**, **Graphics**. Each says whether it is done, to do or optional.
 7. If the edit is not done yet, press **Do everything**: it cuts the pauses, picks the takes, cleans the voice, adds the

@@ -38,8 +38,10 @@ Questo è il percorso più semplice: registri, Regista monta da solo, tu control
    il gobbo si apre e parte insieme alla registrazione.
 4. Premi **Registra** (⇧⌘R) e leggi. Se sbagli una frase, ricominciala: il gobbo torna all'inizio della frase e segna
    una nuova ripresa. Per finire premi di nuovo ⇧⌘R.
-5. Se **Montaggio automatico a fine registrazione** è acceso, Regista importa il video, apre il montaggio e fa da solo
-   il montaggio di base. Lo vedi in **Lavori**, nella barra di stato.
+5. A fine registrazione resti in **Registra**: la ripresa va nel progetto della scheda e puoi registrarne un'altra,
+   che si aggiunge allo stesso progetto. L'avviso in alto dice dove è andata e quante riprese ha il progetto; **Vai al
+   montaggio** apre il montaggio con la ripresa. Se accendi **Montaggio automatico a fine registrazione** (è spento di
+   base), Regista apre il montaggio e fa da solo il montaggio di base. Lo vedi in **Lavori**, nella barra di stato.
 6. Nella barra sopra il montaggio scegli **Semplice** (⌥⌘1). A sinistra trovi sei passi: **Taglio e riprese**,
    **Sottotitoli**, **Aspetto**, **Musica e suoni**, **Voce**, **Grafica**. Ognuno dice se è fatto, da fare o
    facoltativo.

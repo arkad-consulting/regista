@@ -170,7 +170,9 @@
 "Registra un altro tono di questa voce" = "Registra un altro tono di questa voce";
 "Registra · ~%@" = "Registra · ~%@";
 "Registrare la tua voce" = "Registrare la tua voce";
-"Registrazione salvata in «%@»" = "Registrazione salvata in «%@»";
+"Ripresa salvata in «%@» · %@" = "Ripresa salvata in «%@» · %@";
+"Vai al montaggio" = "Vai al montaggio";
+"Apri il montaggio con questa ripresa in Sorgente" = "Apri il montaggio con questa ripresa in Sorgente";
 "RIPRESE" = "RIPRESE";
 "Reel 9:16 a −15 LUFS, con i controlli prima di salvare." = "Reel 9:16 a −15 LUFS, con i controlli prima di salvare.";
 "Resta un respiro prima e dopo ogni frase." = "Resta un respiro prima e dopo ogni frase.";

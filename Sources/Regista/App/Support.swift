@@ -17,7 +17,8 @@ enum Prefs {
 
     static func registerDefaults() {
         UserDefaults.standard.register(defaults: [
-            autoEditKey: true,
+            // Off by default (#140): a take ends on Registra, ready for the next one; edited automatically only when asked.
+            autoEditKey: false,
             startPrompterKey: true,
         ])
     }

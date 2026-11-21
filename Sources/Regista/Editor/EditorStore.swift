@@ -638,21 +638,24 @@ final class EditorStore: ObservableObject {
     }
 
     /// Where a recording started from this tab goes (#39): a new project when the tab has none; otherwise the choice made
-    /// on Registra, by default this project while it is still empty (no media, nothing on the timeline), else a new one.
+    /// on Registra, by default this project (#140: several takes in a row join the same project).
     var recordingDestination: RecordingDestination {
-        guard let p = project else { return .newProject }
-        return recordingChoice ?? (p.assets.isEmpty && p.duration == .zero ? .thisProject : .newProject)
+        guard project != nil else { return .newProject }
+        return recordingChoice ?? .thisProject
     }
 
     /// A finished recording in this tab (`Workbench.recordingTarget` chose it): a camera / voice take (a movie file) or a
     /// screen session (`session`: its session.json). `newProject`: a new project named like the recording, saved in the
     /// projects folder, the take on its timeline (a take: in the take's own format; a session: 16:9, screen, camera with
     /// the layout chosen while recording, mic — recording.import). Otherwise into this project: the take joins Media,
-    /// selected there, and goes on the timeline when the timeline is empty. Then the editor on Media and a notice saying
-    /// where it went, with "Mostra nel Finder".
-    func importRecording(_ url: URL, session: Bool, newProject: Bool) {
-        workspace = .pro
-        select(.media)
+    /// selected there, and goes on the timeline when the timeline is empty. The window stays where it is (#140: on
+    /// Registra, ready for the next take) unless `openEditor` (the automatic edit follows): then the editor on Media. A
+    /// notice says where the take went and how many takes the project holds, with "Vai al montaggio" and "Mostra nel Finder".
+    func importRecording(_ url: URL, session: Bool, newProject: Bool, openEditor: Bool = false) {
+        if openEditor {
+            workspace = .pro
+            select(.media)
+        }
         Task {
             do {
                 let file = session ? url.deletingLastPathComponent() : url
@@ -682,12 +685,34 @@ final class EditorStore: ObservableObject {
                     }
                 }
                 let added = project?.assets.filter { !before.contains($0.id) } ?? []
-                if let shown = added.first(where: { $0.video != nil }) ?? added.first { sourceAssetID = shown.id }
-                bench.notice = Workbench.Notice(text: String(format: loc("Registrazione salvata in «%@»"), project?.name ?? tabTitle), file: file)
+                let shown = added.first(where: { $0.video != nil }) ?? added.first
+                if let shown { sourceAssetID = shown.id }
+                let takes = project.map { Self.takeCount($0, recordings: bench.recordingsFolder) } ?? 0
+                bench.notice = Workbench.Notice(text: loc("Ripresa salvata in «%@» · %@", project?.name ?? tabTitle, Plural.text(takes, "1 ripresa", "%d riprese")),
+                                                file: file, take: shown.map { Workbench.Notice.Take(tabID: tabID, assetID: $0.id) })
             } catch {
                 show(error)
             }
         }
+    }
+
+    /// The takes `project` holds: its files Regista recorded (in the `recordings` folder), a screen session's files
+    /// counted once (they share the session's folder).
+    nonisolated static func takeCount(_ project: Project, recordings: URL) -> Int {
+        let root = recordings.resolvingSymlinksInPath().standardizedFileURL.path + "/"
+        return Set(project.assets.compactMap { a -> String? in
+            let path = URL(fileURLWithPath: a.path).resolvingSymlinksInPath().standardizedFileURL.path
+            guard path.hasPrefix(root) else { return nil }
+            return path.dropFirst(root.count).split(separator: "/").first.map(String.init)
+        }).count
+    }
+
+    /// "Vai al montaggio" of the notice after a take: the take's tab, the Pro editor on Media, the take in Source.
+    func showTake(_ assetID: String) {
+        bench.select(tabID)
+        workspace = .pro
+        select(.media)
+        if project?.asset(assetID) != nil { sourceAssetID = assetID }
     }
 
     /// A new project's name for a recording: the take's own ("Registrazione <date>"), or for a screen session (its folder

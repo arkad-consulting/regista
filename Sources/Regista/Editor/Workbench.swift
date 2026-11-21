@@ -60,6 +60,13 @@ final class Workbench: ObservableObject {
     private var finishedDestination: RecordingDestination?
     /// The one-line notice over the main area: where the last recording went, with its file (#39).
     @Published var notice: Notice?
+    /// Where the recorder's takes are: Regista's recordings folder (read when asked: Settings may move Regista's folder),
+    /// or a test's scratch folder.
+    var recordingsFolder: URL {
+        get { recordingsFolderOverride ?? Paths.recordings }
+        set { recordingsFolderOverride = newValue }
+    }
+    private var recordingsFolderOverride: URL?
 
     let defaults: UserDefaults
     /// The main window (set by the live EditorRoot); every tab's UI host renders and captures it.
@@ -287,10 +294,13 @@ final class Workbench: ObservableObject {
             Task { @MainActor in
                 await TeleprompterController.shared.saveTakes(for: url)
                 guard let self else { return }
-                let tab = self.recordingFinished(url, session: false)
+                // The automatic edit is the person's choice on Registra (off by default, #140): then the take's tab and the
+                // editor come forward and the edit runs; otherwise the window stays on Registra for the next take.
+                let edit = Prefs.autoEdit
+                let tab = self.recordingFinished(url, session: false, openEditor: edit)
                 // The teleprompter's text is the take's script only when it ran with the take and holds the person's own
                 // words; otherwise the take is cut from what was said (#71: it was cut against the sample text).
-                if Prefs.autoEdit { tab.autoEdit(script: recorder?.promptedTake == true ? TeleprompterController.shared.ownScript : nil) }
+                if edit { tab.autoEdit(script: recorder?.promptedTake == true ? TeleprompterController.shared.ownScript : nil) }
             }
         }
         return recorder.$isRecording.removeDuplicates().dropFirst().sink { [weak self] on in
@@ -323,10 +333,11 @@ final class Workbench: ObservableObject {
     }
 
     /// Where a finished recording goes (#39), a camera / voice take and a screen session alike: into the project of the
-    /// tab it was started from when Registra said "Questo progetto" there as the recording started; otherwise into a new
-    /// project, in that tab when it is empty, else in a new tab (also when the tab was closed while recording). The tab is
-    /// selected.
-    func recordingTarget() -> (tab: EditorStore, newProject: Bool) {
+    /// tab it was started from when Registra said "Questo progetto" there as the recording started (the default once the
+    /// tab has a project, #140); otherwise into a new project, in that tab when it is empty, else in a new tab (also when
+    /// the tab was closed while recording). The tab is selected only when `select` (the automatic edit opens it): a take
+    /// otherwise leaves the window as it is, on Registra.
+    func recordingTarget(select: Bool = false) -> (tab: EditorStore, newProject: Bool) {
         let owner = finishedRecordingTabID.flatMap(tab)
         let wanted = finishedDestination ?? owner?.recordingDestination
         finishedRecordingTabID = nil
@@ -339,23 +350,32 @@ final class Workbench: ObservableObject {
         } else {
             target = (newTab(), true)
         }
-        select(target.tab.tabID)
+        if select { self.select(target.tab.tabID) }
         return target
     }
 
     /// The recorder's file is written (`session`: a screen session's session.json): it goes where `recordingTarget`
-    /// says; the notice tells where. Returns the tab it went to.
+    /// says; the notice tells where. `openEditor`: the take's tab and the editor come forward (the automatic edit).
+    /// Returns the tab it went to.
     @discardableResult
-    func recordingFinished(_ url: URL, session: Bool) -> EditorStore {
-        let (tab, newProject) = recordingTarget()
-        tab.importRecording(url, session: session, newProject: newProject)
+    func recordingFinished(_ url: URL, session: Bool, openEditor: Bool = false) -> EditorStore {
+        let (tab, newProject) = recordingTarget(select: openEditor)
+        tab.importRecording(url, session: session, newProject: newProject, openEditor: openEditor)
         return tab
     }
 
-    /// What a notice says, and the file "Mostra nel Finder" shows.
+    /// What a notice says, and what its buttons act on.
     struct Notice: Equatable {
+        /// A finished take: its tab and its asset ("Vai al montaggio").
+        struct Take: Equatable {
+            var tabID: String
+            var assetID: String
+        }
+
         var text: String
+        /// The file "Mostra nel Finder" shows.
         var file: URL?
+        var take: Take?
     }
 
     // MARK: Unsaved work

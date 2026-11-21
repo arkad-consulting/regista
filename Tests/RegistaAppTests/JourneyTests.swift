@@ -286,11 +286,16 @@ extension MouseSuites.ClickAudits {
         await j.app.settle()
         let project = try #require(j.store.project)
         #expect(project.settings.width == 540 && project.settings.height == 960, "format \(project.settings.width)×\(project.settings.height)")
-        #expect(j.store.nav.activity == .media && j.store.nav.level == .pro)
-        #expect(j.shows("Registrazione salvata in «\(project.name)»"), "no notice: \(j.screen())")
-        #expect(j.shows("Formato 9:16 · 540×960"), "the toolbar does not show the take's format")
+        // Registra stays on screen, ready for another take (#140); the notice says where the take went.
+        let notice = loc("Ripresa salvata in «%@» · %@", project.name, Plural.text(1, "1 ripresa", "%d riprese"))
+        #expect(j.store.nav.activity == .record, "the take left Registra")
+        #expect(j.shows(notice), "no notice: \(j.screen())")
         #expect(j.store.projectURL.map { FileManager.default.fileExists(atPath: $0.path) } == true, "the new project is not saved")
-        j.step("Clicks Ferma", sees: "the new project in its tab, the take in Media and on the timeline, «Registrazione salvata in «\(project.name)»»")
+        j.step("Clicks Ferma", sees: "Registra still on screen, the new project in its tab, «\(notice)»")
+        try await j.tap("Apri il montaggio con questa ripresa in Sorgente")
+        #expect(j.store.nav.activity == .media && j.store.nav.level == .pro)
+        #expect(j.shows("Formato 9:16 · 540×960"), "the toolbar does not show the take's format")
+        j.step("Clicks Vai al montaggio", sees: "the take in Media and on the timeline, in the Pro editor")
 
         // Captions from Testi e sottotitoli › Passi.
         try await j.tap("Testi e sottotitoli")
@@ -590,6 +595,9 @@ extension MouseSuites.ClickAudits {
         await j.app.settle()
         let p = try #require(j.store.project)
         #expect(p.settings.width == 1920 && p.settings.height == 1080, "format \(p.settings.width)×\(p.settings.height)")
+        // Registra stays on screen after a take (#140): the notice's «Vai al montaggio» opens the editor.
+        #expect(j.store.nav.activity == .record, "the session left Registra")
+        try await j.tap("Apri il montaggio con questa ripresa in Sorgente")
         #expect(j.shows("Formato 16:9"), "the toolbar does not say 16:9: \(j.screen())")
         #expect(j.drawn.contains { $0.kind == .layoutBox } || j.store.project?.tracks.contains { $0.role == "camera" } == true, "no camera on the picture")
         j.step("Clicks Ferma", sees: "the session's project in 16:9, screen and camera with the layout, the notice")
@@ -763,12 +771,14 @@ extension MouseSuites.ClickAudits {
         #expect(bench.active.tabID == tabID && bench.tabs.count == 1, "the take did not land in this tab")
         #expect(j.rig.elements().contains { $0.role == "AXStaticText" && $0.name == project.name && $0.frame.minY < 90 },
                 "the tab is not named after the take's project «\(project.name)»: \(j.screen())")
-        #expect(j.shows("Registrazione salvata in «\(project.name)»"), "the notice does not say where the take went: \(j.screen())")
+        #expect(j.shows(loc("Ripresa salvata in «%@» · %@", project.name, Plural.text(1, "1 ripresa", "%d riprese"))),
+                "the notice does not say where the take went: \(j.screen())")
+        #expect(j.store.nav.activity == .media && j.store.nav.level == .pro, "the automatic edit did not open the editor")
         let take = try #require(project.assets.first?.path, "no take in Media")
         #expect(take.hasPrefix(rigFolder.path) && FileManager.default.fileExists(atPath: take), "the take is not in the scratch recordings folder: \(take)")
         #expect(j.store.projectURL.map { $0.path.hasPrefix(EditorStore.projectsFolder.path) && FileManager.default.fileExists(atPath: $0.path) } == true,
                 "the new project is not saved in the projects folder")
-        j.step("Clicks Ferma", sees: "the new project «\(project.name)» in this tab, the take on V1/A1, «Registrazione salvata in «\(project.name)»»")
+        j.step("Clicks Ferma", sees: "the new project «\(project.name)» in this tab, the take on V1/A1, the editor, «Ripresa salvata in «\(project.name)»»")
 
         // The automatic edit runs on its own (Fai tutto: transcript, script, takes, cut, voice, captions).
         #expect(await j.until(5) { j.store.jobs.latest(TextStep.allJobKind) != nil }, "the automatic edit did not start: \(j.screen())")
