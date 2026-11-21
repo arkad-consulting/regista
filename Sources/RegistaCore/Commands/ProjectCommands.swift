@@ -156,7 +156,7 @@ enum ProjectOpen: Command {
 
 enum ProjectSave: Command {
     static let id = "project.save"
-    static let summary = "Write the project to its .regista folder (do it at the end, and before long experiments). Pass path to save somewhere else (save as). Returns the saved path."
+    static let summary = "Write the project to its .regista folder (do it at the end, and before long experiments). Pass path to save somewhere else (save as). The first save of a project made without a folder moves the files Regista generated for it (extracted audio, cleaned voice, face tracks…) from the temporary folder into <project>.regista/media. Returns the saved path."
     static let kind = CommandKind.session
     static let params: [ParamSpec] = [
         .optional("path", .string, "Target .regista folder; defaults to where the project was created or opened."),
@@ -167,10 +167,42 @@ enum ProjectSave: Command {
         guard let folder = p.string("path").map(ProjectStore.folder(for:)) ?? ctx.projectURL else {
             throw CommandError.invalid("project.save: the project has no folder yet — pass path")
         }
-        try ProjectStore.save(project, to: folder)
+        var result: [String: JSONValue] = ["path": .string(folder.path), "file": .string(folder.appendingPathComponent(ProjectStore.fileName).path)]
+        if ctx.projectURL == nil, let scratch = ctx.scratch {
+            // The first save of a project made without a folder (#139): what Regista generated for it leaves the
+            // temporary media folder for the project's own, and every path follows (undo history included).
+            let moves = try FirstSaveMedia.move(from: scratch, into: folder.appendingPathComponent("media"))
+            let saved: Project
+            do {
+                saved = try FirstSaveMedia.rewrite(project, moves)
+                try ProjectStore.save(saved, to: folder)
+            } catch {
+                FirstSaveMedia.putBack(moves)
+                throw error
+            }
+            FirstSaveMedia.rewriteFiles(moves)
+            func follow(_ entries: inout [History.Entry]) {
+                for i in entries.indices {
+                    entries[i].before = entries[i].before.map { (try? FirstSaveMedia.rewrite($0, moves)) ?? $0 }
+                    entries[i].after = entries[i].after.map { (try? FirstSaveMedia.rewrite($0, moves)) ?? $0 }
+                }
+            }
+            if !moves.isEmpty {
+                follow(&ctx.history.undoStack)
+                follow(&ctx.history.redoStack)
+            }
+            if ((try? FileManager.default.contentsOfDirectory(atPath: scratch.path)) ?? []).isEmpty {
+                try? FileManager.default.removeItem(at: scratch)
+            }
+            ctx.scratch = nil
+            ctx.project = saved
+            result["movedMedia"] = .number(Double(moves.count))
+        } else {
+            try ProjectStore.save(project, to: folder)
+        }
         ctx.projectURL = folder
         ctx.dirty = false
-        return ["path": .string(folder.path), "file": .string(folder.appendingPathComponent(ProjectStore.fileName).path)]
+        return .object(result)
     }
 }
 
