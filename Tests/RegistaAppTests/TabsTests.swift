@@ -14,12 +14,7 @@ private func tempDir() -> URL {
     return url
 }
 
-private func scratchDefaults() -> UserDefaults {
-    let name = "regista-tabs-tests-\(UUID().uuidString)"
-    let d = UserDefaults(suiteName: name)!
-    d.removePersistentDomain(forName: name)
-    return d
-}
+private func scratchDefaults() -> UserDefaults { TestDefaults.make("tabs-tests") }
 
 /// A saved `.regista` project in `dir`.
 private func savedProject(_ name: String, in dir: URL) throws -> URL {

@@ -247,9 +247,8 @@ private struct Fixture {
 @MainActor
 @Test func theSampleStatesOfThePanel() {
     _ = NSApplication.shared
-    let name = "regista-generate-tests-\(UUID().uuidString)"
-    let d = UserDefaults(suiteName: name)!
-    d.removePersistentDomain(forName: name)
+    let d = TestDefaults.make("generate-tests")
+    defer { TestDefaults.end(d) }
     let store = Workbench(defaults: d, seedFolders: [], socketPath: nil).newTab()
     for s in GenerateState.demoStates { #expect(!GenerateState.demo(s, store: store).providers.isEmpty, "\(s)") }
     let approval = GenerateState.demo("approval", store: store)
@@ -259,7 +258,6 @@ private struct Fixture {
     #expect(none.request() == nil)
     #expect(GenerateState.demo("running", store: store).demoJob?.isRunning == true)
     #expect(GenerateState.demo("recent", store: store).recent.count == 4)
-    d.removePersistentDomain(forName: name)
 }
 
 /// #43: a waiting paid estimate stands while the panel asks for the request it was made for (the panel reading its

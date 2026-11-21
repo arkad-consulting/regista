@@ -94,7 +94,8 @@ private final class BundleToken {}
 }
 
 @Test func generalChoicesShapeNewProjects() {
-    let d = UserDefaults(suiteName: "regista-settings-\(UUID().uuidString)")!
+    let d = TestDefaults.make("settings")
+    defer { TestDefaults.end(d) }
     let dir = URL(fileURLWithPath: "/tmp/p")
     #expect(GeneralPrefs.newProject(name: "a", directory: dir, d)["width"] == 1080 && GeneralPrefs.newProject(name: "a", directory: dir, d)["height"] == 1920)
     d.set("16:9", forKey: GeneralPrefs.formatKey)
@@ -151,8 +152,8 @@ private final class BundleToken {}
 @Test func everySettingsTabDrawsAndMotoriFollowsTheTier() async throws {
     _ = NSApplication.shared
     setenv("REGISTA_ENGINE_SOCKET", settingsTempDir().appendingPathComponent("e.sock").path, 1)
-    let name = "regista-settings-render-\(UUID().uuidString)"
-    let defaults = UserDefaults(suiteName: name)!
+    let defaults = TestDefaults.make("settings-render")
+    defer { TestDefaults.end(defaults) }
     let store = EditorStore(defaults: defaults, seedFolders: [])
     let status = try await store.silent("engines.status")
     func render(_ tab: SettingsTab, tier: MachineTier? = nil) async throws -> NSBitmapImageRep {
@@ -184,5 +185,4 @@ private final class BundleToken {}
     if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
         for (n, d) in png { try d.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(n).png")) }
     }
-    defaults.removePersistentDomain(forName: name)
 }

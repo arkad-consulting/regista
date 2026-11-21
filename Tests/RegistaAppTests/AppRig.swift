@@ -189,7 +189,8 @@ final class AppRig {
     let reset = RigReset()
     private(set) var rig: MouseRig!
     let defaults: UserDefaults
-    private let defaultsName: String
+    /// The rig's own defaults suite (TestDefaults): the one `defaults` reads, ended at close.
+    private let suite: UserDefaults
     /// The project opened at the start (reopened when a click closed it).
     private(set) var projectPath: URL?
     /// The recorder's ends, wired to the workbench (`followRecorder`).
@@ -205,8 +206,8 @@ final class AppRig {
         RigGuard.install()
         // A socket nobody listens to, with a path short enough for a Unix socket.
         setenv("REGISTA_ENGINE_SOCKET", FileManager.default.temporaryDirectory.appendingPathComponent("rg-\(UUID().uuidString.prefix(8)).sock").path, 1)
-        defaultsName = "regista-rig-\(UUID().uuidString)"
-        defaults = UserDefaults(suiteName: defaultsName)!
+        suite = TestDefaults.make("rig")
+        defaults = suite
         let factory = RigServices.factory()
         store = EditorStore(defaults: defaults, seedFolders: [], services: adjust.map { adjust in { var s = factory(); adjust(&s); return s } } ?? factory)
         capture = RigCapture()
@@ -231,6 +232,12 @@ final class AppRig {
         // RigGuard's record only grows (suites of other files run beside this one: a test compares counts).
         RigGuard.alertAnswer = .alertSecondButtonReturn
         UserDefaults.standard.removeObject(forKey: SettingsRoute.tabKey)
+        // What the app keeps in the test process's own defaults and the window tests count on, at its default (#137): an
+        // earlier run (a drag, a click of the Settings audit, a run stopped in the middle) may have left another value.
+        // The window's panes at their automatic sizes: a lower pane left short hid the timeline's lanes. New projects in
+        // the default format, 9:16: a 16:9 one put the journeys' clicks on the picture outside it.
+        for key in ["layout.pro.program", "layout.pro.lower", ShellPrefs.sideWidth] { UserDefaults.standard.set(SplitSize.automatic, forKey: key) }
+        UserDefaults.standard.set(GeneralPrefs.formats[0].id, forKey: GeneralPrefs.formatKey)
     }
 
     /// The app launched again on `old`'s defaults and the same scratch support folder: `old`'s window closes (its defaults
@@ -239,8 +246,8 @@ final class AppRig {
     init(relaunching old: AppRig, services adjust: (@MainActor (inout EngineServices) -> Void)? = nil) async throws {
         old.close(keepingDefaults: true)
         setenv("REGISTA_ENGINE_SOCKET", FileManager.default.temporaryDirectory.appendingPathComponent("rg-\(UUID().uuidString.prefix(8)).sock").path, 1)
-        defaultsName = old.defaultsName
-        defaults = UserDefaults(suiteName: defaultsName)!
+        suite = old.suite
+        defaults = UserDefaults(suiteName: TestDefaults.domain(of: old.suite)!)!
         let factory = RigServices.factory()
         let bench = Workbench(defaults: defaults, seedFolders: [], services: adjust.map { adjust in { var s = factory(); adjust(&s); return s } } ?? factory)
         capture = RigCapture()
@@ -299,7 +306,7 @@ final class AppRig {
         if recorder.isRecording { recorder.stop() }
         if TeleprompterController.shared.recorder === recorder { TeleprompterController.shared.recorder = nil }
         if store.preview.isPlaying { store.preview.togglePlay() }
-        if !keepingDefaults { defaults.removePersistentDomain(forName: defaultsName) }
+        if !keepingDefaults { TestDefaults.end(suite) }
     }
 
     /// Waits `seconds` with the main run loop turning inside a nested loop of ours: the store's results (blocks on the

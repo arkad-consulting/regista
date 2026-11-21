@@ -9,12 +9,7 @@ import Testing
 // R1 (#50): the Registra screen's sources as a pure value — presets ↔ switches, the at-least-one rule, device memory,
 // persistence and the screen fallback.
 
-private func scratchDefaults() -> UserDefaults {
-    let name = "regista-sources-tests-\(UUID().uuidString)"
-    let d = UserDefaults(suiteName: name)!
-    d.removePersistentDomain(forName: name)
-    return d
-}
+private func scratchDefaults() -> UserDefaults { TestDefaults.make("sources-tests") }
 
 @Test func presetsSetTheSwitchesAndTheMatchingPresetShowsAsSelected() {
     var s = RecordingSources()

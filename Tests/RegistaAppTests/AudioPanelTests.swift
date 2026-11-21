@@ -16,12 +16,7 @@ private func tempDir() -> URL {
     return url
 }
 
-private func scratchDefaults() -> UserDefaults {
-    let name = "regista-audio-tests-\(UUID().uuidString)"
-    let d = UserDefaults(suiteName: name)!
-    d.removePersistentDomain(forName: name)
-    return d
-}
+private func scratchDefaults() -> UserDefaults { TestDefaults.make("audio-tests") }
 
 /// A store of its own (its own socket, scratch defaults): never the owner's app or projects.
 @MainActor

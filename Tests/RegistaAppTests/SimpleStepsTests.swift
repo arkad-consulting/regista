@@ -363,9 +363,8 @@ private struct StubProber: MediaProber {
 @MainActor
 @Test func switchingLevelsKeepsTheProjectSelectionAndPlayheadAndIsRemembered() {
     _ = NSApplication.shared
-    let name = "regista-simple-tests-\(UUID().uuidString)"
-    let d = UserDefaults(suiteName: name)!
-    d.removePersistentDomain(forName: name)
+    let d = TestDefaults.make("simple-tests")
+    defer { TestDefaults.end(d) }
     let bench = Workbench(defaults: d, seedFolders: [], socketPath: nil)
     let store = bench.newTab()
     store.selection = ["c1"]

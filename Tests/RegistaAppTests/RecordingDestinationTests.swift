@@ -10,12 +10,7 @@ import Testing
 // callbacks directly, as the app wires them (recordingStarted / recordingStopped / recordingFinished), with synthetic
 // takes. Projects are saved in the test process's scratch Regista folder (rigFolder, REGISTA_FOLDER).
 
-private func scratchDefaults() -> UserDefaults {
-    let name = "regista-destination-tests-\(UUID().uuidString)"
-    let d = UserDefaults(suiteName: name)!
-    d.removePersistentDomain(forName: name)
-    return d
-}
+private func scratchDefaults() -> UserDefaults { TestDefaults.make("destination-tests") }
 
 /// A workbench without the engine socket, its projects folder in the scratch Regista folder.
 @MainActor private func bench() -> Workbench {

@@ -9,12 +9,7 @@ import Testing
 // Program picture, driven with real mouse events (MouseRig). #30: the same gestures on everything drawn on the frame —
 // the full-frame camera, a full-frame insert, a callout, a layout box — and a full-frame picture never moved by accident.
 
-private func scratchDefaults() -> UserDefaults {
-    let name = "regista-tests-\(UUID().uuidString)"
-    let d = UserDefaults(suiteName: name)!
-    d.removePersistentDomain(forName: name)
-    return d
-}
+private func scratchDefaults() -> UserDefaults { TestDefaults.make("tests") }
 
 /// The kinds made grabbable by #30, as a CanvasRig puts them on the frame.
 enum CanvasGrab: String, CaseIterable, CustomStringConvertible, Sendable {

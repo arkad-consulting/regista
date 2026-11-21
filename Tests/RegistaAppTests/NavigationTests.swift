@@ -22,12 +22,7 @@ private func makeProject(_ name: String, in dir: URL, date: Date) throws -> URL 
     return folder
 }
 
-private func scratchDefaults() -> UserDefaults {
-    let name = "regista-tests-\(UUID().uuidString)"
-    let d = UserDefaults(suiteName: name)!
-    d.removePersistentDomain(forName: name)
-    return d
-}
+private func scratchDefaults() -> UserDefaults { TestDefaults.make("tests") }
 
 @Test func activitiesFollowTheBarAndTheEditorReturnsToTheLastLevel() {
     var nav = Navigation()

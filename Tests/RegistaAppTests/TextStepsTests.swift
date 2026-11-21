@@ -249,10 +249,7 @@ private func doAll(_ e: Engine, script: String?, stopAt: String? = nil) async th
 @MainActor
 private func bench() -> Workbench {
     _ = NSApplication.shared
-    let name = "regista-steps-tests-\(UUID().uuidString)"
-    let d = UserDefaults(suiteName: name)!
-    d.removePersistentDomain(forName: name)
-    return Workbench(defaults: d, seedFolders: [], socketPath: nil)
+    return Workbench(defaults: TestDefaults.make("steps-tests"), seedFolders: [], socketPath: nil)
 }
 
 @MainActor

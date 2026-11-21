@@ -256,6 +256,9 @@ extension MouseSuites.ClickAudits {
             // From the default mode, whatever the test process kept: a run stopped in the middle of this audit left
             // «Velocità» chosen, and its click then changed nothing in every later run.
             TeleprompterController.shared.mode = .voice
+            // French, the language the list above names as current (#137): the language is kept there too, and a run that
+            // left «Português» chosen made its click change nothing.
+            TeleprompterController.shared.language = "fr"
         })
     }
 }

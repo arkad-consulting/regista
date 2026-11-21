@@ -382,6 +382,15 @@ SwiftPM's incremental debug build once left RegistaEngines compiled against the 
 git config core.hooksPath .githooks
 ```
 
+Tests never write the preferences of the person running them (#137). A test's own defaults suite comes from
+`TestDefaults` (Tests/RegistaAppTests): it is named `regista-<kind>-<UUID>` and kept at an absolute path in the test
+process's scratch folder, never in the Preferences folder, because the preferences daemon writes a changed domain to disk
+up to about half a minute later (synchronizing does not force it, and it happens after the process has exited too), so
+a property list deleted at the end of a test came back. At its end a suite's domain is removed and its file deleted; at
+the process's exit the suites not ended yet and the folder go. The tests still share the test process's own domain with
+the app code that reads `UserDefaults.standard`: a test that depends on one of its keys sets it at its start (`AppRig`
+sets the window's pane sizes and the new projects' format; the right panel's audit, the teleprompter's mode and language).
+
 ## Teleprompter (P2-T1, issue #1)
 
 ```

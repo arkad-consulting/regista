@@ -105,9 +105,8 @@ private func enrolled(_ code: String, consent: Bool, zeroShot: Bool, seconds: Do
 
 @MainActor
 @Test func trainingHintOnlyForAnUntrainedVoiceThatCanTrainUntilDismissed() {
-    let suite = "regista-voice-hint-\(UUID().uuidString)"
-    let defaults = UserDefaults(suiteName: suite)!
-    defer { defaults.removePersistentDomain(forName: suite) }
+    let defaults = TestDefaults.make("voice-hint")
+    defer { TestDefaults.end(defaults) }
     let m = VoiceModel(store: nil, defaults: defaults)
     m.snapshot = VoiceDemo.snapshot("hint", tier: nil)
     m.language = "fr"
@@ -201,9 +200,8 @@ private func readRender<V: View>(_ root: V, size: CGSize) async throws -> [Strin
 /// never "0 min"; the same window on a recorded voice does show its minutes (the reading sees them when they are there).
 @MainActor
 @Test func theWindowRendersTheImportedModelWithoutZeroMinutes() async throws {
-    let suite = "regista-voice-render-\(UUID().uuidString)"
-    let defaults = UserDefaults(suiteName: suite)!
-    defer { defaults.removePersistentDomain(forName: suite) }
+    let defaults = TestDefaults.make("voice-render")
+    defer { TestDefaults.end(defaults) }
     let recorder = Recorder(defaults: defaults)
     func read(_ state: String) async throws -> [String] {
         let m = VoiceDemo.model(state, tier: nil)
@@ -227,9 +225,8 @@ private func readRender<V: View>(_ root: V, size: CGSize) async throws -> [Strin
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: dir) }
     setenv("REGISTA_ENGINE_SOCKET", dir.appendingPathComponent("e.sock").path, 1)
-    let suite = "regista-voice-panel-\(UUID().uuidString)"
-    let defaults = UserDefaults(suiteName: suite)!
-    defer { defaults.removePersistentDomain(forName: suite) }
+    let defaults = TestDefaults.make("voice-panel")
+    defer { TestDefaults.end(defaults) }
     let store = EditorStore(defaults: defaults, seedFolders: [])
     func read(_ state: String) async throws -> String {
         let m = VoiceDemo.model(state, tier: nil)

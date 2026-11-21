@@ -19,7 +19,8 @@ import Testing
     #expect(live.generators["higgsfield"] is HiggsfieldProvider && live.generators["comfyui"] is ComfyUIProvider && live.generators["voxcpm"] is VoxCPMProvider)
     #expect(live.speech != nil && live.segmenter != nil && live.screenSynth != nil)
     // A store made the app's way gets them (its approvals are read from the support folder, never written).
-    let defaults = UserDefaults(suiteName: "regista-live-\(UUID().uuidString)")!
+    let defaults = TestDefaults.make("live")
+    defer { TestDefaults.end(defaults) }
     let store = EditorStore(defaults: defaults, seedFolders: [])
     #expect(store.generationState.standardizedFileURL == OwnerSide.support.standardizedFileURL)
     #expect(store.engine.context.services.generators["higgsfield"] is HiggsfieldProvider)
@@ -138,13 +139,42 @@ import Testing
     #expect(ClaudeClients.claudeCLI()?.hasPrefix(rigOutside.claudeHome.path) == true)
 }
 
+/// A test's own defaults suite leaves no file behind (#137, TestDefaults): while it is open its file is in the test
+/// process's scratch folder of suites, never in the Preferences folder of the person running the tests; once ended, its
+/// keys and its file are gone.
+@Test func aTestsOwnDefaultsSuiteLeavesNoFile() async throws {
+    let fm = FileManager.default
+    let preferences = fm.urls(for: .libraryDirectory, in: .userDomainMask)[0].appendingPathComponent("Preferences")
+    let d = TestDefaults.make("isolation")
+    let domain = try #require(TestDefaults.domain(of: d))
+    let name = URL(fileURLWithPath: domain).lastPathComponent
+    #expect(name.range(of: #"^regista-isolation-[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"#, options: .regularExpression) != nil, "\(name)")
+    let file = TestDefaults.file(of: domain), inPreferences = preferences.appendingPathComponent("\(name).plist")
+    #expect(file.deletingLastPathComponent().standardizedFileURL == TestDefaults.folder.standardizedFileURL)
+    d.set("value", forKey: "key")
+    d.synchronize()
+    // The preferences daemon writes the new domain to disk: in the scratch folder.
+    let end = Date().addingTimeInterval(35)
+    while !fm.fileExists(atPath: file.path), Date() < end { try await Task.sleep(for: .milliseconds(100)) }
+    #expect(fm.fileExists(atPath: file.path))
+    #expect(!fm.fileExists(atPath: inPreferences.path))
+    TestDefaults.end(d)
+    #expect(!fm.fileExists(atPath: file.path) && !fm.fileExists(atPath: inPreferences.path))
+    #expect(TestDefaults.domain(of: d) == nil)
+    #expect(UserDefaults(suiteName: domain)?.object(forKey: "key") == nil)
+    TestDefaults.end(d)   // a second end does nothing
+    #expect(!fm.fileExists(atPath: inPreferences.path))
+}
+
 /// The capture stand-in: allowed without asking, a take is a state that opens no device and writes no file, the screen
 /// and speech recognition are refused.
 @MainActor
 @Test func theCaptureStandInOpensNothing() async throws {
     _ = rigFolder
     let capture = RigCapture()
-    let recorder = Recorder(defaults: UserDefaults(suiteName: "regista-capture-\(UUID().uuidString)")!, hardware: capture)
+    let defaults = TestDefaults.make("capture")
+    defer { TestDefaults.end(defaults) }
+    let recorder = Recorder(defaults: defaults, hardware: capture)
     await recorder.prepare()
     #expect(recorder.isReady && recorder.cameraPermission == .granted && recorder.microphonePermission == .granted)
     #expect(capture.log.contains("openDevices") && !capture.log.contains { $0.hasPrefix("requestAccess") })
