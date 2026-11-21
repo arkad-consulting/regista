@@ -28,7 +28,8 @@ struct Navigation: Equatable {
         }
     }
 
-    /// The right panel's three tabs, the same on every activity.
+    /// The right panel's tabs: Gobbo · Claude · Ispettore on Registra, Claude · Ispettore everywhere else (#141: the
+    /// teleprompter is used only while recording).
     enum RightTab: String, CaseIterable, Identifiable {
         case prompter, claude, inspector
         var id: String { rawValue }
@@ -55,12 +56,21 @@ struct Navigation: Equatable {
     /// Audio: the mix (level, music, voice, tracks), the sound-effect browser (E3 #55).
     enum SoundTab: String, CaseIterable { case mix, sfx }
 
-    private(set) var activity: Activity
+    private(set) var activity: Activity {
+        didSet {
+            guard activity != oldValue else { return }
+            // Registra opens on its Gobbo tab; leaving it, the Gobbo tab gives way to the Ispettore (#141).
+            if activity == .record { rightTab = .prompter } else if rightTab == .prompter { rightTab = .inspector }
+        }
+    }
     /// The last editor level used (.pro or .simple).
     private(set) var level: EditorStore.Workspace
     /// The library activity the editor comes back to from Inizio, Registra or Esporta.
     private(set) var library: Activity = .media
-    var rightTab: RightTab
+    /// The right panel's tab, always one of `rightTabs` (the Gobbo one only on Registra).
+    var rightTab: RightTab {
+        didSet { if !rightTabs.contains(rightTab) { rightTab = .inspector } }
+    }
     var textsTab: TextsTab = .steps
     var graphicsSection: GraphicsSection = .effects
     var soundTab: SoundTab = .mix
@@ -68,9 +78,17 @@ struct Navigation: Equatable {
     init(activity: Activity = .home, level: EditorStore.Workspace = .pro, rightTab: RightTab = .prompter) {
         self.activity = activity
         self.level = Self.isMonta(level) ? level : .pro
-        self.rightTab = rightTab
+        self.rightTab = Self.tabs(on: activity).contains(rightTab) ? rightTab : .inspector
         if activity.isLibrary { library = activity }
     }
+
+    /// The right panel's tabs on `activity`: the Gobbo only on Registra.
+    static func tabs(on activity: Activity) -> [RightTab] {
+        activity == .record ? RightTab.allCases : [.claude, .inspector]
+    }
+
+    /// The right panel's tabs now.
+    var rightTabs: [RightTab] { Self.tabs(on: activity) }
 
     static func isMonta(_ ws: EditorStore.Workspace) -> Bool { ws == .pro || ws == .simple }
 

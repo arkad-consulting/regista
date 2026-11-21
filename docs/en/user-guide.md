@@ -16,8 +16,8 @@ It installs with one command in Terminal: everything is in [Installation and eng
   The + opens a **New tab**.
 - *The main area* changes with the activity: in **Home** you choose where to start, in **Record** you see the preview,
   in the editing activities you see the edit, in **Export** the result.
-- *The right panel* is the same everywhere and has three tabs: **Teleprompter** (the text you read while recording),
-  **Claude** (every step Claude takes, in plain words) and **Inspector** (the settings of the selected clip). Hide it
+- *The right panel* has the tabs **Claude** (every step Claude takes, in plain words) and **Inspector** (the settings of
+  the selected clip); in **Record** it also has **Teleprompter** (the text you read while recording). Hide it
   with ⌥⌘I.
 - *The status bar*, at the bottom, shows the Mac's memory and tier, the loudness of the edit and whether the project is
   saved. While Regista works (a transcription, an export) **Jobs** appears: click it to see the progress, **Cancel** and

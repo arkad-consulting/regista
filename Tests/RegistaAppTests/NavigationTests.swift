@@ -73,13 +73,13 @@ private func scratchDefaults() -> UserDefaults { TestDefaults.make("tests") }
     #expect(voice.activity == .voice && voice.workspace == .simple && voice.rightTab == .inspector)
     // D1's remembered Monta comes back as the editor at the remembered level.
     let monta = Navigation.restored(activity: "pro", level: "quick", rightTab: nil, hasRecents: true)
-    #expect(monta.activity == .media && monta.workspace == .simple && monta.rightTab == .prompter)
+    #expect(monta.activity == .media && monta.workspace == .simple && monta.rightTab == .inspector, "the Gobbo tab is Registra's (#141)")
     // Nothing to come back to, or nothing remembered: Inizio (the level and the tab are still remembered).
     let empty = Navigation.restored(activity: "export", level: "quick", rightTab: "claude", hasRecents: false)
     #expect(empty.activity == .home && empty.level == .simple && empty.rightTab == .claude)
     #expect(Navigation.restored(activity: nil, level: nil, rightTab: nil, hasRecents: true).activity == .home)
     let bogus = Navigation.restored(activity: "bogus", level: "export", rightTab: "bogus", hasRecents: true)
-    #expect(bogus.level == .pro && bogus.rightTab == .prompter && bogus.activity == .home)
+    #expect(bogus.level == .pro && bogus.rightTab == .inspector && bogus.activity == .home)
 }
 
 /// The store remembers the activity, the level and the right panel's tab in the user defaults; a new store (the next
@@ -193,8 +193,8 @@ private func pixel(_ rep: NSBitmapImageRep, _ x: Int, _ y: Int) -> UInt32 {
 }
 
 /// The whole window rendered for every activity (and the editor's two levels, and each Graphics section): the right panel is drawn
-/// at the same place with the same width everywhere — its left edge on the same column, its pixels identical — and the
-/// title row does not change.
+/// at the same place with the same width everywhere — its left edge on the same column, its pixels identical (on
+/// Registra under its tab bar, which adds the Gobbo, #141) — and the title row does not change.
 @MainActor
 @Test func rightPanelIsTheSameOnEveryActivity() async throws {
     _ = NSApplication.shared
@@ -261,7 +261,9 @@ private func pixel(_ rep: NSBitmapImageRep, _ x: Int, _ y: Int) -> UInt32 {
         #expect(near(rep, left, height - 60, 0x2F2F31) && near(rep, left + 1, height - 60, 0x202022),
                 "\(states[i].0): the right panel does not start at x = \(left)")
         var differing = 0, titleDiffering = 0
-        for y in 0..<height {
+        // Registra's tab bar has the Gobbo tab too (#141): there the panel is compared under its tab bar.
+        let from = states[i].1.activity == .record ? Int(Chrome.titleHeight + Chrome.headerHeight) + 1 : 0
+        for y in from..<height {
             for x in left..<width where pixel(rep, x, y) != pixel(shots[0], x, y) { differing += 1 }
         }
         for y in 0..<Int(Chrome.titleHeight) {

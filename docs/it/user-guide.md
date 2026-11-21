@@ -17,8 +17,8 @@ Si installa con un solo comando nel Terminale: trovi tutto in [Installazione e m
   salvato. Il + apre una **Nuova scheda**.
 - *L'area centrale* cambia con l'attività: in **Inizio** scegli da dove partire, in **Registra** vedi l'anteprima,
   nelle attività di montaggio vedi il montaggio, in **Esporta** il risultato.
-- *Il pannello destro* è uguale ovunque e ha tre schede: **Gobbo** (il testo da leggere mentre registri), **Claude**
-  (ogni passo di Claude, in parole semplici) e **Ispettore** (le regolazioni della clip selezionata). Lo nascondi con
+- *Il pannello destro* ha le schede **Claude** (ogni passo di Claude, in parole semplici) e **Ispettore** (le
+  regolazioni della clip selezionata); in **Registra** c'è anche **Gobbo** (il testo da leggere mentre registri). Lo nascondi con
   ⌥⌘I.
 - *La barra di stato*, in fondo, dice la memoria e il livello del Mac, il volume del montaggio e se il progetto è
   salvato. Quando Regista lavora (una trascrizione, un export) compare **Lavori**: un clic mostra l'avanzamento,

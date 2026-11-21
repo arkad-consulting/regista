@@ -76,7 +76,7 @@ extension MouseSuites.ClickAudits {
         // The live screen on the capture stand-in: the Record button starts a take that opens no device and writes nothing.
         _ = try await audit("record", Navigation(activity: .record, rightTab: .inspector), area: WindowPart.content, noOps: [
             "Solo volto": "the preset already chosen (the recorder's default sources: the camera alone)",
-            "Nuovo progetto": "where the take goes, already chosen (the default for a project with an edit, #39)",
+            "Questo progetto": "where the take goes, already chosen (the default once the tab has a project, #140)",
         ], restore: { app in app.store.recordingChoice = nil })
     }
 
@@ -241,12 +241,14 @@ extension MouseSuites.ClickAudits {
         ])
     }
 
-    /// The right panel's tabs at the default and the minimum window size (#41: the tab scrolls inside the panel there).
+    /// The right panel's tabs at the default and the minimum window size (#41: the tab scrolls inside the panel there):
+    /// the Gobbo from Registra, the only activity that has it (#141), the other two from the editor.
     @Test(arguments: Navigation.RightTab.allCases, [RigWindowSize.standard, .minimum])
     func rightPanel(_ tab: Navigation.RightTab, _ window: RigWindowSize) async throws {
         // "Ascolta e segui" listens through the capture stand-in: no microphone, no speech recognition.
         let name = "right-\(tab.rawValue)" + (window.width == RigWindowSize.standard.width ? "" : "-\(window.testDescription)")
-        _ = try await audit(name, Navigation(activity: .media, rightTab: tab), size: window.size, area: RenderParts.right(window.size), noOps: [
+        let nav = Navigation(activity: tab == .prompter ? .record : .media, rightTab: tab)
+        _ = try await audit(name, nav, size: window.size, area: RenderParts.right(window.size), noOps: [
             "Gobbo": alreadyCurrent, "Claude": alreadyCurrent, "Ispettore": alreadyCurrent, "Français": alreadyCurrent,
             // The Gobbo's scrolling mode, clicked since the audit finds controls again inside its area (#48): Voce is the
             // teleprompter's default mode.

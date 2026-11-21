@@ -352,8 +352,9 @@ final class AppUIHost: UIHost, @unchecked Sendable {
     /// The navigation a ui.screenshot workspace name shows. Activities: home, record, media, texts, audio, voice,
     /// graphics, generate, export (the library activities with the editor at the Pro level); the editor: edit-pro (also
     /// pro, pro-fullscreen), edit-semplice (also semplice); graphics-<section> = Grafica on one section
-    /// (filters, adjust, effects, styles, motion, logo); panel-prompter / panel-claude / panel-inspector = the Pro editor
-    /// with that right-panel tab. nil or unknown: what the window shows now.
+    /// (filters, adjust, effects, styles, motion, logo); panel-prompter = Registra on its Gobbo tab (#141: the Gobbo is
+    /// Registra's), panel-claude / panel-inspector = the Pro editor with that right-panel tab. nil or unknown: what the
+    /// window shows now.
     @MainActor
     static func navigation(for name: String?, current: Navigation) -> Navigation {
         var nav = current
@@ -364,7 +365,8 @@ final class AppUIHost: UIHost, @unchecked Sendable {
             return nav
         }
         if name.hasPrefix("panel-"), let tab = Navigation.RightTab(rawValue: String(name.dropFirst(6))) {
-            nav.show(.pro)
+            // The Gobbo tab is Registra's (#141); the other two are shown on the Pro editor.
+            if tab == .prompter { nav.select(.record) } else { nav.show(.pro) }
             nav.rightTab = tab
             return nav
         }

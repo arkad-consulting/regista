@@ -24,6 +24,8 @@ final class Workbench: ObservableObject {
     @Published var nav: Navigation {
         didSet {
             guard nav != oldValue else { return }
+            // The teleprompter's floating window belongs to Registra (#141): leaving it closes the window, unless a take runs.
+            if oldValue.activity == .record, nav.activity != .record, !recording { hideTeleprompter() }
             defaults.set(nav.activity.rawValue, forKey: Navigation.activityKey)
             defaults.set(nav.level.rawValue, forKey: Navigation.levelKey)
             defaults.set(nav.rightTab.rawValue, forKey: Navigation.rightTabKey)
@@ -317,12 +319,25 @@ final class Workbench: ObservableObject {
         notice = nil
     }
 
-    /// The recorder stopped: its file goes to that tab when it is imported.
+    /// The recorder stopped: its file goes to that tab when it is imported. A take that ends away from Registra closes the
+    /// teleprompter's window (#141).
     func recordingStopped() {
         finishedRecordingTabID = recordingTabID
         finishedDestination = startedDestination
         recordingTabID = nil
         startedDestination = nil
+        if nav.activity != .record { hideTeleprompter() }
+    }
+
+    /// A take is running (in any tab).
+    private var recording: Bool { recordingTabID != nil || recorder?.isRecording == true }
+
+    /// Closes the teleprompter's floating window when it is this workbench's (the app's recorder drives it; a workbench
+    /// without a recorder, a test's, leaves it alone).
+    private func hideTeleprompter() {
+        let p = TeleprompterController.shared
+        guard let recorder, p.recorder === recorder, p.isVisible else { return }
+        p.hide()
     }
 
     /// Why `store` cannot start a recording now (nil: it can): the recorder belongs to another tab.

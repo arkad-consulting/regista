@@ -304,12 +304,13 @@ extension MouseSuites {
     }
 
     /// #41: at the default and the minimum size, on every tab (the Ispettore with a clip too), the right panel's tab bar is
-    /// at its top, under the title row, nothing of the panel is above it, and each tab answers.
+    /// at its top, under the title row, nothing of the panel is above it, and each tab answers. On Registra, the one
+    /// activity with all three tabs (#141).
     @Test(arguments: [RigWindowSize.standard, .minimum], languages)
     func theRightPanelKeepsItsTabBarAtTheTop(_ window: RigWindowSize, _ language: String) async throws {
         let app = try await AppRig()
         defer { app.close() }
-        app.hostEditor(Navigation(activity: .media, rightTab: .prompter), size: window.size, language: language)
+        app.hostEditor(Navigation(activity: .record, rightTab: .prompter), size: window.size, language: language)
         await app.settle()
         let right = RenderParts.right(window.size)
         let keys: [Navigation.RightTab: String] = [.prompter: "Gobbo", .claude: "Claude", .inspector: "Ispettore"]
@@ -368,7 +369,9 @@ extension MouseSuites {
                 && $0.clip.maxY > right.maxY + 0.5 }
             #expect(top.isEmpty, "\(name) \(language): drawn across the panels' top: \(top.prefix(3).map { "\($0) \($0.frame)" })")
             #expect(bottom.isEmpty, "\(name) \(language): drawn across the status bar's top: \(bottom.prefix(3).map { "\($0) \($0.frame)" })")
-            let tab = app.rig.elements().first { $0.role == "AXButton" && right.contains($0.centre) && $0.name == word("Gobbo", language) }
+            // The panel's first tab: the Gobbo on Registra, Claude everywhere else (#141).
+            let first = nav.activity == .record ? word("Gobbo", language) : "Claude"
+            let tab = app.rig.elements().first { $0.role == "AXButton" && right.contains($0.centre) && $0.name == first }
             #expect(tab.map { abs($0.frame.minY - right.minY) <= 1 } == true, "\(name) \(language): the right panel's tab bar is at \(String(describing: tab?.frame))")
         }
     }
@@ -383,7 +386,7 @@ extension MouseSuites {
         let text = p.text
         defer { p.text = text; p.restart() }
         p.text = "1. Oggi Regista monta il reel.\n2. Le pause spariscono da sole.\n3. Poi si esporta."
-        app.hostEditor(Navigation(activity: .media, rightTab: .prompter), size: RigWindowSize.minimum.size, language: language)
+        app.hostEditor(Navigation(activity: .record, rightTab: .prompter), size: RigWindowSize.minimum.size, language: language)
         await app.settle()
         let right = RenderParts.right(RigWindowSize.minimum.size)
         let restart = word("Ricomincia", language)

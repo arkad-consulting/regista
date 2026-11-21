@@ -655,16 +655,18 @@ struct MarcaButton: View {
 
 // MARK: - Right panel
 
-/// Gobbo · Claude · Ispettore: 320 pt, the same place, width and tabs on every activity. Remembers its tab.
+/// 320 pt, the same place and width on every activity: Gobbo · Claude · Ispettore on Registra, Claude · Ispettore
+/// everywhere else (#141: the teleprompter is used only while recording). Remembers its tab.
 struct RightPanel: View {
     @EnvironmentObject private var store: EditorStore
     @Environment(\.navOverride) private var navOverride
 
     var body: some View {
-        let tab = (navOverride ?? store.nav).rightTab
+        let nav = navOverride ?? store.nav
+        let tab = nav.rightTab
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                ForEach(Navigation.RightTab.allCases) { t in
+                ForEach(nav.rightTabs) { t in
                     RightTabButton(title: Self.title(t), on: t == tab) { store.nav.rightTab = t }
                 }
             }

@@ -17,8 +17,8 @@ A instalação é um único comando no Terminal: está tudo em [Instalação e m
   O + abre uma **Nova aba**.
 - *A área central* muda com a atividade: em **Início** você escolhe por onde começar, em **Gravar** vê a prévia, nas
   atividades de edição vê a edição, em **Exportar** vê o resultado.
-- *O painel da direita* é igual em toda parte e tem três abas: **Teleprompter** (o texto que você lê enquanto grava),
-  **Claude** (cada passo do Claude, em palavras simples) e **Inspetor** (os ajustes do clipe selecionado). ⌥⌘I esconde
+- *O painel da direita* tem as abas **Claude** (cada passo do Claude, em palavras simples) e **Inspetor** (os ajustes
+  do clipe selecionado); em **Gravar** tem também **Teleprompter** (o texto que você lê enquanto grava). ⌥⌘I esconde
   o painel.
 - *A barra de status*, lá embaixo, mostra a memória e o nível do Mac, o volume da edição e se o projeto está salvo.
   Quando o Regista está trabalhando (uma transcrição, uma exportação), aparece **Tarefas**: um clique mostra o

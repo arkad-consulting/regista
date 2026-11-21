@@ -18,9 +18,9 @@ L'installation tient en une seule commande dans le Terminal : tout est expliqué
   enregistré. Le + ouvre un **Nouvel onglet**.
 - *La zone centrale* change avec l'activité : dans **Accueil** vous choisissez par où commencer, dans **Enregistrer**
   vous voyez l'aperçu, dans les activités de montage vous voyez le montage, dans **Exporter** le résultat.
-- *Le panneau de droite* est le même partout et a trois onglets : **Prompteur** (le texte à lire pendant
-  l'enregistrement), **Claude** (chaque étape de Claude, en mots simples) et **Inspecteur** (les réglages du clip
-  sélectionné). ⌥⌘I le masque.
+- *Le panneau de droite* a les onglets **Claude** (chaque étape de Claude, en mots simples) et **Inspecteur** (les
+  réglages du clip sélectionné) ; dans **Enregistrer**, il a aussi **Prompteur** (le texte à lire pendant
+  l'enregistrement). ⌥⌘I le masque.
 - *La barre d'état*, tout en bas, indique la mémoire et le niveau du Mac, le volume du montage et si le projet est
   enregistré. Quand Regista travaille (une transcription, un export), **Tâches** apparaît : un clic montre
   l'avancement, **Annuler** et les erreurs éventuelles.
