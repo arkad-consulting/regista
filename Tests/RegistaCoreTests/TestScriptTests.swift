@@ -34,10 +34,12 @@ case "$FAKE_MODE:$n" in
   failquit:1) echo "✘ Test first() failed after 0.1 seconds with 1 issue."; echo "◇ Test third() started."; exit 0 ;;
   failquit:*) echo "✔ Test run with 3 tests passed"; exit 0 ;;
   hang:*) echo "◇ Test aTest() started."; sleep 60 ;;
+  pass:*) echo "args=$*"; echo "✔ Test run with 1 test passed"; exit 0 ;;
 esac
 """#
 
-private func runTestScript(_ mode: String) throws -> (status: Int32, output: String, calls: Int, debugKept: Bool) {
+private func runTestScript(_ mode: String, _ arguments: [String] = [], environment extra: [String: String] = [:]) throws
+    -> (status: Int32, output: String, calls: Int, debugKept: Bool) {
     let dir = FileManager.default.temporaryDirectory.appendingPathComponent("regista-testsh-\(UUID().uuidString)")
     let fm = FileManager.default
     defer { try? fm.removeItem(at: dir) }
@@ -54,7 +56,7 @@ private func runTestScript(_ mode: String) throws -> (status: Int32, output: Str
 
     let p = Process()
     p.executableURL = URL(fileURLWithPath: "/bin/bash")
-    p.arguments = [dir.appendingPathComponent("scripts/test.sh").path]
+    p.arguments = [dir.appendingPathComponent("scripts/test.sh").path] + arguments
     var env = ProcessInfo.processInfo.environment
     env["REGISTA_SWIFT"] = swift.path
     env["REGISTA_CRASH_REPORTS"] = dir.appendingPathComponent("reports").path
@@ -62,6 +64,8 @@ private func runTestScript(_ mode: String) throws -> (status: Int32, output: Str
     if mode == "hang" { env["REGISTA_TEST_TIMEOUT"] = "1" } else { env.removeValue(forKey: "REGISTA_TEST_TIMEOUT") }
     env["FAKE_STATE"] = state.path
     env.removeValue(forKey: "SWT_EXPERIMENTAL_MAXIMUM_PARALLELIZATION_WIDTH")
+    env.removeValue(forKey: "REGISTA_PREFERENCES_DIR")
+    env.merge(extra) { $1 }
     p.environment = env
     let out = Pipe()
     p.standardOutput = out
@@ -115,4 +119,34 @@ private func runTestScript(_ mode: String) throws -> (status: Int32, output: Str
     let hang = try runTestScript("hang")
     #expect(hang.status != 0 && hang.calls == 1 && hang.output.contains("a test hangs"), "\(hang.output)")
     #expect(Date().timeIntervalSince(started) < 20)
+}
+
+/// #137: `--clean-preferences` removes only the property lists test runs left, `regista-<kind>-<UUID>.plist`, from the
+/// Preferences folder (a scratch one here), says how many, and the run goes on without the flag; without it nothing is
+/// touched.
+@Test func testScriptCleansOnlyTheTestSuitesPropertyLists() throws {
+    let fm = FileManager.default
+    let prefs = fm.temporaryDirectory.appendingPathComponent("regista-testsh-prefs-\(UUID().uuidString)")
+    try fm.createDirectory(at: prefs, withIntermediateDirectories: true)
+    defer { try? fm.removeItem(at: prefs) }
+    let uuid = "0A1B2C3D-4E5F-6789-ABCD-EF0123456789"
+    let gone = ["regista-rig-\(uuid).plist", "regista-tabs-tests-\(uuid).plist", "regista-settings-render-9F8E7D6C-5B4A-3210-FEDC-BA9876543210.plist"]
+    // (Case variants with UUIDs of their own: the scratch folder, like Preferences, may ignore case.)
+    let kept = ["Regista.plist", "com.arkad.regista.plist", "regista-notes.plist", "regista-rig-1a2b3c4d-5e6f-7089-abcd-ef0123456789.plist",
+                "regista-rig-\(uuid).plist.bak", "regista-rig-\(uuid)-2.plist", "regista-Rig-2A1B2C3D-4E5F-6789-ABCD-EF0123456789.plist", "regista-\(uuid).plist",
+                "regista-rig-0A1B2C3D4E5F6789ABCDEF0123456789.plist", "other-rig-\(uuid).plist"]
+    func fill() { for n in gone + kept { fm.createFile(atPath: prefs.appendingPathComponent(n).path, contents: Data("x".utf8)) } }
+    func present() -> Set<String> { Set((try? fm.contentsOfDirectory(atPath: prefs.path)) ?? []) }
+    fill()
+    let plain = try runTestScript("pass", ["--filter", "x"], environment: ["REGISTA_PREFERENCES_DIR": prefs.path])
+    #expect(plain.status == 0 && present() == Set(gone + kept) && !plain.output.contains("--clean-preferences"), "\(plain.output)")
+
+    let clean = try runTestScript("pass", ["--clean-preferences", "--filter", "x"], environment: ["REGISTA_PREFERENCES_DIR": prefs.path])
+    #expect(clean.status == 0 && clean.calls == 1, "\(clean.output)")
+    #expect(present() == Set(kept), "\(present())")
+    #expect(clean.output.contains("--clean-preferences removed 3 file(s)"), "\(clean.output)")
+    let args = clean.output.split(separator: "\n").first { $0.hasPrefix("args=") }.map(String.init) ?? ""
+    #expect(args.contains("--filter x") && !args.contains("clean"), "\(clean.output)")
+    let again = try runTestScript("pass", ["--clean-preferences"], environment: ["REGISTA_PREFERENCES_DIR": prefs.path])
+    #expect(again.status == 0 && again.output.contains("removed 0 file(s)") && present() == Set(kept), "\(again.output)")
 }

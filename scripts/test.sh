@@ -11,12 +11,36 @@
 # compiled something, the crash may come from a stale incremental build (seen after large pulls): the debug build is
 # wiped and the suite runs once more from a clean build, saying so. If nothing was compiled, the crash is the code's:
 # no retry, the stack says where.
-# (REGISTA_SWIFT and REGISTA_CRASH_REPORTS replace swift and the crash report folder: the test of this script.)
+#
+# --clean-preferences (#137), opt-in, never by default: before the run, removes the property lists that test runs made
+# before #137 left in the Preferences folder, and only those: `regista-<kind>-<UUID>.plist` (kind = lowercase letters
+# and hyphens, UUID = the upper-case 8-4-4-4-12 form). It says how many it removed; the run then goes on as usual.
+# (REGISTA_SWIFT, REGISTA_CRASH_REPORTS and REGISTA_PREFERENCES_DIR replace swift, the crash report folder and the
+# Preferences folder: the test of this script.)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 DEV=/Library/Developer/CommandLineTools/Library/Developer
 SWIFT="${REGISTA_SWIFT:-swift}"
 REPORTS="${REGISTA_CRASH_REPORTS:-$HOME/Library/Logs/DiagnosticReports}"
+
+clean_preferences=0; rest=()
+for a in "$@"; do
+  if [ "$a" = --clean-preferences ]; then clean_preferences=1; else rest+=("$a"); fi
+done
+set -- ${rest[@]+"${rest[@]}"}
+if [ "$clean_preferences" = 1 ]; then
+  prefs="${REGISTA_PREFERENCES_DIR:-$HOME/Library/Preferences}"
+  # Listed characters, not ranges: a range like A-F can take in lower-case letters in some locales.
+  h='[0123456789ABCDEF]'
+  pattern="^regista-[abcdefghijklmnopqrstuvwxyz][abcdefghijklmnopqrstuvwxyz-]*-$h{8}-$h{4}-$h{4}-$h{4}-$h{12}\.plist\$"
+  removed=0
+  for f in "$prefs"/regista-*.plist; do
+    if [[ "${f##*/}" =~ $pattern ]] && [ -f "$f" ] && [ ! -L "$f" ]; then
+      rm -f -- "$f" && removed=$((removed + 1))
+    fi
+  done
+  echo "test.sh: --clean-preferences removed $removed file(s) named regista-<kind>-<UUID>.plist from $prefs"
+fi
 # The macOS SDK it can build SwiftUI with, without Xcode (#136); not for the test of this script (its swift is a stand-in).
 if [ -z "${REGISTA_SWIFT:-}" ]; then
   sdk="$(bash -c '. scripts/lib.sh; swift_sdk && printf %s "${SDKROOT:-}"')" \
@@ -91,6 +115,9 @@ run() {
 # The tests' scratch brand-kit folders are named after the test process's pid (the test targets share one): folders
 # left by runs of other days go, so a reused pid never meets an old kit.
 find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'regista-tests-kits-*' -mtime +0 -exec rm -rf {} + 2>/dev/null || true
+# The same for the test processes' folders of defaults suites (TestDefaults, #137): a process that ends normally
+# removes its own; one that was stopped or crashed leaves it.
+find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'regista-tests-defaults-*' -mtime +0 -exec rm -rf {} + 2>/dev/null || true
 
 log="$scratch/run1.log"
 touch "$scratch/start"

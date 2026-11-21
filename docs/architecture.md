@@ -390,6 +390,9 @@ a property list deleted at the end of a test came back. At its end a suite's dom
 the process's exit the suites not ended yet and the folder go. The tests still share the test process's own domain with
 the app code that reads `UserDefaults.standard`: a test that depends on one of its keys sets it at its start (`AppRig`
 sets the window's pane sizes and the new projects' format; the right panel's audit, the teleprompter's mode and language).
+Runs before #137 left one `regista-<kind>-<UUID>.plist` per test in the Preferences folder: `scripts/test.sh
+--clean-preferences` removes exactly those (kind in lowercase letters and hyphens, the UUID in its upper-case form;
+nothing else, never by default), says how many, then runs the tests as usual.
 
 ## Teleprompter (P2-T1, issue #1)
 
