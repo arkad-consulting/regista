@@ -278,6 +278,13 @@ extension Journey {
         await app.settle()
         // Registra stays on screen after a take (#140): the notice's «Vai al montaggio» opens the editor.
         try await tap("Apri il montaggio con questa ripresa in Sorgente")
+        // Registra opened the right panel on its Gobbo (#141), the editor on the Ispettore: back to the Claude tab.
+        let width = Double(rig.size.width)
+        let claudeTab = try #require(rig.elements().first { $0.isControl && $0.visible && $0.name == "Claude" && $0.frame.minX > width - 340 },
+                                     "no Claude tab in the right panel: \(screen())")
+        rig.click(claudeTab.centre)
+        await app.settle()
+        #expect(store.nav.rightTab == .claude, "the Claude tab did not open")
         // The take's session.json, where the recorder left it (the recording's project names it).
         let session = URL(fileURLWithPath: try #require(store.project?.recordings?.first?.session, "no screen session")).deletingLastPathComponent()
         step("The person records the screen with the camera (Registra › Schermo + volto)", sees: "the session's project in its tab")
