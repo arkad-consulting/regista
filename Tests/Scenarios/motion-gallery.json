@@ -13,13 +13,13 @@
    "command": "media.synthesize",
    "params": {
     "path": "${WORK}/talking-head.mov",
-    "duration": 103
+    "duration": 106
    },
    "capture": {
     "cam": "result.asset.id"
    },
    "expect": {
-    "result.frames": 3090
+    "result.frames": 3180
    }
   },
   {
@@ -37,7 +37,7 @@
     "assetId": "${cam}",
     "trackId": "${v}",
     "sourceIn": 0,
-    "sourceOut": 103
+    "sourceOut": 106
    }
   },
   {
@@ -54,7 +54,7 @@
    },
    "expect": {
     "result.items": {
-     "count": 36
+     "count": 37
     }
    }
   },
@@ -552,6 +552,20 @@
    }
   },
   {
+   "command": "motion.add",
+   "params": {
+    "template": "quote-card",
+    "start": 102.3,
+    "duration": 2.7
+   },
+   "expect": {
+    "result.warnings": {
+     "count": 0
+    },
+    "result.template": "quote-card"
+   }
+  },
+  {
    "command": "effects.preview",
    "params": {
     "item": "checklist",
@@ -623,7 +637,7 @@
      "count": 0
     },
     "result.items": {
-     "count": 102
+     "count": 105
     }
    },
    "show": [

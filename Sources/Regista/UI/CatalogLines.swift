@@ -121,6 +121,7 @@ enum CatalogLines {
         "receipt": "Uno scontrino di carta che esce riga per riga.",
         "machine": "Una macchina giocosa che trasforma le idee.",
         "logo-tile": "Il logo della marca dentro un'icona d'app.",
+        "quote-card": "Una citazione con la sua fonte, su una scheda.",
         "stat-3d": "Un numero 3D che sale, con barre (Blender).",
         "orbit-ring-3d": "Parole o loghi su un anello 3D attorno alla testa.",
         "infinite-triangle-3d": "L'intro con il triangolo infinito e il logo (Blender).",

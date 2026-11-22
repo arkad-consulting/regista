@@ -103,3 +103,66 @@ func tempFolder() throws -> URL {
     #expect(Counter.format(11000, clock: false, decimals: 0, separator: ".") == "11.000")
     #expect(Counter.format(9.2, clock: false, decimals: 1, separator: ".") == "9,2")
 }
+
+/// The quote card (the proof beat "a quote" of the presenter rhythm): a paper card in the top band, ink in dark theme,
+/// nothing in the caption band; long quotes wrap into lines no wider than the card.
+@Test func quoteCardDrawsAPaperCardInTheTopBand() throws {
+    let clip = try syntheticClip()
+    let dir = try tempFolder()
+    defer { try? FileManager.default.removeItem(at: clip); try? FileManager.default.removeItem(at: dir) }
+    var seen: [String: (Int, Int, Int)] = [:]
+    for theme in ["light", "dark"] {
+        let e = Engine(scratch: project(clip), services: .live())
+        let r = try e.execute("motion.add", params: ["template": "quote-card", "start": 0, "duration": 1,
+                                                    "fields": ["quote": "We cut the editing time of every reel in half.", "theme": .string(theme)]])
+        #expect(r["warnings"]?.arrayValue?.isEmpty == true && r["template"] == "quote-card")
+        let out = dir.appendingPathComponent("\(theme).png")
+        try AVRenderer().renderFrames(RenderJob(project: e.project!, preset: .vertical, captions: false), at: [MediaTime(seconds: 0.6)], to: [out])
+        seen[theme] = try pixel(out, 540, 235)   // the card's top margin, above the words
+        let band = try pixel(out, 540, 1340)
+        #expect(band.2 > 180 && band.0 < 60, "\(theme): the caption band is not the clip's blue: \(band)")
+    }
+    let paper = try #require(seen["light"]), ink = try #require(seen["dark"])
+    #expect(paper.0 > 220 && paper.1 > 215 && paper.2 > 200, "the light card is not paper: \(paper)")
+    #expect(ink.0 < 50 && ink.1 < 50 && ink.2 < 50, "the dark card is not ink: \(ink)")
+    let lines = QuoteCard.wrap("one two three four five six seven eight nine ten", width: 14) { Double($0.count) }
+    #expect(lines == ["one two three", "four five six", "seven eight", "nine ten"])
+    #expect(lines.allSatisfy { $0.count <= 14 })
+}
+
+/// The talking-head recipe's presenter rhythm (#144) names only templates of the catalog, every beat has one, and a beat
+/// uses a template for what it draws: a screen proof can show the user's picture, what repeats per point may repeat.
+@Test func presenterRhythmNamesOnlyCatalogTemplates() throws {
+    MotionLibrary.registerAll()
+    let specs = Dictionary(uniqueKeysWithValues: MotionRegistry.all.map { ($0.id, $0) })
+    let text = Recipes.talkingHeadReel.text()
+    let start = try #require(text.range(of: "15. Presenter rhythm"), "the talking-head recipe has no presenter rhythm step")
+    let end = try #require(text.range(of: "## Moving captions", range: start.upperBound..<text.endIndex))
+    let step = String(text[start.lowerBound..<end.lowerBound])
+    func words(_ s: String) -> [String] {
+        s.components(separatedBy: CharacterSet.lowercaseLetters.union(CharacterSet(charactersIn: "-_")).inverted).filter { !$0.isEmpty }
+    }
+    let notTemplates: Set<String> = Set(Recipes.all.map(\.name))
+    let hyphenated = Set(words(step).filter { $0.contains("-") && !$0.hasPrefix("-") && !$0.hasSuffix("-") }).subtracting(notTemplates)
+    #expect(!hyphenated.isEmpty && hyphenated.isSubset(of: specs.keys), "not in the catalog: \(hyphenated.subtracting(specs.keys).sorted())")
+
+    // The beats, each with its continuation lines.
+    var beats: [(name: String, templates: Set<String>)] = []
+    for line in step.components(separatedBy: "\n").drop(while: { !$0.contains("What serves each beat") }).dropFirst() {
+        let t = line.trimmingCharacters(in: .whitespaces)
+        if t.hasPrefix("Real material only") { break }
+        let ids = Set(words(t)).intersection(specs.keys)
+        if t.hasPrefix("- "), let colon = t.firstIndex(of: ":") {
+            beats.append((String(t[..<colon].dropFirst(2)), ids))
+        } else if !beats.isEmpty {
+            beats[beats.count - 1].templates.formUnion(ids)
+        }
+    }
+    #expect(beats.count == 6, "\(beats.map(\.name))")
+    for b in beats { #expect(!b.templates.isEmpty, "the beat «\(b.name)» names no template") }
+    let screen = try #require(beats.first { $0.name == "proof, a screen" }?.templates)
+    for id in screen {
+        let s = try #require(specs[id])
+        #expect(s.consumesBelow || s.fields.contains { $0.type == "image" || $0.type == "images" }, "\(id) cannot show the user's own screen")
+    }
+}

@@ -55,6 +55,7 @@ public enum MotionLibrary {
         Receipt.self,
         Machine.self,
         LogoTile.self,
+        QuoteCard.self,
     ]
 
     /// Publishes the specs to RegistaCore (catalog, motion.add, MCP). Idempotent; `EngineServices.live` calls it.

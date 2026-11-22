@@ -445,6 +445,7 @@
 "Chiudi le altre" = "Chiudi le altre";
 "Chroma key" = "Chroma key";
 "Ciambella" = "Ciambella";
+"Citazione" = "Citazione";
 "Claude" = "Claude";
 "Claude Code" = "Claude Code";
 "Claude Code si collega da solo all'app aperta (server MCP regista)" = "Claude Code si collega da solo all'app aperta (server MCP regista)";
@@ -1948,6 +1949,7 @@
 "L'inquadratura entra nello schermo di un iPhone." = "L'inquadratura entra nello schermo di un iPhone.";
 "Finestre di app che fluttuano attorno." = "Finestre di app che fluttuano attorno.";
 "Il mirino di una videocamera sopra il video." = "Il mirino di una videocamera sopra il video.";
+"Una citazione con la sua fonte, su una scheda." = "Una citazione con la sua fonte, su una scheda.";
 "Una scheda con un grafico animato." = "Una scheda con un grafico animato.";
 "Una piccola etichetta sopra un titolo enorme." = "Una piccola etichetta sopra un titolo enorme.";
 "Una piccola pillola con un punto colorato." = "Una piccola pillola con un punto colorato.";

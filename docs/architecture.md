@@ -1165,6 +1165,7 @@ none of its ink in the caption band (except `coversFrame` templates).
 | annotation-chip | dot pill with a leader line |
 | background-scene | dark glow + gliding grid floor, white canvas, paper, gradient |
 | stat-card | counting number + mini chart beside the head |
+| quote-card | a quote with its source on a paper or ink card in the top band |
 | before-after | BEFORE (flattened shot or image) / AFTER (the shot) frames on a dark stage |
 | scatter-wall | many tilted screenshots behind the head |
 | mock-ui | one animated editor panel (timeline, wheels, curve, waveform, fx, sliders, number) |

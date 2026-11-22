@@ -117,6 +117,39 @@ public enum Recipes {
             fixes, what you corrected after looking, the numbers, and the paths of the mp4 / srt / mlt.
         14. Graphics (only when asked: titles, cards, B-roll inserts, sound effects, music): recipe_get
             {name: "reel-graphics"} and follow it on top of the finished edit, after step 11 and before step 12.
+        15. Presenter rhythm (the cards of step 14, so before step 12): read the script and pick ONE structure; tell the
+            user which, with one line why.
+            - A list: the script counts its points ("three mistakes", "first… then… last").
+            - A workflow: the script walks through doing something step by step (open, write, check, publish).
+            - A product: the script shows one product part by part (the problem, how it works, the result).
+            The rhythm of each point: the face says it → a number or keyword card on the word that names it → a proof
+            card on the words that back it (a screen, a figure, a quote) → the face again before the next point.
+            Timing: a card starts on its word (motion_add start = that word's start in transcript_timeline, ±1
+            frame; sync: true for checklist rows), stays while the idea is said (keyword 1–2.5 s, proof 2.5–4 s) and
+            is gone before the next point. At most 2 cards in any 10 s (these numbers replace the ~4 templates of
+            the reel-graphics recipe: 3–4 points in a 45 s reel, ~8 cards). The face alone: the first 2 s (a hook
+            title may be there), at least 1.5 s between two points, the last line (the call to action). A point said
+            in under 3 s gets the keyword card only; one with no proof gets no proof card.
+            Never over the mouth: faces_track first, then motion_add (without band or position a banded template
+            takes the first place that leaves the face free); read faceCheck and the warnings in its result, and
+            give a position when it covers the face; cards sit in the top band (y 110–640), never in the caption
+            band; a proof that fills the frame replaces the face for 4 s at most. graphics_checkLayout and
+            faces_checkFraming must pass; frame_render the first frame of every card.
+            What serves each beat (effects_catalog gives the fields; keep one treatment for all the points):
+            - number or keyword: annotation-chip ("02 · Deadlines", position [540, 330]: above the head, the same place
+              each time; its default point is beside a centred face's mouth);
+              kicker-headline (kicker "01 / 03", the keyword) for two points at most; counter once, when the point IS
+              a number.
+            - proof, a screen: the user's own recording or screenshot as an insert (overlay_add with fullFrame), inside
+              device-frame when it is a vertical app or site (the template frames whatever is under it); stacked-pages
+              (screenshots of articles, documents); before-after (two real pictures).
+            - proof, a figure: stat-card (a metric said in passing), chart (figures that compare or grow).
+            - proof, a quote: quote-card (a customer's words, a review, a line of a report).
+            - a workflow's steps at a glance, once: checklist (ticks on the words), card-row, progress-rows.
+            - a product's part: annotation-chip with a target (the part named), cursor on a screenshot (a real
+              recording has its own), callout_add on the thing the voice names.
+            Real material only: screens from media_list, figures and quotes as the script says them. mock-ui is a
+            generic panel: it may illustrate an editing step, it is never proof.
 
         ## Moving captions and graphics by hand (when the user asks)
         The user can drag them on the preview like text in an Instagram story; the same moves are commands (pixels of the
