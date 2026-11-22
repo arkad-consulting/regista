@@ -16,6 +16,11 @@ public struct Recipe: Sendable {
     public var description: String
     public var arguments: [Argument]
     let body: String
+    /// The kind of video whose rule sheet it follows, when it has none of its own (nil: the recipe's name is the kind).
+    var sheet: String? = nil
+
+    /// The kind of video its projects have (project.new {kind}), which selects the editing rules.
+    public var kind: String { sheet ?? name }
 
     /// The recipe with the given arguments stated at the top (unknown or empty ones are ignored).
     public func text(_ arguments: [String: String] = [:]) -> String {
@@ -28,7 +33,7 @@ public struct Recipe: Sendable {
 }
 
 public enum Recipes {
-    public static let all: [Recipe] = [talkingHeadReel, screenTutorial, voiceOverVideo, reelGraphics]
+    public static let all: [Recipe] = [talkingHeadReel, screenTutorial, voiceOverVideo, reelGraphics, promptToReel]
 
     public static func named(_ name: String) -> Recipe? { all.first { $0.name == name } }
 
@@ -335,7 +340,7 @@ extension Recipes {
 
 enum RecipeGet: Command {
     static let id = "recipe.get"
-    static let summary = "Read this before making any video: the step-by-step recipe and the house rules for a kind of video — talking-head-reel (a person speaking to camera), screen-tutorial (a screen recording made in Regista, with or without the face), voice-over-video (no one on camera: the user's cloned voice over footage, stills and graphics), reel-graphics (titles, cards, sound effects and music on top of an edit). Without name, lists the recipes with what each is for: call it first and pick. The text ends with the editing rules of that kind of video (the user's rule sheets: they always hold, and export.render refuses while one of their checks fails). Returns {name, title, text, kind}."
+    static let summary = "Read this before making any video: the step-by-step recipe and the house rules for a kind of video — talking-head-reel (a person speaking to camera), screen-tutorial (a screen recording made in Regista, with or without the face), voice-over-video (no one on camera: the user's cloned voice over footage, stills and graphics), reel-graphics (titles, cards, sound effects and music on top of an edit), prompt-to-reel (a faceless reel from one sentence of the user: script and scene plan to confirm, then voice or none, motion templates, music, sound effects). Without name, lists the recipes with what each is for: call it first and pick. The text ends with the editing rules of that kind of video (the user's rule sheets: they always hold, and export.render refuses while one of their checks fails). Returns {name, title, text, kind}."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [
         .optional("name", .oneOf(Recipes.all.map(\.name)), "Recipe: \(Recipes.all.map(\.name).joined(separator: ", "))."),
@@ -346,7 +351,7 @@ enum RecipeGet: Command {
         guard let name = p.string("name"), let r = Recipes.named(name) else {
             return ["recipes": .array(Recipes.all.map { ["name": .string($0.name), "title": .string($0.title), "description": .string($0.description)] })]
         }
-        let rules = ctx.services.rules.briefing(r.name, language: Rules.language(p))
-        return ["name": .string(r.name), "title": .string(r.title), "text": .string(r.text() + "\n\n" + rules), "kind": .string(r.name)]
+        let rules = ctx.services.rules.briefing(r.kind, language: Rules.language(p))
+        return ["name": .string(r.name), "title": .string(r.title), "text": .string(r.text() + "\n\n" + rules), "kind": .string(r.kind)]
     }
 }

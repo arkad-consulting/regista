@@ -218,7 +218,10 @@ Built for an agent that has **no shell and no file tools** (golden test G0):
   layout bands (top band 110–640 with small cards on the wall at y ≈ 170–230, face clear, caption band 1230–1460
   always clean, Instagram chrome), SFX sparse and on beats at 0.2–0.3, music only when asked and always ducked, kit
   fonts/colours by role, the house taste (abstract fine touches, no literal decoration, no gimmicks, real motion), and the
-  checks. Source: `Sources/RegistaCore/Recipes.swift` — keep it in sync with the templates.
+  checks. Source: `Sources/RegistaCore/Recipes.swift` — keep it in sync with the templates. The `prompt-to-reel` prompt
+  (`Recipes+Prompt.swift`) makes a faceless reel from one sentence: at most three questions, then a treatment, a script
+  and a scene plan (with its music and sound columns) the user confirms before anything is built; its projects have the
+  `voice-over-video` kind (`Recipe.kind`), so it has no rule sheet of its own.
 
 ```bash
 regista-mcp [--media-root <dir>]… [--output-dir <dir>]
@@ -1436,7 +1439,7 @@ a take.
 The rules an edit must follow are sheets, not prose buried in the recipes, and the measurable ones are checks that run
 before every export (`Sources/RegistaCore/Rules/`, commands in `Commands/RulesCommands.swift`).
 
-- **Sheets.** One Markdown file for every video (`every-video`) and one per kind of video: the four recipes
+- **Sheets.** One Markdown file for every video (`every-video`) and one per kind of video: the recipes with a sheet
   (`talking-head-reel`, `screen-tutorial`, `voice-over-video`, `reel-graphics`) and kinds the user adds
   (`rules.addKind`). The defaults are compiled in (`Rules/Sheets/<kind>.<it|en|fr|pt>.md`); a user's file in
   `rules/` of the support folder (`$REGISTA_SUPPORT_DIR/rules`, default `~/Library/Application Support/Regista/rules`)

@@ -291,7 +291,7 @@ private func socketPath() -> URL { URL(fileURLWithPath: "/tmp/regista-test-\(UUI
     // Each recipe is named in the instructions, the start prompt and the skill, and listed by recipe_get.
     let listed = try #require(s.handle(request("tools/call", ["name": "recipe_get", "arguments": [:]])))
     let recipes = listed.value(at: "result.structuredContent.recipes")?.arrayValue?.compactMap { $0["name"]?.stringValue }
-    #expect(recipes == Recipes.all.map(\.name) && recipes?.count == 4)
+    #expect(recipes == Recipes.all.map(\.name) && recipes?.count == 5)
     for r in Recipes.all {
         for source in ["server instructions", "handoff/START-PROMPT.md", "handoff/skill/regista/SKILL.md"] {
             #expect(texts[source]?.contains(r.name) == true, "\(source) does not mention the recipe \(r.name)")

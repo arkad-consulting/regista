@@ -2347,6 +2347,8 @@
 "%@ pronunce salvate" = "%@ prononciations enregistrées";
 "1 correzione applicata" = "1 correction appliquée";
 "%@ correzioni applicate" = "%@ corrections appliquées";
+"1 blocco di sottotitoli tolto o accorciato" = "1 bloc de sous-titres retiré ou raccourci";
+"%@ blocchi di sottotitoli tolti o accorciati" = "%@ blocs de sous-titres retirés ou raccourcis";
 "Sottotitoli a tempo: 1 parola controllata" = "Sous-titres synchrones : 1 mot vérifié";
 "Sottotitoli a tempo: %@ parole controllate" = "Sous-titres synchrones : %@ mots vérifiés";
 "1 parola fuori tempo" = "1 mot décalé";

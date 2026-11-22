@@ -9,13 +9,14 @@ text-size: on 28
 ---
 # For every video
 
-These rules hold for every kind of video. The sheet of the project's kind adds its own on top.
+These rules hold for every kind of video. The sheet of the project's kind adds its own on top. Before delivery: one round of fixes, then a verdict per check (passed, fixed, known issue, not checked). A sound that was measured is never said to have been listened to.
 
 ## Opening
-- The first seconds say what the video is about and why it is worth staying. Never give away the result or the answer there: keep it for the payoff.
+- The first 3 seconds say what the video is about and why it is worth staying. Never give away the result or the answer there: keep it for the payoff.
 - The first frame is a usable thumbnail: a face, a bold line or the subject, never black and never a logo alone.
 - The voice starts right away: no silent build-up, no greeting before the point.
 - While the opening title is on screen there are no captions: one thing to read at a time.
+- One subject, one goal and one turn (the moment that changes what the viewer thinks): what serves none of the three goes.
 
 ## Captions
 - One caption group on screen at a time, and each one disappears when its words are done.
@@ -35,6 +36,7 @@ These rules hold for every kind of video. The sheet of the project's kind adds i
 - After the last word, 0.3 to 0.6 s of clean picture, then the logo.
 - The logo lands once, at the end, and holds about 1.5 to 3 s. Never at the start, never docked in a corner for the whole video.
 - No caption on the closing logo: the last caption clears before it.
+- The ending echoes the opening: its picture, its phrase or its sound comes back, changed by what was said.
 
 ## Sound
 - The voice at −15 LUFS, true peak at or under −1.5 dBTP.

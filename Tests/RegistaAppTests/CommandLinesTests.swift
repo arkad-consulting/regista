@@ -36,6 +36,7 @@ private let sampleResults: [String: JSONValue] = {
         "callout.add": ["clip": clip, "trackId": "t6", "box": [100, 200, 300, 120], "warnings": []],
         "captions.checkFaces": ["pass": true, "chunks": 5, "framesChecked": 40, "framesWithFaces": 40, "overlappingChunks": 0, "moved": 1, "placedOverFaces": 0, "warnings": []],
         "captions.checkTiming": ["words": 10, "framesDecoded": 180, "detected": 10, "undetected": 0, "withinTolerance": 10, "maxAbsError": 1, "pass": true],
+        "captions.clear": ["trackId": "t3", "removed": 1, "shortened": 1, "chunks": 4],
         "captions.generate": ["trackId": "t3", "style": "talking-head-v1", "chunks": 5, "language": "it", "stopWordEnds": [], "words": 10,
                               "keywordsShown": 2, "sourceTrack": "t1", "stale": false, "preview": ["OGGI REGISTA", "MONTA IL REEL"], "suggestedKeywords": ["REEL"]],
         "captions.get": ["trackId": "t3", "style": "talking-head-v1", "chunks": 5, "keywords": ["REGISTA"], "fixes": [:],

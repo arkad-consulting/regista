@@ -9,13 +9,14 @@ text-size: on 28
 ---
 # Per ogni video
 
-Queste regole valgono per ogni tipo di video. Il foglio del tipo del progetto aggiunge le sue.
+Queste regole valgono per ogni tipo di video. Il foglio del tipo del progetto aggiunge le sue. Prima di consegnare: un giro di correzioni, poi un verdetto per ogni controllo (passato, corretto, problema noto, non controllato). Un suono misurato non si dice mai ascoltato.
 
 ## Apertura
-- I primi secondi dicono di cosa parla il video e perché vale la pena restare. Mai svelare lì il risultato o la risposta: tienili per il finale.
+- I primi 3 secondi dicono di cosa parla il video e perché vale la pena restare. Mai svelare lì il risultato o la risposta: tienili per il finale.
 - Il primo fotogramma funziona da copertina: un volto, una frase forte o il soggetto, mai nero e mai solo un logo.
 - La voce parte subito: niente attese mute, niente saluti prima del punto.
 - Finché il titolo d'apertura è sullo schermo non ci sono sottotitoli: una sola cosa da leggere alla volta.
+- Un solo soggetto, un solo obiettivo e una sola svolta (il momento che cambia quello che pensa chi guarda): ciò che non serve a nessuno dei tre si toglie.
 
 ## Sottotitoli
 - Un solo blocco di sottotitoli alla volta, e ognuno sparisce quando le sue parole sono finite.
@@ -35,6 +36,7 @@ Queste regole valgono per ogni tipo di video. Il foglio del tipo del progetto ag
 - Dopo l'ultima parola, da 0,3 a 0,6 s di immagine pulita, poi il logo.
 - Il logo arriva una volta, alla fine, e resta circa da 1,5 a 3 s. Mai all'inizio, mai fisso in un angolo per tutto il video.
 - Nessun sottotitolo sul logo finale: l'ultimo sottotitolo sparisce prima.
+- Il finale richiama l'apertura: la sua immagine, la sua frase o il suo suono torna, cambiato da ciò che è stato detto.
 
 ## Suono
 - La voce a −15 LUFS, picco reale entro −1,5 dBTP.

@@ -1,6 +1,6 @@
 ---
 name: regista
-description: 'ALWAYS use this skill when the user says: "edit this video", "make a reel", "cut my take", "add captions", "make a tutorial from my screen recording", "make a voice-over video", "add music or sound effects", "export the video". Edits video with the Regista app on this Mac through its MCP tools (regista): finds the footage, cuts, captions, graphics, voice-over in the user''s own cloned voice, export. NOT for generating a standalone image, and NOT for editing with other tools (ffmpeg, HyperFrames, Shotcut by hand).'
+description: 'ALWAYS use this skill when the user says: "edit this video", "make a reel", "cut my take", "add captions", "make a tutorial from my screen recording", "make a voice-over video", "make a reel about this", "add music or sound effects", "export the video". Edits video with the Regista app on this Mac through its MCP tools (regista): finds the footage, cuts, captions, graphics, voice-over in the user''s own cloned voice, export. NOT for generating a standalone image, and NOT for editing with other tools (ffmpeg, HyperFrames, Shotcut by hand).'
 ---
 
 # Regista: edit video by asking
@@ -19,6 +19,7 @@ tools. The user watches every step live in the Regista app, so keep it open.
    - `screen-tutorial`: a screen recording made in Regista (face optional): layout, zoom, cursor, shortcuts.
    - `voice-over-video`: no one on camera; the user's cloned voice over footage, stills and motion graphics.
    - `reel-graphics`: titles, cards, sound effects and music on top of a finished edit.
+   - `prompt-to-reel`: a faceless reel from one sentence; a plan the user confirms, then templates, sound, captions.
 3. `media_list` shows the footage, scripts and recordings you may use, and where to save: `projectsDirectory` for
    `project_new`, `exportsDirectory` for exported files.
 
@@ -31,9 +32,9 @@ tools. The user watches every step live in the Regista app, so keep it open.
 - Paid generation: `generate_providers` says what is available; `generate_estimate` gives the cost and records the
   request; the user approves it in the Regista app (one approval = exactly that request, once); then `generate_run`
   with the approval token `generate_list` shows. Say the cost first. Local generation (ComfyUI) is free.
-- No music unless asked. No invented facts or numbers on screen.
-- Ask at most one question before starting (format or language, when it is really unclear); otherwise use the
-  recipe's defaults and say what you chose.
+- No music unless asked (in `prompt-to-reel` the plan asks). No invented facts or numbers on screen.
+- Ask at most one question before starting (format or language, when it is really unclear; `prompt-to-reel` has its own
+  three); otherwise use the recipe's defaults and say what you chose.
 - Answer in the user's language, short sentences, no tool names unless they ask how it works.
 
 ## When something goes wrong

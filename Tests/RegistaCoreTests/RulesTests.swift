@@ -80,6 +80,40 @@ private func rulesEngine(_ fakes: FakeServices = FakeServices()) throws -> (Engi
     #expect(RuleDefaults.text("every-video", language: "de") == RuleDefaults.text("every-video", language: "en"))
 }
 
+/// The four languages of a sheet say the same things: the same sections, the same number of rules in each.
+@Test func theDefaultSheetsHaveTheSameSectionsAndRulesInEveryLanguage() throws {
+    for kind in [RuleBook.everyVideo] + RuleBook.builtInKinds {
+        let shapes = try RuleBook.languages.map { lang -> [Int] in
+            let prose = RuleSheetText.parse(try #require(RuleDefaults.text(kind, language: lang))).prose
+            return prose.components(separatedBy: "\n## ").map { $0.components(separatedBy: "\n- ").count - 1 }
+        }
+        #expect(Set(shapes).count == 1, "\(kind): rules per section \(zip(RuleBook.languages, shapes).map { "\($0) \($1)" })")
+    }
+}
+
+/// prompt-to-reel (#144) has no sheet of its own: its projects are voice-over videos, recipe.get gives that kind with the
+/// rules of that kind, and what holds for every video is said once, in the "For every video" sheet, never in a recipe.
+@Test func promptToReelFollowsTheVoiceOverSheetAndLeavesTheGeneralRulesToTheSheet() throws {
+    let (e, _) = try rulesEngine()
+    #expect(!RuleBook.builtInKinds.contains("prompt-to-reel") && Recipes.promptToReel.kind == "voice-over-video")
+    #expect(Recipes.all.filter { $0.name != "prompt-to-reel" }.allSatisfy { $0.kind == $0.name })
+    let r = try e.execute("recipe.get", params: ["name": "prompt-to-reel", "language": "en"])
+    let text = try #require(r["text"]?.stringValue)
+    #expect(r["kind"] == "voice-over-video" && text.contains("# Editing rules (voice-over-video)") && text.contains("# Voice-over video"))
+    try e.execute("project.new", params: ["name": "sentence", "kind": "voice-over-video"])
+    #expect(try e.execute("rules.check")["kind"] == "voice-over-video")
+    #expect(throws: CommandError.self) { try e.execute("project.new", params: ["name": "x", "kind": "prompt-to-reel"]) }
+    // Not longer than the others.
+    let longest = Recipes.all.filter { $0.name != "prompt-to-reel" }.map { $0.text().count }.max() ?? 0
+    #expect(Recipes.promptToReel.text().count < longest)
+    let sheet = try #require(RuleDefaults.text("every-video", language: "en"))
+    for rule in ["The first 3 seconds say", "One subject, one goal and one turn", "The ending echoes the opening", "one round of fixes", "never said to have been listened to",
+                 "Every line stays long enough to be read"] {
+        #expect(sheet.components(separatedBy: rule).count == 2, "«\(rule)» is not in the sheet once")
+        for recipe in Recipes.all { #expect(!recipe.text().contains(rule), "\(recipe.name) repeats «\(rule)»") }
+    }
+}
+
 @Test func editingTheProseChangesWhatRecipeGetReturnsAndResetBringsTheDefaultBack() throws {
     let (e, book) = try rulesEngine()
     #expect(!book.directory.path.contains("Library/Application Support"))

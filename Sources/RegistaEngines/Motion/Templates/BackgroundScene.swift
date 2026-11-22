@@ -9,7 +9,7 @@ enum BackgroundScene: MotionTemplate {
     static let spec = MotionSpec(
         id: "background-scene", label: "Sfondo", symbol: "square.stack.3d.down.forward",
         guide: CatalogGuide("A full-frame backdrop that replaces the shot for an interstitial: \"dark-grid\" = near-black with a soft radial glow in the accent colour and a thin perspective grid floor slowly gliding towards the viewer; \"white\" = a clean warm-white canvas with a faint vignette; \"paper\" = the brand paper colour; \"gradient\" = a soft diagonal gradient between two brand colours. Fades in and out.",
-                            useWhen: "A text or diagram interstitial between talking parts — under a kicker-headline, a bento-grid, a card-row, a timeline — when the graphic needs a calm clean stage instead of the room. 1.5–4 s.",
+                            useWhen: "A text or diagram interstitial between talking parts — under a kicker-headline, a bento-grid, a card-row, a timeline — when the graphic needs a calm clean stage instead of the room. 1.5–4 s. In a faceless reel (the prompt-to-reel recipe), the stage of a scene that contrasts with the kit's own colour, two of them overlapping by 0.5 s.",
                             avoid: "Covering the speaker for long (the face carries the reel), stacking two scenes, or using it when the graphic reads fine over the video."),
         fields: [
             .init("style", "choice", "dark-grid", "Backdrop.", choices: ["dark-grid", "white", "paper", "gradient"]),

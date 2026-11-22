@@ -759,7 +759,7 @@ Returns: the clip.
 
 **Read the effects catalogue** · MCP tool: `effects_catalog` · undo: no — reads only · takes `project`
 
-Everything the user can add from the app's Graphics panel, and the way to recommend it: looks (filters), adjustments, zooms, FX, text and callouts, stickers, transitions, speed, logo motions, one-click styles and motion templates (animated cards, checklists, counters, carousels, device frames, charts… category templates). Each item has an English description (what it looks like), useWhen (when to propose it), avoid (when not to), its fields with example values, what it needs (a clip, a moment, or the whole picture) and the ordinary command it runs. Read it before dressing a reel: pick 1–3 items that fit a line, tell the user why, show one with effects.preview on request, then apply it. With item (+ clipId/start/end/intensity/fields) it also returns the exact command and params to run. brief: true lists only id, label and description. Returns the items.
+Everything the user can add from the app's Graphics panel, and the way to recommend it: looks (filters), adjustments, zooms, FX, text and callouts, stickers, transitions, speed, logo motions, one-click styles and motion templates (animated cards, checklists, counters, carousels, device frames, charts… category templates). Each item has an English description (what it looks like), useWhen (when to propose it), avoid (when not to), its fields with example values, what it needs (a clip, a moment, or the whole picture) and the ordinary command it runs. Read it before dressing a reel: pick 1–3 items that fit a line, tell the user why, show one with effects.preview on request, then apply it. A whole faceless reel made of templates is the prompt-to-reel recipe (recipe.get). With item (+ clipId/start/end/intensity/fields) it also returns the exact command and params to run. brief: true lists only id, label and description. Returns the items.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1855,11 +1855,11 @@ Returns: a compact JSON summary.
 
 **Read a recipe** · MCP tool: `recipe_get` · undo: no — reads only · takes `project`
 
-Read this before making any video: the step-by-step recipe and the house rules for a kind of video — talking-head-reel (a person speaking to camera), screen-tutorial (a screen recording made in Regista, with or without the face), voice-over-video (no one on camera: the user's cloned voice over footage, stills and graphics), reel-graphics (titles, cards, sound effects and music on top of an edit). Without name, lists the recipes with what each is for: call it first and pick. The text ends with the editing rules of that kind of video (the user's rule sheets: they always hold, and export.render refuses while one of their checks fails). Returns {name, title, text, kind}.
+Read this before making any video: the step-by-step recipe and the house rules for a kind of video — talking-head-reel (a person speaking to camera), screen-tutorial (a screen recording made in Regista, with or without the face), voice-over-video (no one on camera: the user's cloned voice over footage, stills and graphics), reel-graphics (titles, cards, sound effects and music on top of an edit), prompt-to-reel (a faceless reel from one sentence of the user: script and scene plan to confirm, then voice or none, motion templates, music, sound effects). Without name, lists the recipes with what each is for: call it first and pick. The text ends with the editing rules of that kind of video (the user's rule sheets: they always hold, and export.render refuses while one of their checks fails). Returns {name, title, text, kind}.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `name` | one of `talking-head-reel`, `screen-tutorial`, `voice-over-video`, `reel-graphics` | no | – | Recipe: talking-head-reel, screen-tutorial, voice-over-video, reel-graphics. |
+| `name` | one of `talking-head-reel`, `screen-tutorial`, `voice-over-video`, `reel-graphics`, `prompt-to-reel` | no | – | Recipe: talking-head-reel, screen-tutorial, voice-over-video, reel-graphics, prompt-to-reel. |
 | `language` | one of `it`, `en`, `fr`, `pt` | no | sheets read (it, en, fr, pt | Language of the default sheets read (it, en, fr, pt; default: the app's interface language). A sheet the user wrote is the same in every language. |
 
 Returns: {name, title, text, kind}.

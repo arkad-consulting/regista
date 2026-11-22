@@ -213,8 +213,8 @@ public struct RuleSheetText: Sendable {
 public struct RuleBook: Sendable {
     public static let everyVideo = "every-video"
     public static let languages = ["it", "en", "fr", "pt"]
-    /// The built-in kinds: the four recipes.
-    public static var builtInKinds: [String] { Recipes.all.map(\.name) }
+    /// The built-in kinds: the recipes with a rule sheet of their own (prompt-to-reel follows the voice-over video's).
+    public static var builtInKinds: [String] { Recipes.all.filter { $0.kind == $0.name }.map(\.name) }
 
     /// The user's sheets (`rules/` of Regista's support folder).
     public var directory: URL

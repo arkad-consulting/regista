@@ -166,3 +166,18 @@ func tempFolder() throws -> URL {
         #expect(s.consumesBelow || s.fields.contains { $0.type == "image" || $0.type == "images" }, "\(id) cannot show the user's own screen")
     }
 }
+
+/// The templates the faceless recipe (#144) gives as carriers exist, and are not those it calls too small for a scene.
+@Test func promptToReelNamesOnlyCatalogTemplates() throws {
+    MotionLibrary.registerAll()
+    let ids = Set(MotionRegistry.all.map(\.id))
+    let text = Recipes.promptToReel.text()
+    func named(after marker: String, upTo end: String) throws -> Set<String> {
+        let a = try #require(text.range(of: marker)), b = try #require(text.range(of: end, range: a.upperBound..<text.endIndex))
+        return Set(text[a.upperBound..<b.lowerBound].components(separatedBy: CharacterSet.lowercaseLetters.union(CharacterSet(charactersIn: "-")).inverted)
+            .filter { $0.contains("-") || ids.contains($0) })
+    }
+    let carriers = try named(after: "Good carriers:", upTo: "- Footage"), small = try named(after: "beside a head (", upTo: ")")
+    #expect(carriers.count >= 10 && carriers.isSubset(of: ids), "not in the catalog: \(carriers.subtracting(ids).sorted())")
+    #expect(small.count == 3 && small.isSubset(of: ids) && small.isDisjoint(with: carriers))
+}

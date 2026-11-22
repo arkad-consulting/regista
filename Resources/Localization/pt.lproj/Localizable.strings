@@ -2347,6 +2347,8 @@
 "%@ pronunce salvate" = "%@ pronúncias salvas";
 "1 correzione applicata" = "1 correção aplicada";
 "%@ correzioni applicate" = "%@ correções aplicadas";
+"1 blocco di sottotitoli tolto o accorciato" = "1 bloco de legendas removido ou encurtado";
+"%@ blocchi di sottotitoli tolti o accorciati" = "%@ blocos de legendas removidos ou encurtados";
 "Sottotitoli a tempo: 1 parola controllata" = "Legendas no tempo: 1 palavra verificada";
 "Sottotitoli a tempo: %@ parole controllate" = "Legendas no tempo: %@ palavras verificadas";
 "1 parola fuori tempo" = "1 palavra fora do tempo";

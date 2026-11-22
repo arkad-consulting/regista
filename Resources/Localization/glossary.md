@@ -74,6 +74,8 @@ Keep these the same everywhere in `*.lproj/Localizable.strings` (scheme and chec
 | scaricare / Scarica (a file from the network) | download / Download | télécharger / Télécharger | baixar / Baixar |
 | file del modello (a ComfyUI model file) | model file | fichier de modèle | arquivo de modelo |
 | citazione (words someone said, with their source: the `quote-card` template) | quote | citation | citação |
+| svolta (the moment of a video that changes what the viewer thinks: the rule sheets) | turn | tournant | virada |
+| verdetto (what a check says in the report: passed, fixed, known issue, not checked) | verdict | verdict | veredito |
 
 Names never translated: Regista, Claude, Claude Code, Claude Desktop, MCP, ComfyUI, Higgsfield, WhisperX, VoxCPM2,
 HyperFrames, Blender, Shotcut, FFmpeg, macOS, Arkad, WeSites, the shortcut glyphs (⌘ ⌥ ⇧ ⌃).

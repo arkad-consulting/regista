@@ -2347,6 +2347,8 @@
 "%@ pronunce salvate" = "%@ pronunce salvate";
 "1 correzione applicata" = "1 correzione applicata";
 "%@ correzioni applicate" = "%@ correzioni applicate";
+"1 blocco di sottotitoli tolto o accorciato" = "1 blocco di sottotitoli tolto o accorciato";
+"%@ blocchi di sottotitoli tolti o accorciati" = "%@ blocchi di sottotitoli tolti o accorciati";
 "Sottotitoli a tempo: 1 parola controllata" = "Sottotitoli a tempo: 1 parola controllata";
 "Sottotitoli a tempo: %@ parole controllate" = "Sottotitoli a tempo: %@ parole controllate";
 "1 parola fuori tempo" = "1 parola fuori tempo";

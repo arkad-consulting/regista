@@ -133,6 +133,9 @@ enum CommandLines {
             let chunks = count(int(r["chunks"]) ?? 0, "1 blocco di sottotitoli", "%@ blocchi di sottotitoli")
             let keywords = int(r["keywordsShown"]) ?? r["keywords"]?.arrayValue?.count ?? 0
             return chunks + " · " + count(keywords, "1 parola chiave", "%@ parole chiave")
+        case "captions.clear":
+            return count((int(r["removed"]) ?? 0) + (int(r["shortened"]) ?? 0), "1 blocco di sottotitoli tolto o accorciato",
+                         "%@ blocchi di sottotitoli tolti o accorciati")
         case "captions.setStyle": return loc("Sottotitoli in stile «%@»", captionStyleName(r["style"]?.stringValue ?? r["id"]?.stringValue ?? ""))
         case "captions.place":
             if r["scope"] == "chunks" { return count(r["chunks"]?.arrayValue?.count ?? 0, "1 blocco spostato", "%@ blocchi spostati") }

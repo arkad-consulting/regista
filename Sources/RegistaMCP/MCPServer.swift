@@ -17,7 +17,8 @@ public final class MCPServer {
     when a tool answers that the app closed, ask the user to reopen Regista and call again. Start every job with recipe_get {} and follow the recipe that fits: talking-head-reel (a person \
     speaking to camera), screen-tutorial (a screen recording made in Regista), voice-over-video (no one on camera: \
     the user's own cloned voice over footage and graphics), reel-graphics (titles, cards, sound effects and music \
-    on top of an edit). Find footage, scripts and recordings with media_list (the folders you may read; it also \
+    on top of an edit), prompt-to-reel (a faceless reel from one sentence: plan to confirm, then templates, sound and \
+    captions). Find footage, scripts and recordings with media_list (the folders you may read; it also \
     gives projectsDirectory for project_new and exportsDirectory for the exported files) and read scripts with \
     text_read. Short version of a talking-head reel: project_new → media_import → media_extractAudio → \
     transcript_run → script_set → takes_list (write the kept-take list for the user; takes_select fixes a \
