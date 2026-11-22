@@ -360,7 +360,12 @@ public enum CaptionBuilder {
         // word, else give it anyway and spill the next chunk's tail into a new chunk. Lines stay ≤ maxChars + 4.
         let limit = style.maxChars + 4
         var i = 0
-        while i < chunks.count - 1 {
+        // A backstop: each pass moves words forward, but a chunk emptied by the forced give below used to hand the same
+        // words around for ever («et des fonctionnalités», French, 3 words / 17 characters: the app hung). Past this many
+        // passes, the remaining chunks keep their stop-word endings.
+        var budget = 16 * kept.count + 64
+        while i < chunks.count - 1, budget > 0 {
+            budget -= 1
             guard let last = chunks[i].last, stop(last) else { i += 1; continue }
             // Words to pull back: up to the next chunk's first word that is not a stop word.
             let next = chunks[i + 1]
@@ -381,6 +386,9 @@ public enum CaptionBuilder {
                     spill.insert(chunks[i + 1].removeLast(), at: 0)
                 }
                 if !spill.isEmpty { chunks.insert(spill, at: i + 2) }
+                // Chunk i gave its last word away and is empty: the chunk that took it may now end on that stop word, and
+                // handing it on again rebuilds the same chunks. Keep it and go on (no better split fits the limits).
+                if chunks[i].isEmpty { chunks.remove(at: i); i += 1; continue }
             }
             if chunks[i].isEmpty { chunks.remove(at: i) } else if let l = chunks[i].last, stop(l) { continue } else { i += 1 }
         }
