@@ -92,7 +92,7 @@ enum ProjectNew: Command {
 
 enum ProjectFormat: Command {
     static let id = "project.format"
-    static let summary = "Change the output format of the open project (9:16, 4:5, 1:1, 16:9, or any width × height): full-frame clips reframe by crop around their centre; screen recordings lay their face layouts out again for the new frame (a side-by-side becomes the vertical stack in a portrait frame and back), with their automatic zoom and key badges recomputed. One undo step. Returns the new size and the layouts applied."
+    static let summary = "Change the output format of the open project (9:16, 4:5, 1:1, 16:9, or any width × height). Full-frame camera clips are framed on the face for the new aspect, with the rules of edit.punchIns (every face kept, room above the hair, never a head cut, static when one crop holds the shot, else smoothed and speed-limited) at the zoom each clip has now; a clip with no face track yet gets one first (faces.track, local Apple Vision, no cost); a clip without a face (a screen, B-roll) is cropped around its centre. Screen recordings lay their face layouts out again for the new frame (a side-by-side becomes the vertical stack in a portrait frame and back), with their automatic zoom and key badges recomputed. Run with the current size, it frames the camera clips on the face again (the fix when faces.checkFraming fails). One undo step. Returns the new size, the assets whose faces were tracked first, the clips framed on a face and the layouts applied."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("preset", .oneOf(ExportPreset.all.map(\.id)), "9:16 (1080×1920), 4:5 (1080×1350), 1:1 (1080×1080) or 16:9 (1920×1080)."),
@@ -110,6 +110,24 @@ enum ProjectFormat: Command {
             size = (w / 2 * 2, h / 2 * 2)
         } else {
             throw CommandError.invalid("\(id): pass preset, or width and height")
+        }
+        let from = Double(project.settings.width) / Double(max(project.settings.height, 1)), to = Double(size.0) / Double(size.1)
+        // The camera clips to frame that have no face track yet: tracked first (local, Apple Vision), in this undo step.
+        var log: [JSONValue] = [], tracked: [JSONValue] = [], warnings: [JSONValue] = []
+        let untracked = Set(FaceReframe.candidates(project, aspect: to).map { project.tracks[$0.track].clips[$0.clip].assetID })
+            .filter { project.asset($0)?.analysis?.faces == nil }.sorted()
+        if !untracked.isEmpty, ctx.services.faces == nil {
+            warnings.append("no face engine in this host: the camera clips are cropped around their centre")
+        } else {
+            for aid in untracked {
+                do {
+                    try ctx.perform(FacesTrack.self, ["assetId": .string(aid)], log: &log)
+                    tracked.append(.string(aid))
+                } catch {
+                    warnings.append(.string("faces of \(aid) not tracked (\((error as? CommandError)?.message ?? "\(error)")): its clips are cropped around their centre"))
+                }
+            }
+            project = try ctx.requireProject()
         }
         project.settings.width = size.0
         project.settings.height = size.1
@@ -131,8 +149,16 @@ enum ProjectFormat: Command {
             try Recording.refreshDerived(link: index, &ctx)
             project = ctx.project!
         }
+        // The camera clips framed on the face for the new aspect (#150), at the zoom each has now.
+        var cache: [String: FaceTrack] = [:]
+        let framed = FaceReframe.apply(&project, from: from, to: to) { FaceReframe.track($0, cache: &cache) }
         ctx.project = project
-        return ["width": .number(Double(size.0)), "height": .number(Double(size.1)), "layouts": .array(applied)]
+        var result: [String: JSONValue] = ["width": .number(Double(size.0)), "height": .number(Double(size.1)), "layouts": .array(applied),
+                                           "tracked": .array(tracked), "reframed": .array(framed.map(\.json))]
+        if !tracked.isEmpty { result["note"] = .string("faces tracked first (Apple Vision, local) on \(tracked.compactMap(\.stringValue).joined(separator: ", "))") }
+        if !warnings.isEmpty { result["warnings"] = .array(warnings) }
+        if !log.isEmpty { result["commands"] = .array(log) }
+        return .object(result)
     }
 }
 

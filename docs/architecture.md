@@ -783,7 +783,7 @@ works in regista-engine / regista-mcp.
 |---|---|
 | Video | H.264 High, yuv420p (BT.709, video range), 30 fps CFR, 14 Mb/s default, keyframe every 2 s, `moov` first (faststart) |
 | Audio | the unmuted audio tracks mixed by ffmpeg, sample-exact (`atrim` in samples, `adelay` in samples, clip fades), `alimiter` (no lookahead delay) 0.5 dB under the true-peak ceiling (default −1.5 dBTP), AAC-LC 48 kHz 192 kb/s CBR (Apple encoder) |
-| Presets | `9:16` 1080×1920, `1:1` 1080×1080, `16:9` 1920×1080; an aspect other than the clip crop's reframes by crop (largest rectangle of the output aspect inside the crop, same centre). Captions scale with the width, the band keeps its height fraction |
+| Presets | `9:16` 1080×1920, `4:5` 1080×1350, `1:1` 1080×1080, `16:9` 1920×1080; an aspect other than the clip crop's reframes by crop: a full-frame camera clip with a face track is framed on its faces (`FaceReframe`, the `FaceFraming.cropPath` of `edit.punchIns` at the clip's zoom, #150), any other clip takes the largest rectangle of the output aspect inside the crop, same centre. `project.format` writes the same face framing into the edit (tracking the faces first when needed). Captions scale with the width, the band keeps its height fraction |
 | Speed | the 49 s WeSites reel: 1470 frames in ~6 s (M5 Pro) |
 
 **Captions.** A caption track holds `Captions`: the style, keywords, fixes, the source track and its clip signature

@@ -16,7 +16,7 @@ enum Render {
     }
 
     static let presetParam = ParamSpec.optional("preset", .oneOf(ExportPreset.all.map(\.id)),
-                                                "9:16 (1080×1920), 4:5 (1080×1350, feed portrait), 1:1 (1080×1080) or 16:9 (1920×1080); another aspect than the project's reframes every clip by crop (default: the project size).")
+                                                "9:16 (1080×1920), 4:5 (1080×1350, feed portrait), 1:1 (1080×1080) or 16:9 (1920×1080); another aspect than the project's reframes by crop: camera clips with a face track on the face (as project.format), the others around their centre (default: the project size).")
 
     /// Warnings worth returning with a render.
     static func warnings(_ job: RenderJob, _ project: Project) -> [JSONValue] {

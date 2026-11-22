@@ -1,7 +1,8 @@
 import Foundation
 
 /// Output formats of export.render / frame.render. A preset whose aspect differs from the project's
-/// reframes by crop: every clip's crop is narrowed (or shortened) to the output aspect around its centre.
+/// reframes by crop: a camera clip with a face track is framed on its faces (`FaceReframe`), every other clip's crop is
+/// narrowed (or shortened) to the output aspect around its centre.
 public struct ExportPreset: Hashable, Sendable {
     public var id: String
     public var width: Int
@@ -155,6 +156,8 @@ public struct RenderJob: Sendable {
     public var cursors: [String: CursorPath]
 
     public init(project: Project, preset: ExportPreset, captions: Bool = true) {
+        // A preset of another aspect draws the camera clips framed on their faces (#150), never cut around the centre.
+        let project = FaceReframe.forPreset(project, width: preset.width, height: preset.height)
         self.project = project
         width = preset.width
         height = preset.height

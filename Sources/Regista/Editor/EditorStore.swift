@@ -648,6 +648,14 @@ final class EditorStore: ObservableObject {
         }
     }
 
+    /// A take placed in a project of another format keeps the project's format and is framed on the face (#150):
+    /// project.format at the project's own size (it tracks the faces first). Nothing to do when the aspects match.
+    func frameOnFace(_ assetID: String) async throws {
+        guard let s = project?.settings, let v = project?.asset(assetID)?.video,
+              abs(Double(v.width) / Double(v.height) - Double(s.width) / Double(max(s.height, 1))) > 1e-3 else { return }
+        try await perform("project.format", ["width": .number(Double(s.width)), "height": .number(Double(s.height))])
+    }
+
     /// Where a recording started from this tab goes (#39): a new project when the tab has none; otherwise the choice made
     /// on Registra, by default this project (#140: several takes in a row join the same project).
     var recordingDestination: RecordingDestination {
@@ -692,7 +700,10 @@ final class EditorStore: ObservableObject {
                     let files = session ? try Self.sessionFiles(url) : [url]
                     for f in files {
                         let id = try await perform("media.import", ["path": .string(f.path)]).value(at: "asset.id")?.stringValue ?? ""
-                        if !session, (project?.duration ?? .zero) == .zero, project?.asset(id)?.video != nil { try await placeOnTimeline(id) }
+                        if !session, (project?.duration ?? .zero) == .zero, project?.asset(id)?.video != nil {
+                            try await placeOnTimeline(id)
+                            try await frameOnFace(id)
+                        }
                     }
                 }
                 let added = project?.assets.filter { !before.contains($0.id) } ?? []

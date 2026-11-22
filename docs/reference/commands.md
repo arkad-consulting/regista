@@ -329,7 +329,7 @@ Verify the captions in an exported mp4: for every word, the first frame where it
 |---|---|---|---|---|
 | `path` | string | yes | – | Rendered video (export.render output, same preset). |
 | `trackId` | string | no | the first one with captions | Caption track (default: the first one with captions). |
-| `preset` | one of `9:16`, `4:5`, `1:1`, `16:9` | no | the project size | 9:16 (1080×1920), 4:5 (1080×1350, feed portrait), 1:1 (1080×1080) or 16:9 (1920×1080); another aspect than the project's reframes every clip by crop (default: the project size). |
+| `preset` | one of `9:16`, `4:5`, `1:1`, `16:9` | no | the project size | 9:16 (1080×1920), 4:5 (1080×1350, feed portrait), 1:1 (1080×1080) or 16:9 (1920×1080); another aspect than the project's reframes by crop: camera clips with a face track on the face (as project.format), the others around their centre (default: the project size). |
 | `window` | integer | no | 6 | Search ±frames around each expected reveal (default 6). |
 | `tolerance` | integer | no | 1 | Frames of error still passing (default 1). |
 
@@ -802,7 +802,7 @@ Show the user what a catalog item would look like before applying it ("show me t
 | `intensity` | number | no | 0.5 | 0…1 (default 0.5). |
 | `frames` | integer | no | – | 1 = one still (default); 2–12 = a contact sheet across the item's animation. |
 | `captions` | boolean | no | true | Draw the captions too (default true). |
-| `preset` | one of `9:16`, `4:5`, `1:1`, `16:9` | no | the project size | 9:16 (1080×1920), 4:5 (1080×1350, feed portrait), 1:1 (1080×1080) or 16:9 (1920×1080); another aspect than the project's reframes every clip by crop (default: the project size). |
+| `preset` | one of `9:16`, `4:5`, `1:1`, `16:9` | no | the project size | 9:16 (1080×1920), 4:5 (1080×1350, feed portrait), 1:1 (1080×1080) or 16:9 (1920×1080); another aspect than the project's reframes by crop: camera clips with a face track on the face (as project.format), the others around their centre (default: the project size). |
 
 Returns: the image(s) inline, their paths, the command and params that would apply it, and the time window.
 
@@ -844,7 +844,7 @@ Render the final video: the timeline to an mp4 with the same compositor frame.re
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `path` | string | yes | – | Output .mp4. |
-| `preset` | one of `9:16`, `4:5`, `1:1`, `16:9` | no | the project size | 9:16 (1080×1920), 4:5 (1080×1350, feed portrait), 1:1 (1080×1080) or 16:9 (1920×1080); another aspect than the project's reframes every clip by crop (default: the project size). |
+| `preset` | one of `9:16`, `4:5`, `1:1`, `16:9` | no | the project size | 9:16 (1080×1920), 4:5 (1080×1350, feed portrait), 1:1 (1080×1080) or 16:9 (1920×1080); another aspect than the project's reframes by crop: camera clips with a face track on the face (as project.format), the others around their centre (default: the project size). |
 | `captions` | boolean | no | true | Draw the caption track (default true). |
 | `bitrate` | number | no | 14 | Video bit rate, Mb/s (default 14). |
 | `ceiling` | number | no | -1.5 | True-peak ceiling of the mix, dBTP (default -1.5). |
@@ -913,7 +913,7 @@ See the whole edit at a glance: renders N frames (evenly spaced over the timelin
 | `from` | seconds | no | 0 | Start of the sampled range (default 0). |
 | `to` | seconds | no | the end of the timeline | End of the sampled range (default: the end of the timeline). |
 | `path` | string | no | <project>.regista/previews/contact-<n>.jpg, or a temporary file | Output .jpg (default: <project>.regista/previews/contact-<n>.jpg, or a temporary file). |
-| `preset` | one of `9:16`, `4:5`, `1:1`, `16:9` | no | the project size | 9:16 (1080×1920), 4:5 (1080×1350, feed portrait), 1:1 (1080×1080) or 16:9 (1920×1080); another aspect than the project's reframes every clip by crop (default: the project size). |
+| `preset` | one of `9:16`, `4:5`, `1:1`, `16:9` | no | the project size | 9:16 (1080×1920), 4:5 (1080×1350, feed portrait), 1:1 (1080×1080) or 16:9 (1920×1080); another aspect than the project's reframes by crop: camera clips with a face track on the face (as project.format), the others around their centre (default: the project size). |
 | `captions` | boolean | no | true | Draw the caption track (default true). |
 
 Returns: the sheet as an image you can see, its path and the times.
@@ -942,7 +942,7 @@ Look at one or a few frames of the edit at full quality, rendered by the export'
 | `times` | array of number | no | – | Several timeline times. |
 | `path` | string | no | a temporary file | Output .png for a single time (default: a temporary file). |
 | `directory` | string | no | a temporary folder | Folder for several frames (frame-<seconds>.png; default: a temporary folder). |
-| `preset` | one of `9:16`, `4:5`, `1:1`, `16:9` | no | the project size | 9:16 (1080×1920), 4:5 (1080×1350, feed portrait), 1:1 (1080×1080) or 16:9 (1920×1080); another aspect than the project's reframes every clip by crop (default: the project size). |
+| `preset` | one of `9:16`, `4:5`, `1:1`, `16:9` | no | the project size | 9:16 (1080×1920), 4:5 (1080×1350, feed portrait), 1:1 (1080×1080) or 16:9 (1920×1080); another aspect than the project's reframes by crop: camera clips with a face track on the face (as project.format), the others around their centre (default: the project size). |
 | `captions` | boolean | no | true | Draw the caption track (default true). |
 | `inline` | boolean | no | true | Return the previews as images (default true). |
 
@@ -1766,7 +1766,7 @@ Returns: {closed}.
 
 **Change the format** · MCP tool: `project_format` · undo: yes — one undo step · takes `project`
 
-Change the output format of the open project (9:16, 4:5, 1:1, 16:9, or any width × height): full-frame clips reframe by crop around their centre; screen recordings lay their face layouts out again for the new frame (a side-by-side becomes the vertical stack in a portrait frame and back), with their automatic zoom and key badges recomputed. One undo step. Returns the new size and the layouts applied.
+Change the output format of the open project (9:16, 4:5, 1:1, 16:9, or any width × height). Full-frame camera clips are framed on the face for the new aspect, with the rules of edit.punchIns (every face kept, room above the hair, never a head cut, static when one crop holds the shot, else smoothed and speed-limited) at the zoom each clip has now; a clip with no face track yet gets one first (faces.track, local Apple Vision, no cost); a clip without a face (a screen, B-roll) is cropped around its centre. Screen recordings lay their face layouts out again for the new frame (a side-by-side becomes the vertical stack in a portrait frame and back), with their automatic zoom and key badges recomputed. Run with the current size, it frames the camera clips on the face again (the fix when faces.checkFraming fails). One undo step. Returns the new size, the assets whose faces were tracked first, the clips framed on a face and the layouts applied.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1774,7 +1774,7 @@ Change the output format of the open project (9:16, 4:5, 1:1, 16:9, or any width
 | `width` | integer | no | – | Output width in pixels (instead of preset; with height). |
 | `height` | integer | no | – | Output height in pixels (instead of preset; with width). |
 
-Returns: the new size and the layouts applied.
+Returns: the new size, the assets whose faces were tracked first, the clips framed on a face and the layouts applied.
 
 ### `project.list`
 

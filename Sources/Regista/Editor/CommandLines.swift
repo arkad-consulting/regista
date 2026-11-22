@@ -40,7 +40,9 @@ enum CommandLines {
         // The project
         case "project.new": return loc("Progetto «%@» creato", r["name"]?.stringValue ?? "")
         case "project.save": return loc("Salvato in «%@»", file(r["path"]))
-        case "project.format": return loc("Formato %@×%@", "\(int(r["width"]) ?? 0)", "\(int(r["height"]) ?? 0)")
+        case "project.format":
+            let size = loc("Formato %@×%@", "\(int(r["width"]) ?? 0)", "\(int(r["height"]) ?? 0)")
+            return (r["reframed"]?.arrayValue ?? []).isEmpty ? size : size + " · " + loc("inquadrato sul volto")
         case "history.undo": return loc("Annullato: %@", CommandTitles.title(r["undone"]?.stringValue ?? ""))
         case "history.redo": return loc("Ripetuto: %@", CommandTitles.title(r["redone"]?.stringValue ?? ""))
         case "profile.create": return loc("Profilo «%@» creato", r.value(at: "profile.name")?.stringValue ?? r["name"]?.stringValue ?? "")
