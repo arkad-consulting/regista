@@ -36,7 +36,7 @@ enum SimpleStep: String, CaseIterable, Identifiable {
     /// The job kinds whose work belongs to this step (its own and the Pro steps it shares).
     var jobKinds: [String] {
         switch self {
-        case .cut: ["simple.cut", TextStep.transcribe.jobKind, TextStep.takes.jobKind, TextStep.cut.jobKind]
+        case .cut: ["simple.cut", TextStep.transcribe.jobKind, TextStep.faces.jobKind, TextStep.takes.jobKind, TextStep.cut.jobKind]
         case .captions: ["simple.captions", TextStep.captions.jobKind]
         case .look: []
         case .sound: [AudioCalls.musicJob]
@@ -48,7 +48,7 @@ enum SimpleStep: String, CaseIterable, Identifiable {
     /// The step a "Fai tutto" sub-step works on.
     static func of(_ step: TextStep) -> SimpleStep {
         switch step {
-        case .transcribe, .script, .takes, .cut: .cut
+        case .transcribe, .faces, .script, .takes, .cut: .cut
         case .clean: .voice
         case .captions: .captions
         }
@@ -66,6 +66,8 @@ struct SimpleState: Equatable {
     var needs: SimpleStep? = nil
     /// Unavailable: the engine to install (its id in Impostazioni › Motori).
     var install: String? = nil
+    /// The line is a warning (a head cut by the framing, #152).
+    var warning = false
 
     var canAct: Bool { status != .blocked && status != .unavailable && status != .running }
 }
@@ -284,8 +286,8 @@ struct SimpleSnapshot {
 
     /// The snapshot of `p`: `running` steps from the tab's jobs, `musicLoudness` the measured level of music files by path.
     static func compute(_ p: Project?, engines: SimpleEngines, running: Set<SimpleStep> = [], musicLoudness: [String: Double] = [:],
-                        voiceOver: VoicePanelState? = nil, lookup: (String) -> String = loc) -> SimpleSnapshot {
-        let text = TextSteps.compute(p, lookup: lookup)
+                        voiceOver: VoicePanelState? = nil, framing: FramingCheck? = nil, lookup: (String) -> String = loc) -> SimpleSnapshot {
+        let text = TextSteps.compute(p, framing: framing, lookup: lookup)
         var s = SimpleSnapshot(states: [:], hasProject: p != nil, engines: engines)
         s.voiceOver = voiceOver
         for step in SimpleStep.allCases {
@@ -342,6 +344,17 @@ struct SimpleSnapshot {
 
     private static func state(_ step: SimpleStep, _ p: Project?, _ text: TextSteps, _ engines: SimpleEngines,
                               _ lookup: (String) -> String) -> SimpleState {
+        var s = baseState(step, p, text, engines, lookup)
+        // A head cut by the framing (#152) shows on Taglio e riprese, the step «Fai tutto» finds the face in.
+        if step == .cut, text[.faces].status == .stale, s.status != .running {
+            s.line = text[.faces].line
+            s.warning = true
+        }
+        return s
+    }
+
+    private static func baseState(_ step: SimpleStep, _ p: Project?, _ text: TextSteps, _ engines: SimpleEngines,
+                                  _ lookup: (String) -> String) -> SimpleState {
         guard let p, let asset = TextSteps.mainAsset(p) else {
             return SimpleState(status: .blocked, line: text[.transcribe].line, needsImport: true)
         }
@@ -425,7 +438,7 @@ extension EditorStore {
             else if title == SimpleStep.look.title() { running.insert(.look) }
         }
         var s = SimpleSnapshot.compute(project, engines: simpleEngines, running: running, musicLoudness: musicLoudness,
-                                       voiceOver: voice.state)
+                                       voiceOver: voice.state, framing: framing)
         s.jobs = jobsByStep
         s.allJob = all
         s.logoAtEnd = project.map(engine.context.services.rules.logoOnlyAtEnd) ?? false

@@ -1741,7 +1741,6 @@
 "Trascina per scegliere l'area da registrare · Esc per annullare" = "Drag to choose the area to record · Esc to cancel";
 "Trascina qui un video o registrane uno" = "Drop a video here or record one";
 "Trascinalo sul monitor per spostarlo; gli angoli lo ridimensionano." = "Drag it on the monitor to move it; the corners resize it.";
-"Trascrive, sceglie le riprese, taglia le pause, pulisce la voce e mette i sottotitoli, in ordine" = "Transcribes, chooses the takes, cuts the pauses, cleans the voice and adds the captions, in order";
 "Trascrivi" = "Transcribe";
 "Trascrivi di nuovo" = "Transcribe again";
 "Trascrivo e cerco le righe del copione…" = "Transcribing and finding the script's lines…";
@@ -2527,3 +2526,14 @@
 "Il tuo brand" = "Your brand";
 "inquadrato sul volto" = "framed on the face";
 "Formato del video: 9:16, 4:5, 1:1 o 16:9; il volto resta nell'inquadratura" = "Video format: 9:16, 4:5, 1:1 or 16:9; the face stays in frame";
+"Trova il volto in ogni fotogramma: i sottotitoli e le inquadrature lo lasciano libero." = "Finds the face in every frame: captions and framing keep it clear.";
+"Solo audio: nessun volto da cercare." = "Sound only: no face to look for.";
+"Nessun volto nel video: l'inquadratura resta al centro." = "No face in the video: the framing stays centred.";
+"Una testa è tagliata a %@: rifai l'inquadratura sul volto." = "A head is cut at %@: frame on the face again.";
+"Inquadra sul volto" = "Frame on the face";
+"Trova di nuovo il volto" = "Find the face again";
+"Cerco il volto in ogni fotogramma…" = "Looking for the face in every frame…";
+"Controllo che nessuna testa sia tagliata…" = "Checking that no head is cut…";
+"Inquadro le clip sul volto…" = "Framing the clips on the face…";
+"Apple Vision, su questo Mac: nessun costo. Alla fine di «Fai tutto» controllo che nessuna testa sia tagliata." = "Apple Vision, on this Mac: no cost. At the end of “Do everything” I check that no head is cut.";
+"Trascrive, trova il volto, sceglie le riprese, taglia le pause, pulisce la voce e mette i sottotitoli, in ordine" = "Transcribes, finds the face, chooses the takes, cuts the pauses, cleans the voice and adds the captions, in order";

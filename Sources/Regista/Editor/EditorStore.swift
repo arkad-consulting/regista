@@ -139,6 +139,8 @@ final class EditorStore: ObservableObject {
     @Published var simpleOpen: SimpleStep?
     /// Where a recording started from this tab goes, as chosen on Registra (nil: the default), kept while the tab is open.
     @Published var recordingChoice: RecordingDestination?
+    /// The last framing check of this tab's edit (#152): «Trova il volto» shows a cut head while it holds.
+    @Published var framing: FramingCheck?
     /// Instagram UI guides on the Program monitor: off until asked for (they are guides, not a crop).
     @Published var safeZones = false
     /// The Marca picker (the toolbar's "Marca: <kit>" popover, ⇧⌘B): the one place the project's kit is picked (E4 #3).

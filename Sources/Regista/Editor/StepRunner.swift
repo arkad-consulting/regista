@@ -50,7 +50,7 @@ extension EditorStore {
     var textSteps: TextSteps {
         var running = Set(TextStep.allCases.filter { jobs.latest($0.jobKind)?.isRunning == true })
         if let all = jobs.latest(TextStep.allJobKind), all.isRunning, let s = Self.allSteps(all) { running.insert(s) }
-        return TextSteps.compute(project, running: running)
+        return TextSteps.compute(project, running: running, framing: framing)
     }
 
     /// The step job running in this tab (one at a time: they share the tab's queue and its project).
@@ -69,7 +69,8 @@ extension EditorStore {
                        return try await self.performInJob(call, job, from: lo, to: hi)
                    },
                    suggest: { [weak self] style in await self?.suggestKeywords(style: style) ?? [] },
-                   detail: { h.update(detail: $0) }, progress: { h.update(progress: $0) }, step: { h.step($0) })
+                   detail: { h.update(detail: $0) }, progress: { h.update(progress: $0) }, step: { h.step($0) },
+                   checked: { [weak self] in self?.framing = $0 })
     }
 
     /// One step's button: its commands as one job ("Trascrivi" = extract the audio if needed, then transcribe).
@@ -81,6 +82,19 @@ extension EditorStore {
             guard let self else { return }
             try await self.driver(h, job).run(calls, settings: settings, from: 0, to: 1)
             h.update(detail: self.textSteps[step].line)
+        }
+    }
+
+    /// «Inquadra sul volto» (#152), the fix of a failing framing check: the camera clips framed on the face again
+    /// (project.format at the project's size, one undo step), then the check again.
+    func fixFraming() {
+        guard runningStepJob == nil, let p = project else { return }
+        startJob(kind: TextStep.faces.jobKind, title: loc("Inquadra sul volto")) { [weak self] h, job in
+            guard let self else { return }
+            let driver = self.driver(h, job)
+            try await driver.run([StepCalls.reframe(p)], settings: StepSettings.saved(project: p), from: 0, to: 0.9)
+            await driver.checkFraming()
+            h.update(detail: self.textSteps[.faces].line)
         }
     }
 
@@ -106,7 +120,7 @@ extension EditorStore {
     /// The steps "Fai tutto" runs, in order (the copione only when there is a text to use: otherwise Riprese builds it
     /// from the speech).
     nonisolated static func allSteps(hasScriptText: Bool) -> [TextStep] {
-        [.transcribe] + (hasScriptText ? [.script] : []) + [.takes, .cut, .clean, .captions]
+        [.transcribe, .faces] + (hasScriptText ? [.script] : []) + [.takes, .cut, .clean, .captions]
     }
 
     /// "Fai tutto": the steps in order as one job with sub-steps, skipping those already done; stops at the first
@@ -122,7 +136,11 @@ extension EditorStore {
             guard let self else { return }
             h.steps(steps.map { $0.title() } + (extrasTitle.map { [$0] } ?? []))
             try await self.driver(h, job).runAll(steps, settings: settings, script: text, extras: extras)
-            h.update(detail: loc("Fatto: montaggio, voce e sottotitoli pronti. Rivedili prima di esportare."))
+            if let cut = self.framing?.firstCut, self.textSteps[.faces].status == .stale {
+                h.update(detail: String(format: loc("Una testa è tagliata a %@: rifai l'inquadratura sul volto."), clockTime(cut)))
+            } else {
+                h.update(detail: loc("Fatto: montaggio, voce e sottotitoli pronti. Rivedili prima di esportare."))
+            }
         }
     }
 
@@ -156,6 +174,8 @@ struct StepDriver {
     var progress: (Double) -> Void = { _ in }
     /// The sub-step running now ("Fai tutto").
     var step: (Int) -> Void = { _ in }
+    /// The framing check's result (faces.checkFraming at the end of "Fai tutto" and after its fix).
+    var checked: (FramingCheck) -> Void = { _ in }
 
     /// A step's commands as parts of [lo, hi] (extracting the audio or building the script weighs little next to the
     /// rest); a failure becomes a sentence a person can act on.
@@ -186,6 +206,9 @@ struct StepDriver {
         case "edit.autoCut": return loc("Taglio le pause e monto le riprese…")
         case "audio.clean": return loc("Tolgo il rumore e porto la voce a −15 LUFS…")
         case "captions.generate": return loc("Creo i sottotitoli…")
+        case "faces.track": return loc("Cerco il volto in ogni fotogramma…")
+        case "faces.checkFraming": return loc("Controllo che nessuna testa sia tagliata…")
+        case "project.format": return loc("Inquadro le clip sul volto…")
         default: return CommandTitles.title(call.id)
         }
     }
@@ -200,7 +223,8 @@ struct StepDriver {
             try Task.checkCancellation()
             let lo = Double(i) / Double(steps.count), hi = Double(i + 1) / Double(steps.count)
             let state = TextSteps.compute(project())[step]
-            if state.status == .done { progress(hi); continue }
+            // A done step, one with nothing to do, and a found face (its framing is checked at the end) go on.
+            if state.settled || (step == .faces && state.status == .stale) { progress(hi); continue }
             if state.status == .blocked { throw StepError(message: "\(step.title()): \(state.line)") }
             guard let p = project() else { throw CancellationError() }
             let calls: [StepCall]
@@ -211,14 +235,35 @@ struct StepDriver {
                 calls = StepCalls.plan(.captions, project: p, settings: settings, keywords: await suggest(settings.style))
             default: calls = StepCalls.plan(step, project: p, settings: settings, keywords: [])
             }
+            if step == .faces {
+                // The face is an aid, never a reason to stop: without a face engine the step is skipped, said in the job.
+                do { try await run(calls, settings: settings, from: lo, to: hi) }
+                catch is CancellationError { throw CancellationError() }
+                catch let e as StepError { detail(e.message) }
+                continue
+            }
             try await run(calls, settings: settings, from: lo, to: hi)
         }
         step(steps.count)
         let more = extras(project())
-        guard !more.isEmpty else { return }
-        try Task.checkCancellation()
-        try await run(more, settings: settings, from: 1, to: 1)
-        step(steps.count + 1)
+        if !more.isEmpty {
+            try Task.checkCancellation()
+            try await run(more, settings: settings, from: 1, to: 1)
+            step(steps.count + 1)
+        }
+        // #152: the framing checked at the end, when the picture has a face (no punch-ins are added here).
+        if steps.contains(.faces) {
+            try Task.checkCancellation()
+            await checkFraming()
+        }
+    }
+
+    /// faces.checkFraming on the edit, its result handed to `checked`; nothing when the picture has no face to check.
+    func checkFraming() async {
+        guard let p = project(), FramingCheck.applies(p) else { return }
+        detail(Self.detail(StepCalls.checkFraming, settings: StepSettings(language: "it")))
+        guard let r = try? await perform(StepCalls.checkFraming, 1, 1), let after = project() else { return }
+        checked(FramingCheck(after, result: r))
     }
 }
 

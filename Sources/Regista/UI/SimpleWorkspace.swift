@@ -266,7 +266,8 @@ private struct SimpleStepRow: View {
     }
 
     private var lineColor: Color {
-        switch state.status {
+        if state.warning { return Ed.warn }
+        return switch state.status {
         case .done: Ed.ok.opacity(0.9)
         case .unavailable: Ed.warn
         default: Ed.text3
@@ -425,6 +426,14 @@ private struct CutPanel: View {
         let preset = cut ? (snap.cutPreset ?? .medium) : draft
         let pauses = cut ? snap.pauses : pausesDraft
         VStack(alignment: .leading, spacing: Ed.Space.xl) {
+            // #152: the framing check found a head cut; one click frames the clips on the face again.
+            if snap[.cut].warning {
+                ReasonNote(text: snap[.cut].line, warning: true) {
+                    EdButton(title: loc("Inquadra sul volto"), symbol: "person.crop.rectangle", prominent: true, disabled: snap.busy != nil) {
+                        store.fixFraming()
+                    }
+                }
+            }
             RSection("PAUSE") {
                 RToggle(title: "Togli le pause lunghe", isOn: Binding(get: { pauses }, set: { on in
                     if cut { store.simpleCut(preset, pauses: on) } else { pausesDraft = on }
@@ -811,7 +820,7 @@ struct Filmstrip: View {
 // MARK: - Sample data for renders
 
 /// The Semplice level in a given state from sample data, on top of the project the render shows (ui.screenshot `simple`):
-/// midway (cut and captions done, two lines with retakes), done (every step in place), doall ("Fai tutto" on its third
+/// midway (cut and captions done, two lines with retakes), done (every step in place), doall ("Fai tutto" on its fourth
 /// step). No engine runs and no project is touched.
 enum SimpleDemo {
     static let states = ["midway", "done", "doall"]
@@ -858,7 +867,7 @@ enum SimpleDemo {
             var all = JobCenter.Job(id: UUID(), kind: TextStep.allJobKind, title: lookup("Fai tutto"), detail: lookup("Taglio le pause e monto le riprese…"),
                                     progress: 0.34, cancellable: true, started: Date() - 52)
             all.steps = (SimpleCalls.doEverythingSteps(hasScriptText: false, engines: .ready).map { $0.title(lookup) }) + [SimpleStep.look.title(lookup)]
-            all.stepIndex = 2
+            all.stepIndex = 3
             s.allJob = all
         default:   // midway
             if open == .sound {   // the panel with a music bed and the whooshes in (sample values)

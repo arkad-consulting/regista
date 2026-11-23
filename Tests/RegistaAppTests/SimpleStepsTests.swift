@@ -300,7 +300,7 @@ private struct StubProber: MediaProber {
     try imported(e, dir)
     let steps = SimpleCalls.doEverythingSteps(hasScriptText: false, engines: .ready)
     let first = try await job(e, steps, base, extras: SimpleCalls.lookExtras)
-    #expect(first == ["media.extractAudio", "transcript.run", "script.fromTranscript", "takes.list", "edit.autoCut", "audio.clean",
+    #expect(first == ["media.extractAudio", "transcript.run", "faces.track", "script.fromTranscript", "takes.list", "edit.autoCut", "audio.clean",
                       "captions.generate", "clip.set"])
     let s = snap(e)
     #expect([SimpleStep.cut, .captions, .look, .voice].allSatisfy { s[$0].status == .done })

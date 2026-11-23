@@ -7,7 +7,7 @@ import RegistaCore
 
 /// One step of Testi e sottotitoli (and Pulisci la voce, also in the Audio panel), in the order they run.
 enum TextStep: String, CaseIterable, Identifiable {
-    case transcribe, script, takes, cut, clean, captions
+    case transcribe, faces, script, takes, cut, clean, captions
     var id: String { rawValue }
 
     /// The job kind of the step (the panels find their job by it).
@@ -17,6 +17,7 @@ enum TextStep: String, CaseIterable, Identifiable {
     func title(_ lookup: (String) -> String = loc) -> String {
         switch self {
         case .transcribe: lookup("Trascrivi")
+        case .faces: lookup("Trova il volto")
         case .script: lookup("Copione")
         case .takes: lookup("Scegli le riprese")
         case .cut: lookup("Taglia le pause")
@@ -28,6 +29,7 @@ enum TextStep: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .transcribe: "waveform.and.mic"
+        case .faces: "person.crop.rectangle"
         case .script: "doc.text"
         case .takes: "list.number"
         case .cut: "scissors"
@@ -42,7 +44,8 @@ enum TextStep: String, CaseIterable, Identifiable {
 
 /// What a step shows: its status, one line in words, and when it cannot run, what is missing.
 struct StepState: Equatable {
-    enum Status: String, Equatable { case todo, done, stale, running, blocked }
+    /// notNeeded: nothing to do here (a clip without a face for «Trova il volto»), said with the reason.
+    enum Status: String, Equatable { case todo, done, stale, running, blocked, notNeeded }
     var status: Status
     var line: String
     /// The step to do first (blocked).
@@ -51,6 +54,38 @@ struct StepState: Equatable {
     var needsImport = false
 
     var canRun: Bool { status != .blocked && status != .running }
+    /// Done, or nothing to do: «Fai tutto» goes on.
+    var settled: Bool { status == .done || status == .notNeeded }
+}
+
+/// The last framing check of the edit (#152): faces.checkFraming at the end of «Fai tutto» and after its fix. It holds
+/// while the picture's clips and crops stay as they were checked; any change to them leaves it behind.
+struct FramingCheck: Equatable {
+    var signature: Int
+    /// Timeline time of the first frame that cuts a head, nil when every head is in frame.
+    var firstCut: Double?
+
+    /// The output size and every clip of the video tracks (source range, crop, keyframes): what a framing depends on.
+    static func signature(_ p: Project) -> Int {
+        var h = Hasher()
+        h.combine(p.settings.width)
+        h.combine(p.settings.height)
+        for t in p.tracks where t.kind == .video { h.combine(t.clips) }
+        return h.finalize()
+    }
+
+    /// The check's result on `p`: the time of its first cut head.
+    init(_ p: Project, result: JSONValue) {
+        signature = Self.signature(p)
+        firstCut = result["pass"]?.boolValue == false ? result["cuts"]?.arrayValue?.first?["time"]?.doubleValue ?? 0 : nil
+    }
+
+    /// The edit has a picture with a face to check: a clip of a video track whose asset has a face track with faces.
+    static func applies(_ p: Project) -> Bool {
+        p.tracks.contains { t in
+            t.kind == .video && t.clips.contains { (p.asset($0.assetID)?.analysis?.faces?.detected ?? 0) > 0 }
+        }
+    }
 }
 
 /// The settings people understand, kept between launches (UserDefaults keys `steps.*`).
@@ -118,6 +153,12 @@ enum StepCalls {
         .init(id: "edit.autoCut", params: ["replace": true, "maxPause": .number(round2(minPause)), "keepPause": .number(round2(breath))])
     }
     static let clean = StepCall(id: "audio.clean", params: ["target": -15])
+    static func faces(_ asset: String) -> StepCall { .init(id: "faces.track", params: ["assetId": .string(asset)]) }
+    static let checkFraming = StepCall(id: "faces.checkFraming", params: [:])
+    /// The fix of a failing check: the camera clips framed on the face again, at the project's own size (project.format).
+    static func reframe(_ p: Project) -> StepCall {
+        .init(id: "project.format", params: ["width": .number(Double(p.settings.width)), "height": .number(Double(p.settings.height))])
+    }
     static func suggestKeywords(style: String) -> StepCall {
         .init(id: "captions.generate", params: ["style": .string(style), "dryRun": true])
     }
@@ -131,6 +172,7 @@ enum StepCalls {
         switch step {
         case .transcribe:
             return (asset.analysis?.audio == nil ? [extractAudio(asset.id)] : []) + [transcribe(asset.id, language: settings.language)]
+        case .faces: return asset.video == nil ? [] : [faces(asset.id)]
         case .script: return [scriptFromSpeech(asset.id)]
         case .takes: return (project.script == nil ? [scriptFromSpeech(asset.id)] : []) + [takes(asset.id)]
         case .cut: return [cut(minPause: settings.minPause, breath: settings.breath)]
@@ -159,17 +201,18 @@ struct TextSteps: Equatable {
         TextStep.allCases.first { !$0.optional && (self[$0].status == .todo || self[$0].status == .stale) }
     }
 
-    static func compute(_ p: Project?, running: Set<TextStep> = [], lookup: (String) -> String = loc) -> TextSteps {
+    /// `framing`: the last framing check (a failing one, still about this edit, puts «Trova il volto» out of date).
+    static func compute(_ p: Project?, running: Set<TextStep> = [], framing: FramingCheck? = nil, lookup: (String) -> String = loc) -> TextSteps {
         var out: [TextStep: StepState] = [:]
         for step in TextStep.allCases {
-            var s = state(step, p, lookup)
+            var s = state(step, p, framing, lookup)
             if running.contains(step) { s.status = .running }
             out[step] = s
         }
         return TextSteps(states: out)
     }
 
-    private static func state(_ step: TextStep, _ p: Project?, _ lookup: (String) -> String) -> StepState {
+    private static func state(_ step: TextStep, _ p: Project?, _ framing: FramingCheck?, _ lookup: (String) -> String) -> StepState {
         guard let p else { return StepState(status: .blocked, line: lookup("Apri un progetto o importa un video per cominciare."), needsImport: true) }
         guard let asset = mainAsset(p) else {
             return StepState(status: .blocked, line: lookup("Importa un video con la voce di chi parla."), needsImport: true)
@@ -180,6 +223,17 @@ struct TextSteps: Equatable {
         case .transcribe:
             guard let t = transcript else { return StepState(status: .todo, line: lookup("Il parlato diventa testo, con il tempo di ogni parola.")) }
             return StepState(status: .done, line: String(format: lookup("%d parole · %@"), t.words.count, StepSettings.languageName(t.language, lookup)))
+        case .faces:
+            // #152: the face found once, so the captions keep clear of it; skipped with its reason when there is none.
+            guard asset.video != nil else { return StepState(status: .notNeeded, line: lookup("Solo audio: nessun volto da cercare.")) }
+            guard let f = asset.analysis?.faces else {
+                return StepState(status: .todo, line: lookup("Trova il volto in ogni fotogramma: i sottotitoli e le inquadrature lo lasciano libero."))
+            }
+            guard f.detected > 0 else { return StepState(status: .notNeeded, line: lookup("Nessun volto nel video: l'inquadratura resta al centro.")) }
+            if let framing, let cut = framing.firstCut, framing.signature == FramingCheck.signature(p) {
+                return StepState(status: .stale, line: String(format: lookup("Una testa è tagliata a %@: rifai l'inquadratura sul volto."), clockTime(cut)))
+            }
+            return StepState(status: .done, line: String(format: lookup("Volto trovato in %@ fotogrammi su %@"), "\(f.detected)", "\(f.frames)"))
         case .script:
             if let s = p.script { return StepState(status: .done, line: String(format: lookup("%d righe"), s.lines.count)) }
             return StepState(status: .todo, line: lookup("Facoltativo: senza copione le righe vengono dal parlato."))

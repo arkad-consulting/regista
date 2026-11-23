@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import SwiftUI
 import RegistaCore
 import Testing
 @testable import Regista
@@ -71,13 +72,22 @@ private struct CopyCleaner: VoiceCleaner {
     }
 }
 
+/// The face tracker of the synthetic clip: no face in it (a drawing of bars), or a speaker's face for `face`.
+private struct ClipFaces: FaceTracker {
+    var face: [Double]? = nil
+    func track(_ video: URL, options: FaceTrackOptions) throws -> FaceTrack {
+        FaceTrack(video: video.path, engine: "stand-in", width: 1080, height: 1920, fps: 30, minCutoff: options.minCutoff, beta: options.beta,
+                  cuts: [], frames: (0..<180).map { FaceTrack.Frame(t: Double($0) / 30, raw: face, smooth: face) })
+    }
+}
+
 /// A headless engine on those fakes with a new project, the synthetic clip imported and placed (picture on V1, sound
-/// on A1, linked) — what Importa does.
-private func importedClip() throws -> Engine {
+/// on A1, linked) — what Importa does. `face`: the speaker's face box in the clip (nil: no face).
+private func importedClip(face: [Double]? = nil) throws -> Engine {
     var config = EngineConfig()
     config.cacheDirectory = tempDir().path
     let services = EngineServices(config: config, tier: .base, audio: SpeechAudio(), transcribers: [SpeechTranscriber()],
-                                  cleaner: CopyCleaner(), faces: nil)
+                                  cleaner: CopyCleaner(), faces: ClipFaces(face: face))
     let e = Engine(prober: ClipProber(), services: services)
     try e.execute("project.new", params: ["name": "steps", "directory": .string(tempDir().path)])
     let clip = tempDir().appendingPathComponent("clip.mov")
@@ -108,6 +118,7 @@ private func everyBlockedStepSaysWhy(_ s: TextSteps, sourceLocation: SourceLocat
     let e = try importedClip()
     var s = states(e)
     #expect(s[.transcribe].status == .todo && s[.transcribe].canRun)
+    #expect(s[.faces].status == .todo && s[.faces].canRun)
     #expect(s[.script].status == .todo)
     #expect(s[.takes].status == .blocked && s[.takes].needs == .transcribe)
     #expect(s[.cut].needs == .transcribe && s[.captions].needs == .transcribe)
@@ -116,6 +127,9 @@ private func everyBlockedStepSaysWhy(_ s: TextSteps, sourceLocation: SourceLocat
     everyBlockedStepSaysWhy(s)
 
     for c in StepCalls.plan(.transcribe, project: e.project!, settings: settings, keywords: []) { try run(e, c) }
+    #expect(states(e).next == .faces)
+    for c in StepCalls.plan(.faces, project: e.project!, settings: settings, keywords: []) { try run(e, c) }
+    #expect(states(e)[.faces].status == .notNeeded)   // the synthetic clip has no face
     s = states(e)
     #expect(s[.transcribe].status == .done && s[.transcribe].line == "10 parole · Italiano")
     #expect(s[.takes].status == .todo && s[.takes].line.contains("dal parlato"))
@@ -178,7 +192,7 @@ private func everyBlockedStepSaysWhy(_ s: TextSteps, sourceLocation: SourceLocat
 
 /// "Fai tutto" through the driver the app uses, on a headless engine, recording each command.
 @MainActor
-private func doAll(_ e: Engine, script: String?, stopAt: String? = nil) async throws -> [String] {
+private func doAll(_ e: Engine, script: String?, stopAt: String? = nil, checked: @escaping (FramingCheck) -> Void = { _ in }) async throws -> [String] {
     var ran: [String] = []
     var stepsSeen: [Int] = []
     let driver = StepDriver(project: { e.project },
@@ -191,7 +205,7 @@ private func doAll(_ e: Engine, script: String?, stopAt: String? = nil) async th
                                 let c = StepCalls.suggestKeywords(style: style)
                                 return (try? e.execute(c.id, params: c.params))?["suggestedKeywords"]?.arrayValue?.compactMap(\.stringValue) ?? []
                             },
-                            step: { stepsSeen.append($0) })
+                            step: { stepsSeen.append($0) }, checked: checked)
     let steps = EditorStore.allSteps(hasScriptText: !(script ?? "").isEmpty)
     try await driver.runAll(steps, settings: settings, script: script)
     #expect(stepsSeen == Array(0...steps.count))
@@ -203,7 +217,8 @@ private func doAll(_ e: Engine, script: String?, stopAt: String? = nil) async th
     // From an imported synthetic clip to captions with only the commands the buttons call.
     let e = try importedClip()
     let ran = try await doAll(e, script: nil)
-    #expect(ran == ["media.extractAudio", "transcript.run", "script.fromTranscript", "takes.list", "edit.autoCut", "audio.clean", "captions.generate"])
+    #expect(ran == ["media.extractAudio", "transcript.run", "faces.track", "script.fromTranscript", "takes.list", "edit.autoCut", "audio.clean",
+                    "captions.generate"])
     let s = states(e)
     #expect([TextStep.transcribe, .takes, .cut, .clean, .captions].allSatisfy { s[$0].status == .done })
     let captions = try #require(e.project?.tracks.first { $0.kind == .caption }?.captions)
@@ -345,6 +360,169 @@ extension MouseSuites {
         let done = try #require(tab.jobs.job(id))
         #expect(done.state == .done && done.progress == 1 && !done.estimated)
         #expect(seen == seen.sorted())   // never back
+    }
+}
+}
+
+// #152: «Fai tutto» finds the face (its own step, «Trova il volto», after the transcription) so the captions keep clear
+// of it, and checks the framing at the end; a cut head shows on the step with its time and a one-click fix.
+
+@Test func theFaceStepComesRightAfterTheTranscription() {
+    #expect(EditorStore.allSteps(hasScriptText: false) == [.transcribe, .faces, .takes, .cut, .clean, .captions])
+    #expect(EditorStore.allSteps(hasScriptText: true) == [.transcribe, .faces, .script, .takes, .cut, .clean, .captions])
+    #expect(SimpleCalls.doEverythingSteps(hasScriptText: false, engines: .ready).prefix(2) == [.transcribe, .faces])
+    #expect(SimpleStep.of(.faces) == .cut && SimpleStep.cut.jobKinds.contains(TextStep.faces.jobKind))
+}
+
+@MainActor
+@Test func aClipWithoutAFaceSkipsTheFaceStepWithItsReason() async throws {
+    let e = try importedClip()
+    var checks: [FramingCheck] = []
+    let ran = try await doAll(e, script: nil) { checks.append($0) }
+    #expect(ran.contains("faces.track") && !ran.contains("faces.checkFraming"), "\(ran)")
+    let s = states(e)
+    #expect(s[.faces].status == .notNeeded && s[.faces].line == "Nessun volto nel video: l'inquadratura resta al centro.")
+    #expect(checks.isEmpty, "a picture without a face has no framing to check")
+    // A sound-only clip: nothing to look for, said so; «Fai tutto» does not stop on it.
+    let voice = Project(name: "voce", settings: ProjectSettings())
+    #expect(StepCalls.plan(.faces, project: voice, settings: settings, keywords: []).isEmpty)
+}
+
+@MainActor
+@Test func theFramingCheckFailsOnABadCropAndPassesAfterTheFix() async throws {
+    // A speaker in the upper middle of the 1080×1920 clip.
+    let e = try importedClip(face: [400, 480, 280, 340])
+    var check: FramingCheck?
+    let ran = try await doAll(e, script: nil) { check = $0 }
+    #expect(ran.firstIndex(of: "faces.track") == ran.firstIndex(of: "transcript.run").map { $0 + 1 }, "\(ran)")
+    #expect(ran.last == "faces.checkFraming" && !ran.contains("edit.punchIns"), "no punch-ins from «Fai tutto»: \(ran)")
+    #expect(check != nil && check?.firstCut == nil, "the whole frame cuts no head")
+    #expect(states(e)[.faces].status == .done && states(e)[.faces].line.hasPrefix("Volto trovato in 180"))
+    // A crop by hand that leaves the head out: the check fails, the step says when, with the fix.
+    let clip = try #require(e.project?.tracks.first { $0.kind == .video }?.clips.first)
+    _ = try e.execute("clip.set", params: ["clipId": .string(clip.id), "crop": [540, 960, 540, 960]])
+    let driver = StepDriver(project: { e.project }, perform: { c, _, _ in try e.execute(c.id, params: c.params) }, suggest: { _ in [] },
+                            checked: { check = $0 })
+    await driver.checkFraming()
+    let bad = try #require(check)
+    #expect(bad.firstCut != nil)
+    var s = TextSteps.compute(e.project, framing: bad, lookup: { $0 })
+    #expect(s[.faces].status == .stale && s[.faces].line == String(format: "Una testa è tagliata a %@: rifai l'inquadratura sul volto.", clockTime(bad.firstCut!)))
+    let simple = SimpleSnapshot.compute(e.project, engines: .ready, framing: bad, lookup: { $0 })
+    #expect(simple[.cut].warning && simple[.cut].line == s[.faces].line, "the simple level shows it on Taglio e riprese")
+    // The fix: project.format at the project's size frames the clip on the face again (one undo step), the check passes.
+    let fix = StepCalls.reframe(e.project!)
+    #expect(fix == StepCall(id: "project.format", params: ["width": 1080, "height": 1920]))
+    let r = try e.execute(fix.id, params: fix.params)
+    #expect(r["reframed"]?.arrayValue?.count == 1)
+    await driver.checkFraming()
+    #expect(check?.firstCut == nil)
+    s = TextSteps.compute(e.project, framing: check, lookup: { $0 })
+    #expect(s[.faces].status == .done)
+    // An old failing check no longer counts once the edit changed.
+    #expect(TextSteps.compute(e.project, framing: bad, lookup: { $0 })[.faces].status == .done)
+}
+
+/// The step reads in the four languages, in the Pro rail and in the simple level's «Fai tutto» card.
+@Test func theFaceStepIsNamedInFourLanguages() {
+    for lang in ["it", "en", "fr", "pt"] {
+        let table = MouseRig.table(lang)
+        let lookup: (String) -> String = { table.localizedString(forKey: $0, value: "\u{1}", table: nil) }
+        for key in ["Trova il volto", "Trova il volto in ogni fotogramma: i sottotitoli e le inquadrature lo lasciano libero.",
+                    "Nessun volto nel video: l'inquadratura resta al centro.", "Solo audio: nessun volto da cercare.",
+                    "Una testa è tagliata a %@: rifai l'inquadratura sul volto.", "Inquadra sul volto", "Trova di nuovo il volto"] {
+            #expect(lookup(key) != "\u{1}" && !lookup(key).isEmpty, "\(lang): no «\(key)»")
+        }
+        let titles = SimpleCalls.doEverythingSteps(hasScriptText: false, engines: .ready).map { $0.title(lookup) }
+        #expect(titles[1] == lookup("Trova il volto") && (lang == "it" || titles[1] != "Trova il volto"), "\(lang): \(titles)")
+    }
+}
+
+/// #152 with the mouse: a cut head shows on «Trova il volto» (Pro) and on Taglio e riprese (Semplice), and «Inquadra sul
+/// volto» frames the clips on the face again, then checks: the step is done. The rich fixture take gets a face from a
+/// stand-in tracker, then a crop by hand that leaves the head out.
+extension MouseSuites {
+@Suite(.serialized) @MainActor struct FramingFixTests {
+    private struct TakeFace: FaceTracker {
+        func track(_ video: URL, options: FaceTrackOptions) throws -> FaceTrack {
+            let box = [190.0, 200, 150, 180]
+            return FaceTrack(video: video.path, engine: "stand-in", width: 540, height: 960, fps: 30, minCutoff: options.minCutoff,
+                             beta: options.beta, cuts: [], frames: (0..<180).map { FaceTrack.Frame(t: Double($0) / 30, raw: box, smooth: box) })
+        }
+    }
+
+    /// The rich project with its take's face tracked, a bad crop on its first clip and the failing check in the tab.
+    private func cutHead() async throws -> AppRig {
+        let app = try await AppRig(services: { $0.faces = TakeFace() })
+        let store = app.store
+        let take = try #require(store.project?.tracks.first { $0.kind == .video }?.clips.first)
+        _ = try await store.perform("faces.track", ["assetId": .string(take.assetID)])
+        _ = try await store.perform("clip.set", ["clipId": .string(take.id), "crop": [270, 480, 270, 480]])
+        let r = try await store.silent("faces.checkFraming", [:])
+        store.framing = FramingCheck(store.project!, result: r)
+        #expect(store.framing?.firstCut != nil, "the bad crop cuts no head: \(r)")
+        return app
+    }
+
+    private func fixed(_ app: AppRig, button: RigElement, sourceLocation: SourceLocation = #_sourceLocation) async {
+        let n = app.store.activity.count
+        app.rig.click(button.centre)
+        _ = await app.until(30) { app.store.framing?.firstCut == nil && app.store.runningStepJob == nil }
+        let ran = app.store.activity.dropFirst(n).map(\.command)
+        #expect(ran.filter { $0 == "project.format" }.count == 1 && ran.contains("faces.checkFraming"), "ran \(ran)", sourceLocation: sourceLocation)
+        #expect(app.store.framing?.firstCut == nil && app.store.textSteps[.faces].status == .done, sourceLocation: sourceLocation)
+    }
+
+    @Test func theProStepShowsTheCutHeadAndItsFixFramesTheFace() async throws {
+        let app = try await cutHead()
+        defer { app.close() }
+        var nav = Navigation(activity: .texts, rightTab: .inspector)
+        nav.textsTab = .steps
+        app.hostEditor(nav)
+        await app.settle()
+        let line = app.store.textSteps[.faces].line
+        #expect(app.store.textSteps[.faces].status == .stale && !app.rig.elements(containing: line).isEmpty, "the step does not say «\(line)»")
+        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+            try app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("steps-face-cut-it.png"))
+        }
+        let button = try #require(app.rig.elements().first { $0.isControl && $0.visible && $0.name.hasPrefix(loc("Inquadra sul volto")) }, "no fix")
+        await fixed(app, button: button)
+        #expect(app.rig.elements().first { $0.isControl && $0.visible && $0.name.hasPrefix(loc("Inquadra sul volto")) } == nil)
+    }
+
+    @Test func theSimpleLevelShowsItOnTaglioERipreseWithTheSameFix() async throws {
+        let app = try await cutHead()
+        defer { app.close() }
+        var nav = Navigation(activity: .media, rightTab: .inspector)
+        nav.show(.simple)
+        app.store.simpleOpen = .cut
+        app.hostEditor(nav)
+        await app.settle()
+        #expect(app.store.simpleSnapshot[.cut].warning)
+        let button = try #require(app.rig.elements().first { $0.isControl && $0.visible && $0.name.hasPrefix(loc("Inquadra sul volto")) }, "no fix")
+        await fixed(app, button: button)
+        #expect(!app.store.simpleSnapshot[.cut].warning)
+    }
+
+    /// The simple level's «Fai tutto» on its fourth step, and the Pro rail with a cut head, in the four languages
+    /// ($REGISTA_UI_SNAPSHOTS): «Trova il volto» is a step like the others.
+    @Test func snapshotsInFourLanguages() async throws {
+        guard let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] else { return }
+        let app = try await AppRig()
+        defer { app.close() }
+        for lang in ["it", "en", "fr", "pt"] {
+            var simple = Navigation(activity: .media, rightTab: .inspector)
+            simple.show(.simple)
+            let live = app.store.simpleSnapshot
+            app.hostEditor(simple, language: lang) { AnyView($0.environment(\.simpleDemo, SimpleDemo.value("doall", open: .cut, live: live))) }
+            await app.settle()
+            try app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("simple-doall-\(lang).png"))
+            var texts = Navigation(activity: .texts, rightTab: .inspector)
+            texts.textsTab = .steps
+            app.hostEditor(texts, language: lang) { AnyView($0.environment(\.stepsDemo, StepsDemo.snapshot("doall"))) }
+            await app.settle()
+            try app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("steps-doall-\(lang).png"))
+        }
     }
 }
 }

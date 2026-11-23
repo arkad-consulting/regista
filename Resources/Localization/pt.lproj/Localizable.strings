@@ -1741,7 +1741,6 @@
 "Trascina per scegliere l'area da registrare · Esc per annullare" = "Arraste para escolher a área a gravar · Esc para cancelar";
 "Trascina qui un video o registrane uno" = "Solte um vídeo aqui ou grave um";
 "Trascinalo sul monitor per spostarlo; gli angoli lo ridimensionano." = "Arraste-o no monitor para movê-lo; os cantos o redimensionam.";
-"Trascrive, sceglie le riprese, taglia le pause, pulisce la voce e mette i sottotitoli, in ordine" = "Transcreve, escolhe as tomadas, corta as pausas, limpa a voz e coloca as legendas, nessa ordem";
 "Trascrivi" = "Transcrever";
 "Trascrivi di nuovo" = "Transcrever de novo";
 "Trascrivo e cerco le righe del copione…" = "Transcrevendo e procurando as linhas do roteiro…";
@@ -2527,3 +2526,14 @@
 "Il tuo brand" = "Sua marca";
 "inquadrato sul volto" = "enquadrado no rosto";
 "Formato del video: 9:16, 4:5, 1:1 o 16:9; il volto resta nell'inquadratura" = "Formato do vídeo: 9:16, 4:5, 1:1 ou 16:9; o rosto fica no enquadramento";
+"Trova il volto in ogni fotogramma: i sottotitoli e le inquadrature lo lasciano libero." = "Encontra o rosto em cada quadro: as legendas e os enquadramentos o deixam livre.";
+"Solo audio: nessun volto da cercare." = "Só áudio: nenhum rosto para procurar.";
+"Nessun volto nel video: l'inquadratura resta al centro." = "Nenhum rosto no vídeo: o enquadramento fica centralizado.";
+"Una testa è tagliata a %@: rifai l'inquadratura sul volto." = "Uma cabeça está cortada em %@: enquadre de novo no rosto.";
+"Inquadra sul volto" = "Enquadrar no rosto";
+"Trova di nuovo il volto" = "Encontrar o rosto de novo";
+"Cerco il volto in ogni fotogramma…" = "Procurando o rosto em cada quadro…";
+"Controllo che nessuna testa sia tagliata…" = "Verificando se nenhuma cabeça está cortada…";
+"Inquadro le clip sul volto…" = "Enquadrando os clipes no rosto…";
+"Apple Vision, su questo Mac: nessun costo. Alla fine di «Fai tutto» controllo che nessuna testa sia tagliata." = "Apple Vision, neste Mac: sem custo. No fim de “Fazer tudo”, verifico se nenhuma cabeça está cortada.";
+"Trascrive, trova il volto, sceglie le riprese, taglia le pause, pulisce la voce e mette i sottotitoli, in ordine" = "Transcreve, encontra o rosto, escolhe as tomadas, corta as pausas, limpa a voz e coloca as legendas, nessa ordem";

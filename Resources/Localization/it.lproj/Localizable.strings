@@ -1741,7 +1741,6 @@
 "Trascina per scegliere l'area da registrare · Esc per annullare" = "Trascina per scegliere l'area da registrare · Esc per annullare";
 "Trascina qui un video o registrane uno" = "Trascina qui un video o registrane uno";
 "Trascinalo sul monitor per spostarlo; gli angoli lo ridimensionano." = "Trascinalo sul monitor per spostarlo; gli angoli lo ridimensionano.";
-"Trascrive, sceglie le riprese, taglia le pause, pulisce la voce e mette i sottotitoli, in ordine" = "Trascrive, sceglie le riprese, taglia le pause, pulisce la voce e mette i sottotitoli, in ordine";
 "Trascrivi" = "Trascrivi";
 "Trascrivi di nuovo" = "Trascrivi di nuovo";
 "Trascrivo e cerco le righe del copione…" = "Trascrivo e cerco le righe del copione…";
@@ -2527,3 +2526,14 @@
 "Il tuo brand" = "Il tuo brand";
 "inquadrato sul volto" = "inquadrato sul volto";
 "Formato del video: 9:16, 4:5, 1:1 o 16:9; il volto resta nell'inquadratura" = "Formato del video: 9:16, 4:5, 1:1 o 16:9; il volto resta nell'inquadratura";
+"Trova il volto in ogni fotogramma: i sottotitoli e le inquadrature lo lasciano libero." = "Trova il volto in ogni fotogramma: i sottotitoli e le inquadrature lo lasciano libero.";
+"Solo audio: nessun volto da cercare." = "Solo audio: nessun volto da cercare.";
+"Nessun volto nel video: l'inquadratura resta al centro." = "Nessun volto nel video: l'inquadratura resta al centro.";
+"Una testa è tagliata a %@: rifai l'inquadratura sul volto." = "Una testa è tagliata a %@: rifai l'inquadratura sul volto.";
+"Inquadra sul volto" = "Inquadra sul volto";
+"Trova di nuovo il volto" = "Trova di nuovo il volto";
+"Cerco il volto in ogni fotogramma…" = "Cerco il volto in ogni fotogramma…";
+"Controllo che nessuna testa sia tagliata…" = "Controllo che nessuna testa sia tagliata…";
+"Inquadro le clip sul volto…" = "Inquadro le clip sul volto…";
+"Apple Vision, su questo Mac: nessun costo. Alla fine di «Fai tutto» controllo che nessuna testa sia tagliata." = "Apple Vision, su questo Mac: nessun costo. Alla fine di «Fai tutto» controllo che nessuna testa sia tagliata.";
+"Trascrive, trova il volto, sceglie le riprese, taglia le pause, pulisce la voce e mette i sottotitoli, in ordine" = "Trascrive, trova il volto, sceglie le riprese, taglia le pause, pulisce la voce e mette i sottotitoli, in ordine";

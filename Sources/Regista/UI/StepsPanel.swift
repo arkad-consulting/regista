@@ -123,7 +123,7 @@ private struct DoAllCard: View {
 
     var body: some View {
         let ready = snap.steps[.transcribe].status != .blocked
-        let pending = TextStep.allCases.filter { !$0.optional && snap.steps[$0].status != .done }
+        let pending = TextStep.allCases.filter { !$0.optional && !snap.steps[$0].settled }
         VStack(alignment: .leading, spacing: Ed.Space.s) {
             if let job = snap.allJob, job.isRunning || !(job.state == .done) {
                 JobCard(job: job, onCancel: { store.jobs.cancel(job.id) }, onDismiss: { store.jobs.dismiss(job.id) })
@@ -133,7 +133,7 @@ private struct DoAllCard: View {
                          large: true, fill: true, disabled: !ready || pending.isEmpty || snap.busy != nil) {
                     store.runAll(settings: StepSettings.saved(project: store.project), script: prompter.ownScript)
                 }
-                .tip("Trascrive, sceglie le riprese, taglia le pause, pulisce la voce e mette i sottotitoli, in ordine", shortcut: "⇧⌘M")
+                .tip("Trascrive, trova il volto, sceglie le riprese, taglia le pause, pulisce la voce e mette i sottotitoli, in ordine", shortcut: "⇧⌘M")
                 Text(verbatim: caption(ready: ready, pending: pending)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -276,6 +276,9 @@ private struct StepBody: View {
                 .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
         case .clean:
             EmptyView()
+        case .faces:
+            Text(verbatim: loc("Apple Vision, su questo Mac: nessun costo. Alla fine di «Fai tutto» controllo che nessuna testa sia tagliata."))
+                .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
         case .captions: captionControls
         }
     }
@@ -391,10 +394,11 @@ private struct StepBody: View {
     @ViewBuilder private var primary: some View {
         let busy = snap.busy
         let disabled = busy != nil || state.status == .running || (step == .script && !snap.hasTranscript)
-        if state.status != .running, step != .script || state.status != .done || editingScript {
+        if state.status != .running, step != .script || state.status != .done || editingScript, step != .faces || state.status != .notNeeded {
             VStack(alignment: .leading, spacing: Ed.Space.xs) {
                 EdButton(title: actionTitle, symbol: step.symbol, prominent: state.status != .done, fill: true, disabled: disabled) {
-                    store.runStep(step, settings: settings, keywords: keywords)
+                    // A head cut by the framing (#152): the fix frames the clips on the face again, then checks.
+                    if step == .faces, state.status == .stale { store.fixFraming() } else { store.runStep(step, settings: settings, keywords: keywords) }
                 }
                 if let busy, state.status != .running {
                     Text(verbatim: String(format: loc("Aspetta: «%@» è in corso."), busy.title)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
@@ -409,6 +413,8 @@ private struct StepBody: View {
         let again = state.status == .done || state.status == .stale
         switch step {
         case .transcribe: return again ? loc("Trascrivi di nuovo") : loc("Trascrivi")
+        case .faces:
+            return state.status == .stale ? loc("Inquadra sul volto") : state.status == .done ? loc("Trova di nuovo il volto") : loc("Trova il volto")
         case .script: return loc("Crea dal parlato")
         case .takes: return again ? loc("Ricalcola le riprese") : loc("Scegli le riprese")
         case .cut: return again ? loc("Rifai il taglio") : loc("Taglia le pause")
@@ -489,7 +495,7 @@ struct StepOffer: View {
 
 /// The steps panel in each state from sample data, for ui.screenshot `texts: {state}` (no engine runs, no project is
 /// touched): fresh (a clip just imported), transcribing, transcribed, cut, keywords (captions to make, the suggested
-/// keywords shown), captions (all done), stale (a take changed after the cut), doall ("Fai tutto" on its third
+/// keywords shown), captions (all done), stale (a take changed after the cut), doall ("Fai tutto" on its fourth
 /// step), failed (the voice cleaning failed, the error in words).
 enum StepsDemo {
     static let states = ["fresh", "transcribing", "transcribed", "cut", "keywords", "captions", "stale", "doall", "failed"]
@@ -499,12 +505,14 @@ enum StepsDemo {
         let noTranscript = s(.blocked, lookup("Prima serve la trascrizione."), needs: .transcribe)
         var st: [TextStep: StepState] = [
             .transcribe: s(.todo, lookup("Il parlato diventa testo, con il tempo di ogni parola.")),
+            .faces: s(.todo, lookup("Trova il volto in ogni fotogramma: i sottotitoli e le inquadrature lo lasciano libero.")),
             .script: s(.todo, lookup("Facoltativo: senza copione le righe vengono dal parlato.")),
             .takes: noTranscript, .cut: noTranscript,
             .clean: s(.todo, lookup("Toglie il rumore e porta la voce a −15 LUFS.")),
             .captions: noTranscript,
         ]
         let transcribed = s(.done, String(format: lookup("%d parole · %@"), 312, StepSettings.languageName("it")))
+        let facesFound = s(.done, String(format: lookup("Volto trovato in %@ fotogrammi su %@"), "1408", "1440"))
         let script = s(.done, String(format: lookup("%d righe"), 9))
         let takes = s(.done, String(format: lookup("%d righe su %d con una ripresa scelta"), 9, 9))
         let cut = s(.done, String(format: lookup("%d tagli · %@ di montaggio"), 14, "0:48"))
@@ -525,13 +533,13 @@ enum StepsDemo {
             st[.transcribe] = s(.running, lookup("Il parlato diventa testo, con il tempo di ogni parola."))
             snap.jobs[.transcribe] = job(.transcribe, String(format: lookup("Trascrivo il parlato (%@)…"), StepSettings.languageName("it")), 0.37, ago: 41)
         case "transcribed":
-            st[.transcribe] = transcribed
+            st[.transcribe] = transcribed; st[.faces] = facesFound
             st[.takes] = s(.todo, lookup("Senza copione, le righe vengono dal parlato."))
             st[.cut] = s(.blocked, lookup("Prima scegli le riprese."), needs: .takes)
             st[.captions] = captionsTodo
             snap.hasTranscript = true
         case "cut", "keywords", "captions", "failed":
-            st[.transcribe] = transcribed; st[.script] = script; st[.takes] = takes; st[.cut] = cut
+            st[.transcribe] = transcribed; st[.faces] = facesFound; st[.script] = script; st[.takes] = takes; st[.cut] = cut
             st[.captions] = captionsTodo
             snap.hasTranscript = true
             snap.scriptLines = lines
@@ -549,14 +557,14 @@ enum StepsDemo {
                 snap.jobs[.clean] = job(.clean, "", nil, .failed(lookup("Il motore che serve non è installato su questo Mac: Impostazioni › Motori dice come installarlo.")), ago: 12)
             }
         case "stale":
-            st[.transcribe] = transcribed; st[.script] = script; st[.takes] = takes
+            st[.transcribe] = transcribed; st[.faces] = facesFound; st[.script] = script; st[.takes] = takes
             st[.cut] = s(.stale, lookup("La timeline non segue più le riprese scelte: rifai il taglio."))
             st[.clean] = s(.stale, lookup("Il taglio è cambiato: la voce va ripulita."))
             st[.captions] = s(.stale, lookup("Il montaggio è cambiato: rigenera i sottotitoli."))
             snap.hasTranscript = true
             snap.scriptLines = lines
         case "doall":
-            st[.transcribe] = transcribed; st[.script] = script
+            st[.transcribe] = transcribed; st[.faces] = facesFound; st[.script] = script
             st[.takes] = s(.running, lookup("Senza copione, le righe vengono dal parlato."))
             st[.cut] = s(.blocked, lookup("Prima scegli le riprese."), needs: .takes)
             st[.captions] = captionsTodo
@@ -564,7 +572,7 @@ enum StepsDemo {
             var all = JobCenter.Job(id: UUID(), kind: TextStep.allJobKind, title: lookup("Fai tutto"), detail: lookup("Cerco le letture di ogni riga…"),
                                     progress: 0.3, cancellable: true, started: Date() - 64)
             all.steps = EditorStore.allSteps(hasScriptText: true).map { $0.title(lookup) }
-            all.stepIndex = 2
+            all.stepIndex = 3
             snap.allJob = all
         default: break   // fresh
         }
