@@ -79,6 +79,8 @@ Keep these the same everywhere in `*.lproj/Localizable.strings` (scheme and chec
 | scelta / Scelte (what a rule sheet leaves to the person: caption style, pace, framing…, Impostazioni › Regole) | choice / Choices | choix / Choix | escolha / Escolhas |
 | ritmo (a choice: how long the pauses between sentences last) | pace | rythme | ritmo |
 | inquadratura (a choice: one framing, or punch-ins that hide the cuts) | framing | cadrage | enquadramento |
+| skill (one of the person's ways of editing: rules, choices and steps in one file, Impostazioni › Regia e skill) — the owner's word, kept as a loan word in every language, feminine (una / une / uma skill) | skill | skill | skill |
+| regia (the rules and choices of every video: Impostazioni › Regia e skill) | direction | réalisation | direção |
 
 Names never translated: Regista, Claude, Claude Code, Claude Desktop, MCP, ComfyUI, Higgsfield, WhisperX, VoxCPM2,
 HyperFrames, Blender, Shotcut, FFmpeg, macOS, Arkad, WeSites, the shortcut glyphs (⌘ ⌥ ⇧ ⌃).

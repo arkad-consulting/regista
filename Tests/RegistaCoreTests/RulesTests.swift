@@ -171,7 +171,8 @@ private func rulesEngine(_ fakes: FakeServices = FakeServices()) throws -> (Engi
     let (e, book) = try rulesEngine()
     let added = try e.execute("rules.addKind", params: ["title": "YouTube tutorial", "from": "screen-tutorial", "language": "en"])
     #expect(added["kind"] == "youtube-tutorial" && added["title"] == "YouTube tutorial" && added["builtIn"] == false)
-    #expect(added["prose"]?.stringValue?.hasPrefix("# YouTube tutorial\n") == true && added["prose"]?.stringValue?.contains("Zoom on the action") == true)
+    // A kind of the user's own is a skill (#157): its title in the skill's header, the sheet it came from as its rules.
+    #expect(added["prose"]?.stringValue?.hasPrefix("# ") == false && added["prose"]?.stringValue?.contains("Zoom on the action") == true)
     let list = try e.execute("rules.list", params: ["language": "en"])
     #expect(list["sheets"]?.arrayValue?.map { $0["kind"]?.stringValue ?? "" }
             == ["every-video", "talking-head-reel", "screen-tutorial", "voice-over-video", "reel-graphics", "youtube-tutorial"])

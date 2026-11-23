@@ -59,7 +59,7 @@ import Testing
 @MainActor
 @Test func theRigWritesOnlyUnderItsScratchRoot() {
     #expect(RigScratch.outside().isEmpty, "\(RigScratch.outside())")
-    #expect(RigScratch.seams().count == 16)   // with the rule sheets (#31): the rig's and the support folder's
+    #expect(RigScratch.seams().count == 18)   // with the rule sheets (#31) and the skills (#157): the rig's and the support folder's
 }
 
 /// A difference in the owner-side listing fails the proof only when no other Regista (the owner's app, an agent's

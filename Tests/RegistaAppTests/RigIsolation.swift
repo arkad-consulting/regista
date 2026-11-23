@@ -625,6 +625,7 @@ enum RigScratch {
             ("Regista's folder", Paths.root), ("recordings", Paths.recordings),
             ("support folder (budget, approvals)", s.generationState), ("voice profiles", s.profiles.directory),
             ("rule sheets", s.rules.directory), ("rule sheets of the support folder", RuleBook.defaultDirectory),
+            ("skills", s.rules.skillsDirectory), ("skills of the support folder", RuleBook(directory: RuleBook.defaultDirectory).skillsDirectory),
             ("caches", URL(fileURLWithPath: EngineConfig.expand(s.config.cacheDirectory))),
             ("engines.json", EngineConfig.defaultFile), ("engines folder", EngineCatalog.enginesDirectory),
             ("brand kits", BrandKit.userDirectory),

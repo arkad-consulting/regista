@@ -469,7 +469,7 @@ extension MouseSuites {
         _ = await until(app) { FileManager.default.fileExists(atPath: book.file("youtube-tutorial").path) }
         await app.settle()
         #expect(app.commands(since: n) == ["rules.addKind"], "Crea ran \(app.commands(since: n))")
-        #expect(RuleSheetText.parse(book.text("youtube-tutorial", language: "en") ?? "").prose.hasPrefix("# YouTube tutorial"))
+        #expect(book.title("youtube-tutorial", language: "en") == "YouTube tutorial")
         _ = await until(app) { control(app, containing: "Elimina il tipo…") != nil }
         #expect(control(app, containing: "Elimina il tipo…") != nil, "the new kind is not the sheet on screen")
         #expect(!app.rig.elements(containing: "tuo").filter(\.isControl).isEmpty, "the user's kind is not marked as theirs")

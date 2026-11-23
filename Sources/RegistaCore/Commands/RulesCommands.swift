@@ -42,10 +42,17 @@ enum Rules {
         return .object(o)
     }
 
+    /// Writes a sheet: the user's copy of a built-in one, or the rules of a skill (its title, based-on and steps kept).
     static func write(_ text: String, kind: String, _ book: RuleBook, command: String) throws {
+        var data = text
+        if !RuleBook.isBuiltIn(kind) {
+            var skill = book.skill(kind) ?? SkillFile(title: kind, basedOn: nil)
+            skill.adoptSheet(text)
+            data = skill.text
+        }
         do {
-            try FileManager.default.createDirectory(at: book.directory, withIntermediateDirectories: true)
-            try Data(text.utf8).write(to: book.file(kind), options: .atomic)
+            try FileManager.default.createDirectory(at: book.file(kind).deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data(data.utf8).write(to: book.file(kind), options: .atomic)
         } catch {
             throw CommandError(.io, "\(command): cannot write \(book.file(kind).path): \(error.localizedDescription)")
         }
@@ -124,7 +131,7 @@ enum Rules {
 
 enum RulesList: Command {
     static let id = "rules.list"
-    static let summary = "List the editing-rule sheets: every-video (always applies) and one per kind of video — the built-in kinds talking-head-reel, screen-tutorial, voice-over-video, reel-graphics, plus the user's own kinds. Each sheet is a Markdown file the user can edit (Settings › Rules); edited says the user's copy replaces the shipped default. Returns the sheets (kind, title, builtIn, edited, path, the switches and choice lines written in its header, header status), the checks, the person's choices (each with its options and what they do, default, number, the kinds it applies to), the folder of the user's sheets and the open project's kind."
+    static let summary = "List the editing-rule sheets: every-video (always applies) and one per kind of video — the built-in kinds talking-head-reel, screen-tutorial, voice-over-video, reel-graphics, plus the user's own kinds (the rules of their skills, skill.list). Each sheet is a Markdown file the user can edit (Settings › Rules); edited says the user's copy replaces the shipped default. Returns the sheets (kind, title, builtIn, edited, path, the switches and choice lines written in its header, header status), the checks, the person's choices (each with its options and what they do, default, number, the kinds it applies to), the folder of the user's sheets and the open project's kind."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [Rules.languageParam]
 
@@ -222,7 +229,7 @@ enum RulesReset: Command {
 
 enum RulesAddKind: Command {
     static let id = "rules.addKind"
-    static let summary = "Add a kind of video of the user's own (e.g. \"YouTube tutorial\"): a new sheet in the rules folder, copied from an existing kind (from) or empty under its title; every-video still applies to it. Then project.setKind chooses it for a project. Returns the new sheet."
+    static let summary = "Add a kind of video of the user's own (e.g. \"YouTube tutorial\"): a skill with no steps of its own (skill.create makes one with steps), its rules copied from an existing kind (from) or empty; every-video still applies to it. Then project.setKind chooses it for a project. Returns the new sheet."
     static let kind = CommandKind.session
     static let undoNote: String? = "no — writes the rule sheets in the rules folder, outside the project (rules.reset brings back a built-in default)"
     static let params: [ParamSpec] = [
@@ -238,23 +245,31 @@ enum RulesAddKind: Command {
         guard !title.isEmpty, !title.contains("\n") else { throw CommandError.invalid("\(id): title is one line of text") }
         let slug = p.string("slug") ?? Rules.slug(title)
         guard RuleBook.isSlug(slug) else { throw CommandError.invalid("\(id): '\(slug)' is not a valid id (lower-case letters, digits and hyphens): pass slug") }
-        guard !book.exists(slug) else { throw CommandError.conflict("\(id): a sheet '\(slug)' already exists — pass another slug") }
-        var text = "# \(title)\n"
+        guard !book.exists(slug), !RuleBook.isReserved(slug) else { throw CommandError.conflict("\(id): a sheet '\(slug)' already exists — pass another slug") }
+        // A kind of the user's own is a skill with no steps (#157): its title in the header, the sheet it starts from as its
+        // rules (that sheet's first heading left out: the title says it).
+        var skill = SkillFile(title: title, basedOn: nil)
         if let from = p.string("from") {
             try Rules.requireKind(from, book, command: id)
             let parsed = RuleSheetText.parse(book.text(from, language: language) ?? "")
-            var lines = parsed.prose.components(separatedBy: "\n")
-            if let h = lines.firstIndex(where: { $0.hasPrefix("# ") }) { lines[h] = "# \(title)" } else { lines.insert("# \(title)\n", at: 0) }
-            text = RuleSheetText.compose(header: parsed.header, prose: lines.joined(separator: "\n"))
+            let lines = (parsed.header ?? []).filter { l in
+                l.firstIndex(of: ":").map { !SkillFile.metaKeys.contains(l[..<$0].trimmingCharacters(in: .whitespaces).lowercased()) } ?? true
+            }
+            skill = SkillFile(title: title, basedOn: book.skill(from)?.basedOn, lines: lines, rules: Skills.takeHeading(parsed.prose).1)
         }
-        try Rules.write(text, kind: slug, book, command: id)
+        do {
+            try FileManager.default.createDirectory(at: book.skillsDirectory, withIntermediateDirectories: true)
+            try Data(skill.text.utf8).write(to: book.file(slug), options: .atomic)
+        } catch {
+            throw CommandError(.io, "\(id): cannot write \(book.file(slug).path): \(error.localizedDescription)")
+        }
         return Rules.sheet(slug, book, language: language, full: true)
     }
 }
 
 enum RulesRemoveKind: Command {
     static let id = "rules.removeKind"
-    static let summary = "Delete a kind of video of the user's own (its sheet). Only when the user asked. A project that had it falls back to the kind of its format (rules.check says so). Built-in kinds cannot be removed (rules.reset restores their default). Returns the removed kind."
+    static let summary = "Delete a kind of video of the user's own (the skill of that name; skill.remove does it as an undo step). Only when the user asked. A project that had it falls back to the kind of its format (rules.check says so). Built-in kinds cannot be removed (rules.reset restores their default). Returns the removed kind."
     static let kind = CommandKind.session
     static let undoNote: String? = "no — writes the rule sheets in the rules folder, outside the project (rules.reset brings back a built-in default)"
     static let params: [ParamSpec] = [.required("kind", .string, "A kind of the user's own.")]

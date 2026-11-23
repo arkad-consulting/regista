@@ -2650,3 +2650,14 @@
 
 /* The person's choices in Impostazioni › Regole (#156). */
 "Scelte" = "Escolhas";
+
+/* The person's skills (#157): command titles and the built-in recipe's name. */
+"Elenca le skill" = "Listar as skills";
+"Leggi una skill" = "Ler uma skill";
+"Crea una skill" = "Criar uma skill";
+"Modifica una skill" = "Alterar uma skill";
+"Duplica una skill" = "Duplicar uma skill";
+"Elimina una skill" = "Excluir uma skill";
+"Esporta una skill" = "Exportar uma skill";
+"Importa una skill" = "Importar uma skill";
+"Reel from one sentence" = "Reel a partir de uma frase";

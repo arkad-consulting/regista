@@ -151,6 +151,8 @@ public struct RuleSheetText: Sendable {
             guard let colon = line.firstIndex(of: ":") else { sheet.problems.append(malformed); continue }
             let id = line[..<colon].trimmingCharacters(in: .whitespaces)
             let words = line[line.index(after: colon)...].split(whereSeparator: \.isWhitespace).map(String.init)
+            // A skill's own lines (its title, the recipe it is based on): read by SkillFile, not switches.
+            if SkillFile.metaKeys.contains(id.lowercased()) { continue }
             if let choice = RuleChoiceSpec.named(id) {
                 if let problem = sheet.readChoice(choice, words, line: n, seen: &seen) { sheet.problems.append(problem) }
                 continue
@@ -282,10 +284,18 @@ public struct RuleBook: Sendable {
     /// The built-in kinds: the recipes with a rule sheet of their own (prompt-to-reel follows the voice-over video's).
     public static var builtInKinds: [String] { Recipes.all.filter { $0.kind == $0.name }.map(\.name) }
 
-    /// The user's sheets (`rules/` of Regista's support folder).
+    /// The user's copies of the built-in sheets (`rules/` of Regista's support folder).
     public var directory: URL
+    /// The person's skills (`skills/` beside `rules/`, #157): a kind of the user's own is the rules of a skill.
+    public var skillsDirectory: URL
 
-    public init(directory: URL) { self.directory = directory }
+    /// `skills` defaults to `skills/` beside a folder named `rules`, else to `<folder>-skills` beside it.
+    public init(directory: URL, skills: URL? = nil) {
+        self.directory = directory
+        let parent = directory.deletingLastPathComponent()
+        skillsDirectory = skills ?? parent.appendingPathComponent(directory.lastPathComponent == "rules" ? "skills" : directory.lastPathComponent + "-skills",
+                                                                  isDirectory: true)
+    }
 
     /// `$REGISTA_SUPPORT_DIR/rules`, else `~/Library/Application Support/Regista/rules`.
     public static var defaultDirectory: URL {
@@ -303,6 +313,7 @@ public struct RuleBook: Sendable {
         case "screen-tutorial": rulePhrase("Screen tutorial")
         case "voice-over-video": rulePhrase("Voice-over video")
         case "reel-graphics": rulePhrase("Graphics on a reel")
+        case "prompt-to-reel": rulePhrase("Reel from one sentence")
         default: nil
         }
     }
@@ -316,34 +327,44 @@ public struct RuleBook: Sendable {
 
     static func isBuiltIn(_ kind: String) -> Bool { kind == everyVideo || builtInKinds.contains(kind) }
 
+    /// A name no skill of the person's can take: a built-in sheet's or a built-in recipe's.
+    static func isReserved(_ name: String) -> Bool { isBuiltIn(name) || Recipes.named(name) != nil }
+
     /// A valid slug for a kind of the user's: lower-case letters, digits and hyphens.
     static func isSlug(_ s: String) -> Bool {
         s.range(of: #"^[a-z0-9][a-z0-9-]{0,47}$"#, options: .regularExpression) != nil
     }
 
-    public func file(_ kind: String) -> URL { directory.appendingPathComponent("\(kind).md") }
+    /// The file of a sheet: the user's copy of a built-in sheet in `rules/`, a skill's file in `skills/`.
+    public func file(_ kind: String) -> URL {
+        (Self.isBuiltIn(kind) ? directory : skillsDirectory).appendingPathComponent("\(kind).md")
+    }
 
-    /// The kinds of the user's own (sheets in the folder that are not built-in), sorted.
+    /// The kinds of the user's own: the person's skills (#157), sorted by file name.
     public var userKinds: [String] {
-        let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
-        return names.filter { $0.hasSuffix(".md") }.map { String($0.dropLast(3)) }.filter { !Self.isBuiltIn($0) && !$0.hasPrefix(".") }.sorted()
+        migrateKinds()
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: skillsDirectory.path)) ?? []
+        return names.filter { $0.hasSuffix(".md") }.map { String($0.dropLast(3)) }.filter { !Self.isReserved($0) && Self.isSlug($0) }.sorted()
     }
 
     /// Every kind a project can have.
     public var kinds: [String] { Self.builtInKinds + userKinds }
 
-    public func exists(_ kind: String) -> Bool { Self.isBuiltIn(kind) || FileManager.default.fileExists(atPath: file(kind).path) }
+    public func exists(_ kind: String) -> Bool { Self.isBuiltIn(kind) || skill(kind) != nil }
     public func edited(_ kind: String) -> Bool { FileManager.default.fileExists(atPath: file(kind).path) }
 
-    /// The sheet's text: the user's file, else the default in `language`.
+    /// The sheet's text: the user's file, else the default in `language`; a skill's rules as a sheet (its header and
+    /// prose rules, without its steps).
     public func text(_ kind: String, language: String) -> String? {
+        guard Self.isBuiltIn(kind) else { return skill(kind)?.sheetText }
         if let data = FileManager.default.contents(atPath: file(kind).path) { return String(decoding: data, as: UTF8.self) }
         return RuleDefaults.text(kind, language: language)
     }
 
-    /// A kind's title: the built-in title (English key), or the first `# ` heading of a user kind's sheet.
+    /// A kind's title: the built-in title (English key), a skill's title, or the first `# ` heading of its rules.
     public func title(_ kind: String, language: String) -> String {
         if let t = Self.builtInTitle(kind) { return t }
+        if let t = skill(kind)?.title { return t }
         let prose = RuleSheetText.parse(text(kind, language: language) ?? "").prose
         let heading = prose.components(separatedBy: "\n").first { $0.hasPrefix("# ") }
         return heading.map { String($0.dropFirst(2)).trimmingCharacters(in: .whitespaces) } ?? kind
@@ -372,7 +393,7 @@ public struct RuleBook: Sendable {
     /// The checks of `kind`: the defaults, then the "for every video" sheet's lines, then the kind's own.
     public func checks(_ kind: String, language: String) -> [CheckState] {
         var states = RuleCheckSpec.all.map { CheckState(spec: $0, on: true, value: $0.number?.defaultValue, source: "default") }
-        for sheet in kind == Self.everyVideo ? [Self.everyVideo] : [Self.everyVideo, kind] {
+        for sheet in chain(kind) {
             for e in RuleSheetText.parse(text(sheet, language: language) ?? "").entries {
                 guard let i = states.firstIndex(where: { $0.spec.id == e.id }) else { continue }
                 states[i].on = e.on
@@ -412,7 +433,7 @@ public struct RuleBook: Sendable {
     public func choices(_ kind: String, language: String) -> [ChoiceState] {
         var states = RuleChoiceSpec.all.filter { $0.applies(to: kind) }
             .map { ChoiceState(spec: $0, value: $0.defaultOption, number: $0.number?.defaultValue, source: "default") }
-        for sheet in kind == Self.everyVideo ? [Self.everyVideo] : [Self.everyVideo, kind] {
+        for sheet in chain(kind) {
             for e in RuleSheetText.parse(text(sheet, language: language) ?? "").choices {
                 guard let i = states.firstIndex(where: { $0.spec.id == e.id }) else { continue }
                 states[i].value = e.value
@@ -441,7 +462,7 @@ public struct RuleBook: Sendable {
 
     /// Header problems of the sheets that apply to `kind`, each with its sheet.
     public func problems(_ kind: String, language: String) -> [(sheet: String, problem: RuleSheetText.Problem)] {
-        (kind == Self.everyVideo ? [Self.everyVideo] : [Self.everyVideo, kind]).flatMap { sheet in
+        chain(kind).flatMap { sheet in
             RuleSheetText.parse(text(sheet, language: language) ?? "").problems.map { (sheet, $0) }
         }
     }
@@ -475,7 +496,7 @@ public struct RuleBook: Sendable {
         var out = "# Editing rules (\(kind))\n\nThese rules come from the user's rule sheets (rules.get / rules.set; Settings › Rules in the app) "
             + "and always hold. Before export run rules.check: export.render refuses while a check fails. Checks on: "
             + (on.isEmpty ? "none" : on.joined(separator: ", ")) + "."
-        for sheet in kind == Self.everyVideo ? [Self.everyVideo] : [Self.everyVideo, kind] {
+        for sheet in chain(kind) {
             let prose = RuleSheetText.parse(text(sheet, language: language) ?? "").prose.trimmingCharacters(in: .whitespacesAndNewlines)
             if !prose.isEmpty { out += "\n\n" + prose }
         }

@@ -87,6 +87,13 @@ public final class Engine {
             ctx.kitChange = nil
             ctx.history.record(.init(command: id, params: raw, before: ctx.project, after: ctx.project, kit: change))
         }
+        if let change = ctx.fileChange {
+            // A skill written or removed (#157): one step that puts its file back.
+            ctx.fileChange = nil
+            if change.before != change.after {
+                ctx.history.record(.init(command: id, params: raw, before: ctx.project, after: ctx.project, file: change))
+            }
+        }
         context = ctx
         return result
     }
@@ -124,10 +131,11 @@ public enum Commands {
         VoiceEnrollScript.self, VoiceEnrollAdd.self, VoiceEnrollStatus.self, VoiceEnrollTrain.self, VoiceSay.self, VoicePreview.self, VoiceLexiconCommand.self,
     ] + effects + rules
 
-    /// Editing rules (#31).
+    /// Editing rules (#31) and the person's skills (#157).
     static let rules: [any Command.Type] = [
         RulesList.self, RulesGet.self, RulesSet.self, RulesReset.self, RulesAddKind.self, RulesRemoveKind.self, ProjectSetKind.self,
         RulesCheck.self, RulesFix.self, CaptionsClear.self,
+        SkillList.self, SkillGet.self, SkillCreate.self, SkillSet.self, SkillDuplicate.self, SkillRemove.self, SkillExport.self, SkillImport.self,
     ]
 
     /// Effects for users (issue #16).

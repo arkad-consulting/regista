@@ -340,19 +340,41 @@ extension Recipes {
 
 enum RecipeGet: Command {
     static let id = "recipe.get"
-    static let summary = "Read this before making any video: the step-by-step recipe and the house rules for a kind of video — talking-head-reel (a person speaking to camera), screen-tutorial (a screen recording made in Regista, with or without the face), voice-over-video (no one on camera: the user's cloned voice over footage, stills and graphics), reel-graphics (titles, cards, sound effects and music on top of an edit), prompt-to-reel (a faceless reel from one sentence of the user: script and scene plan to confirm, then voice or none, motion templates, music, sound effects). Without name, lists the recipes with what each is for: call it first and pick. The text ends with the editing rules of that kind of video (the user's rule sheets: they always hold, and export.render refuses while one of their checks fails), then the person's choices for it (caption style, pace, framing, music, sound effects, graphics, format, closing logo…): rules and choices win over the recipe's steps where they disagree. Returns {name, title, text, kind}."
+    static let summary = "Read this before making any video: the step-by-step recipe and the house rules for a kind of video — talking-head-reel (a person speaking to camera), screen-tutorial (a screen recording made in Regista, with or without the face), voice-over-video (no one on camera: the user's cloned voice over footage, stills and graphics), reel-graphics (titles, cards, sound effects and music on top of an edit), prompt-to-reel (a faceless reel from one sentence of the user: script and scene plan to confirm, then voice or none, motion templates, music, sound effects) — or one of the person's own skills (their ways of editing, listed after the recipes with skill: true: when one fits what the user asks, follow it). Without name, lists the recipes and the person's skills with what each is for: call it first and pick. The text ends with the editing rules of that kind of video (the user's rule sheets: they always hold, and export.render refuses while one of their checks fails), then the person's choices for it (caption style, pace, framing, music, sound effects, graphics, format, closing logo…): rules and choices win over the recipe's steps where they disagree. A skill's text is its steps, its rules, its choices, then the rules that always hold. Returns {name, title, text, kind}."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [
-        .optional("name", .oneOf(Recipes.all.map(\.name)), "Recipe: \(Recipes.all.map(\.name).joined(separator: ", "))."),
+        .optional("name", .string, "Recipe (\(Recipes.all.map(\.name).joined(separator: ", "))) or a skill of the person's (skill.list)."),
         Rules.languageParam,
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
-        guard let name = p.string("name"), let r = Recipes.named(name) else {
-            return ["recipes": .array(Recipes.all.map { ["name": .string($0.name), "title": .string($0.title), "description": .string($0.description)] })]
-        }
         let language = Rules.language(p), book = ctx.services.rules
-        let rules = book.briefing(r.kind, language: language) + "\n\n" + book.choicesBriefing(r.kind, language: language)
-        return ["name": .string(r.name), "title": .string(r.title), "text": .string(r.text() + "\n\n" + rules), "kind": .string(r.kind)]
+        guard let name = p.string("name") else {
+            let recipes: [JSONValue] = Recipes.all.map { ["name": .string($0.name), "title": .string($0.title), "description": .string($0.description)] }
+            let skills: [JSONValue] = Skills.slugs(book).map { slug in
+                let base = book.skill(slug)?.basedOn
+                return ["name": .string(slug), "title": .string(Skills.title(slug, book)), "skill": true, "basedOn": base.map(JSONValue.string) ?? .null,
+                        "description": .string("A skill of the person's: their own way of editing" + (base.map { ", based on \($0)" } ?? "") + ".")]
+            }
+            return ["recipes": .array(recipes + skills)]
+        }
+        let rules = book.briefing(Recipes.named(name)?.kind ?? name, language: language) + "\n\n"
+            + book.choicesBriefing(Recipes.named(name)?.kind ?? name, language: language)
+        if let r = Recipes.named(name) {
+            return ["name": .string(r.name), "title": .string(r.title), "text": .string(r.text() + "\n\n" + rules), "kind": .string(r.kind)]
+        }
+        guard let skill = book.skill(name) else {
+            let mine = Skills.slugs(book)
+            throw CommandError.notFound("\(id): no recipe or skill '\(name)' (recipes: \(Recipes.all.map(\.name).joined(separator: ", ")); "
+                + "skills: \(mine.isEmpty ? "none" : mine.joined(separator: ", ")))")
+        }
+        let title = Skills.title(name, book)
+        var text = "# \(title) — a skill of the person's\n\nOne of the person's own ways of editing (skill.get reads it whole; skill.set changes it only when the person asks)."
+        if let base = skill.basedOn {
+            text += " It is based on the built-in recipe \(base): recipe.get {name: \"\(base)\"} has its full steps and house rules; the steps below win where they differ."
+        }
+        text += "\n\n## Steps\n\n" + (skill.steps.isEmpty ? (skill.basedOn == nil ? "(none written: edit by the rules and choices below)" : "(none written: follow the steps of the recipe it is based on)") : skill.steps)
+        text += "\n\n" + rules + "\n\n" + book.alwaysBriefing(language: language)
+        return ["name": .string(name), "title": .string(title), "text": .string(text), "kind": .string(name), "skill": true]
     }
 }
