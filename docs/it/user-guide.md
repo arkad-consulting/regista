@@ -50,8 +50,8 @@ Questo è il percorso più semplice: registri, Regista monta da solo, tu control
 8. Apri i passi uno per uno e guarda il risultato nel monitor:
    - **Taglio e riprese**: quanto stretto è il taglio (le pause lunghe spariscono) e, per le frasi lette più volte, quale
      ripresa tenere. Regista sceglie la migliore; puoi provarne un'altra.
-   - **Sottotitoli**: **Sottotitoli nel video** acceso o spento e lo stile: **Talking head** (lo stile dei reel
-     approvati), **Serif elegante**, **Bold + parola chiave**, **Karaoke fantasma**.
+   - **Sottotitoli**: **Sottotitoli nel video** acceso o spento e lo stile: **Talking head** (maiuscole grandi, poche
+     parole alla volta, la parola chiave su un riquadro colorato), **Serif elegante**, **Bold + parola chiave**, **Karaoke fantasma**.
    - **Aspetto**: **Luce leggera** e, se vuoi, un colore per tutto il video.
    - **Musica e suoni**: **Scegli una musica…** (si abbassa da sola quando parli) e **Un whoosh sui tagli**. Sono
      facoltativi: su Instagram la musica di tendenza si aggiunge di solito nell'app.

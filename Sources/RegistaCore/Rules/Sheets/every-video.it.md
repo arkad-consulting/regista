@@ -70,3 +70,6 @@ Queste regole valgono per ogni tipo di video. Il foglio del tipo del progetto ag
 - La voce a −15 LUFS, picco reale entro −1,5 dBTP.
 - La musica sotto la voce è sempre abbassata, e sfuma prima del logo, non dopo.
 - La voce si porta al suo livello una volta sola: mai una seconda normalizzazione né altri trattamenti del volume sopra.
+
+## Nomi
+Come si scrivono i nomi in sottotitoli e titoli, uno per riga: la grafia sbagliata, poi quella giusta, come `Miro Talen → MiroTalen`.

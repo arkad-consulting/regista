@@ -64,7 +64,8 @@ extension Recipes {
            minute for 3 s. Not installed, or no way to write files → the nearest template, and say so.
         8. Transitions as planned (transition_add, two at most: whip or flash into the turn or the signature moment);
            titles with title_add (background: "none" unless it is a card).
-        9. Captions: with a voice, captions_generate {sourceTrackId: <Voce track>, keywords}, then captions_clear {from, to}
+        9. Captions: with a voice, captions_generate {sourceTrackId: <Voce track>, keywords, fixes: names as the Names
+           sections of the person's sheets and skill write them (listed at the top)}, then captions_clear {from, to}
            over the near-silence (a caption stays a moment after its last word). Without one there are no words to caption: each line is a title_add (band "lower") or the scene's own
            text.
         10. Music, as the plan and the music choice have it: a file of the user's (media_list); none → say so, the effects carry it. One audio_addMusic {path, start,

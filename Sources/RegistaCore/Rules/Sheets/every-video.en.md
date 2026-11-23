@@ -70,3 +70,6 @@ These rules hold for every kind of video. The sheet of the project's kind adds i
 - The voice at −15 LUFS, true peak at or under −1.5 dBTP.
 - Music under the voice is always lowered, and it fades out before the logo, not after.
 - The voice is brought to its level once: never a second normalization or other loudness processing on top.
+
+## Names
+How names are spelled in captions and titles, one per line: the wrong spelling, then the right one, as in `Miro Talen → MiroTalen`.

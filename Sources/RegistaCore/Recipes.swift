@@ -1,9 +1,9 @@
 import Foundation
 
-/// Step-by-step editing recipes with the house rules, for an agent driving Regista. The MCP server lists
-/// them as prompts (`prompts/list`, `prompts/get`); `recipe.get` returns the same text as a tool result,
-/// for clients that do not surface prompts to the model. House rules come from the approved talking-head reels
-/// (the WeSites test of 2026-10-26) and the editor's feedback on them — keep them in sync with the README.
+/// Step-by-step editing recipes for an agent driving Regista: the steps only (the commands, their order, what to look
+/// at). How to edit is the person's: the rule sheets and their choices, which recipe.get appends after the steps and
+/// which win over them. The MCP server lists the recipes as prompts (`prompts/list`, `prompts/get`); `recipe.get`
+/// returns the same text as a tool result, for clients that do not surface prompts to the model.
 public struct Recipe: Sendable {
     public struct Argument: Sendable {
         public var name: String
@@ -60,11 +60,11 @@ public enum Recipes {
     public static let talkingHeadReel = Recipe(
         name: "talking-head-reel",
         title: "Talking-head reel (9:16, captioned)",
-        description: "Edit a raw talking-head take (the speaker repeats each script line until it comes out right) into a captioned 9:16 Instagram reel in the approved WeSites style, check it by looking at frames, and export mp4 + srt + Shotcut project.",
+        description: "Edit a raw talking-head take (the speaker repeats each script line until it comes out right) into a captioned 9:16 Instagram reel in the person's caption style (by default large uppercase words a few at a time, a keyword on a coloured box), check it by looking at frames, and export mp4 + srt + Shotcut project.",
         arguments: [
             .init(name: "footage", description: "The raw take (path from media.list).", required: false),
             .init(name: "script", description: "The script the speaker read, one line per take (a .md/.txt from media.list).", required: false),
-            .init(name: "brand", description: "Brand or product the reel is for (e.g. WeSites).", required: false),
+            .init(name: "brand", description: "Brand or product the reel is for.", required: false),
         ],
         body: """
         # Talking-head reel — recipe
@@ -106,8 +106,7 @@ public enum Recipes {
            changes when the script line changes); alternate-cut → edit_punchIns {by: "clip"}; still → no punch-ins. Its
            number is how much closer the punch-in is: zoom [0.8, 0.8 ÷ that number]. With no crops given the crops come
            from the face track, per shot: every detected face kept in frame (two speakers, a child in the speaker's
-           arms), room above the hair — check with faces_checkFraming (must pass). The WeSites selfie take
-           (1080×1920, the approved look) uses preset "wesites-selfie" instead. Then the person's colour choice:
+           arms), room above the hair — check with faces_checkFraming (must pass). Then the person's colour choice:
            light → clip_set {trackId: <video track>, brightness: 0.02, contrast: 1.06, saturation: 1.08}; look →
            look_apply {look, amount}; none → nothing.
         9. Captions follow the person's caption style choice (none: skip steps 9–10; effects_catalog category captions
@@ -120,7 +119,8 @@ public enum Recipes {
             {...}}. With a face track, chunks that would cover a face (any face: a child in the arms too) move to
             another band or beside it, or split shorter; captions_checkFaces must pass. Read its preview (and
             captions_get for the full list): fix misheard or wrongly split words with fixes (display form,
-            {"WRONG": "RIGHT"}, "" removes a word), spelled as in the script — see the glossary. If a keyword
+            {"WRONG": "RIGHT"}, "" removes a word): spell names as the script and the Names sections («Nomi», «Noms»,
+            «Nomes») of the person's sheets and skill write them (recipe_get lists those at the top). If a keyword
             never appears in the preview, it does not match a displayed word: use the displayed spelling. Words of
             one line that jump up and down: captions_setStyle with the style field wordAlign "baseline". Another
             style later: captions_setStyle {style}.
@@ -197,15 +197,6 @@ public enum Recipes {
         - A chunk placed by hand stays there even over a face (captions_checkFaces reports it as a warning, not a
           failure): say so if it happens. Lines are kept inside the frame; read the warnings for the platform's zones
           and the caption band (graphics_checkLayout gives both), then look with frame_render at that time.
-
-        ## House look and glossary
-        - Approved look (reel test 1, 2026-10-26, "top"): Impact uppercase captions, black outline, keyword white
-          on a pink #FF2D6F box, word-by-word reveal, 2–3 words per chunk = caption style talking-head-v1; fixed
-          face crop + alternating punch-ins; light grade; ~0.2 s between sentences. Keep it, build on top.
-        - Glossary — Whisper gets these wrong, write the right form: Claude2 / Cloud Duet → Claude Duet;
-          Antropic → Anthropic; Game Face / Hugging Fees → Hugging Face; Cloud Code → Claude Code. Brand and
-          product names follow the script's spelling (e.g. WeSites, WordPress, PHP). "IA" (Italian for AI) is
-          often split or glued wrong ("AL" + "IA" for "all'IA"): fix it so the caption reads like the script.
         """)
 }
 
@@ -215,7 +206,7 @@ extension Recipes {
         title: "Graphics on a reel (titles, cards, inserts, music, SFX)",
         description: "Dress an edited talking-head reel with the graphics layer: a hook title, a few cards in the top band, AI B-roll inserts, sparse sound effects on beats, an optional ducked music bed; check layout, loudness and timing; export mp4 + Shotcut project.",
         arguments: [
-            .init(name: "brand", description: "Brand kit (wesites, arkad).", required: false),
+            .init(name: "brand", description: "Brand kit (an id from brandkit_list).", required: false),
             .init(name: "brief", description: "What the graphics must say (the cards brief, if any).", required: false),
         ],
         body: """
@@ -225,7 +216,7 @@ extension Recipes {
         ordinary clips on overlay tracks: timeline_move / timeline_trim / timeline_delete and history_undo work on them.
 
         ## Steps
-        1. brandkit_apply {kit} (arkad / wesites / cafe-atelier / a user kit: brandkit_list). It brings the title presets
+        1. brandkit_apply {kit} (brandkit_list gives the built-in kits and the person's). It brings the title presets
            (hook, hookLight, question, kicker, card, stat, chipOK, chipWarn, word), colour roles (primary, ink, paper,
            accent, success, highlight) and font roles (display, text, mono), and recolours the captions (keyword box =
            highlight). Re-run it after captions_generate, or any time to switch kit: preset titles and the logo follow.
@@ -319,7 +310,7 @@ extension Recipes {
 
 enum RecipeGet: Command {
     static let id = "recipe.get"
-    static let summary = "Read this before making any video: the step-by-step recipe for a kind of video —talking-head-reel (a person speaking to camera), screen-tutorial (a screen recording made in Regista, with or without the face), voice-over-video (no one on camera: the user's cloned voice over footage, stills and graphics), reel-graphics (titles, cards, sound effects and music on top of an edit), prompt-to-reel (a faceless reel from one sentence of the user: script and scene plan to confirm, then voice or none, motion templates, music, sound effects) — or one of the person's own skills (their ways of editing, listed after the recipes with skill: true: when one fits what the user asks, follow it). Without name, lists the recipes and the person's skills with what each is for: call it first and pick. The text ends with the editing rules of that kind of video (the user's rule sheets: they always hold, and export.render refuses while one of their checks fails), then the person's choices for it (caption style, pace, framing, music, sound effects, graphics, format, closing logo…): rules and choices win over the recipe's steps where they disagree. A skill's text is its steps, its rules, its choices, then the rules that always hold. Returns {name, title, text, kind}."
+    static let summary = "Read this before making any video: the step-by-step recipe for a kind of video —talking-head-reel (a person speaking to camera), screen-tutorial (a screen recording made in Regista, with or without the face), voice-over-video (no one on camera: the user's cloned voice over footage, stills and graphics), reel-graphics (titles, cards, sound effects and music on top of an edit), prompt-to-reel (a faceless reel from one sentence of the user: script and scene plan to confirm, then voice or none, motion templates, music, sound effects) — or one of the person's own skills (their ways of editing, listed after the recipes with skill: true: when one fits what the user asks, follow it). Without name, lists the recipes and the person's skills with what each is for: call it first and pick. The text ends with the editing rules of that kind of video (the user's rule sheets: they always hold, and export.render refuses while one of their checks fails), then the person's choices for it (caption style, pace, framing, music, sound effects, graphics, format, closing logo…): rules and choices win over the recipe's steps where they disagree. A skill's text is its steps, its rules, its choices, then the rules that always hold. When the person wrote how names are spelled (the Names sections of their sheets and skill), the text starts with those names. Returns {name, title, text, kind}."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [
         .optional("name", .string, "Recipe (\(Recipes.all.map(\.name).joined(separator: ", "))) or a skill of the person's (skill.list)."),
@@ -337,10 +328,12 @@ enum RecipeGet: Command {
             }
             return ["recipes": .array(recipes + skills)]
         }
-        let rules = book.briefing(Recipes.named(name)?.kind ?? name, language: language) + "\n\n"
-            + book.choicesBriefing(Recipes.named(name)?.kind ?? name, language: language)
+        let kind = Recipes.named(name)?.kind ?? name
+        let rules = book.briefing(kind, language: language) + "\n\n" + book.choicesBriefing(kind, language: language)
+        // The names the person wrote (their «Nomi» sections) come first: the caption steps spell names by them.
+        let names = book.namesBriefing(kind, language: language).map { $0 + "\n\n" } ?? ""
         if let r = Recipes.named(name) {
-            return ["name": .string(r.name), "title": .string(r.title), "text": .string(r.text() + "\n\n" + rules), "kind": .string(r.kind)]
+            return ["name": .string(r.name), "title": .string(r.title), "text": .string(names + r.text() + "\n\n" + rules), "kind": .string(r.kind)]
         }
         guard let skill = book.skill(name) else {
             let mine = Skills.slugs(book)
@@ -352,7 +345,7 @@ enum RecipeGet: Command {
         if let base = skill.basedOn {
             text += " It is based on the built-in recipe \(base): recipe.get {name: \"\(base)\"} has its full steps; the steps below win where they differ."
         }
-        text += "\n\n## Steps\n\n" + (skill.steps.isEmpty ? (skill.basedOn == nil ? "(none written: edit by the rules and choices below)" : "(none written: follow the steps of the recipe it is based on)") : skill.steps)
+        text += "\n\n" + names + "## Steps\n\n" + (skill.steps.isEmpty ? (skill.basedOn == nil ? "(none written: edit by the rules and choices below)" : "(none written: follow the steps of the recipe it is based on)") : skill.steps)
         text += "\n\n" + rules + "\n\n" + book.alwaysBriefing(language: language)
         return ["name": .string(name), "title": .string(title), "text": .string(text), "kind": .string(name), "skill": true]
     }

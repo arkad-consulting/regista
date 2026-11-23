@@ -55,7 +55,7 @@ public struct CaptionStyle: Codable, Hashable, Sendable {
     /// baseline (mixed-case text with descenders, serif italics).
     public var wordAlign: String?
 
-    /// The approved WeSites talking-head look (reel 2026-10-26, captions.py): Impact 100 uppercase,
+    /// The talking-head look: Impact 100 uppercase,
     /// 9 px black outline, keyword on a pink #FF2D6F box, word-by-word, ≤ 3 words / 17 characters,
     /// band 1244–1444 on 1080×1920.
     /// Words sit on one baseline: centred one by one, words of different heights ("PAR" / "MOIS") jumped up and

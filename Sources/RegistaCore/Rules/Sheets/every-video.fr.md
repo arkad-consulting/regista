@@ -70,3 +70,6 @@ Ces règles valent pour tous les types de vidéo. La fiche du type du projet ajo
 - La voix à −15 LUFS, crête réelle à −1,5 dBTP au plus.
 - La musique sous la voix est toujours baissée, et elle s'éteint avant le logo, pas après.
 - La voix est amenée à son niveau une seule fois : jamais une deuxième normalisation ni un autre traitement du volume par-dessus.
+
+## Noms
+Comment les noms s'écrivent dans les sous-titres et les titres, un par ligne : l'orthographe fautive, puis la bonne, comme `Miro Talen → MiroTalen`.

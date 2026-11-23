@@ -56,6 +56,10 @@ let movedRules: [(recipe: String, subject: String, homes: [RuleHome])] = [
     ("talking-head-reel", "graphics, sound effects and music only when asked", [.choice("graphics"), .choice("sfx"), .choice("music")]),
     ("talking-head-reel", "one structure for the presenter's rhythm", [.choice("structure")]),
     ("talking-head-reel", "the format of the export", [.choice("format", option: "project")]),
+    ("talking-head-reel", "the house look: large uppercase captions word by word, a keyword on a box, punch-ins, a light grade, short gaps",
+     [.choice("captions", option: "talking-head-v1"), .choice("keywords", option: "on"), .choice("framing", option: "alternate"), .choice("colour", option: "light"),
+      .choice("pace", option: "normal")]),
+    ("talking-head-reel", "the names glossary", [.sheet("every-video", section: "## Names", phrase: "one per line"), .step("talking-head-reel", phrase: "«Nomi»")]),
     // screen-tutorial
     ("screen-tutorial", "the recording folder is never modified", [.sheet("every-video", section: "## Always", phrase: "original files are never modified")]),
     ("screen-tutorial", "one layout change every 20–30 s at most; the screen is the subject",
@@ -160,7 +164,7 @@ let movedRules: [(recipe: String, subject: String, homes: [RuleHome])] = [
 @Test func theRecipesCarryStepsAndEndWithOneLineOnTheRules() {
     for r in Recipes.all {
         let text = r.text()
-        for heading in ["## House rules", "## Taste", "## Which layer when", "## Layout bands"] {
+        for heading in ["## House", "## Taste", "## Which layer when", "## Layout bands", "lossary"] {
             #expect(!text.contains(heading), "\(r.name) still has «\(heading)»")
         }
         for number in ["6–12", "0.2–0.7", "0.2–0.3 s", "12–16", "y 1540", "right 120 px"] {
@@ -176,6 +180,58 @@ let movedRules: [(recipe: String, subject: String, homes: [RuleHome])] = [
     }
     #expect(Recipes.reelGraphics.steps.contains("sfx choice") && Recipes.reelGraphics.steps.contains("music choice") && Recipes.reelGraphics.steps.contains("closing-logo choice"))
     #expect(Recipes.promptToReel.steps.contains("faceless-sound choice"))
+}
+
+/// No brand, no "approved" look and no names glossary in what a recipe says, nor in the caption commands and the catalog
+/// (the punch-in preset keeps its name).
+@Test func theRecipesAndTheCaptionDescriptionsNameNoBrandNorAnApprovedLook() {
+    let banned = ["wesites", "approved", "claude duet", "hugging fe", "antropic", "arkad"]
+    for r in Recipes.all {
+        let said = ([r.title, r.description, r.text()] + r.arguments.map(\.description)).joined(separator: "\n").lowercased()
+        for word in banned { #expect(!said.contains(word), "\(r.name) says «\(word)»") }
+    }
+    let descriptions = Commands.all.filter { $0.id.hasPrefix("captions.") || ["recipe.get", "effects.catalog", "edit.punchIns"].contains($0.id) }
+        .map { c in ([c.summary] + c.descriptor.params.map(\.description)).joined(separator: "\n") }
+    let guide = LooksCatalog.guides["caption-talking-head-v1"].map { [$0.description, $0.useWhen, $0.avoid].joined(separator: "\n") } ?? ""
+    for text in descriptions + [guide] {
+        let lower = text.lowercased().replacingOccurrences(of: "wesites-selfie", with: "")
+        for word in banned { #expect(!lower.contains(word), "«\(word)» in «\(text.prefix(80))…»") }
+    }
+}
+
+/// The names glossary is the person's: an optional «Nomi» / «Names» / «Noms» / «Nomes» section of their sheets and
+/// skill. recipe.get states the names first, before the caption step that refers to them; the shipped example is not one.
+@Test func theNamesThePersonWritesComeFirstInTheRecipe() throws {
+    var services = FakeServices().make()
+    services.renderer = FakeRenderer()
+    let e = Engine(prober: FakeProber(), services: services)
+    let book = services.rules
+    #expect(!book.directory.path.contains("Library/Application Support"))
+    // The shipped sheets have the section in every language, with an example only.
+    for language in RuleBook.languages {
+        let prose = RuleSheetText.parse(RuleDefaults.text(RuleBook.everyVideo, language: language) ?? "").prose
+        #expect(["## Nomi", "## Names", "## Noms", "## Nomes"].contains { prose.contains("\n" + $0 + "\n") } && prose.contains("Miro Talen → MiroTalen"), "\(language)")
+        #expect(book.names("talking-head-reel", language: language).isEmpty, "the example is taken as a name (\(language))")
+    }
+    let plain = try #require(e.execute("recipe.get", params: ["name": "talking-head-reel", "language": "en"])["text"]?.stringValue)
+    #expect(plain.hasPrefix(Recipes.talkingHeadReel.text()))
+
+    // A skill based on the talking-head reel, with its steps, and names in its rules.
+    let slug = try #require(e.execute("skill.duplicate", params: ["from": "talking-head-reel", "title": "Interviews"])["skill"]?.stringValue)
+    try e.execute("skill.set", params: ["skill": .string(slug), "rules": ["prose": "No zoom.\n\n## Nomi\n- Foo Bar → FooBar\n"]])
+    let text = try #require(e.execute("recipe.get", params: ["name": .string(slug), "language": "en"])["text"]?.stringValue)
+    let name = try #require(text.range(of: "- Foo Bar → FooBar")), reference = try #require(text.range(of: "«Nomi»"))
+    let steps = try #require(text.range(of: "## Steps"))
+    #expect(name.upperBound < steps.lowerBound && steps.upperBound < reference.lowerBound, "the names do not come before the caption step's reference")
+
+    // A name the person wrote in their own «For every video» sheet reaches every recipe, before its steps.
+    let sheet = try #require(RuleDefaults.text(RuleBook.everyVideo, language: "it"))
+    try e.execute("rules.set", params: ["kind": "every-video", "prose": .string(RuleSheetText.parse(sheet).prose + "- Lumio Grafo → LumioGrafo\n"), "language": "it"])
+    for r in Recipes.all {
+        let said = try #require(e.execute("recipe.get", params: ["name": .string(r.name), "language": "en"])["text"]?.stringValue)
+        #expect(said.hasPrefix("Names as the person spells them") && said.contains("- Lumio Grafo → LumioGrafo\n\n" + Recipes.named(r.name)!.text()), "\(r.name)")
+    }
+    #expect(book.names(slug, language: "en") == ["Lumio Grafo → LumioGrafo", "Foo Bar → FooBar"])
 }
 
 /// Every command a recipe named before it lost its rules is still named.

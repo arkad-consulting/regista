@@ -141,7 +141,7 @@ enum CaptionsCommon {
 
 enum CaptionsGenerate: Command {
     static let id = "captions.generate"
-    static let summary = "Add the burned-in captions: word-by-word chunks built from the transcript of the edited timeline, on a caption track (created if missing), in a style preset (talking-head-v1 = the approved look), with your keywords on a pink box (default: the script's keywords from script.prepare) and fixes for misheard words. Run it after the picture edit is final (re-run after any cut: captions go stale). Re-running keeps the track's keywords, fixes and style unless new ones are given. Returns chunk/word counts, how many keywords are shown and a preview of the first chunks."
+    static let summary = "Add the burned-in captions: word-by-word chunks built from the transcript of the edited timeline, on a caption track (created if missing), in a style preset (talking-head-v1 = large uppercase words a few at a time, the keyword on a coloured box), with your keywords highlighted (default: the script's keywords from script.prepare) and fixes for misheard words. Run it after the picture edit is final (re-run after any cut: captions go stale). Re-running keeps the track's keywords, fixes and style unless new ones are given. Returns chunk/word counts, how many keywords are shown and a preview of the first chunks."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("trackId", .string, "Caption track (default: the first one, created if missing)."),
@@ -289,7 +289,7 @@ enum CaptionsSetKeywords: Command {
 
 enum CaptionsSetStyle: Command {
     static let id = "captions.setStyle"
-    static let summary = "Apply a caption style preset (talking-head-v1 = the approved WeSites look; elegant-serif = cream serif italic, one calm phrase at a time; bold-keyword = bold white sans on up to two lines, keyword in the brand accent; ghost-karaoke = whole phrase shown, upcoming words ghosted, lit word by word — effects.catalog category captions says when to use each) and/or override fields: font, fontSize, strokeWidth, colors, gap, bandY, bandHeight, maxWords, maxChars, hold, reveal (word|chunk), keywordMode (box|color), upcomingOpacity, shadowOpacity/shadowBlur/shadowY, maxLineWidth, lineSpacing, wordAlign (center|baseline); null clears an optional field. Chunking fields rebuild the chunks. Only change the approved style when asked. Returns the caption summary."
+    static let summary = "Apply a caption style preset (talking-head-v1 = large uppercase words in white with a black outline, a few at a time, word by word, the keyword on a coloured box; elegant-serif = cream serif italic, one calm phrase at a time; bold-keyword = bold white sans on up to two lines, keyword in the brand accent; ghost-karaoke = whole phrase shown, upcoming words ghosted, lit word by word — effects.catalog category captions says when to use each) and/or override fields: font, fontSize, strokeWidth, colors, gap, bandY, bandHeight, maxWords, maxChars, hold, reveal (word|chunk), keywordMode (box|color), upcomingOpacity, shadowOpacity/shadowBlur/shadowY, maxLineWidth, lineSpacing, wordAlign (center|baseline); null clears an optional field. Chunking fields rebuild the chunks. Change the style only as the person's caption style choice says or when asked. Returns the caption summary."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("trackId", .string, "Caption track (default: the first one with captions)."),

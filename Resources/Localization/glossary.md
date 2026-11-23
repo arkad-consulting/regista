@@ -81,6 +81,7 @@ Keep these the same everywhere in `*.lproj/Localizable.strings` (scheme and chec
 | inquadratura (a choice: one framing, or punch-ins that hide the cuts) | framing | cadrage | enquadramento |
 | skill (one of the person's ways of editing: rules, choices and steps in one file, Impostazioni › Regia e skill) — the owner's word, kept as a loan word in every language, feminine (una / une / uma skill) | skill | skill | skill |
 | regia (the rules and choices of every video: Impostazioni › Regia e skill) | direction | réalisation | direção |
+| Nomi (the optional section of a rule sheet or a skill with how names are spelled: `Wrong → Right`, one per line) | Names | Noms | Nomes |
 
 Names never translated: Regista, Claude, Claude Code, Claude Desktop, MCP, ComfyUI, Higgsfield, WhisperX, VoxCPM2,
 HyperFrames, Blender, Shotcut, FFmpeg, macOS, Arkad, WeSites, the shortcut glyphs (⌘ ⌥ ⇧ ⌃).

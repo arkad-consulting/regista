@@ -51,8 +51,8 @@ Este é o caminho mais simples: você grava, o Regista edita sozinho, você conf
 8. Abra os passos um por um e veja o resultado no monitor:
    - **Corte e tomadas**: o quanto o corte é apertado (as pausas longas somem) e, para as frases lidas mais de uma vez,
      qual tomada manter. O Regista escolhe a melhor; você pode testar outra.
-   - **Legendas**: **Legendas no vídeo** ligadas ou desligadas, e o estilo: **Talking head** (o estilo dos reels
-     aprovados), **Serifa elegante**, **Negrito + destaque**, **Karaokê fantasma**.
+   - **Legendas**: **Legendas no vídeo** ligadas ou desligadas, e o estilo: **Talking head** (maiúsculas grandes, poucas
+     palavras de cada vez, o destaque numa caixa colorida), **Serifa elegante**, **Negrito + destaque**, **Karaokê fantasma**.
    - **Aparência**: **Luz leve** e, se quiser, uma cor para o vídeo todo.
    - **Música e sons**: **Escolher uma música…** (ela abaixa sozinha quando você fala) e **Um whoosh nos cortes**. Os dois
      são opcionais: no Instagram, a música do momento costuma ser colocada no próprio app.

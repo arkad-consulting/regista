@@ -54,7 +54,8 @@ extension Recipes {
         9. Voice: audio_clean {} (denoise, −15 LUFS, true peak ≤ −1.5). Run it after the cuts.
         10. Captions, in the person's caption style choice (none: no captions; for a 16:9 tutorial ask first):
             captions_generate {style: <that choice>, keywords: [the names of the buttons and features shown], fixes:
-            {misheard: "right"}}. Re-run after any cut.
+            {misheard: "right"}}: names spelled as the Names sections of the person's sheets and skill write them (listed
+            at the top). Re-run after any cut.
         11. Look: frame_contactSheet {times: [the click times from step 5, plus the start and the end]}. Check: the
             face never covers what is being clicked (move the bubble to another corner for that range), the zoom
             lands on the right element, captions are readable and clear of the face, no black frame. Fix, look again.
@@ -126,7 +127,8 @@ extension Recipes {
            voice clip.
         7. Captions, in the person's caption style choice (none: no captions): captions_generate {style: <that
            choice>, keywords: [the hook word, names, numbers]}. They use the script's own words and spelling from the
-           Voce track. Re-run after moving voice clips.
+           Voce track; a name spelled otherwise in the Names sections of the person's sheets and skill (listed at the
+           top) goes in fixes. Re-run after moving voice clips.
         8. Titles, cards and sound effects: the reel-graphics recipe (titles land on the word; sound effects as the
            sfx choice says: sfx_library → sfx_add); the closing logo as the closing-logo choice says.
         8b. Dress the edit, as the person's graphics choice says — on: read effects_catalog and propose to the user,

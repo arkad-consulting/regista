@@ -210,15 +210,16 @@ Built for an agent that has **no shell and no file tools** (golden test G0):
   output directory (`--output-dir <dir>` / `REGISTA_OUTPUT_DIR`, which is created and becomes the server's working
   directory). Paths are standardized (`..` resolved) before the check and anything outside the roots is refused; a link
   the operator put inside a root is followed. Other commands (`media.import`, exports) still take any path.
-- **Recipe.** The `talking-head-reel` prompt (arguments `footage`, `script`, `brand`) is the step-by-step recipe with the
-  house rules copied from the reel templates of the earlier Python prototype (`_common.md`, `talking-head.md`: approved style, pacing, −15 LUFS,
-  safe zones, glossary); `recipe.get` returns the same text as a tool (headless clients do not show prompts to the
-  model) and the `initialize` `instructions` carry a short version. The `reel-graphics` prompt (arguments `brand`,
-  `brief`; its step 14 points there) dresses a finished edit: which layer when (title / card / insert / nothing), the
-  layout bands (top band 110–640 with small cards on the wall at y ≈ 170–230, face clear, caption band 1230–1460
-  always clean, Instagram chrome), SFX sparse and on beats at 0.2–0.3, music only when asked and always ducked, kit
-  fonts/colours by role, the house taste (abstract fine touches, no literal decoration, no gimmicks, real motion), and the
-  checks. Source: `Sources/RegistaCore/Recipes.swift` — keep it in sync with the templates. The `prompt-to-reel` prompt
+- **Recipe.** The `talking-head-reel` prompt (arguments `footage`, `script`, `brand`) is the step-by-step recipe: the
+  steps only (the commands, their order, what to look at). How to edit is the person's: the rule sheets (what always
+  holds) and their choices (caption style, pace, framing, music…), which `recipe.get` appends after the steps and which
+  win over them; where a step needs a value the person chooses it names the choice, and the names the person spells
+  (the «Nomi» sections of their sheets and skill) open the text. `recipe.get` returns the same text as a tool (headless
+  clients do not show prompts to the model) and the `initialize` `instructions` carry a short version. The
+  `reel-graphics` prompt (arguments `brand`, `brief`; its step 14 points there) dresses a finished edit: the kit, the
+  beats, the hook, cards, inserts, the catalog, sound effects, music, the look and the checks; its layer and layout rules
+  are in the `reel-graphics` sheet. `RecipeStepsTests` maps every rule the recipes used to carry to where it lives now.
+  Source: `Sources/RegistaCore/Recipes.swift`. The `prompt-to-reel` prompt
   (`Recipes+Prompt.swift`) makes a faceless reel from one sentence: at most three questions, then a treatment, a script
   and a scene plan (with its music and sound columns) the user confirms before anything is built; its projects have the
   `voice-over-video` kind (`Recipe.kind`), so it has no rule sheet of its own.
@@ -799,7 +800,7 @@ Core Text glyph outlines, as ImageMagick did: plain word = stroke under fill, tr
 box of ink + padding; words side by side centred in the band, each centred by its own height. `export.srt` writes one
 cue per chunk.
 
-Style preset **`talking-head-v1`** (the approved WeSites look, reel 2026-10-26): Impact 100 px uppercase, white, black
+Style preset **`talking-head-v1`** (the default caption style: large uppercase words a few at a time): Impact 100 px uppercase, white, black
 outline 9 px, keywords white on `#FF2D6F` (padding 18×14), gap 24 px, ≤ 3 words / 17 characters, hold 0.4 s, word-by-word
 reveal, band y 1244–1444 on 1080×1920, numerals on. `captions.setStyle` overrides any field (`bandY`, colours, `reveal:
 "chunk"`…; chunking fields rebuild the chunks).

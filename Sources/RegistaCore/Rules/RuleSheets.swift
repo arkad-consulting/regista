@@ -459,6 +459,40 @@ public struct RuleBook: Sendable {
         return out
     }
 
+    /// The headings of a sheet's optional names section, in the four languages.
+    static let namesHeadings: Set<String> = ["nomi", "names", "noms", "nomes"]
+
+    /// How the person spells names (`Wrong → Right`, one per line): the lines of the «Nomi» / «Names» / «Noms» / «Nomes»
+    /// sections of the sheets `kind` reads ("For every video", the recipe a skill is based on, the kind or skill), in
+    /// that order, each once. A line with a code span is an example (the shipped sheets carry one), not a name.
+    public func names(_ kind: String, language: String) -> [String] {
+        var out: [String] = []
+        for sheet in chain(kind) {
+            var inside = false
+            for raw in RuleSheetText.parse(text(sheet, language: language) ?? "").prose.components(separatedBy: "\n") {
+                let line = raw.trimmingCharacters(in: .whitespaces)
+                if line.hasPrefix("#") {
+                    inside = line.hasPrefix("## ") && Self.namesHeadings.contains(line.dropFirst(3).trimmingCharacters(in: .whitespaces).lowercased())
+                    continue
+                }
+                guard inside, !line.contains("`") else { continue }
+                var entry = line
+                if entry.hasPrefix("- ") || entry.hasPrefix("* ") { entry = entry.dropFirst(2).trimmingCharacters(in: .whitespaces) }
+                guard entry.contains("→") || entry.contains("->"), !out.contains(entry) else { continue }
+                out.append(entry)
+            }
+        }
+        return out
+    }
+
+    /// What recipe.get says first when the person wrote names: the names, for captions, titles and fixes.
+    public func namesBriefing(_ kind: String, language: String) -> String? {
+        let names = names(kind, language: language)
+        guard !names.isEmpty else { return nil }
+        return "Names as the person spells them (the Names sections of their sheets and skill): spell them so in captions and titles, "
+            + "and pass them to captions_generate as fixes.\n" + names.map { "- " + $0 }.joined(separator: "\n")
+    }
+
     /// Header problems of the sheets that apply to `kind`, each with its sheet.
     public func problems(_ kind: String, language: String) -> [(sheet: String, problem: RuleSheetText.Problem)] {
         chain(kind).flatMap { sheet in

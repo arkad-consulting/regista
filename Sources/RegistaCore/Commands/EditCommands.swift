@@ -610,7 +610,7 @@ enum TranscriptEditText: Command {
 
 enum EditPunchIns: Command {
     static let id = "edit.punchIns"
-    static let summary = "Hide jump cuts by alternating two framings over the clips of a video track (a base crop and a tighter punch-in), switching at every clip or only when the script line changes (by \"line\"). Default (no crops given): face-aware crops per shot from the face track (run faces.track first) — every detected face kept in frame (a child in the arms too), room above the hair, never a head cut, static when one crop holds the shot, else smoothed and speed-limited; zoom sets how tight base and punch are. preset \"wesites-selfie\" = the fixed crops approved on the WeSites 1080×1920 selfie take (2026-10-26) (base [864,1536,152,384], punch [760,1351,204,487]); base/punch = your own fixed crops; mode \"face\" = fixed sizes centred on the main face. Expressed as clip.set commands, one undo step. Returns each clip's framing, crop, whether every head fits, and the face count."
+    static let summary = "Hide jump cuts by alternating two framings over the clips of a video track (a base crop and a tighter punch-in), switching at every clip or only when the script line changes (by \"line\"). Default (no crops given): face-aware crops per shot from the face track (run faces.track first) — every detected face kept in frame (a child in the arms too), room above the hair, never a head cut, static when one crop holds the shot, else smoothed and speed-limited; zoom sets how tight base and punch are. preset \"wesites-selfie\" = fixed crops for a close 1080×1920 selfie take (base [864,1536,152,384], punch [760,1351,204,487]); base/punch = your own fixed crops; mode \"face\" = fixed sizes centred on the main face. Expressed as clip.set commands, one undo step. Returns each clip's framing, crop, whether every head fits, and the face count."
     static let kind = CommandKind.edit
     static let presets: [String: (base: [Double], punch: [Double])] = [
         "wesites-selfie": ([864, 1536, 152, 384], [760, 1351, 204, 487]),
@@ -618,7 +618,7 @@ enum EditPunchIns: Command {
     static let params: [ParamSpec] = [
         .optional("base", .array(.number), "Fixed base crop [w, h, x, y] in source pixels (face mode: only w, h are used)."),
         .optional("punch", .array(.number), "Fixed punch-in crop [w, h, x, y] (face mode: only w, h are used)."),
-        .optional("preset", .oneOf(Array(presets.keys).sorted()), "Named fixed crops (wesites-selfie: the approved WeSites selfie take)."),
+        .optional("preset", .oneOf(Array(presets.keys).sorted()), "Named fixed crops (wesites-selfie: a close 1080×1920 selfie take)."),
         .optional("trackId", .string, "Video track (default: the first one)."),
         .optional("mode", .oneOf(["auto", "alternate", "face"]), "auto (default without crops): face-aware crops; alternate: the fixed crops; face: fixed sizes centred on the main face."),
         .optional("zoom", .array(.number), "auto: crop height of base and punch as fractions of the largest crop (default [0.8, 0.7]); grown when the heads need it."),

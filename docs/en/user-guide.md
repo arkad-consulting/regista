@@ -48,8 +48,8 @@ This is the simplest path: you record, Regista edits by itself, you check and ex
 8. Open the steps one by one and watch the result in the monitor:
    - **Cut & takes**: how tight the cut is (long pauses go) and, for sentences read more than once, which take to keep.
      Regista picks the best one; you can try another.
-   - **Captions**: **Captions in the video** on or off, and the style: **Talking head** (the style of the approved
-     reels), **Elegant serif**, **Bold + keyword**, **Ghost karaoke**.
+   - **Captions**: **Captions in the video** on or off, and the style: **Talking head** (large capitals a few
+     words at a time, the keyword on a coloured box), **Elegant serif**, **Bold + keyword**, **Ghost karaoke**.
    - **Appearance**: **Light grade** and, if you like, one colour for the whole video.
    - **Music & sounds**: **Choose music…** (it goes down by itself when you speak) and **A whoosh on the cuts**. Both are
      optional: on Instagram, trending music is usually added in the app.

@@ -22,9 +22,10 @@ public final class MCPServer {
     gives projectsDirectory for project_new and exportsDirectory for the exported files) and read scripts with \
     text_read. Short version of a talking-head reel: project_new → media_import → media_extractAudio → \
     transcript_run → script_set → takes_list (write the kept-take list for the user; takes_select fixes a \
-    pick) → edit_autoCut → audio_clean (−15 LUFS) → edit_punchIns + clip_set light grade → choose caption \
-    keywords (hook word, brand/product names, numbers, the point of each line: 1–2 per line, never stop \
-    words) → captions_generate {style: "talking-head-v1", keywords, fixes for misheard names} → \
+    pick) → edit_autoCut → audio_clean (−15 LUFS) → edit_punchIns + the grade, as the person's framing and colour \
+    choices say → choose caption keywords (hook word, brand/product names, numbers, the point of each line, never \
+    stop words) → captions_generate {style: the person's caption style choice, keywords, fixes for names as the \
+    script and the person's Names sections spell them} → \
     frame_contactSheet to look at the result (images come back inline) and fix what looks wrong → \
     export_render 9:16 + export_srt + export_mlt → project_save → captions_checkTiming and media_checkSync \
     on the mp4. Every effect, look, style and motion template (animated cards, checklists, counters, carousels, \

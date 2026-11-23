@@ -11,8 +11,8 @@ enum LooksCatalog {
     static let guides: [String: CatalogGuide] = [
         // Caption styles
         "caption-talking-head-v1": CatalogGuide(
-            "The approved WeSites look: big Impact capitals in white with a black outline, word by word, the keyword on a pink (brand highlight) box.",
-            useWhen: "The default for energetic talking-head reels and every WeSites/Arkad reel unless the user asks for another look.",
+            "Big Impact capitals in white with a black outline, a few words at a time, word by word, the keyword on a coloured (brand highlight) box.",
+            useWhen: "The default caption style: energetic talking-head reels, unless the person's caption style choice or the user asks for another look.",
             avoid: "Calm premium, fashion or lifestyle brands (it shouts), long sentences, reels that already carry a lot of graphics."),
         "caption-elegant-serif": CatalogGuide(
             "Cream serif italic (Didot Italic), no outline and no box, one calm phrase at a time with a faint shadow; keywords turn soft gold (the brand highlight).",

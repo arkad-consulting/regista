@@ -156,7 +156,7 @@ struct TextsTab: View {
                     if let c = captions {
                         Text(verbatim: Self.captionsLine(c))
                             .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
-                        // Caption style presets (issue #22): the approved look and the three round-2 styles.
+                        // Caption style presets (issue #22): talking-head-v1 and the three round-2 styles.
                         RChips(items: CaptionStyle.all.map { .init(id: $0.id, title: captionStyleName($0.id),
                                                                   tip: "Cambia lo stile dei sottotitoli (parole chiave e posizioni restano)") },
                                selection: CaptionStyle.all.first { c.style.id == $0.id || c.style.id.hasPrefix($0.id + "+") }?.id, flow: true) {

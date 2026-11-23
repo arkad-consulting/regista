@@ -94,13 +94,13 @@ private func request(_ method: String, _ params: JSONValue = [:], id: JSONValue 
     #expect(reel["description"]?.stringValue?.isEmpty == false)
     #expect(reel["arguments"]?.arrayValue?.compactMap { $0["name"]?.stringValue } == ["footage", "script", "brand"])
 
-    let get = try #require(s.handle(request("prompts/get", ["name": "talking-head-reel", "arguments": ["brand": "WeSites"]])))
+    let get = try #require(s.handle(request("prompts/get", ["name": "talking-head-reel", "arguments": ["brand": "Café Atelier"]])))
     #expect(get.value(at: "result.messages.0.role") == "user")
     #expect(get.value(at: "result.messages.0.content.type") == "text")
     let text = try #require(get.value(at: "result.messages.0.content.text")?.stringValue)
-    #expect(text.hasPrefix("Inputs:\n- brand: WeSites"))
+    #expect(text.hasPrefix("Inputs:\n- brand: Café Atelier"))
     for step in ["takes_list", "edit_autoCut", "audio_clean", "edit_punchIns", "captions_generate", "talking-head-v1",
-                 "frame_contactSheet", "export_render", "export_srt", "export_mlt", "−15 LUFS", "Claude Code"] {
+                 "frame_contactSheet", "export_render", "export_srt", "export_mlt", "−15 LUFS", "«Nomi»"] {
         #expect(text.contains(step), "recipe lacks \(step)")
     }
     // The same text is a tool for clients that do not show prompts to the model, followed by the editing rules (#31).

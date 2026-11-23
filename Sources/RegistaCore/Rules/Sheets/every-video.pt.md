@@ -70,3 +70,6 @@ Estas regras valem para todos os tipos de vídeo. A folha do tipo do projeto acr
 - A voz em −15 LUFS, pico real até −1,5 dBTP.
 - A música sob a voz é sempre abaixada, e some antes do logo, não depois.
 - A voz é levada ao seu nível uma única vez: nunca uma segunda normalização nem outro tratamento de volume por cima.
+
+## Nomes
+Como os nomes se escrevem nas legendas e nos títulos, um por linha: a grafia errada, depois a certa, como `Miro Talen → MiroTalen`.

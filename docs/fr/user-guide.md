@@ -53,8 +53,8 @@ C'est le chemin le plus simple : vous enregistrez, Regista monte tout seul, vous
 8. Ouvrez les étapes une à une et regardez le résultat dans le moniteur :
    - **Coupe et prises** : à quel point la coupe est serrée (les longues pauses disparaissent) et, pour les phrases lues
      plusieurs fois, quelle prise garder. Regista choisit la meilleure ; vous pouvez en essayer une autre.
-   - **Sous-titres** : **Sous-titres dans la vidéo** allumé ou éteint, et le style : **Face caméra** (le style des reels
-     validés), **Serif élégant**, **Gras + mot clé**, **Karaoké fantôme**.
+   - **Sous-titres** : **Sous-titres dans la vidéo** allumé ou éteint, et le style : **Face caméra** (grandes capitales, quelques
+     mots à la fois, le mot clé sur un encadré coloré), **Serif élégant**, **Gras + mot clé**, **Karaoké fantôme**.
    - **Apparence** : **Lumière douce** et, si vous voulez, une couleur pour toute la vidéo.
    - **Musique et sons** : **Choisir une musique…** (elle baisse toute seule quand vous parlez) et
      **Un whoosh sur les coupes**. Les deux sont facultatifs : sur Instagram, la musique tendance s'ajoute en général
