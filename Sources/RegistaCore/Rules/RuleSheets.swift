@@ -1,7 +1,8 @@
 import Foundation
 
 // Editing rules (#31): one Markdown sheet per kind of video plus one for every video. A sheet is a small header that
-// switches the checks (one line per check: `id: on|off [number]`, between two `---` lines) and the prose an agent reads
+// switches the checks (one line per check: `id: on|off [number]`, between two `---` lines), sets the person's choices
+// (one line per choice: `id: option [number]`, RuleChoices.swift) and the prose an agent reads
 // before editing. The defaults ship inside the app in the four interface languages; a user's sheet in `rules/` of
 // Regista's support folder replaces the default of its kind, and a sheet there with another name is a kind of the
 // user's own. Checks are code (RuleCheck.swift); the sheets only switch them and set their numbers.
@@ -112,8 +113,19 @@ public struct RuleSheetText: Sendable {
 
     /// The header's lines as written (nil: the file has no header).
     public var header: [String]?
+    /// A choice's valid line: the option chosen and its number when it has one.
+    public struct ChoiceEntry: Hashable, Sendable {
+        /// 1-based line of the file.
+        public var line: Int
+        public var id: String
+        public var value: String
+        public var number: [Double]?
+    }
+
     /// Valid lines, first occurrence of each id.
     public var entries: [Entry] = []
+    /// Valid choice lines, first occurrence of each id.
+    public var choices: [ChoiceEntry] = []
     public var problems: [Problem] = []
     public var prose: String
 
@@ -139,8 +151,12 @@ public struct RuleSheetText: Sendable {
             guard let colon = line.firstIndex(of: ":") else { sheet.problems.append(malformed); continue }
             let id = line[..<colon].trimmingCharacters(in: .whitespaces)
             let words = line[line.index(after: colon)...].split(whereSeparator: \.isWhitespace).map(String.init)
+            if let choice = RuleChoiceSpec.named(id) {
+                if let problem = sheet.readChoice(choice, words, line: n, seen: &seen) { sheet.problems.append(problem) }
+                continue
+            }
             guard let spec = RuleCheckSpec.named(id) else {
-                sheet.problems.append(Problem(line: n, text: RuleText(rulePhrase("Line %1$@: unknown check «%2$@»."), RuleText.n(n), .text(id))))
+                sheet.problems.append(Problem(line: n, text: RuleText(rulePhrase("Line %1$@: unknown check or choice «%2$@»."), RuleText.n(n), .text(id))))
                 continue
             }
             guard let state = words.first?.lowercased(), state == "on" || state == "off", words.count <= 2 else {
@@ -177,6 +193,36 @@ public struct RuleSheetText: Sendable {
         return sheet
     }
 
+    /// A choice's line (`id: option [number]`): kept in `choices`, or the problem with it.
+    private mutating func readChoice(_ choice: RuleChoiceSpec, _ words: [String], line n: Int, seen: inout Set<String>) -> Problem? {
+        guard let value = words.first?.lowercased(), choice.option(value) != nil, words.count <= 2 else {
+            return Problem(line: n, text: RuleText(rulePhrase("Line %1$@: %2$@ is one of %3$@."), RuleText.n(n), .text(choice.id),
+                                                  .text(choice.optionIDs.joined(separator: ", "))))
+        }
+        var number: [Double]?
+        if words.count == 2 {
+            guard let spec = choice.number else {
+                return Problem(line: n, text: RuleText(rulePhrase("Line %1$@: %2$@ takes no number."), RuleText.n(n), .text(choice.id)))
+            }
+            guard let v = choice.parse(words[1]) else {
+                return spec.isRange
+                    ? Problem(line: n, text: RuleText(rulePhrase("Line %1$@: %2$@ takes two numbers, such as %3$@."), RuleText.n(n), .text(choice.id),
+                                                      .text(RuleChoiceSpec.format(spec.defaultValue))))
+                    : Problem(line: n, text: RuleText(rulePhrase("Line %1$@: «%2$@» is not a number."), RuleText.n(n), .text(words[1])))
+            }
+            guard !choice.outOfRange(v) else {
+                return Problem(line: n, text: RuleText(rulePhrase("Line %1$@: %2$@ must be between %3$@ and %4$@."), RuleText.n(n), .text(choice.id),
+                                                      .number(spec.range.lowerBound, decimals: nil), .number(spec.range.upperBound, decimals: nil)))
+            }
+            number = v
+        }
+        guard seen.insert(choice.id).inserted else {
+            return Problem(line: n, text: RuleText(rulePhrase("Line %1$@: %2$@ is listed twice; the first line counts."), RuleText.n(n), .text(choice.id)))
+        }
+        choices.append(ChoiceEntry(line: n, id: choice.id, value: value, number: number))
+        return nil
+    }
+
     /// "0.3", "28": a number as a header writes it.
     static func format(_ v: Double) -> String {
         v.rounded() == v ? String(Int(v)) : String(format: "%g", v)
@@ -185,6 +231,11 @@ public struct RuleSheetText: Sendable {
     /// The header line of a check.
     static func line(_ id: String, on: Bool, value: Double?) -> String {
         "\(id): \(on ? "on" : "off")" + (value.map { " " + format($0) } ?? "")
+    }
+
+    /// The header line of a choice ("graphics: on 6-12").
+    static func choiceLine(_ id: String, value: String, number: [Double]?) -> String {
+        "\(id): \(value)" + (number.map { " " + RuleChoiceSpec.format($0) } ?? "")
     }
 
     /// The file: header (when there is one) and prose.
@@ -203,6 +254,21 @@ public struct RuleSheetText: Sendable {
             let on = c.on ?? current?.on ?? true
             let value = spec?.number == nil ? nil : (c.value ?? current?.value)
             let text = Self.line(c.id, on: on, value: value)
+            if let current { header[current.line - 2] = text } else { header.append(text) }
+        }
+        return Self.compose(header: header, prose: prose)
+    }
+
+    /// The file with these choices changed: the line of each one rewritten (its number kept unless a new one is given),
+    /// appended when the header has none; every other line kept as written.
+    func choosing(_ changes: [(id: String, value: String?, number: [Double]?)]) -> String {
+        var header = self.header ?? []
+        for c in changes {
+            let current = choices.first { $0.id == c.id }
+            let spec = RuleChoiceSpec.named(c.id)
+            let value = c.value ?? current?.value ?? spec?.defaultOption ?? ""
+            let number = spec?.number == nil ? nil : (c.number ?? current?.number)
+            let text = Self.choiceLine(c.id, value: value, number: number)
             if let current { header[current.line - 2] = text } else { header.append(text) }
         }
         return Self.compose(header: header, prose: prose)
@@ -315,6 +381,62 @@ public struct RuleBook: Sendable {
             }
         }
         return states
+    }
+
+    /// What a choice is on a kind and where that comes from.
+    public struct ChoiceState: Sendable {
+        public var spec: RuleChoiceSpec
+        public var value: String
+        public var number: [Double]?
+        /// "default", "every-video" or the kind.
+        public var source: String
+
+        public var json: JSONValue {
+            var o = spec.json.objectValue!
+            o["value"] = .string(value)
+            o["source"] = .string(source)
+            if let option = spec.option(value) {
+                o["label"] = .string(option.label)
+                o["optionMeaning"] = option.meaning.json
+            }
+            if let n = spec.number, case .object(var no)? = o["number"] {
+                no["value"] = RuleChoiceSpec.json(number ?? n.defaultValue)
+                o["number"] = .object(no)
+            }
+            return .object(o)
+        }
+    }
+
+    /// The choices of `kind` (those that apply to it): the defaults, then the "for every video" sheet's lines, then the
+    /// kind's own.
+    public func choices(_ kind: String, language: String) -> [ChoiceState] {
+        var states = RuleChoiceSpec.all.filter { $0.applies(to: kind) }
+            .map { ChoiceState(spec: $0, value: $0.defaultOption, number: $0.number?.defaultValue, source: "default") }
+        for sheet in kind == Self.everyVideo ? [Self.everyVideo] : [Self.everyVideo, kind] {
+            for e in RuleSheetText.parse(text(sheet, language: language) ?? "").choices {
+                guard let i = states.firstIndex(where: { $0.spec.id == e.id }) else { continue }
+                states[i].value = e.value
+                if let n = e.number { states[i].number = n }
+                states[i].source = sheet
+            }
+        }
+        return states
+    }
+
+    /// The person's choices an agent reads with a recipe, after the rules: one line per choice of the kind, the option
+    /// with what it does, the number with what it is.
+    public func choicesBriefing(_ kind: String, language: String) -> String {
+        var out = "# The person's choices (\(kind))\n\nWhat the person chose for this kind of video (rules.get reads them; rules.set changes "
+            + "one only when the person asks; Settings › Rules in the app). These choices and the rules above win over the recipe's steps "
+            + "where they say otherwise."
+        for c in choices(kind, language: language) {
+            out += "\n- \(c.spec.id): \(c.value)"
+            if let option = c.spec.option(c.value) { out += " — " + option.meaning.english }
+            if let n = c.spec.number {
+                out += " \(n.meaning): \(RuleChoiceSpec.format(c.number ?? n.defaultValue))\(n.unit == "s" ? " s" : n.unit)."
+            }
+        }
+        return out
     }
 
     /// Header problems of the sheets that apply to `kind`, each with its sheet.

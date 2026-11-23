@@ -6,10 +6,32 @@ logo-pause: on 0.3
 logo-end: on
 face-clear: on
 text-size: on 28
+# One line per choice: its id, the option chosen, and its number when it has one.
+opening-title: off
+hook: statement
+structure: free
+pace: normal
+framing: alternate 1.15
+colour: light
+format: project
+captions: talking-head-v1
+keywords: on
+graphics: on 6-12
+music: on-request
+sfx: sparse
+faceless-sound: directed
+closing-logo: brand 2
 ---
 # For every video
 
-These rules hold for every kind of video. The sheet of the project's kind adds its own on top. Before delivery: one round of fixes, then a verdict per check (passed, fixed, known issue, not checked). A sound that was measured is never said to have been listened to.
+These rules hold for every kind of video. The sheet of the project's kind adds its own on top. Before delivery: one round of fixes, then a verdict per check (passed, fixed, known issue, not checked). A sound that was measured is never said to have been listened to. The choices in the header (caption style, pace, framing, music…) are the person's: follow them, and change one only when the person asks.
+
+## Always
+- The person's original files are never modified or deleted: the edit works on the project.
+- A cloned voice is only ever the person's own.
+- A paid generation only after its cost is told and the person approves it.
+- Nothing invented on screen: no fact, number, name or quote that was not said or given.
+- Look at the frames before delivering, not only at the measurements.
 
 ## Opening
 - The first 3 seconds say what the video is about and why it is worth staying. Never give away the result or the answer there: keep it for the payoff.
@@ -17,6 +39,9 @@ These rules hold for every kind of video. The sheet of the project's kind adds i
 - The voice starts right away: no silent build-up, no greeting before the point.
 - While the opening title is on screen there are no captions: one thing to read at a time.
 - One subject, one goal and one turn (the moment that changes what the viewer thinks): what serves none of the three goes.
+
+## Picture
+- The face is never cut or covered: not by a cut, a zoom, a caption, a graphic or a change of format; there is always room above the hair.
 
 ## Captions
 - One caption group on screen at a time, and each one disappears when its words are done.

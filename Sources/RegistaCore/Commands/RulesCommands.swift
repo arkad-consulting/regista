@@ -27,6 +27,9 @@ enum Rules {
             "switches": .array(parsed.entries.map { e in
                 ["id": .string(e.id), "on": .bool(e.on), "value": e.value.map { .number($0) } ?? .null, "line": .number(Double(e.line))]
             }),
+            "choiceLines": .array(parsed.choices.map { c in
+                ["id": .string(c.id), "value": .string(c.value), "number": c.number.map(RuleChoiceSpec.json) ?? .null, "line": .number(Double(c.line))]
+            }),
             "status": ["ok": .bool(parsed.problems.isEmpty), "problems": .array(parsed.problems.map(\.json))],
         ]
         if full {
@@ -34,6 +37,7 @@ enum Rules {
             o["text"] = .string(text)
             o["prose"] = .string(parsed.prose)
             o["checks"] = .array(book.checks(kind, language: language).map(\.json))
+            o["choices"] = .array(book.choices(kind, language: language).map(\.json))
         }
         return .object(o)
     }
@@ -70,6 +74,41 @@ enum Rules {
         }
     }
 
+    /// The choice changes of a `choices` param: {id: option | {value, number}}, only the choices of `kind`.
+    static func choiceChanges(_ json: JSONValue?, kind: String, command: String) throws -> [(id: String, value: String?, number: [Double]?)] {
+        guard let o = json?.objectValue else { return [] }
+        let allowed = RuleChoiceSpec.all.filter { $0.applies(to: kind) }
+        return try o.keys.sorted().map { id in
+            guard let spec = allowed.first(where: { $0.id == id }) else {
+                throw CommandError.invalid("\(command): '\(id)' is not a choice of \(kind) (choices: \(allowed.map(\.id).joined(separator: ", ")))")
+            }
+            let v = o[id]!
+            var value = v.stringValue, given: JSONValue?
+            if value == nil {
+                guard let fields = v.objectValue, !fields.isEmpty, Set(fields.keys).isSubset(of: ["value", "number"]),
+                      fields["value"] == nil || fields["value"]?.stringValue != nil else {
+                    throw CommandError.invalid("\(command): choices.\(id) is an option (\(spec.optionIDs.joined(separator: ", "))) or {value, number}")
+                }
+                value = fields["value"]?.stringValue
+                given = fields["number"]
+            }
+            if let value, spec.option(value) == nil {
+                throw CommandError.invalid("\(command): \(id) is one of \(spec.optionIDs.joined(separator: ", "))")
+            }
+            var number: [Double]?
+            if let given {
+                guard let n = spec.number else { throw CommandError.invalid("\(command): \(id) takes no number") }
+                let parsed = given.doubleValue.map { [$0] } ?? given.arrayValue.map { $0.compactMap(\.doubleValue) } ?? given.stringValue.flatMap(spec.parse)
+                guard let p = parsed, p.count == n.defaultValue.count, !spec.outOfRange(p) else {
+                    throw CommandError.invalid("\(command): \(id) takes \(n.isRange ? "two numbers (from, to)" : "a number") between "
+                        + "\(RuleSheetText.format(n.range.lowerBound)) and \(RuleSheetText.format(n.range.upperBound))")
+                }
+                number = p
+            }
+            return (id, value, number)
+        }
+    }
+
     /// "YouTube tutorial" → "youtube-tutorial".
     static func slug(_ title: String) -> String {
         let folded = title.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil).lowercased()
@@ -85,7 +124,7 @@ enum Rules {
 
 enum RulesList: Command {
     static let id = "rules.list"
-    static let summary = "List the editing-rule sheets: every-video (always applies) and one per kind of video — the built-in kinds talking-head-reel, screen-tutorial, voice-over-video, reel-graphics, plus the user's own kinds. Each sheet is a Markdown file the user can edit (Settings › Rules); edited says the user's copy replaces the shipped default. Returns the sheets (kind, title, builtIn, edited, path, the switches written in its header, header status), the folder of the user's sheets and the open project's kind."
+    static let summary = "List the editing-rule sheets: every-video (always applies) and one per kind of video — the built-in kinds talking-head-reel, screen-tutorial, voice-over-video, reel-graphics, plus the user's own kinds. Each sheet is a Markdown file the user can edit (Settings › Rules); edited says the user's copy replaces the shipped default. Returns the sheets (kind, title, builtIn, edited, path, the switches and choice lines written in its header, header status), the checks, the person's choices (each with its options and what they do, default, number, the kinds it applies to), the folder of the user's sheets and the open project's kind."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [Rules.languageParam]
 
@@ -99,6 +138,7 @@ enum RulesList: Command {
                 if let n = s.number { o["default"] = .number(n.defaultValue); o["unit"] = .string(n.unit); o["meaning"] = .string(n.meaning) }
                 return .object(o)
             }),
+            "choices": .array(RuleChoiceSpec.all.map(\.json)),
         ]
         if let project = ctx.project {
             let k = book.kind(of: project)
@@ -110,7 +150,7 @@ enum RulesList: Command {
 
 enum RulesGet: Command {
     static let id = "rules.get"
-    static let summary = "Read one rule sheet: its whole Markdown text (header + prose), the prose alone, the switches its header writes (one line per check between two --- lines: `id: on|off [number]`), the checks as they apply to that kind (defaults, then every-video, then the kind's own lines; source says which), and the header's status (an unknown check or a malformed line is listed with its line number and ignored, never fatal). Returns the sheet."
+    static let summary = "Read one rule sheet: its whole Markdown text (header + prose), the prose alone, the switches its header writes (one line per check between two --- lines: `id: on|off [number]`), the checks as they apply to that kind (defaults, then every-video, then the kind's own lines; source says which), the person's choices that apply to that kind, resolved the same way (header lines `id: option [number]`: caption style, pace, framing, music…; each with its options and what the current one does), and the header's status (an unknown check or choice, an option that does not exist or a malformed line is listed with its line number and ignored, never fatal). Returns the sheet."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [
         .required("kind", .string, "every-video, a built-in kind or a kind of the user's (rules.list)."),
@@ -126,7 +166,7 @@ enum RulesGet: Command {
 
 enum RulesSet: Command {
     static let id = "rules.set"
-    static let summary = "Write a rule sheet (the user's copy in the rules folder, which replaces the shipped default of that kind; rules.reset brings the default back): the whole text, or only the prose (the header is kept), and/or switches — checks {\"logo-pause\": {\"on\": true, \"value\": 0.4}, \"text-size\": false}. Only when the user asked to change their rules. Not an undo step. Returns the sheet as rules.get."
+    static let summary = "Write a rule sheet (the user's copy in the rules folder, which replaces the shipped default of that kind; rules.reset brings the default back): the whole text, or only the prose (the header is kept), and/or switches — checks {\"logo-pause\": {\"on\": true, \"value\": 0.4}, \"text-size\": false} — and/or the person's choices — choices {\"pace\": \"fast\", \"graphics\": {\"value\": \"on\", \"number\": [4, 8]}}; each key rewrites only its own header line, an unknown key or option is refused with the list. Only when the user asked to change their rules. Not an undo step. Returns the sheet as rules.get."
     static let kind = CommandKind.session
     static let undoNote: String? = "no — writes the rule sheets in the rules folder, outside the project (rules.reset brings back a built-in default)"
     static let params: [ParamSpec] = [
@@ -134,21 +174,24 @@ enum RulesSet: Command {
         .optional("text", .string, "The whole file: header between two --- lines, then the prose (written as given; header problems are reported)."),
         .optional("prose", .string, "New prose (Markdown) under the current header."),
         .optional("checks", .object, "Switches to change: {id: true | false | {on, value}} (ids: \(RuleCheckSpec.ids.joined(separator: ", ")))."),
+        .optional("choices", .object, "Choices to change: {id: option | {value, number}} (ids: \(RuleChoiceSpec.ids.joined(separator: ", ")); a kind takes only its own choices, rules.list says which)."),
         Rules.languageParam,
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         let book = ctx.services.rules, kind = p.requiredString("kind"), language = Rules.language(p)
         try Rules.requireKind(kind, book, command: id)
-        guard p.has("text") || p.has("prose") || p.has("checks") else { throw CommandError.invalid("\(id): pass text, prose or checks") }
+        guard p.has("text") || p.has("prose") || p.has("checks") || p.has("choices") else { throw CommandError.invalid("\(id): pass text, prose, checks or choices") }
         guard !(p.has("text") && p.has("prose")) else { throw CommandError.invalid("\(id): pass text or prose, not both") }
         let changes = try Rules.changes(p.json("checks"), command: id)
+        let choices = try Rules.choiceChanges(p.json("choices"), kind: kind, command: id)
         var text = p.string("text") ?? book.text(kind, language: language) ?? ""
         if let prose = p.string("prose") {
             let parsed = RuleSheetText.parse(text)
             text = RuleSheetText.compose(header: parsed.header, prose: prose)
         }
         if !changes.isEmpty { text = RuleSheetText.parse(text).setting(changes) }
+        if !choices.isEmpty { text = RuleSheetText.parse(text).choosing(choices) }
         try Rules.write(text, kind: kind, book, command: id)
         return Rules.sheet(kind, book, language: language, full: true)
     }

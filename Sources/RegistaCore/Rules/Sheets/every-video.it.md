@@ -6,10 +6,32 @@ logo-pause: on 0.3
 logo-end: on
 face-clear: on
 text-size: on 28
+# Una riga per scelta: il suo id, l'opzione scelta, e il suo numero quando ne ha uno.
+opening-title: off
+hook: statement
+structure: free
+pace: normal
+framing: alternate 1.15
+colour: light
+format: project
+captions: talking-head-v1
+keywords: on
+graphics: on 6-12
+music: on-request
+sfx: sparse
+faceless-sound: directed
+closing-logo: brand 2
 ---
 # Per ogni video
 
-Queste regole valgono per ogni tipo di video. Il foglio del tipo del progetto aggiunge le sue. Prima di consegnare: un giro di correzioni, poi un verdetto per ogni controllo (passato, corretto, problema noto, non controllato). Un suono misurato non si dice mai ascoltato.
+Queste regole valgono per ogni tipo di video. Il foglio del tipo del progetto aggiunge le sue. Prima di consegnare: un giro di correzioni, poi un verdetto per ogni controllo (passato, corretto, problema noto, non controllato). Un suono misurato non si dice mai ascoltato. Le scelte nell'intestazione (stile dei sottotitoli, ritmo, inquadratura, musica…) sono della persona: seguile, e cambiane una solo quando la persona lo chiede.
+
+## Sempre
+- I file originali della persona non si modificano né si cancellano mai: il montaggio lavora sul progetto.
+- Una voce clonata è sempre e solo quella della persona.
+- Una generazione a pagamento solo dopo averne detto il costo e con l'ok della persona.
+- Niente di inventato sullo schermo: nessun fatto, numero, nome o citazione che non sia stato detto o dato.
+- Prima di consegnare si guardano i fotogrammi, non solo le misure.
 
 ## Apertura
 - I primi 3 secondi dicono di cosa parla il video e perché vale la pena restare. Mai svelare lì il risultato o la risposta: tienili per il finale.
@@ -17,6 +39,9 @@ Queste regole valgono per ogni tipo di video. Il foglio del tipo del progetto ag
 - La voce parte subito: niente attese mute, niente saluti prima del punto.
 - Finché il titolo d'apertura è sullo schermo non ci sono sottotitoli: una sola cosa da leggere alla volta.
 - Un solo soggetto, un solo obiettivo e una sola svolta (il momento che cambia quello che pensa chi guarda): ciò che non serve a nessuno dei tre si toglie.
+
+## Immagine
+- Il volto non si taglia né si copre mai: né con un taglio, né con uno zoom, un sottotitolo, una grafica o un cambio di formato; sopra i capelli resta sempre spazio.
 
 ## Sottotitoli
 - Un solo blocco di sottotitoli alla volta, e ognuno sparisce quando le sue parole sono finite.

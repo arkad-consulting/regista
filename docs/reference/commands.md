@@ -1855,7 +1855,7 @@ Returns: a compact JSON summary.
 
 **Read a recipe** · MCP tool: `recipe_get` · undo: no — reads only · takes `project`
 
-Read this before making any video: the step-by-step recipe and the house rules for a kind of video — talking-head-reel (a person speaking to camera), screen-tutorial (a screen recording made in Regista, with or without the face), voice-over-video (no one on camera: the user's cloned voice over footage, stills and graphics), reel-graphics (titles, cards, sound effects and music on top of an edit), prompt-to-reel (a faceless reel from one sentence of the user: script and scene plan to confirm, then voice or none, motion templates, music, sound effects). Without name, lists the recipes with what each is for: call it first and pick. The text ends with the editing rules of that kind of video (the user's rule sheets: they always hold, and export.render refuses while one of their checks fails). Returns {name, title, text, kind}.
+Read this before making any video: the step-by-step recipe and the house rules for a kind of video — talking-head-reel (a person speaking to camera), screen-tutorial (a screen recording made in Regista, with or without the face), voice-over-video (no one on camera: the user's cloned voice over footage, stills and graphics), reel-graphics (titles, cards, sound effects and music on top of an edit), prompt-to-reel (a faceless reel from one sentence of the user: script and scene plan to confirm, then voice or none, motion templates, music, sound effects). Without name, lists the recipes with what each is for: call it first and pick. The text ends with the editing rules of that kind of video (the user's rule sheets: they always hold, and export.render refuses while one of their checks fails), then the person's choices for it (caption style, pace, framing, music, sound effects, graphics, format, closing logo…): rules and choices win over the recipe's steps where they disagree. Returns {name, title, text, kind}.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1976,7 +1976,7 @@ Returns: the fixes applied and the check after them.
 
 **Read a rule sheet** · MCP tool: `rules_get` · undo: no — reads only · takes `project`
 
-Read one rule sheet: its whole Markdown text (header + prose), the prose alone, the switches its header writes (one line per check between two --- lines: `id: on|off [number]`), the checks as they apply to that kind (defaults, then every-video, then the kind's own lines; source says which), and the header's status (an unknown check or a malformed line is listed with its line number and ignored, never fatal). Returns the sheet.
+Read one rule sheet: its whole Markdown text (header + prose), the prose alone, the switches its header writes (one line per check between two --- lines: `id: on|off [number]`), the checks as they apply to that kind (defaults, then every-video, then the kind's own lines; source says which), the person's choices that apply to that kind, resolved the same way (header lines `id: option [number]`: caption style, pace, framing, music…; each with its options and what the current one does), and the header's status (an unknown check or choice, an option that does not exist or a malformed line is listed with its line number and ignored, never fatal). Returns the sheet.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1989,13 +1989,13 @@ Returns: the sheet.
 
 **List the editing rules** · MCP tool: `rules_list` · undo: no — reads only · takes `project`
 
-List the editing-rule sheets: every-video (always applies) and one per kind of video — the built-in kinds talking-head-reel, screen-tutorial, voice-over-video, reel-graphics, plus the user's own kinds. Each sheet is a Markdown file the user can edit (Settings › Rules); edited says the user's copy replaces the shipped default. Returns the sheets (kind, title, builtIn, edited, path, the switches written in its header, header status), the folder of the user's sheets and the open project's kind.
+List the editing-rule sheets: every-video (always applies) and one per kind of video — the built-in kinds talking-head-reel, screen-tutorial, voice-over-video, reel-graphics, plus the user's own kinds. Each sheet is a Markdown file the user can edit (Settings › Rules); edited says the user's copy replaces the shipped default. Returns the sheets (kind, title, builtIn, edited, path, the switches and choice lines written in its header, header status), the checks, the person's choices (each with its options and what they do, default, number, the kinds it applies to), the folder of the user's sheets and the open project's kind.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `language` | one of `it`, `en`, `fr`, `pt` | no | sheets read (it, en, fr, pt | Language of the default sheets read (it, en, fr, pt; default: the app's interface language). A sheet the user wrote is the same in every language. |
 
-Returns: the sheets (kind, title, builtIn, edited, path, the switches written in its header, header status), the folder of the user's sheets and the open project's kind.
+Returns: the sheets (kind, title, builtIn, edited, path, the switches and choice lines written in its header, header status), the checks, the person's choices (each with its options and what they do, default, number, the kinds it applies to), the folder of the user's sheets and the open project's kind.
 
 ### `rules.removeKind`
 
@@ -2026,7 +2026,7 @@ Returns: the sheet and whether a copy was removed.
 
 **Change a rule sheet** · MCP tool: `rules_set` · undo: no — writes the rule sheets in the rules folder, outside the project (rules.reset brings back a built-in default) · takes `project`
 
-Write a rule sheet (the user's copy in the rules folder, which replaces the shipped default of that kind; rules.reset brings the default back): the whole text, or only the prose (the header is kept), and/or switches — checks {"logo-pause": {"on": true, "value": 0.4}, "text-size": false}. Only when the user asked to change their rules. Not an undo step. Returns the sheet as rules.get.
+Write a rule sheet (the user's copy in the rules folder, which replaces the shipped default of that kind; rules.reset brings the default back): the whole text, or only the prose (the header is kept), and/or switches — checks {"logo-pause": {"on": true, "value": 0.4}, "text-size": false} — and/or the person's choices — choices {"pace": "fast", "graphics": {"value": "on", "number": [4, 8]}}; each key rewrites only its own header line, an unknown key or option is refused with the list. Only when the user asked to change their rules. Not an undo step. Returns the sheet as rules.get.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -2034,6 +2034,7 @@ Write a rule sheet (the user's copy in the rules folder, which replaces the ship
 | `text` | string | no | – | The whole file: header between two --- lines, then the prose (written as given; header problems are reported). |
 | `prose` | string | no | – | New prose (Markdown) under the current header. |
 | `checks` | object | no | – | Switches to change: {id: true \| false \| {on, value}} (ids: title-captions, logo-captions, logo-pause, logo-end, face-clear, text-size). |
+| `choices` | object | no | – | Choices to change: {id: option \| {value, number}} (ids: opening-title, hook, structure, pace, framing, colour, format, captions, keywords, graphics, music, sfx, faceless-sound, closing-logo; a kind takes only its own choices, rules.list says which). |
 | `language` | one of `it`, `en`, `fr`, `pt` | no | sheets read (it, en, fr, pt | Language of the default sheets read (it, en, fr, pt; default: the app's interface language). A sheet the user wrote is the same in every language. |
 
 Returns: the sheet as rules.get.

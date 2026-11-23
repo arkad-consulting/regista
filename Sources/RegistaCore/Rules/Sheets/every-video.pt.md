@@ -6,10 +6,32 @@ logo-pause: on 0.3
 logo-end: on
 face-clear: on
 text-size: on 28
+# Uma linha por escolha: o id, a opção escolhida e o número quando ela tem um.
+opening-title: off
+hook: statement
+structure: free
+pace: normal
+framing: alternate 1.15
+colour: light
+format: project
+captions: talking-head-v1
+keywords: on
+graphics: on 6-12
+music: on-request
+sfx: sparse
+faceless-sound: directed
+closing-logo: brand 2
 ---
 # Para todos os vídeos
 
-Estas regras valem para todos os tipos de vídeo. A folha do tipo do projeto acrescenta as suas. Antes de entregar: uma rodada de correções, depois um veredito para cada verificação (passou, corrigido, problema conhecido, não verificado). Um som medido nunca é apresentado como ouvido.
+Estas regras valem para todos os tipos de vídeo. A folha do tipo do projeto acrescenta as suas. Antes de entregar: uma rodada de correções, depois um veredito para cada verificação (passou, corrigido, problema conhecido, não verificado). Um som medido nunca é apresentado como ouvido. As escolhas do cabeçalho (estilo das legendas, ritmo, enquadramento, música…) são da pessoa: siga-as e só mude uma quando a pessoa pedir.
+
+## Sempre
+- Os arquivos originais da pessoa nunca são modificados nem apagados: a edição trabalha no projeto.
+- Uma voz clonada é sempre e só a da própria pessoa.
+- Uma geração paga só depois de informar o custo e com o ok da pessoa.
+- Nada inventado na tela: nenhum fato, número, nome ou citação que não tenha sido dito ou fornecido.
+- Antes de entregar, olhe os quadros, não só as medições.
 
 ## Abertura
 - Os primeiros 3 segundos dizem do que o vídeo trata e por que vale a pena ficar. Nunca revele ali o resultado nem a resposta: guarde para o final.
@@ -17,6 +39,9 @@ Estas regras valem para todos os tipos de vídeo. A folha do tipo do projeto acr
 - A voz começa logo: nada de espera muda, nada de cumprimentos antes do assunto.
 - Enquanto o título de abertura está na tela não há legendas: uma coisa para ler de cada vez.
 - Um só assunto, um só objetivo e uma só virada (o momento que muda o que pensa quem assiste): o que não serve a nenhum dos três sai.
+
+## Imagem
+- O rosto nunca é cortado nem coberto: nem por um corte, nem por um zoom, uma legenda, um gráfico ou uma mudança de formato; sempre fica espaço acima do cabelo.
 
 ## Legendas
 - Um bloco de legendas na tela de cada vez, e cada um some quando suas palavras terminam.

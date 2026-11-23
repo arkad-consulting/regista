@@ -6,10 +6,32 @@ logo-pause: on 0.3
 logo-end: on
 face-clear: on
 text-size: on 28
+# Une ligne par choix : son id, l'option choisie, et son nombre quand il en a un.
+opening-title: off
+hook: statement
+structure: free
+pace: normal
+framing: alternate 1.15
+colour: light
+format: project
+captions: talking-head-v1
+keywords: on
+graphics: on 6-12
+music: on-request
+sfx: sparse
+faceless-sound: directed
+closing-logo: brand 2
 ---
 # Pour toutes les vidéos
 
-Ces règles valent pour tous les types de vidéo. La fiche du type du projet ajoute les siennes. Avant de livrer : un tour de corrections, puis un verdict pour chaque contrôle (réussi, corrigé, problème connu, non contrôlé). Un son mesuré n'est jamais présenté comme écouté.
+Ces règles valent pour tous les types de vidéo. La fiche du type du projet ajoute les siennes. Avant de livrer : un tour de corrections, puis un verdict pour chaque contrôle (réussi, corrigé, problème connu, non contrôlé). Un son mesuré n'est jamais présenté comme écouté. Les choix de l'en-tête (style des sous-titres, rythme, cadrage, musique…) appartiennent à la personne : suivez-les, et n'en changez un que si la personne le demande.
+
+## Toujours
+- Les fichiers originaux de la personne ne sont jamais modifiés ni supprimés : le montage travaille sur le projet.
+- Une voix clonée est toujours et seulement celle de la personne.
+- Une génération payante seulement après en avoir annoncé le coût et avec l'accord de la personne.
+- Rien d'inventé à l'écran : aucun fait, chiffre, nom ou citation qui n'a pas été dit ou fourni.
+- Avant de livrer, regardez les images, pas seulement les mesures.
 
 ## Ouverture
 - Les 3 premières secondes disent de quoi parle la vidéo et pourquoi rester. N'y dévoilez jamais le résultat ni la réponse : gardez-les pour la fin.
@@ -17,6 +39,9 @@ Ces règles valent pour tous les types de vidéo. La fiche du type du projet ajo
 - La voix commence tout de suite : pas d'attente muette, pas de salutations avant le propos.
 - Tant que le titre d'ouverture est à l'écran, il n'y a pas de sous-titres : une seule chose à lire à la fois.
 - Un seul sujet, un seul but et un seul tournant (le moment qui change ce que pense la personne qui regarde) : ce qui ne sert aucun des trois est retiré.
+
+## Image
+- Le visage n'est jamais coupé ni couvert : ni par une coupe, ni par un zoom, un sous-titre, un graphisme ou un changement de format ; il reste toujours de la place au-dessus des cheveux.
 
 ## Sous-titres
 - Un seul groupe de sous-titres à l'écran à la fois, et chacun disparaît quand ses mots sont dits.

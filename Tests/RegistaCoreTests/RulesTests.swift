@@ -44,7 +44,7 @@ private func rulesEngine(_ fakes: FakeServices = FakeServices()) throws -> (Engi
     #expect(s.prose == "# Prose\nBody.")
     let lines = s.problems.map(\.line)
     #expect(lines == [5, 6, 7, 8, 9, 10, 11], "\(s.problems.map(\.text.english))")
-    #expect(s.problems.contains { $0.text.english == "Line 8: unknown check «surprise»." })
+    #expect(s.problems.contains { $0.text.english == "Line 8: unknown check or choice «surprise»." })
     #expect(s.problems.contains { $0.text.english == "Line 7: face-clear takes no number." })
     #expect(s.problems.contains { $0.text.english == "Line 10: logo-pause must be between 0 and 5." })
     #expect(s.problems.contains { $0.text.english == "Line 9: text-size is listed twice; the first line counts." })
@@ -316,4 +316,124 @@ private func rulesEngine(_ fakes: FakeServices = FakeServices()) throws -> (Engi
     let short = LogoAdd.retimed(keys, from: t(6), to: t(2))!
     #expect(short.map(\.time) == [.zero, t(0.25), t(1.75), t(2)])
     #expect(LogoAdd.retimed(nil, from: t(6), to: t(2)) == nil)
+}
+
+// The person's choices (one regia): header lines like the checks', resolved kind over every-video over the default, read
+// and written by the rules commands, appended to the recipe.
+
+@Test func choicesAreHeaderLinesWithTheirProblemsReportedLikeTheChecks() {
+    let text = """
+        ---
+        pace: fast
+        captions: elegant-serif 3
+        framing: alternate-cut 1,3×
+        graphics: on 4–10
+        music: loud
+        closing-logo: on 30
+        sfx:
+        graphics: off
+        captoins: none
+        keywords: on 2-3
+        hook: Question
+        ---
+        # Prose
+        """
+    let s = RuleSheetText.parse(text)
+    #expect(s.entries.isEmpty, "a choice was read as a check: \(s.entries)")
+    #expect(s.choices.map(\.id) == ["pace", "framing", "graphics", "hook"], "\(s.choices)")
+    #expect(s.choices[1].number == [1.3] && s.choices[2].number == [4, 10] && s.choices[3].value == "question")
+    #expect(s.problems.map(\.line) == [3, 6, 7, 8, 9, 10, 11], "\(s.problems.map(\.text.english))")
+    #expect(s.problems.contains { $0.text.english == "Line 3: captions takes no number." })
+    #expect(s.problems.contains { $0.text.english == "Line 6: music is one of on-request, never, bed." })
+    #expect(s.problems.contains { $0.text.english == "Line 7: closing-logo must be between 0.5 and 10." })
+    #expect(s.problems.contains { $0.text.english == "Line 8: sfx is one of none, sparse, actions." }, "a choice with no value is not reported")
+    #expect(s.problems.contains { $0.text.english == "Line 9: graphics is listed twice; the first line counts." })
+    #expect(s.problems.contains { $0.text.english == "Line 10: unknown check or choice «captoins»." })
+    #expect(s.problems.contains { $0.text.english == "Line 11: keywords takes no number." })
+    #expect(RuleSheetText.parse("---\ngraphics: on 7\n---\n").problems.first?.text.english == "Line 2: graphics takes two numbers, such as 6-12.")
+    // Changing a choice rewrites its line (its number kept) and nothing else; a new one is appended.
+    let changed = RuleSheetText.parse(s.choosing([("framing", "still", nil), ("music", "never", nil)]))
+    #expect(changed.choices.first { $0.id == "framing" }?.value == "still" && changed.choices.first { $0.id == "framing" }?.number == [1.3])
+    #expect(changed.choices.first { $0.id == "music" }?.value == "never" && changed.prose == s.prose)
+    #expect(changed.header?.dropLast() == s.header?.enumerated().map { $0.offset == 2 ? "framing: still 1.3" : $0.element }[...])
+}
+
+@Test func everyChoiceHasItsOptionsADefaultAndTheShippedSheetListsThem() {
+    #expect(RuleChoiceSpec.ids == ["opening-title", "hook", "structure", "pace", "framing", "colour", "format", "captions", "keywords", "graphics",
+                                   "music", "sfx", "faceless-sound", "closing-logo"])
+    #expect(Set(RuleChoiceSpec.ids).isDisjoint(with: RuleCheckSpec.ids))
+    for c in RuleChoiceSpec.all {
+        #expect(c.option(c.defaultOption) != nil, "\(c.id): the default is not an option")
+        #expect(Set(c.optionIDs).count == c.options.count && c.options.count >= 2, "\(c.id)")
+        if let n = c.number { #expect(!c.outOfRange(n.defaultValue), "\(c.id): the default number is out of its range") }
+        for k in c.kinds ?? [] { #expect(RuleBook.builtInKinds.contains(k), "\(c.id) applies to an unknown kind \(k)") }
+    }
+    #expect(RuleChoiceSpec.named("captions")?.optionIDs == ["talking-head-v1", "elegant-serif", "bold-keyword", "ghost-karaoke", "none"])
+    #expect(Array(RuleChoiceSpec.named("captions")!.optionIDs.dropLast()) == CaptionStyle.all.map(\.id), "the caption styles and the choice differ")
+    #expect(RuleChoiceSpec.named("format")?.optionIDs == ["project"] + ExportPreset.all.map(\.id))
+    #expect(RuleChoiceSpec.named("pace")?.options.map { $0.values["maxPause"] ?? 0 } == [1.2, 0.7, 0.4])
+    // The shipped "for every video" sheet writes every choice at its default, in the four languages.
+    for lang in RuleBook.languages {
+        let s = RuleSheetText.parse(RuleDefaults.text(RuleBook.everyVideo, language: lang) ?? "")
+        #expect(s.choices.map(\.id) == RuleChoiceSpec.ids, "\(lang)")
+        for e in s.choices {
+            let spec = RuleChoiceSpec.named(e.id)!
+            #expect(e.value == spec.defaultOption && e.number == spec.number?.defaultValue, "\(lang): \(e.id) is not at its default")
+        }
+    }
+    // Which kinds a choice belongs to: every-video and a kind of the user's get them all.
+    let framing = RuleChoiceSpec.named("framing")!, faceless = RuleChoiceSpec.named("faceless-sound")!
+    #expect(framing.applies(to: "talking-head-reel") && !framing.applies(to: "voice-over-video") && framing.applies(to: RuleBook.everyVideo) && framing.applies(to: "my-kind"))
+    #expect(faceless.applies(to: "voice-over-video") && !faceless.applies(to: "talking-head-reel"))
+}
+
+@Test func choicesResolveKindOverEveryVideoOverTheDefaultAndRulesSetChangesOneLine() throws {
+    let (e, book) = try rulesEngine()
+    func choice(_ kind: String, _ id: String) throws -> JSONValue? {
+        try e.execute("rules.get", params: ["kind": .string(kind), "language": "en"])["choices"]?.arrayValue?.first { $0["id"]?.stringValue == id }
+    }
+    #expect(try choice("talking-head-reel", "pace")?["value"] == "normal" && choice("talking-head-reel", "pace")?["source"] == "every-video")
+    #expect(try choice("talking-head-reel", "faceless-sound") == nil, "a choice of another kind is listed")
+    #expect(try choice("voice-over-video", "faceless-sound")?["value"] == "directed")
+    #expect(try choice(RuleBook.everyVideo, "framing")?["number"]?["value"] == 1.15)
+    #expect(try choice(RuleBook.everyVideo, "graphics")?["number"]?["value"] == [6, 12])
+
+    // every-video's line, then the kind's own over it.
+    try e.execute("rules.set", params: ["kind": "every-video", "choices": ["pace": "fast"]])
+    let before = try #require(book.text("every-video", language: "en")).components(separatedBy: "\n")
+    #expect(try choice("talking-head-reel", "pace")?["value"] == "fast")
+    try e.execute("rules.set", params: ["kind": "talking-head-reel", "choices": ["pace": "calm", "framing": ["number": 1.3]]])
+    #expect(try choice("talking-head-reel", "pace")?["value"] == "calm" && choice("talking-head-reel", "pace")?["source"] == "talking-head-reel")
+    #expect(try choice("talking-head-reel", "framing")?["value"] == "alternate" && choice("talking-head-reel", "framing")?["number"]?["value"] == 1.3)
+    #expect(try choice("screen-tutorial", "pace")?["value"] == "fast")
+    // One key, one line: the kind's set did not touch every-video, a second set on every-video changes only its line.
+    try e.execute("rules.set", params: ["kind": "every-video", "choices": ["graphics": ["value": "on", "number": "4-8"]]])
+    let after = try #require(book.text("every-video", language: "en")).components(separatedBy: "\n")
+    #expect(after.count == before.count && zip(before, after).filter { $0 != $1 }.map(\.1) == ["graphics: on 4-8"])
+
+    // Refused, with the list: an unknown key, a choice of another kind, a value that is no option, a number out of range.
+    for (kind, choices) in [("every-video", ["captoins": JSONValue.string("none")]), ("talking-head-reel", ["faceless-sound": "plain"]),
+                            ("every-video", ["music": "loud"]), ("every-video", ["closing-logo": ["number": 40]]), ("every-video", ["keywords": ["number": 2]])] {
+        #expect(throws: CommandError.self, "\(choices)") { try e.execute("rules.set", params: ["kind": .string(kind), "choices": .object(choices)]) }
+    }
+    do { _ = try e.execute("rules.set", params: ["kind": "talking-head-reel", "choices": ["faceless-sound": "plain"]]) } catch let error as CommandError {
+        #expect(error.message.contains("pace") && error.message.contains("captions"), "the refusal does not list the kind's choices: \(error.message)")
+    }
+    // rules.list carries the specs.
+    #expect(try e.execute("rules.list")["choices"]?.arrayValue?.compactMap { $0["id"]?.stringValue } == RuleChoiceSpec.ids)
+}
+
+@Test func recipeGetAppendsThePersonsChoicesOfItsKind() throws {
+    let (e, _) = try rulesEngine()
+    try e.execute("rules.set", params: ["kind": "every-video", "choices": ["captions": "ghost-karaoke"]])
+    let text = try #require(e.execute("recipe.get", params: ["name": "talking-head-reel", "language": "en"])["text"]?.stringValue)
+    let rules = try #require(text.range(of: "# Editing rules (talking-head-reel)")), choices = try #require(text.range(of: "# The person's choices (talking-head-reel)"))
+    #expect(rules.upperBound < choices.lowerBound, "the choices do not come after the rules")
+    #expect(text.contains("- captions: ghost-karaoke — The whole line shown faint"))
+    #expect(text.contains("- pace: normal — Pauses up to 0.7 s stay; longer ones are cut, keeping 0.12 s of breath."))
+    #expect(text.contains("- framing: alternate — A punch-in when the line of the script changes. How much closer the punch-in is: 1.15×."))
+    #expect(text.contains("win over the recipe's steps"), "recipe.get does not say the sheet wins")
+    #expect(!text.contains("faceless-sound"), "a choice of another kind is in the talking-head recipe")
+    let voice = try #require(e.execute("recipe.get", params: ["name": "prompt-to-reel", "language": "en"])["text"]?.stringValue)
+    #expect(voice.contains("- faceless-sound: directed") && !voice.contains("- framing:"))
 }

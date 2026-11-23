@@ -516,7 +516,7 @@ extension MouseSuites {
         "checks": [["id": "title-captions", "title": "No captions while the opening title is on screen", "ran": true, "violations": 1],
                    ["id": "logo-end", "title": "The logo only at the end", "ran": true, "violations": 0],
                    ["id": "face-clear", "title": "No logo or title over the speaker's face", "ran": false, "violations": 0]],
-        "sheetProblems": [["sheet": "every-video", "line": 2, "message": "m", "messageKey": "Line %1$@: unknown check «%2$@».", "messageArgs": ["2", "x"]]],
+        "sheetProblems": [["sheet": "every-video", "line": 2, "message": "m", "messageKey": "Line %1$@: unknown check or choice «%2$@».", "messageArgs": ["2", "x"]]],
         "note": .null,
     ], list: ["sheets": [["kind": "every-video", "title": "For every video", "builtIn": true], ["kind": "talking-head-reel", "title": "Talking-head reel", "builtIn": true],
                          ["kind": "yt", "title": "YouTube", "builtIn": false]]])
@@ -525,7 +525,7 @@ extension MouseSuites {
     #expect(report.violations[0].message == "Captions show while the opening title is on screen (0.00–2.00 s).")
     #expect(report.violations[0].fix == StepCall(id: "captions.clear", params: ["from": 0, "to": 2]) && report.violations[1].fix == nil)
     #expect(report.passed == ["The logo only at the end"], "a check that did not run is not counted as passed")
-    #expect(report.problems == ["Line 2: unknown check «x»."])
+    #expect(report.problems == ["Line 2: unknown check or choice «x»."])
     #expect(ExportRulesCard.time(41.8) == "0:41" && ExportRulesCard.time(0.3) == "0:00")
 }
 

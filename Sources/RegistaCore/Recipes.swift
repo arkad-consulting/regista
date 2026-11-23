@@ -340,7 +340,7 @@ extension Recipes {
 
 enum RecipeGet: Command {
     static let id = "recipe.get"
-    static let summary = "Read this before making any video: the step-by-step recipe and the house rules for a kind of video — talking-head-reel (a person speaking to camera), screen-tutorial (a screen recording made in Regista, with or without the face), voice-over-video (no one on camera: the user's cloned voice over footage, stills and graphics), reel-graphics (titles, cards, sound effects and music on top of an edit), prompt-to-reel (a faceless reel from one sentence of the user: script and scene plan to confirm, then voice or none, motion templates, music, sound effects). Without name, lists the recipes with what each is for: call it first and pick. The text ends with the editing rules of that kind of video (the user's rule sheets: they always hold, and export.render refuses while one of their checks fails). Returns {name, title, text, kind}."
+    static let summary = "Read this before making any video: the step-by-step recipe and the house rules for a kind of video — talking-head-reel (a person speaking to camera), screen-tutorial (a screen recording made in Regista, with or without the face), voice-over-video (no one on camera: the user's cloned voice over footage, stills and graphics), reel-graphics (titles, cards, sound effects and music on top of an edit), prompt-to-reel (a faceless reel from one sentence of the user: script and scene plan to confirm, then voice or none, motion templates, music, sound effects). Without name, lists the recipes with what each is for: call it first and pick. The text ends with the editing rules of that kind of video (the user's rule sheets: they always hold, and export.render refuses while one of their checks fails), then the person's choices for it (caption style, pace, framing, music, sound effects, graphics, format, closing logo…): rules and choices win over the recipe's steps where they disagree. Returns {name, title, text, kind}."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [
         .optional("name", .oneOf(Recipes.all.map(\.name)), "Recipe: \(Recipes.all.map(\.name).joined(separator: ", "))."),
@@ -351,7 +351,8 @@ enum RecipeGet: Command {
         guard let name = p.string("name"), let r = Recipes.named(name) else {
             return ["recipes": .array(Recipes.all.map { ["name": .string($0.name), "title": .string($0.title), "description": .string($0.description)] })]
         }
-        let rules = ctx.services.rules.briefing(r.kind, language: Rules.language(p))
+        let language = Rules.language(p), book = ctx.services.rules
+        let rules = book.briefing(r.kind, language: language) + "\n\n" + book.choicesBriefing(r.kind, language: language)
         return ["name": .string(r.name), "title": .string(r.title), "text": .string(r.text() + "\n\n" + rules), "kind": .string(r.kind)]
     }
 }
