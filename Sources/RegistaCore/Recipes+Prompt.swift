@@ -16,8 +16,7 @@ extension Recipes {
         body: """
         # A reel from one sentence — recipe
 
-        You edit with the regista tools only. The user gives a sentence and confirms one plan; nothing is built before
-        that yes. What the reel claims is what the sentence (or the user) says: no facts, figures or quotes of your own.
+        You edit with the regista tools only.
 
         ## Steps
         1. Ask at most three short questions, in one message, and only what the sentence does not say: who it is for,
@@ -32,15 +31,15 @@ extension Recipes {
            - Script: one line per beat, 4–10 words (about 2.3 words a second; 20–45 s in all).
            - Scene plan, a table: scene | seconds | words said | what is seen | transition | music | sound. What is seen =
              a template with its fields, a HyperFrames scene in one line, a still, or footage from Media. Music = bed,
-             build or stop for each section, as the music choice allows. Sound = as the sfx choice says (actions: each
-             visible action; sparse: the key moments), a name from sfx_library, or none. With the faceless-sound choice
+             build or stop for each section, as the music choice allows. Sound = a name from sfx_library or none, as the sfx choice
+             says. With the faceless-sound choice
              directed, two moments are marked: a near-silence before the turn (0.4–0.8 s: music stop, no word, no
-             effect starts in it and no tail rings through it) and a J-cut (a sound that starts 0.3–2 s before the
+             effect, no tail rings through it) and a J-cut (a sound that starts 0.3–2 s before the
              picture it announces).
         4. project_new {name, directory: <projectsDirectory>, kind: "voice-over-video"} (1080×1920; this recipe follows
            that kind's rules), then brandkit_apply {kit}.
-        5. Voice: the active profile's own cloned voice, as in the voice-over-video recipe (voice_preview {estimate:
-           true}, then voice_say {text, language, gap: 0.3}; never another voice). Say the lines up to the turn, then the
+        5. Voice: as in the voice-over-video recipe (voice_preview {estimate: true}, then voice_say {text, language,
+           gap: 0.3}). Say the lines up to the turn, then the
            rest with at = the last end + the near-silence. The clips' start and duration are the scenes' times. No
            profile, no voice in that language, or the user prefers none → no voice: music, sound effects and the lines
            as titles carry it.
@@ -56,19 +55,17 @@ extension Recipes {
              before-after, quote-card, progress-rows, timeline-milestones, stacked-pages, logo-tile.
            - Footage and stills from Media: media_import → track_add {kind: "video"} once → timeline_place. A generated
              still only when the plan had it and the local engine makes it (generate_providers, generate_check:
-             ComfyUI is free); a paid provider only as the reel-graphics recipe says (the estimate, then the user's
-             approval in the app).
+             ComfyUI is free).
         7. HyperFrames, only for what no template does (often the signature moment), and only when your client can write
            a folder: index.html at the scene's size with a transparent background, the kit's colours and fonts, CSS
            animations, nothing loaded from the network. graphics_hyperframes {folder, start, duration, position}; about a
            minute for 3 s. Not installed, or no way to write files → the nearest template, and say so.
         8. Transitions as planned (transition_add, two at most: whip or flash into the turn or the signature moment);
            titles with title_add (background: "none" unless it is a card).
-        9. Captions: with a voice, captions_generate {sourceTrackId: <Voce track>, keywords, fixes: names as the Names
-           sections of the person's sheets and skill write them (listed at the top)}, then captions_clear {from, to}
+        9. Captions: with a voice, captions_generate {sourceTrackId: <Voce track>, keywords, fixes: the names at the top}, then captions_clear {from, to}
            over the near-silence (a caption stays a moment after its last word). Without one there are no words to caption: each line is a title_add (band "lower") or the scene's own
            text.
-        10. Music, as the plan and the music choice have it: a file of the user's (media_list); none → say so, the effects carry it. One audio_addMusic {path, start,
+        10. Music as planned: a file of the user's (media_list); none → say so, the effects carry it. One audio_addMusic {path, start,
             end, sourceIn} per section: bed = the default level, build = level −19 with fadeIn, stop = no call (end the
             section before it with fadeOut 0.15). Effects: sfx_add {name, at, volume 0.2–0.3} so that the sound's peak
             (sfx_library gives it) lands on the frame of its action: at = action − peak. The J-cut is the one whose start

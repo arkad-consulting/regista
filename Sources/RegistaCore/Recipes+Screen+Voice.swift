@@ -22,8 +22,8 @@ extension Recipes {
 
         ## Steps
         1. Find the take: media_list → the files named session.json (their folder is the take; the newest unless the
-           user names one). The format is the person's format choice; with "project", ask only if unclear: 16:9 for a
-           tutorial, 9:16 for a reel.
+           user names one). The format: the format choice ("project": ask only if unclear; 16:9 for a
+           tutorial, 9:16 for a reel).
         2. project_new {name, directory: <projectsDirectory from media_list>, width: 1920, height: 1080, kind:
            "screen-tutorial"} for 16:9 (no width/height = 1080×1920, a 9:16 reel).
         3. recording_import {path: <the take's folder>, faces: true}. It builds the timeline — Schermo (screen),
@@ -44,25 +44,22 @@ extension Recipes {
            drawn: false the cursor is baked in the video and stays as it is — say so, do not insist.
         7. Shortcuts: keys_overlay {} shows the ⌘ / ⌃ / ⌥ shortcuts that were pressed as badges; allKeys: true also
            shows typing (only when the lesson is about typing). clear: true removes them.
-        8. Words (only with a microphone): transcript_run {assetId: <assets.mic>, language}. Then transcript_fillers
-           finds the filler words: say how many sure ones (hesitations) there are and the seconds they take, list the
-           maybe ones and the repeats in words; remove the sure ones with its delete.sure when the user agrees, a maybe
-           word or a repeat only when named. transcript_timeline lists every word with an index: remove stumbles and
+        8. Words (only with a microphone): transcript_run {assetId: <assets.mic>, language}. Then transcript_fillers:
+           tell the user the sure fillers (count, seconds), list the maybe ones and the repeats; remove the sure ones
+           (delete.sure) when they agree, a maybe or a repeat only when named. transcript_timeline lists every word with an index: remove stumbles and
            false starts with transcript_deleteWords {from, to} (it cuts picture and sound together). Keep the silent stretches
            where something happens on screen; speed up a long wait with clip_speed {clipId: <screen clip>,
            rate: 2…4} instead of cutting through an action.
         9. Voice: audio_clean {} (denoise, −15 LUFS, true peak ≤ −1.5). Run it after the cuts.
         10. Captions, in the person's caption style choice (none: no captions; for a 16:9 tutorial ask first):
             captions_generate {style: <that choice>, keywords: [the names of the buttons and features shown], fixes:
-            {misheard: "right"}}: names spelled as the Names sections of the person's sheets and skill write them (listed
-            at the top). Re-run after any cut.
+            {misheard: "right"}} (names: as listed at the top). Re-run after any cut.
         11. Look: frame_contactSheet {times: [the click times from step 5, plus the start and the end]}. Check: the
             face never covers what is being clicked (move the bubble to another corner for that range), the zoom
             lands on the right element, captions are readable and clear of the face, no black frame. Fix, look again.
-        11b. Before the export the user sees: graphics as the person's graphics choice says (on: read effects_catalog and
-            propose as many items as its number says, one line each: what, where, why, as a yes/no list; apply what they
-            accept); titles, cards and sound effects with the reel-graphics recipe; music only as the music choice says
-            (audio_addMusic ducks it under the voice; audio_checkDucking proves it).
+        11b. Before the export: proposals from effects_catalog as the graphics choice says (a yes/no list, one line
+            each); titles, cards and sound effects: the reel-graphics recipe; music as the music choice says
+            (audio_addMusic, then audio_checkDucking).
         12. Export: rules_check first (fix what fails), then export_render {path: <exportsDirectory>/<name>.mp4, preset: "16:9" | "9:16"} (expect −15 ±0.5
             LUFS when there is a voice), export_srt if there are captions, then recording_check {path: <mp4>}
             (sync, face in its box, zoom on the clicks) and project_save. When the project is 9:16, the cover: cover_set {time:
@@ -121,14 +118,12 @@ extension Recipes {
            - motion graphics for numbers, lists and comparisons: effects_catalog {category: "templates"} →
              effects_preview → motion_add (colours and fonts from brandkit_apply);
            - generated shots only if the user asks: generate_providers (local ComfyUI is free on a Pro-tier Mac;
-             generate_check first), a paid provider only after telling the cost and getting their approval in
-             the app. Real footage beats generated images.
+             generate_check first). Real footage beats generated images.
            project_state shows the tracks and the duration: the last picture clip must end at or after the last
            voice clip.
         7. Captions, in the person's caption style choice (none: no captions): captions_generate {style: <that
            choice>, keywords: [the hook word, names, numbers]}. They use the script's own words and spelling from the
-           Voce track; a name spelled otherwise in the Names sections of the person's sheets and skill (listed at the
-           top) goes in fixes. Re-run after moving voice clips.
+           Voce track; a name listed otherwise at the top goes in fixes. Re-run after moving voice clips.
         8. Titles, cards and sound effects: the reel-graphics recipe (titles land on the word; sound effects as the
            sfx choice says: sfx_library → sfx_add); the closing logo as the closing-logo choice says.
         8b. Dress the edit, as the person's graphics choice says — on: read effects_catalog and propose to the user,

@@ -41,13 +41,11 @@ public struct Recipe: Sendable {
     static func skillsNote(_ recipe: String) -> String {
         """
         ## The person's own ways of editing (skills)
-        When the person wants a way of editing kept for next time ("make a skill for long interviews, with elegant
-        captions and no zoom"), write it out for them first, then, only after their OK: skill_create {title, basedOn,
-        steps, rules: {prose, checks}, choices}, or skill_duplicate {from: "\(recipe)", title} and skill_set to change the
-        copy (a built-in recipe is never changed). skill_list and skill_get read theirs; recipe_get lists them after the
-        recipes. skill_export writes one to a file for a colleague; skill_import adds one from a file (dryRun: true
-        first: show the person what it says). Each change is one history_undo step. A skill never changes the rules that
-        always hold.
+        To keep a way of editing for next time, write it out for the person; after their OK, skill_create {title,
+        basedOn, steps, rules: {prose, checks}, choices} or skill_duplicate {from: "\(recipe)", title} then skill_set (a
+        built-in recipe never changes). skill_list / skill_get read them; skill_export /
+        skill_import move one through a file (dryRun: true first, shown to the person). Each change is one history_undo
+        step; no skill changes the rules that always hold.
         """
     }
 }
@@ -119,8 +117,8 @@ public enum Recipes {
             {...}}. With a face track, chunks that would cover a face (any face: a child in the arms too) move to
             another band or beside it, or split shorter; captions_checkFaces must pass. Read its preview (and
             captions_get for the full list): fix misheard or wrongly split words with fixes (display form,
-            {"WRONG": "RIGHT"}, "" removes a word): spell names as the script and the Names sections («Nomi», «Noms»,
-            «Nomes») of the person's sheets and skill write them (recipe_get lists those at the top). If a keyword
+            {"WRONG": "RIGHT"}, "" removes a word): spell names as the script and the person's «Nomi» sections
+            (listed at the top) write them. If a keyword
             never appears in the preview, it does not match a displayed word: use the displayed spelling. Words of
             one line that jump up and down: captions_setStyle with the style field wordAlign "baseline". Another
             style later: captions_setStyle {style}.

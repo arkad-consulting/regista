@@ -42,7 +42,7 @@ let movedRules: [(recipe: String, subject: String, homes: [RuleHome])] = [
     ("talking-head-reel", "the light grade", [.choice("colour", option: "light")]),
     ("talking-head-reel", "the voice at −15 LUFS, true peak ≤ −1.5 dBTP",
      [.sheet("every-video", section: "## Sound", phrase: "The voice at −15 LUFS"), .command("audio.clean")]),
-    ("talking-head-reel", "never normalize twice", [.sheet("every-video", section: "## Sound", phrase: "The voice is brought to its level once")]),
+    ("talking-head-reel", "never normalize twice", [.sheet("every-video", section: "## Sound", phrase: "The voice is levelled once")]),
     ("talking-head-reel", "a quiet, roomy take cannot be fixed by processing", [.step("talking-head-reel", phrase: "cannot be fixed by")]),
     ("talking-head-reel", "the export settings for the platform", [.command("export.render")]),
     ("talking-head-reel", "captions and graphics out of the platform's zones (top, bottom, right edge) and in their band",
@@ -59,7 +59,7 @@ let movedRules: [(recipe: String, subject: String, homes: [RuleHome])] = [
     ("talking-head-reel", "the house look: large uppercase captions word by word, a keyword on a box, punch-ins, a light grade, short gaps",
      [.choice("captions", option: "talking-head-v1"), .choice("keywords", option: "on"), .choice("framing", option: "alternate"), .choice("colour", option: "light"),
       .choice("pace", option: "normal")]),
-    ("talking-head-reel", "the names glossary", [.sheet("every-video", section: "## Names", phrase: "one per line"), .step("talking-head-reel", phrase: "«Nomi»")]),
+    ("talking-head-reel", "the names glossary", [.sheet("every-video", section: "## Names", phrase: "One per line"), .step("talking-head-reel", phrase: "«Nomi»")]),
     // screen-tutorial
     ("screen-tutorial", "the recording folder is never modified", [.sheet("every-video", section: "## Always", phrase: "original files are never modified")]),
     ("screen-tutorial", "one layout change every 20–30 s at most; the screen is the subject",
@@ -72,7 +72,7 @@ let movedRules: [(recipe: String, subject: String, homes: [RuleHome])] = [
     ("screen-tutorial", "captions on a reel, asked on a tutorial", [.choice("captions")]),
     // voice-over-video
     ("voice-over-video", "only the active profile's voice", [.sheet("every-video", section: "## Always", phrase: "A cloned voice is only ever the person's own")]),
-    ("voice-over-video", "the person's face only when asked", [.sheet("voice-over-video", section: nil, phrase: "face is not on screen unless they ask")]),
+    ("voice-over-video", "the person's face only when asked", [.sheet("voice-over-video", section: nil, phrase: "face only when they ask")]),
     ("voice-over-video", "one visual idea per sentence, cut on the voice",
      [.sheet("voice-over-video", section: nil, phrase: "Show each piece when the voice names it"), .step("voice-over-video", phrase: "one visual per paragraph")]),
     ("voice-over-video", "brand kit colours and fonts only", [.sheet("every-video", section: "## Graphics and text", phrase: "from the brand kit only")]),
@@ -83,11 +83,11 @@ let movedRules: [(recipe: String, subject: String, homes: [RuleHome])] = [
     ("voice-over-video", "the closing logo after the last word, on a clean frame",
      [.sheet("every-video", section: "## Ending", phrase: "of clean picture, then the logo"), .check("logo-captions"), .check("logo-pause"), .choice("closing-logo")]),
     ("voice-over-video", "frame 0: the person's opening shot, at most two still titles, never reordered",
-     [.sheet("voice-over-video", section: nil, phrase: "Frame 0 is the person's own opening shot"), .step("voice-over-video", phrase: "animIn \"none\"")]),
+     [.sheet("voice-over-video", section: nil, phrase: "Frame 0 is the person's opening shot"), .step("voice-over-video", phrase: "animIn \"none\"")]),
     ("voice-over-video", "never the result on frame 0", [.sheet("every-video", section: "## Opening", phrase: "Never give away the result")]),
     ("voice-over-video", "one fix asked for is that fix only", [.sheet("every-video", section: "## Always", phrase: "one fix asked for is that fix")]),
     ("voice-over-video", "a landscape recording in a vertical frame is shown whole",
-     [.sheet("voice-over-video", section: nil, phrase: "shown whole, edge to edge"), .step("voice-over-video", phrase: "fit contain")]),
+     [.sheet("voice-over-video", section: nil, phrase: "is shown whole"), .step("voice-over-video", phrase: "fit contain")]),
     ("voice-over-video", "a pasted image is not a file", [.step("voice-over-video", phrase: "not a file you can import")]),
     ("voice-over-video", "sound effects sparse and quiet", [.choice("sfx", option: "sparse")]),
     ("voice-over-video", "music only if asked", [.choice("music", option: "on-request")]),
@@ -95,8 +95,14 @@ let movedRules: [(recipe: String, subject: String, homes: [RuleHome])] = [
     // prompt-to-reel (the voice-over video's sheet)
     ("prompt-to-reel", "the plan said yes to is what is built",
      [.sheet("every-video", section: "## Always", phrase: "Build what the person said yes to"), .step("prompt-to-reel", phrase: "what the user says yes to is what is built")]),
+    ("prompt-to-reel", "no facts, figures or quotes of your own", [.sheet("every-video", section: "## Always", phrase: "Nothing invented on screen")]),
+    ("prompt-to-reel", "a paid provider only after the estimate and the person's approval",
+     [.sheet("every-video", section: "## Always", phrase: "A paid generation only after its cost is told")]),
+    ("voice-over-video", "a paid provider only after telling the cost and the approval in the app",
+     [.sheet("every-video", section: "## Always", phrase: "A paid generation only after its cost is told")]),
+    ("prompt-to-reel", "never another voice", [.sheet("every-video", section: "## Always", phrase: "A cloned voice is only ever the person's own")]),
     ("prompt-to-reel", "one signature moment, the rest quiet", [.step("prompt-to-reel", phrase: "one signature moment")]),
-    ("prompt-to-reel", "two actions never share one sound effect", [.sheet("voice-over-video", section: nil, phrase: "two actions never share one effect")]),
+    ("prompt-to-reel", "two actions never share one sound effect", [.sheet("voice-over-video", section: nil, phrase: "Two actions never share one sound effect")]),
     ("prompt-to-reel", "the turn is the picture that changes most", [.sheet("voice-over-video", section: nil, phrase: "The turn is the picture that changes most")]),
     ("prompt-to-reel", "the near-silence kept in the mix", [.choice("faceless-sound", option: "directed"), .step("prompt-to-reel", phrase: "no tail rings through it")]),
     ("prompt-to-reel", "sound effects for each visible action", [.choice("sfx", option: "actions")]),
@@ -232,6 +238,19 @@ let movedRules: [(recipe: String, subject: String, homes: [RuleHome])] = [
         #expect(said.hasPrefix("Names as the person spells them") && said.contains("- Lumio Grafo → LumioGrafo\n\n" + Recipes.named(r.name)!.text()), "\(r.name)")
     }
     #expect(book.names(slug, language: "en") == ["Lumio Grafo → LumioGrafo", "Foo Bar → FooBar"])
+}
+
+/// What a client reads with recipe.get (the steps, the rules, the choices, with the shipped sheets) is shorter than when
+/// the recipes carried their own rules: these are the lengths of that text before.
+@Test func recipeGetIsShorterThanWhenTheRecipesCarriedTheirRules() throws {
+    var services = FakeServices().make()
+    services.renderer = FakeRenderer()
+    let e = Engine(prober: FakeProber(), services: services)
+    let before = ["talking-head-reel": 19790, "screen-tutorial": 11142, "voice-over-video": 11773, "reel-graphics": 17494, "prompt-to-reel": 12274]
+    for r in Recipes.all {
+        let text = try #require(e.execute("recipe.get", params: ["name": .string(r.name), "language": "en"])["text"]?.stringValue)
+        #expect(text.unicodeScalars.count < before[r.name] ?? 0, "\(r.name): \(text.unicodeScalars.count) characters, \(before[r.name] ?? 0) before")
+    }
 }
 
 /// Every command a recipe named before it lost its rules is still named.

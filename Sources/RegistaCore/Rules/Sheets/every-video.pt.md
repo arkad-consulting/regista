@@ -32,7 +32,7 @@ Estas regras valem para todos os tipos de vídeo. A folha do tipo do projeto acr
 - Uma geração paga só depois de informar o custo e com o ok da pessoa.
 - Nada inventado na tela: nenhum fato, número, nome ou citação que não tenha sido dito ou fornecido.
 - Antes de entregar, olhe os quadros, não só as medições.
-- Constrói-se o que a pessoa aprovou: uma mudança que ela não pediu volta primeiro para ela, e uma correção pedida é essa correção e nada mais.
+- Constrói-se o que a pessoa aprovou; uma correção pedida é só essa.
 
 ## Abertura
 - Os primeiros 3 segundos dizem do que o vídeo trata e por que vale a pena ficar. Nunca revele ali o resultado nem a resposta: guarde para o final.
@@ -50,14 +50,14 @@ Estas regras valem para todos os tipos de vídeo. A folha do tipo do projeto acr
 - As legendas nunca repetem um texto que já está na tela (um título, um cartão).
 - As legendas nunca cobrem o rosto de quem fala e ficam fora dos botões e barras da plataforma.
 - Nenhuma legenda depois da última palavra falada: palavras que a transcrição inventa num final em silêncio são removidas.
-- As palavras de uma linha ficam sobre uma mesma linha de base: palavras de alturas diferentes nunca pulam para cima e para baixo.
+- As palavras de uma linha ficam sobre uma mesma linha de base.
 
 ## Gráficos e texto
 - Cada linha fica o bastante para ser lida: cerca de meio segundo mais um terço de segundo por palavra.
 - Nada do que deve ser lido é menor que 28 px num quadro de 1080 de largura.
 - Nenhum logo, título ou cartão sobre o rosto de quem fala.
 - Uma leitura de cada vez: nunca dois textos fortes no mesmo quadro.
-- Cores e fontes vêm só do kit de marca, em cada gráfico e cena: nunca escolhidas ao acaso.
+- Cores e fontes vêm só do kit de marca, em cada gráfico e cena.
 
 ## Final
 - A frase final falada termina por completo antes que algo feche o vídeo.
@@ -69,7 +69,7 @@ Estas regras valem para todos os tipos de vídeo. A folha do tipo do projeto acr
 ## Som
 - A voz em −15 LUFS, pico real até −1,5 dBTP.
 - A música sob a voz é sempre abaixada, e some antes do logo, não depois.
-- A voz é levada ao seu nível uma única vez: nunca uma segunda normalização nem outro tratamento de volume por cima.
+- A voz é nivelada uma única vez: nunca uma segunda normalização.
 
 ## Nomes
-Como os nomes se escrevem nas legendas e nos títulos, um por linha: a grafia errada, depois a certa, como `Miro Talen → MiroTalen`.
+Um por linha, como `Miro Talen → MiroTalen`.

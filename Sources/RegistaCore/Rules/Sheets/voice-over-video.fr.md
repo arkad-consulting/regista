@@ -10,9 +10,9 @@ Personne à l'image : la voix de l'utilisateur sur des plans, des images et des 
 - Chaque image reste aussi longtemps que sa phrase : au moins la durée de la voix sur elle, plus un peu d'air.
 - Changez d'image toutes les quelques secondes, sans rythme mécanique.
 - Terminez sur l'idée en une ligne ; le logo, s'il y en a un, vient après le dernier mot.
-- Le visage de la personne n'apparaît pas à l'écran, sauf si elle le demande.
-- Chaque enregistrement fourni par la personne passe, en mouvement, sous la phrase qui raconte cette étape.
-- L'image 0 est le plan d'ouverture de la personne, jamais déplacé ni remplacé, avec au plus deux titres fixes : le sujet et l'angle.
-- Un enregistrement horizontal dans un cadre vertical est montré en entier, d'un bord à l'autre, jamais coupé sur les côtés ; les bandes vides montrent derrière la même image, floutée et plus sombre.
-- Le tournant est l'image qui change le plus : son décor, sa taille ou son mouvement rompt avec ce qui précède.
-- Un effet sonore seulement sur quelque chose qui se passe à l'écran ; deux actions ne partagent jamais le même effet.
+- Le visage de la personne seulement si elle le demande.
+- Chaque enregistrement fourni par la personne sert, en mouvement, sous sa phrase.
+- L'image 0 est le plan d'ouverture de la personne, jamais déplacé ni remplacé, avec au plus deux titres fixes.
+- Un enregistrement horizontal dans un cadre vertical est montré en entier, sur la même image floutée.
+- Le tournant est l'image qui change le plus.
+- Deux actions ne partagent jamais le même effet sonore.
