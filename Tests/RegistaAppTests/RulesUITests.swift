@@ -304,6 +304,60 @@ extension MouseSuites {
         }
     }
 
+    /// One list (#156): every check and every choice the tab shows comes from the specs — on «Per ogni video» all of them,
+    /// on each built-in kind the choices that apply to it, in the specs' order — and a misspelled key or an option that
+    /// does not exist in a sheet shows under the checks with its line, as an unknown check does.
+    @Test func everyCheckAndChoiceComesFromTheSpecsAndAMisspelledKeyIsReported() async throws {
+        let saved = UserDefaults.standard.object(forKey: SettingsRoute.rulesKey)
+        defer { UserDefaults.standard.set(saved, forKey: SettingsRoute.rulesKey) }
+        let app = try await AppRig()
+        defer { app.close() }
+        let book = rulesBook(app)
+        for kind in [RuleBook.everyVideo] + RuleBook.builtInKinds {
+            UserDefaults.standard.set(kind, forKey: SettingsRoute.rulesKey)
+            // The model the tab draws.
+            let model = RulesModel()
+            model.store = app.store
+            await model.load()
+            #expect(model.checks.map(\.id) == RuleCheckSpec.ids, "\(kind): the checks are not the specs: \(model.checks.map(\.id))")
+            #expect(model.checks.map(\.title) == RuleCheckSpec.all.map(\.title), "\(kind)")
+            let choices = RuleChoiceSpec.all.filter { $0.applies(to: kind) }
+            #expect(model.choices.map(\.id) == choices.map(\.id), "\(kind): the choices are not the specs: \(model.choices.map(\.id))")
+            for (c, spec) in zip(model.choices, choices) {
+                #expect(c.title == spec.title && c.options.map(\.id) == spec.optionIDs && c.options.map(\.label) == spec.options.map(\.label),
+                        "\(kind): \(c.id) is not its spec")
+                #expect(c.value == spec.defaultOption && c.number == spec.number?.defaultValue, "\(kind): \(c.id) is not at its default")
+            }
+            // The tab: a row for each of them, and no other.
+            app.host(SettingsView(pinned: .rules, height: 1500).environment(\.colorScheme, .dark).background(Color(nsColor: .windowBackgroundColor)),
+                     size: CGSize(width: SettingsView.size.width, height: 1500))
+            await app.settle()
+            _ = await until(app, 4) { choiceTitle(app, choices.last!.title) != nil && model.kind == kind }
+            let all = RuleChoiceSpec.all.map(\.title)
+            let shown = app.rig.elements().filter { $0.role == "AXStaticText" && all.contains($0.value) }.map(\.value)
+            #expect(shown == choices.map(\.title), "\(kind): the tab shows the choices \(shown)")
+            for check in RuleCheckSpec.all {
+                #expect(app.rig.elements().contains { $0.label == check.title && $0.isControl }, "\(kind): no switch for \(check.id)")
+            }
+        }
+
+        // A misspelled key and an option that does not exist, written by hand: each shown with its line.
+        UserDefaults.standard.set(RuleBook.everyVideo, forKey: SettingsRoute.rulesKey)
+        let text = try #require(RuleDefaults.text(RuleBook.everyVideo, language: "en"))
+        try FileManager.default.createDirectory(at: book.directory, withIntermediateDirectories: true)
+        try Data(text.replacingOccurrences(of: "\npace: normal\n", with: "\npace: speedy\ncaptoins: none\n").utf8).write(to: book.file(RuleBook.everyVideo))
+        defer { try? FileManager.default.removeItem(at: book.file(RuleBook.everyVideo)) }
+        let lines = text.components(separatedBy: "\n")
+        let pace = try #require(lines.firstIndex(of: "pace: normal")) + 1
+        await hostRules(app)
+        let misspelled = "Line \(pace + 1): unknown check or choice «captoins».", wrong = "Line \(pace): pace is one of calm, normal, fast."
+        _ = await until(app, 4) { !app.rig.elements(containing: misspelled).isEmpty }
+        #expect(!app.rig.elements(containing: misspelled).isEmpty, "the misspelled key is not reported: \(app.rig.elements(containing: "Line").map(\.name))")
+        #expect(!app.rig.elements(containing: wrong).isEmpty, "the option that does not exist is not reported")
+        // The line that is wrong is ignored: the pace is the default.
+        #expect(segment(app, choice: "Pace", "Normal")?.selected == true, "a wrong line changed the pace")
+    }
+
     /// #130: the list of sheets holds every built-in kind's name whole, on one line, in the four languages, beside an
     /// edited sheet's dot (the narrowest room a built-in name gets); a kind the user named longer than the row keeps its
     /// «tuo» inside the row; a click anywhere on a row (its glyph, its title, the empty space before its detail) selects
