@@ -373,6 +373,8 @@ final class EditorStore: ObservableObject {
             if case .success = result, id.hasPrefix("brandkit.") || id.hasPrefix("history.") { BrandKitLibrary.shared.reload() }
             // A rule sheet written (Settings › Regole or an agent, #31): the Export card checks again.
             if case .success = result, id.hasPrefix("rules."), kind == .session { RulesRevision.shared.bump() }
+            // A skill written, removed or put back by an undo (#157): Settings › Regia e skill reads again.
+            if case .success = result, Self.skillWrites.contains(id) || id.hasPrefix("history.") { RulesRevision.shared.bump() }
         }
         return result
     }
@@ -410,6 +412,8 @@ final class EditorStore: ObservableObject {
 
     /// Commands that only look at the app (logged, but they do not mark the editor busy).
     nonisolated static let quietCommands: Set<String> = ["ui.screenshot", "preview.frame", "project.state", "project.list"]
+    /// The commands that write one of the person's skills (#157).
+    nonisolated static let skillWrites: Set<String> = ["skill.create", "skill.set", "skill.duplicate", "skill.remove", "skill.import"]
 
     /// Socket handler (any thread): the agent's command, serialized with the user's.
     nonisolated func agentExecute(_ id: String, _ params: JSONValue, client: String) throws -> JSONValue {

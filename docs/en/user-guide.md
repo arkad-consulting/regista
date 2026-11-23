@@ -140,6 +140,20 @@ presentation remote works with no setup.
 
 The first time, macOS asks for permission to record the screen: see [Troubleshooting](troubleshooting.md).
 
+## Direction & skills: your own way of editing
+
+**Settings › Direction & skills** holds the rules for every video (**For every video**: the checks before export, the
+choices such as the caption style or the pace, and the rules Claude reads), the five recipes that are **Regista's** and
+**Yours**, your skills. A skill is a way of editing: rules, choices and steps, in one file.
+
+- Regista's recipes can be read, not changed: **Duplicate** makes a copy of your own to change as you like.
+- **+ New skill…** makes an empty one; **Import a skill…** opens the file a colleague sent you and shows what it says
+  before adding it; **Export…** makes the file to send.
+- Every skill has three tabs: **Rules**, **Choices** and **Steps** (the steps Claude follows). Every change can be
+  undone with ⌘Z.
+- You can also ask Claude, for example: "make a skill for long interviews, with elegant captions and no zoom". No skill
+  changes the rules that always hold (only your own voice, originals never touched, nothing paid without your OK).
+
 ## Brand: colours, fonts and logo
 
 A brand kit holds a brand's colours, fonts and logo. In the bar above the edit, the **Brand** button shows the

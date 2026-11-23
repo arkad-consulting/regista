@@ -14,7 +14,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .engines: loc("Motori")
         case .voice: loc("Profilo e voce")
         case .brand: loc("Brand kit")
-        case .rules: loc("Regole")
+        case .rules: loc("Regia e skill")
         case .claude: loc("Claude")
         case .shortcuts: loc("Scorciatoie")
         }
@@ -41,7 +41,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
 enum SettingsRoute {
     static let tabKey = "settings.tab"
     static let engineKey = "settings.engine"
-    /// The rule sheet Impostazioni › Regole shows (the last one chosen there, or the project's kind when the Export card's
+    /// The item Impostazioni › Regia e skill shows (every-video, a built-in recipe or a skill) (the last one chosen there, or the project's kind when the Export card's
     /// link opened it).
     static let rulesKey = "settings.rules"
 
@@ -60,7 +60,7 @@ enum SettingsRoute {
         NSApp.activate()
     }
 
-    /// Opens Impostazioni › Regole on a sheet (the Export card: the project's kind).
+    /// Opens Impostazioni › Regia e skill on a sheet (the Export card: the project's kind).
     @MainActor static func openRules(kind: String?, with openSettings: OpenSettingsAction) {
         if let kind { UserDefaults.standard.set(kind, forKey: rulesKey) }
         open(.rules, with: openSettings)

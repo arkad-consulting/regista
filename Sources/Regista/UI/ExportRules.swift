@@ -169,7 +169,7 @@ struct ExportRulesCard: View {
                     Text(verbatim: loc("«Sistema» applica la correzione come un comando qualsiasi: un passo di annulla."))
                         .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
                 }
-                AccentLinkButton(title: "Le regole si cambiano in Impostazioni › Regole") {
+                AccentLinkButton(title: "Le regole si cambiano in Impostazioni › Regia e skill") {
                     guard !demo else { return }
                     SettingsRoute.openRules(kind: report.kind, with: openSettings)
                 }

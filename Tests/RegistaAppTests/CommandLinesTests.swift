@@ -278,7 +278,7 @@ extension MouseSuites {
         }
         // Never asked with 0: the alert only comes for a track that holds clips («et son clip» says the one).
         keys.remove("Eliminare la pista %@ con 1 clip?")
-        let wanted = ["1 parola chiave", "1 ripresa", "Foglio di 1 fotogramma", "1 controllo attivo", "Voce: 1 paragrafo"]
+        let wanted = ["1 parola chiave", "1 ripresa", "Foglio di 1 fotogramma", "Voce: 1 paragrafo"]
         #expect(wanted.allSatisfy(keys.contains), "the scan missed some singulars: \(wanted.filter { !keys.contains($0) })")
         for key in keys.sorted() where key.contains("1") {
             let french = table.localizedString(forKey: key, value: nil, table: nil)

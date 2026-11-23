@@ -142,6 +142,21 @@ telecomando da presentazione funzionano senza configurarli.
 
 La prima volta macOS chiede il permesso di registrare lo schermo: vedi [Risoluzione dei problemi](troubleshooting.md).
 
+## Regia e skill: il tuo modo di montare
+
+In **Impostazioni › Regia e skill** ci sono le regole che valgono per ogni video (**Per ogni video**: i controlli
+prima dell'export, le scelte come lo stile dei sottotitoli o il ritmo, e le regole che Claude legge), le cinque ricette
+**Di Regista** e **Le tue** skill. Una skill è un modo di montare: le regole, le scelte e i passi, in un file.
+
+- Le ricette di Regista si leggono e non si cambiano: **Duplica** ne fa una copia tua, da cambiare come vuoi.
+- **+ Nuova skill…** ne crea una vuota; **Importa una skill…** apre il file che ti ha mandato un collega e ti mostra
+  cosa dice prima di aggiungerla; **Esporta…** crea il file da mandare.
+- Ogni skill ha tre schede: **Regole**, **Scelte** e **Passi** (i passi che Claude segue). Ogni modifica si annulla
+  con ⌘Z.
+- Puoi anche chiederla a Claude, per esempio: «fai una skill per le interviste lunghe, con i sottotitoli eleganti e
+  senza zoom». Le regole che valgono sempre (la tua voce sola, gli originali mai toccati, niente spese senza il tuo ok)
+  nessuna skill le cambia.
+
 ## Marca: colori, caratteri e logo
 
 Un brand kit raccoglie i colori, i caratteri e il logo di un marchio. Nella barra sopra il montaggio, il pulsante

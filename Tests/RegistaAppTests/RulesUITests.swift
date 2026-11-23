@@ -5,7 +5,7 @@ import Testing
 @testable import Regista
 @testable import RegistaCore
 
-// Editing rules (#31), the interface: Impostazioni › Regole and the Export card, driven with real mouse and key events
+// Editing rules (#31), the interface: Impostazioni › Regia e skill (#157) and the Export card, driven with real mouse and key events
 // (MouseRig) on the live views over the rig's scratch rules folder (RigIsolation.swift): every switch, number, editor,
 // button and link does what it says, once, through its command.
 
@@ -56,6 +56,13 @@ import Testing
 @MainActor private func numberField(_ app: AppRig, choice: String) -> RigElement? {
     guard let t = choiceTitle(app, choice) else { return nil }
     return app.rig.elements().first { $0.name.contains("Clicca per scrivere il valore") && abs($0.centre.y - t.centre.y) < 8 }
+}
+
+/// Clicks the tab of the item on screen named `title` (Regole, Scelte, Passi: the key in a window without words).
+@MainActor private func openPane(_ app: AppRig, _ title: String, sourceLocation: SourceLocation = #_sourceLocation) async throws {
+    let tab = try #require(app.rig.elements().first { $0.isControl && $0.visible && $0.name == title }, "no tab «\(title)»", sourceLocation: sourceLocation)
+    app.rig.click(tab.centre)
+    await app.settle()
 }
 
 /// Scrolls the sheet's pane (at the top of its scroll area, never over the prose editor's own scroll view) until what
@@ -111,7 +118,6 @@ extension MouseSuites {
         let off = RuleSheetText.parse(book.text("every-video", language: "en") ?? "")
         #expect(off.entries.first { $0.id == "text-size" }?.on == false, "the file does not have text-size off")
         #expect(ruleSwitch(app, "Minimum text size")?.value == "0", "the switch did not stay off")
-        #expect(!app.rig.elements(containing: "modificato da te").isEmpty, "the edited sheet is not marked as edited")
         #expect(app.rig.elements().contains { $0.isControl && $0.name.hasPrefix("For every video") && $0.name.contains("•") }, "the edited sheet's row is not marked")
 
         // The number: a click makes a field, Return saves.
@@ -184,6 +190,7 @@ extension MouseSuites {
         await hostRules(app)
         // The header's lines (its comments left out: the sheet a set writes is in the interface language).
         let lines = { (kind: String) in (RuleSheetText.parse(book.text(kind, language: "en") ?? "").header ?? []).filter { !$0.hasPrefix("#") } }
+        try await openPane(app, "Scelte")
 
         /// Clicks `target` once it is in view (the pane scrolls), and says which lines of `kind`'s sheet changed.
         func click(_ find: () -> RigElement?, _ what: String, kind: String = RuleBook.everyVideo, command: String = "rules.set",
@@ -255,15 +262,24 @@ extension MouseSuites {
         #expect(segment(app, choice: "Pace", "Normal")?.selected == true, "the default pace did not come back")
         #expect(menuControl(app, choice: "Caption style")?.value == "Talking head", "the default caption style did not come back")
 
-        // On a kind: only its own choices, and a change writes the kind's sheet, not «Per ogni video».
+        // On a built-in recipe: only its kind's choices, read-only (a click runs nothing).
         app.rig.click(try #require(control(app, containing: "Talking-head reel")).centre)
         _ = await until(app) { choiceTitle(app, "Sound without a face") == nil && segment(app, choice: "Sound effects", "None") != nil }
         await app.settle()
         #expect(app.rig.elements(containing: "Sound without a face").isEmpty, "the reel shows a choice of faceless videos")
-        #expect(try await click({ segment(app, choice: "Sound effects", "None") }, "the reel's None segment", kind: "talking-head-reel").contains("sfx: none"))
-        #expect(!book.edited(RuleBook.everyVideo), "a choice on a kind wrote «Per ogni video»")
-        #expect(app.rig.elements().contains { $0.isControl && $0.name.hasPrefix("Talking-head reel") && $0.name.contains("•") }, "the edited kind's row is not marked")
-        _ = try? await app.store.silent("rules.reset", ["kind": "talking-head-reel"])
+        n = app.store.activity.count
+        app.rig.click(try #require(segment(app, choice: "Sound effects", "None")).centre)
+        await app.settle()
+        #expect(app.commands(since: n).isEmpty && !book.edited("talking-head-reel"), "a click on a built-in ran \(app.commands(since: n))")
+        // On a skill (#157): every choice, and a change writes the skill (skill.set, one undo step), not «Per ogni video».
+        let slug = try #require(try await app.store.silent("skill.create", ["title": "Studio", "basedOn": "talking-head-reel"])["skill"]?.stringValue)
+        RulesRevision.shared.bump()
+        _ = await until(app) { control(app, containing: "Studio") != nil }
+        app.rig.click(try #require(control(app, containing: "Studio")).centre)
+        _ = await until(app) { choiceTitle(app, "Sound without a face") != nil }
+        await app.settle()
+        #expect(try await click({ segment(app, choice: "Sound effects", "None") }, "the skill's None segment", kind: slug, command: "skill.set").contains("sfx: none"))
+        #expect(!book.edited(RuleBook.everyVideo), "a choice on a skill wrote «Per ogni video»")
     }
 
     /// The Scelte section in Italian and French, on «Per ogni video» and on the talking-head reel: each row's title whole,
@@ -281,6 +297,8 @@ extension MouseSuites {
             app.host(SettingsView(pinned: .rules, height: height).environment(\.colorScheme, .dark).background(Color(nsColor: .windowBackgroundColor)),
                      size: CGSize(width: SettingsView.size.width, height: height), language: language)
             await app.settle()
+            _ = await app.until(4) { app.rig.elements().contains { $0.isControl && $0.name == table.localizedString(forKey: "Scelte", value: nil, table: nil) } }
+            try await openPane(app, table.localizedString(forKey: "Scelte", value: nil, table: nil))
             let specs = RuleChoiceSpec.all.filter { $0.applies(to: kind) }
             let titles = specs.map { table.localizedString(forKey: $0.title, value: nil, table: nil) }
             // The rows of this sheet (a kind's: without the choices of other kinds).
@@ -332,13 +350,15 @@ extension MouseSuites {
             app.host(SettingsView(pinned: .rules, height: 1500).environment(\.colorScheme, .dark).background(Color(nsColor: .windowBackgroundColor)),
                      size: CGSize(width: SettingsView.size.width, height: 1500))
             await app.settle()
-            _ = await until(app, 4) { choiceTitle(app, choices.last!.title) != nil && model.kind == kind }
-            let all = RuleChoiceSpec.all.map(\.title)
-            let shown = app.rig.elements().filter { $0.role == "AXStaticText" && all.contains($0.value) }.map(\.value)
-            #expect(shown == choices.map(\.title), "\(kind): the tab shows the choices \(shown)")
+            _ = await until(app, 4) { app.rig.elements().contains { $0.label == RuleCheckSpec.all.last!.title && $0.isControl } && model.kind == kind }
             for check in RuleCheckSpec.all {
                 #expect(app.rig.elements().contains { $0.label == check.title && $0.isControl }, "\(kind): no switch for \(check.id)")
             }
+            try await openPane(app, "Scelte")
+            _ = await until(app, 4) { choiceTitle(app, choices.last!.title) != nil }
+            let all = RuleChoiceSpec.all.map(\.title)
+            let shown = app.rig.elements().filter { $0.role == "AXStaticText" && all.contains($0.value) }.map(\.value)
+            #expect(shown == choices.map(\.title), "\(kind): the tab shows the choices \(shown)")
         }
 
         // A misspelled key and an option that does not exist, written by hand: each shown with its line.
@@ -355,12 +375,13 @@ extension MouseSuites {
         #expect(!app.rig.elements(containing: misspelled).isEmpty, "the misspelled key is not reported: \(app.rig.elements(containing: "Line").map(\.name))")
         #expect(!app.rig.elements(containing: wrong).isEmpty, "the option that does not exist is not reported")
         // The line that is wrong is ignored: the pace is the default.
+        try await openPane(app, "Scelte")
         #expect(segment(app, choice: "Pace", "Normal")?.selected == true, "a wrong line changed the pace")
     }
 
     /// #130: the list of sheets holds every built-in kind's name whole, on one line, in the four languages, beside an
-    /// edited sheet's dot (the narrowest room a built-in name gets); a kind the user named longer than the row keeps its
-    /// «tuo» inside the row; a click anywhere on a row (its glyph, its title, the empty space before its detail) selects
+    /// edited sheet's dot (the narrowest room a built-in name gets); a skill the user named longer than the row is cut at its
+    /// end inside the row (#157); a click anywhere on a row (its glyph, its title, the empty space before its detail) selects
     /// that sheet.
     @Test(arguments: ["it", "en", "fr", "pt"])
     func theKindNamesFitTheirList(_ language: String) async throws {
@@ -370,12 +391,13 @@ extension MouseSuites {
         let app = try await AppRig()
         defer { app.close() }
         let e = Engine(services: app.store.engine.context.services)
-        let builtIn = [RuleBook.everyVideo] + RuleBook.builtInKinds
-        for kind in builtIn { _ = try e.execute("rules.set", params: ["kind": .string(kind), "checks": ["text-size": false]]) }
-        // A kind a user named, longer than the row.
+        for kind in [RuleBook.everyVideo] + RuleBook.builtInKinds { _ = try e.execute("rules.set", params: ["kind": .string(kind), "checks": ["text-size": false]]) }
+        // «Per ogni video» and the five built-in recipes (#157), each edited sheet with its dot.
+        let builtIn = [RuleBook.everyVideo] + Recipes.all.map(\.name)
+        // A skill a user named, longer than the row, based on a recipe.
         let long = "Intervista lunga con due ospiti e le domande del pubblico in sala"
-        let added = try e.execute("rules.addKind", params: ["title": .string(long)])
-        let longKind = try #require(added["kind"]?.stringValue)
+        let added = try e.execute("skill.create", params: ["title": .string(long), "basedOn": "screen-tutorial"])
+        let longKind = try #require(added["skill"]?.stringValue)
         app.host(SettingsView(pinned: .rules).environment(\.colorScheme, .dark).background(Color(nsColor: .windowBackgroundColor)),
                  size: SettingsView.size, language: language)
         await app.settle()
@@ -400,13 +422,9 @@ extension MouseSuites {
             #expect(needed <= room, "\(language): «\(title)» needs \(needed) pt, its row \(r.frame) leaves \(room) pt beside the dot")
             #expect(r.name.contains("•"), "\(language): the edited sheet «\(title)» has no dot: «\(r.name)»")
         }
-        // The user's kind: in the row (cut at its end), its «tuo» drawn inside the row.
-        let mine = table.localizedString(forKey: "tuo", value: nil, table: nil)
-        let longRow = try #require(row(String(long.prefix(12))), "\(language): no row for the user's kind")
-        #expect(longRow.name.contains(mine), "\(language): the user's kind has no «\(mine)»: «\(longRow.name)»")
-        if let badge = app.rig.elements().first(where: { $0.role == "AXStaticText" && $0.value == mine && $0.visible }) {
-            #expect(longRow.frame.insetBy(dx: -0.5, dy: -0.5).contains(badge.frame), "\(language): «\(mine)» at \(badge.frame) is outside its row \(longRow.frame)")
-        }
+        // The user's skill: in the row, cut at its end, with no detail beside it (what it is based on is in its header).
+        let longRow = try #require(row(String(long.prefix(12))), "\(language): no row for the user's skill")
+        #expect(longRow.frame.maxX <= RulesSettings.listWidth + 1 && !longRow.name.contains("•"), "\(language): «\(longRow.name)» at \(longRow.frame)")
 
         // A click selects the row it lands on: at the glyph, on the title, in the space before the detail.
         let reel = try #require(row(titles[1]))
@@ -424,12 +442,12 @@ extension MouseSuites {
         }
         app.rig.click(CGPoint(x: longRow.frame.maxX - 6, y: longRow.centre.y))
         _ = await app.until(2) { UserDefaults.standard.string(forKey: SettingsRoute.rulesKey) == longKind }
-        #expect(UserDefaults.standard.string(forKey: SettingsRoute.rulesKey) == longKind, "\(language): a click on «\(mine)» did not select the user's kind")
+        #expect(UserDefaults.standard.string(forKey: SettingsRoute.rulesKey) == longKind, "\(language): a click at the end of the skill's row did not select it")
     }
 
-    /// A sheet on the left opens it; «Nuovo tipo…» adds a kind from it; a header problem shows under the checks with its
-    /// line; Importa… asks for a file, Mostra nel Finder shows the sheet's file; Elimina il tipo… asks, then deletes.
-    @Test func kindsAreAddedReportTheirHeaderAndAreDeleted() async throws {
+    /// A row on the left opens its item; a skill's header problem shows under the checks with its line; on «Per ogni
+    /// video», Importa… asks for a file and Mostra nel Finder shows the sheet's folder or file.
+    @Test func aSkillsHeaderProblemShowsAndEveryVideoKeepsItsButtons() async throws {
         let saved = UserDefaults.standard.object(forKey: SettingsRoute.rulesKey)
         defer { UserDefaults.standard.set(saved, forKey: SettingsRoute.rulesKey) }
         UserDefaults.standard.removeObject(forKey: SettingsRoute.rulesKey)
@@ -440,67 +458,34 @@ extension MouseSuites {
 
         let prose = { app.rig.elements().first { $0.role == "AXTextArea" }?.value ?? "" }
         let everyVideo = prose()
-        let reel = try #require(control(app, containing: "Talking-head reel"), "no row for the reel's sheet")
-        app.rig.click(reel.centre)
-        _ = await until(app) { prose() != everyVideo }
-        #expect(prose() != everyVideo && prose() == RuleSheetText.parse(book.text("talking-head-reel", language: RuleBook.interfaceLanguage()) ?? "").prose,
-                "the editor does not show the reel's sheet")
-        _ = await until(app) { !app.rig.elements(containing: "Un controllo cambiato qui vale solo per questo tipo").isEmpty }
-        #expect(!app.rig.elements(containing: "predefinito").isEmpty, "the reel's sheet is not on screen")
-        #expect(UserDefaults.standard.string(forKey: SettingsRoute.rulesKey) == "talking-head-reel")
-
-        // A new kind, from the sheet on screen (Annulla closes the form without a command).
-        var n = app.store.activity.count
-        app.rig.click(try #require(control(app, containing: "Nuovo tipo…")).centre)
-        await app.settle()
-        app.rig.click(try #require(control(app, containing: "Annulla"), "no Annulla in the new kind's form").centre)
-        await app.settle()
-        #expect(app.rig.elements().first { $0.role == "AXTextField" && $0.label == "Nome del tipo" } == nil && app.commands(since: n).isEmpty,
-                "Annulla did not close the form (\(app.commands(since: n)))")
-        app.rig.click(try #require(control(app, containing: "Nuovo tipo…")).centre)
-        await app.settle()
-        let field = try #require(app.rig.elements().first { $0.role == "AXTextField" && $0.label == "Nome del tipo" }, "no name field")
-        #expect(!app.rig.elements(containing: "Parte dal foglio «Talking-head reel»").isEmpty)
-        app.rig.click(field.centre)
-        app.rig.pump(0.1)
-        app.rig.type("YouTube tutorial")
-        n = app.store.activity.count
-        app.rig.click(try #require(control(app, containing: "Crea")).centre)
-        _ = await until(app) { FileManager.default.fileExists(atPath: book.file("youtube-tutorial").path) }
-        await app.settle()
-        #expect(app.commands(since: n) == ["rules.addKind"], "Crea ran \(app.commands(since: n))")
-        #expect(book.title("youtube-tutorial", language: "en") == "YouTube tutorial")
-        _ = await until(app) { control(app, containing: "Elimina il tipo…") != nil }
-        #expect(control(app, containing: "Elimina il tipo…") != nil, "the new kind is not the sheet on screen")
-        #expect(!app.rig.elements(containing: "tuo").filter(\.isControl).isEmpty, "the user's kind is not marked as theirs")
-
-        // A header written by hand with a mistake: shown under the checks with its line.
-        try Data("---\nsurprise: on\n---\n# YouTube tutorial\n".utf8).write(to: book.file("youtube-tutorial"))
-        RulesRevision.shared.bump()
-        _ = await until(app) { !app.rig.elements(containing: "Line 2:").isEmpty }
-        #expect(!app.rig.elements(containing: "Line 2:").isEmpty, "the header problem is not shown with its line")
-
-        // Importa… (the open panel, answered Cancel by the rig) and Mostra nel Finder (recorded, not opened).
+        // Importa… (the open panel, answered Cancel by the rig: nothing written) and Mostra nel Finder (recorded, not opened).
         var events = RigGuard.events.count
+        var n = app.store.activity.count
         app.rig.click(try #require(control(app, containing: "Importa…")).centre)
         await app.settle()
-        #expect(RigGuard.events.dropFirst(events).contains { $0.kind == .panel }, "Importa… asked for no file")
+        #expect(RigGuard.events.dropFirst(events).contains { $0.kind == .panel } && app.commands(since: n).isEmpty, "Importa… asked for no file")
+        try await app.store.perform("rules.set", ["kind": "every-video", "checks": ["text-size": false]])
+        _ = await until(app) { control(app, containing: "Ripristina il predefinito")?.enabled == true }
+        await app.settle()
         events = RigGuard.events.count
         app.rig.click(try #require(control(app, containing: "Mostra nel Finder")).centre)
         await app.settle()
-        #expect(RigGuard.events.dropFirst(events).contains { $0.kind == .finder && $0.detail.contains("youtube-tutorial.md") },
+        #expect(RigGuard.events.dropFirst(events).contains { $0.kind == .finder && $0.detail.contains("every-video.md") },
                 "Mostra nel Finder did not show the sheet's file: \(RigGuard.events.dropFirst(events))")
 
-        // Elimina il tipo…: a confirmation, then the sheet is gone and «for every video» is on screen.
+        // A skill written by hand with a mistake in its header: on screen with its line, its rules in the editor.
+        try FileManager.default.createDirectory(at: book.skillsDirectory, withIntermediateDirectories: true)
+        try Data("---\ntitle: YouTube tutorial\nsurprise: on\n---\n## Steps\n\n1. Record.\n\n## Rules\n\nZoom on every click.\n".utf8).write(to: book.file("youtube-tutorial"))
+        RulesRevision.shared.bump()
+        _ = await until(app) { control(app, containing: "YouTube tutorial") != nil }
         n = app.store.activity.count
-        app.rig.click(try #require(control(app, containing: "Elimina il tipo…")).centre)
-        await app.settle()
-        let confirm = try #require(app.rig.sheetButtons().first { $0.title == "Elimina" }, "no confirmation: \(app.rig.sheetButtons().map(\.title))")
-        app.rig.click(confirm)
-        _ = await until(app) { !FileManager.default.fileExists(atPath: book.file("youtube-tutorial").path) }
-        await app.settle()
-        #expect(app.commands(since: n) == ["rules.removeKind"], "Elimina ran \(app.commands(since: n))")
-        #expect(control(app, containing: "YouTube tutorial") == nil, "the deleted kind is still listed")
+        app.rig.click(try #require(control(app, containing: "YouTube tutorial"), "the hand-written skill is not listed").centre)
+        _ = await until(app) { prose() != everyVideo }
+        #expect(prose() == "Zoom on every click.\n", "the editor does not show the skill's rules: \(prose())")
+        #expect(UserDefaults.standard.string(forKey: SettingsRoute.rulesKey) == "youtube-tutorial" && app.commands(since: n).isEmpty)
+        _ = await until(app) { !app.rig.elements(containing: "Line 3:").isEmpty }
+        #expect(!app.rig.elements(containing: "Line 3:").isEmpty, "the header problem is not shown with its line")
+        #expect(control(app, containing: "Ripristina il predefinito") == nil, "a skill offers to reset a default")
     }
 
     /// The Export card on a reel that breaks the rules: the failing checks with «go to» and «fix» (one undo step), the
@@ -546,9 +531,9 @@ extension MouseSuites {
         #expect(app.commands(since: n) == ["project.setKind"] && app.store.project?.kind == "voice-over-video", "the kind row ran \(app.commands(since: n))")
         _ = await until(app) { control(app, containing: "Voice-over video") != nil }
 
-        // The link opens Settings › Regole on the project's kind.
+        // The link opens Settings › Regia e skill on the project's kind.
         UserDefaults.standard.removeObject(forKey: SettingsRoute.tabKey)
-        app.rig.click(try #require(control(app, containing: "Le regole si cambiano in Impostazioni › Regole")).centre)
+        app.rig.click(try #require(control(app, containing: "Le regole si cambiano in Impostazioni › Regia e skill")).centre)
         await app.settle()
         #expect(UserDefaults.standard.string(forKey: SettingsRoute.tabKey) == SettingsTab.rules.rawValue)
         #expect(UserDefaults.standard.string(forKey: SettingsRoute.rulesKey) == "voice-over-video")

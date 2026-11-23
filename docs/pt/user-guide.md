@@ -140,6 +140,21 @@ apresentação funciona sem configuração.
 
 Na primeira vez, o macOS pede permissão para gravar a tela: veja [Solução de problemas](troubleshooting.md).
 
+## Direção e skills: o seu jeito de editar
+
+Em **Ajustes › Direção e skills** ficam as regras de todo vídeo (**Para todos os vídeos**: as verificações antes da
+exportação, as escolhas como o estilo das legendas ou o ritmo, e as regras que o Claude lê), as cinco receitas **Do
+Regista** e **As suas** skills. Uma skill é um jeito de editar: regras, escolhas e passos, em um arquivo.
+
+- As receitas do Regista podem ser lidas, não alteradas: **Duplicar** faz uma cópia sua, para mudar como quiser.
+- **+ Nova skill…** cria uma vazia; **Importar uma skill…** abre o arquivo que um colega enviou e mostra o que ele diz
+  antes de adicioná-la; **Exportar…** cria o arquivo para enviar.
+- Cada skill tem três abas: **Regras**, **Escolhas** e **Passos** (os passos que o Claude segue). Cada mudança se
+  desfaz com ⌘Z.
+- Você também pode pedir ao Claude, por exemplo: "faça uma skill para entrevistas longas, com legendas elegantes e sem
+  zoom". Nenhuma skill muda as regras que valem sempre (só a sua voz, originais nunca tocados, nenhum gasto sem o seu
+  ok).
+
 ## Marca: cores, fontes e logo
 
 Um kit de marca reúne as cores, as fontes e o logo de uma marca. Na barra acima da edição, o botão **Marca** mostra o kit

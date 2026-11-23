@@ -154,6 +154,22 @@ télécommande de présentation fonctionne sans réglage.
 
 La première fois, macOS demande l'autorisation d'enregistrer l'écran : voir [Résolution des problèmes](troubleshooting.md).
 
+## Réalisation et skills : votre façon de monter
+
+**Réglages › Réalisation et skills** réunit les règles de chaque vidéo (**Pour toutes les vidéos** : les contrôles avant
+l'export, les choix comme le style des sous-titres ou le rythme, et les règles que Claude lit), les cinq recettes
+**Fournies par Regista** et **Les vôtres**, vos skills. Une skill est une façon de monter : des règles, des choix et des
+étapes, dans un fichier.
+
+- Les recettes de Regista se lisent et ne changent pas : **Dupliquer** en fait une copie à vous, à modifier librement.
+- **+ Nouvelle skill…** en crée une vide ; **Importer une skill…** ouvre le fichier envoyé par un collègue et vous
+  montre ce qu'il dit avant de l'ajouter ; **Exporter…** crée le fichier à envoyer.
+- Chaque skill a trois onglets : **Règles**, **Choix** et **Étapes** (les étapes que Claude suit). Chaque modification
+  s'annule avec ⌘Z.
+- Vous pouvez aussi la demander à Claude, par exemple : « fais une skill pour les longues interviews, avec des
+  sous-titres élégants et sans zoom ». Aucune skill ne change les règles qui valent toujours (votre voix seule, les
+  originaux jamais touchés, aucune dépense sans votre accord).
+
 ## Marque : couleurs, polices et logo
 
 Un kit de marque réunit les couleurs, les polices et le logo d'une marque. Dans la barre au-dessus du montage, le
