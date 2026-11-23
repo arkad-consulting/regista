@@ -514,11 +514,13 @@ extension MouseSuites {
             var simple = Navigation(activity: .media, rightTab: .inspector)
             simple.show(.simple)
             let live = app.store.simpleSnapshot
+            app.rig?.close()   // a rig in another language resets the words only when it closes
             app.hostEditor(simple, language: lang) { AnyView($0.environment(\.simpleDemo, SimpleDemo.value("doall", open: .cut, live: live))) }
             await app.settle()
             try app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("simple-doall-\(lang).png"))
             var texts = Navigation(activity: .texts, rightTab: .inspector)
             texts.textsTab = .steps
+            app.rig?.close()   // a rig in another language resets the words only when it closes
             app.hostEditor(texts, language: lang) { AnyView($0.environment(\.stepsDemo, StepsDemo.snapshot("doall"))) }
             await app.settle()
             try app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("steps-doall-\(lang).png"))

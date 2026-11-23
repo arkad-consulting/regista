@@ -669,10 +669,12 @@ final class EditorStore: ObservableObject {
     /// screen session (`session`: its session.json). `newProject`: a new project named like the recording, saved in the
     /// projects folder, the take on its timeline (a take: in the take's own format; a session: 16:9, screen, camera with
     /// the layout chosen while recording, mic — recording.import). Otherwise into this project: the take joins Media,
-    /// selected there, and goes on the timeline when the timeline is empty. The window stays where it is (#140: on
+    /// selected there, and goes on the timeline when the timeline is empty. `format`: the video's format chosen on Registra
+    /// (#153, a preset id): a new project gets it through project.format, so the clip is framed on the face; nil keeps the
+    /// take's own format (a session: 16:9). The window stays where it is (#140: on
     /// Registra, ready for the next take) unless `openEditor` (the automatic edit follows): then the editor on Media. A
     /// notice says where the take went and how many takes the project holds, with "Vai al montaggio" and "Mostra nel Finder".
-    func importRecording(_ url: URL, session: Bool, newProject: Bool, openEditor: Bool = false) {
+    func importRecording(_ url: URL, session: Bool, newProject: Bool, format: String? = nil, openEditor: Bool = false) {
         if openEditor {
             workspace = .pro
             select(.media)
@@ -686,13 +688,16 @@ final class EditorStore: ObservableObject {
                     if session {
                         try await perform("project.new", ["name": .string(name), "directory": .string(Self.projectsFolder.path), "width": 1920, "height": 1080])
                         try await perform("recording.import", ["path": .string(url.path)])
+                        if let format, format != "16:9" { try await perform("project.format", ["preset": .string(format)]) }
                     } else {
                         try await perform("project.new", GeneralPrefs.newProject(name: name, directory: Self.projectsFolder))
                         let id = try await perform("media.import", ["path": .string(url.path)]).value(at: "asset.id")?.stringValue ?? ""
-                        if let v = project?.asset(id)?.video, let s = project?.settings, (v.width, v.height) != (s.width, s.height) {
+                        if format == nil, let v = project?.asset(id)?.video, let s = project?.settings, (v.width, v.height) != (s.width, s.height) {
                             try await perform("project.format", ["width": .number(Double(v.width)), "height": .number(Double(v.height))])
                         }
                         try await placeOnTimeline(id)
+                        // The chosen format, the clip on the timeline: project.format frames it on the face (tracking it first).
+                        if let format, project?.asset(id)?.video != nil { try await perform("project.format", ["preset": .string(format)]) }
                     }
                     try await perform("project.save")
                 } else if session, (project?.duration ?? .zero) == .zero {

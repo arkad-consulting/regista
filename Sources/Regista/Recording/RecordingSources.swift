@@ -66,6 +66,9 @@ struct RecordingSources: Codable, Equatable {
     /// Record the screen without the system cursor: the editor draws it (issue #42).
     var hideCursor = true
     var layout = LayoutSpec(kind: .bubble)
+    /// The video's format chosen on Registra (#153): a preset id (9:16, 16:9, 4:5, 1:1); nil = as the camera for a camera
+    /// take, 16:9 for a screen session.
+    var videoFormat: String?
 
     var switches: Switches {
         get { Switches(screen: screen, camera: camera, microphone: microphone) }
@@ -104,6 +107,21 @@ struct RecordingSources: Codable, Equatable {
     var showsFaceLayout: Bool { screen && camera }
     /// The layout written into the session: without a camera the screen fills the frame.
     var effectiveLayout: LayoutSpec { camera ? layout : LayoutSpec(kind: .screen) }
+
+    /// The format the take's project gets (#153): a preset id, or nil for the camera's own size (a camera take as the camera).
+    var takeFormat: String? { screen ? (videoFormat ?? "16:9") : videoFormat }
+
+    /// The choice as the menu shows it: «camera» for the camera's own format.
+    var formatChoice: String { screen ? (videoFormat ?? "16:9") : (videoFormat ?? Self.cameraFormat) }
+    static let cameraFormat = "camera"
+
+    /// The aspect of the guide drawn on the camera preview: a chosen format other than the camera's (its preview is 16:9),
+    /// while the camera shows alone. nil: no guide.
+    var guideAspect: Double? {
+        guard camera, !screen, let id = videoFormat, let p = ExportPreset.all.first(where: { $0.id == id }) else { return nil }
+        let a = Double(p.width) / Double(p.height)
+        return abs(a - 16.0 / 9) > 0.01 ? a : nil
+    }
 
     /// The device a source that is on uses: the remembered one while it is connected, else the system default, else
     /// the first one. The remembered choice is not overwritten: when that device comes back it is used again.

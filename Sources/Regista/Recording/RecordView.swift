@@ -313,6 +313,9 @@ struct RecordView: View {
             if elsewhere == nil {
             destination
             HStack(spacing: Ed.Space.s) {
+                // The video's format (#153) beside the destination, left of Registra: a line more would push the face
+                // layout out of view (#52), and the destination's line has no room left beside it.
+                if !recorder.isRecording { formatRow }
                 if recorder.isRecording {
                     EdButton(title: recorder.isPaused ? loc("Riprendi") : loc("Pausa"), symbol: recorder.isPaused ? "play.fill" : "pause.fill",
                              large: true) { recorder.togglePause() }
@@ -329,6 +332,28 @@ struct RecordView: View {
         .overlay(alignment: .top) { Ed.rule2.frame(height: 1) }
     }
 
+    /// The video's format (#153), beside the destination: as the camera (a camera take's default) · 9:16 · 16:9 · 4:5 · 1:1;
+    /// a screen session starts at 16:9 (9:16 gives the vertical stack). The choice is remembered with the sources.
+    private var formatRow: some View {
+        let presets = FormatMenu.presets()
+        let order = s.screen ? ["16:9", "9:16", "4:5", "1:1"] : ["9:16", "16:9", "4:5", "1:1"]
+        let items = (s.screen ? [] : [FormatMenu.Item(id: RecordingSources.cameraFormat, title: loc("Come la camera"), symbol: "video")])
+            + order.compactMap { id in presets.first { $0.id == id } }
+        let chosen = s.formatChoice
+        // Compact, on the destination's line: the format's ratio, or the camera's symbol for «Come la camera» (its name is
+        // the control's value and the first line of its list).
+        let camera = chosen == RecordingSources.cameraFormat
+        return FormatMenu(label: items.first { $0.id == chosen }?.title ?? chosen, items: items, selected: chosen,
+                          tip: "Il formato del video: la cornice sull'anteprima mostra cosa resta; in montaggio il volto resta nell'inquadratura",
+                          font: Ed.ui(Ed.TypeSize.caption), symbol: camera ? "video" : "aspectratio", height: 32, display: camera ? "" : chosen) { id in
+            guard !recorder.isRecording else { return }
+            recorder.sources.videoFormat = id == RecordingSources.cameraFormat || (s.screen && id == "16:9") ? nil : id
+        }
+        .disabled(recorder.isRecording)
+        .fixedSize()
+        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m, style: .continuous).strokeBorder(Ed.line2))
+    }
+
     /// Where the take will go (#39), right above the Record button: "Nuovo progetto" / "Questo progetto" when the tab has
     /// a project (remembered per tab), and one line naming the place.
     private var destination: some View {
@@ -343,6 +368,7 @@ struct RecordView: View {
                                   .thisProject: "La registrazione va nei Media del progetto di questa scheda"])
                     .disabled(recorder.isRecording)
             }
+            // The video's format on the same line (#153): one line more would push the face layout out of view (#52).
             Label { Text(verbatim: line).lineLimit(1).truncationMode(.middle) } icon: { Image(systemName: goes == .thisProject ? "film" : "plus.rectangle.on.folder") }
                 .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
         }
@@ -801,7 +827,14 @@ struct RecordPreview: View {
                 Ed.stage
                 if live, recorder.hasCamera { CameraPreview(session: recorder.session, gravity: .resizeAspectFill) }
                 else { FacePlaceholder(note: cameraNote) }
+                // #153: where a video of the chosen format falls, centred on the face when one is seen.
+                if let aspect = sources.guideAspect {
+                    FormatGuide(aspect: aspect, id: sources.videoFormat ?? "", faceX: live ? recorder.faceX : nil)
+                }
             }
+            .onAppear { if live { recorder.followFace(sources.guideAspect != nil) } }
+            .onChange(of: sources.guideAspect) { if live { recorder.followFace(sources.guideAspect != nil) } }
+            .onDisappear { if live { recorder.followFace(false) } }
         } else if sources.microphone {
             voiceOnly
         } else {
@@ -913,7 +946,8 @@ struct RecordPreview: View {
     private var caption: some View {
         HStack(spacing: Ed.Space.s) {
             SectionLabel("Anteprima")
-            Text(verbatim: sources.screen ? "16:9" : (sources.camera ? loc("formato della camera") : loc("audio"))).font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
+            Text(verbatim: sources.screen ? sources.formatChoice : (sources.camera ? (sources.videoFormat ?? loc("formato della camera")) : loc("audio")))
+                .font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
             Spacer()
             Text(verbatim: inFile).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).lineLimit(1)
         }
@@ -938,6 +972,48 @@ struct RecordPreview: View {
         .foregroundStyle(.white)
         .padding(.horizontal, 10).padding(.vertical, 5)
         .background(Capsule().fill(recorder.isPaused ? Ed.warn : Ed.danger))
+    }
+}
+
+/// Where a video of another format falls in the camera's picture, as a phone camera's guide: a thin frame of that aspect,
+/// the outside dimmed by half; centred on the face when one is seen (`faceX`, 0…1 across the preview), else on the
+/// picture. Nothing else is drawn on it.
+struct FormatGuide: View {
+    /// The format's width / height.
+    let aspect: Double
+    let id: String
+    var faceX: Double? = nil
+
+    /// The guide's rectangle in a `size` preview: the full height (a narrower format) or width (a wider one), at the face.
+    static func rect(aspect: Double, in size: CGSize, faceX: Double?) -> CGRect {
+        let W = size.width, H = size.height
+        guard W > 0, H > 0 else { return .zero }
+        if aspect < W / H {
+            let w = H * aspect
+            let x = min(max((faceX ?? 0.5) * W - w / 2, 0), W - w)
+            return CGRect(x: x, y: 0, width: w, height: H)
+        }
+        let h = W / aspect
+        return CGRect(x: 0, y: (H - h) / 2, width: W, height: h)
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            let r = Self.rect(aspect: aspect, in: geo.size, faceX: faceX)
+            ZStack(alignment: .topLeading) {
+                Path { p in
+                    p.addRect(CGRect(origin: .zero, size: geo.size))
+                    p.addRect(r)
+                }
+                .fill(Color.black.opacity(0.5), style: FillStyle(eoFill: true))
+                Rectangle().strokeBorder(Color.white.opacity(0.85), lineWidth: 1)
+                    .frame(width: r.width, height: r.height)
+                    .offset(x: r.minX, y: r.minY)
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityElement()
+        .accessibilityLabel(String(format: loc("Cornice del video %@"), id))
     }
 }
 

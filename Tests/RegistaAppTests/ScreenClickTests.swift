@@ -58,6 +58,7 @@ extension MouseSuites.ClickAudits {
         ], noOps: [
             "Divisore": "a splitter: a click without a drag moves nothing (its drag is tested in ControlMouseTests)",
             "Ispettore": alreadyCurrent, "Media": alreadyCurrent, "Pro": alreadyCurrent, "Selezione": alreadyCurrent,
+            "9:16": "the Inspector's project format, " + alreadyCurrent + " (the fixture project is 9:16; the other formats run project.format)",
             "Impostazioni": "opens the Settings scene with SwiftUI's openSettings, which a hosted view has no scene for (Settings is clicked through in SettingsClickTests)",
             "Media tile 1": "the take, already the clip shown in the Source monitor",
         ], extra: { app in
@@ -250,6 +251,7 @@ extension MouseSuites.ClickAudits {
         let nav = Navigation(activity: tab == .prompter ? .record : .media, rightTab: tab)
         _ = try await audit(name, nav, size: window.size, area: RenderParts.right(window.size), noOps: [
             "Gobbo": alreadyCurrent, "Claude": alreadyCurrent, "Ispettore": alreadyCurrent, "Français": alreadyCurrent,
+            "9:16": "the Inspector's project format, " + alreadyCurrent + " (the fixture project is 9:16)",
             // The Gobbo's scrolling mode, clicked since the audit finds controls again inside its area (#48): Voce is the
             // teleprompter's default mode.
             "Voce": alreadyCurrent,

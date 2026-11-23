@@ -20,6 +20,12 @@ struct FormatMenu: View {
     /// The whole label (false: cut to the width left, the toolbar's narrow fallback).
     var whole = true
     var font: Font = Ed.ui(Ed.TypeSize.body)
+    /// A symbol before the label (Registra's menu, where no word says «format»).
+    var symbol: String? = nil
+    /// The label's height (the toolbar's controls: 24; a line of text: 18).
+    var height: CGFloat = 24
+    /// The text drawn when it is not the label itself ("": the symbol alone); the label stays the control's value.
+    var display: String? = nil
     let pick: (String) -> Void
     @Environment(\.navOverride) private var navOverride
     @State private var open = false
@@ -43,12 +49,13 @@ struct FormatMenu: View {
     var body: some View {
         Button { open.toggle() } label: {
             HStack(spacing: 5) {
-                Text(verbatim: label).font(font).foregroundStyle(hover || open ? Ed.text : Ed.text3).lineLimit(1)
-                    .fixedSize(horizontal: whole, vertical: false)
+                if let symbol { Image(systemName: symbol).font(Ed.icon(Ed.TypeSize.caption)).foregroundStyle(hover || open ? Ed.text2 : Ed.text3) }
+                if display != "" { Text(verbatim: display ?? label).font(font).foregroundStyle(hover || open ? Ed.text : Ed.text3).lineLimit(1)
+                    .fixedSize(horizontal: whole, vertical: false) }
                 Image(systemName: "chevron.down").font(Ed.icon(Ed.TypeSize.tiny, .semibold)).foregroundStyle(hover || open ? Ed.text2 : Ed.text4)
             }
             .padding(.horizontal, Ed.Space.s)
-            .frame(height: 24)
+            .frame(height: height)
             .background(RoundedRectangle(cornerRadius: Ed.Radius.m, style: .continuous).fill(hover || open ? Ed.control : .clear))
             .contentShape(Rectangle())
         }

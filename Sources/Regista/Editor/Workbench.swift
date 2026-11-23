@@ -60,6 +60,9 @@ final class Workbench: ObservableObject {
     /// Where the running recording goes and where the last one goes, as Registra showed it when it started (#39).
     private var startedDestination: RecordingDestination?
     private var finishedDestination: RecordingDestination?
+    /// The video's format chosen on Registra as the running / last recording started (#153): a preset id, nil = the camera's.
+    private var startedFormat: String?
+    private var finishedFormat: String?
     /// The one-line notice over the main area: where the last recording went, with its file (#39).
     @Published var notice: Notice?
     /// Where the recorder's takes are: Regista's recordings folder (read when asked: Settings may move Regista's folder),
@@ -315,6 +318,7 @@ final class Workbench: ObservableObject {
         if recordingTabID == nil {
             recordingTabID = activeID
             startedDestination = active.recordingDestination
+            startedFormat = recorder?.sources.takeFormat
         }
         notice = nil
     }
@@ -324,8 +328,10 @@ final class Workbench: ObservableObject {
     func recordingStopped() {
         finishedRecordingTabID = recordingTabID
         finishedDestination = startedDestination
+        finishedFormat = startedFormat
         recordingTabID = nil
         startedDestination = nil
+        startedFormat = nil
         if nav.activity != .record { hideTeleprompter() }
     }
 
@@ -374,8 +380,10 @@ final class Workbench: ObservableObject {
     /// Returns the tab it went to.
     @discardableResult
     func recordingFinished(_ url: URL, session: Bool, openEditor: Bool = false) -> EditorStore {
+        let format = finishedFormat
+        finishedFormat = nil
         let (tab, newProject) = recordingTarget(select: openEditor)
-        tab.importRecording(url, session: session, newProject: newProject, openEditor: openEditor)
+        tab.importRecording(url, session: session, newProject: newProject, format: format, openEditor: openEditor)
         return tab
     }
 

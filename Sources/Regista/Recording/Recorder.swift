@@ -3,6 +3,7 @@ import RegistaCore
 import RegistaEngines
 import ScreenCaptureKit
 import SwiftUI
+import Vision
 
 /// Registrazione: screen, camera, microphone (also an iPhone as Continuity Camera), the Mac's sound and the teleprompter,
 /// each with its own switch (`sources`, issue #50). Without the screen: one movie file (camera and/or microphone; the
@@ -55,6 +56,27 @@ final class Recorder: NSObject, ObservableObject {
     @Published private(set) var windows: [SCWindow] = []
     /// Latest screen frame for the live preview.
     @Published private(set) var screenFrame: IOSurface?
+    /// Where the face is across the camera preview (0…1, as the preview shows it), while the format guide follows it
+    /// (#153); nil when no face is seen or nobody asks.
+    @Published private(set) var faceX: Double?
+
+    /// The format guide on the camera preview follows the face (#153): a few face detections a second on the camera's
+    /// frames (Apple Vision, on this Mac), only while it is on.
+    func followFace(_ on: Bool) {
+        guard on else {
+            cameraTap.onFace = nil
+            if faceX != nil { faceX = nil }
+            return
+        }
+        guard cameraTap.onFace == nil else { return }
+        let session = session
+        cameraTap.onFace = { [weak self] x in
+            // The preview shows the picture mirrored when its connection says so.
+            let mirrored = session.connections.first { $0.videoPreviewLayer != nil }?.isVideoMirrored ?? false
+            let shown = x.map { mirrored ? 1 - $0 : $0 }
+            DispatchQueue.main.async { MainActor.assumeIsolated { if self?.faceX != shown { self?.faceX = shown } } }
+        }
+    }
 
     var onFinished: ((URL) -> Void)?
     /// Takes the next finished movie-file take instead of `onFinished` (the voice recording flow keeps its takes out
@@ -632,8 +654,28 @@ final class CameraTap: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @
         set { lock.withLock { _handler = newValue } }
     }
 
+    /// The face's centre across the frame (0…1, nil: none), a few times a second while set (#153).
+    var onFace: (@Sendable (Double?) -> Void)? {
+        get { lock.withLock { _onFace } }
+        set { lock.withLock { _onFace = newValue } }
+    }
+    private var _onFace: (@Sendable (Double?) -> Void)?
+    private var faceAt = 0.0
+
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         handler?(sampleBuffer)
+        if let onFace { detectFace(sampleBuffer, report: onFace) }
+    }
+
+    /// Called on `queue` only: the largest face of the frame, at most four times a second.
+    private func detectFace(_ buffer: CMSampleBuffer, report: (Double?) -> Void) {
+        let now = CACurrentMediaTime()
+        guard now - faceAt >= 0.25, let pixels = CMSampleBufferGetImageBuffer(buffer) else { return }
+        faceAt = now
+        let request = VNDetectFaceRectanglesRequest()
+        try? VNImageRequestHandler(cvPixelBuffer: pixels, options: [:]).perform([request])
+        let face = request.results?.max { $0.boundingBox.width * $0.boundingBox.height < $1.boundingBox.width * $1.boundingBox.height }
+        report(face.map { Double($0.boundingBox.midX) })
     }
 }
 

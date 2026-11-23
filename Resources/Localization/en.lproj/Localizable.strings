@@ -2537,3 +2537,6 @@
 "Inquadro le clip sul volto…" = "Framing the clips on the face…";
 "Apple Vision, su questo Mac: nessun costo. Alla fine di «Fai tutto» controllo che nessuna testa sia tagliata." = "Apple Vision, on this Mac: no cost. At the end of “Do everything” I check that no head is cut.";
 "Trascrive, trova il volto, sceglie le riprese, taglia le pause, pulisce la voce e mette i sottotitoli, in ordine" = "Transcribes, finds the face, chooses the takes, cuts the pauses, cleans the voice and adds the captions, in order";
+"Come la camera" = "As the camera";
+"Il formato del video: la cornice sull'anteprima mostra cosa resta; in montaggio il volto resta nell'inquadratura" = "The video's format: the frame on the preview shows what stays; in the edit the face stays in frame";
+"Cornice del video %@" = "Frame of the %@ video";
