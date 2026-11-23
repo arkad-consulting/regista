@@ -771,7 +771,8 @@ struct RulesSettings: View {
                 } else {
                     Text(verbatim: model.shownTitle).font(Ed.ui(Ed.TypeSize.title, .bold)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.tail)
                 }
-                Text(verbatim: model.subtitle).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).lineLimit(1)
+                Text(verbatim: model.subtitle).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: Ed.Space.s)
             if !model.renaming {
@@ -912,9 +913,26 @@ struct RulesSettings: View {
     }
 
     /// A built-in's text, read-only, in the editor's frame.
+    /// A built-in recipe's steps are written for Claude, wrapped by hand with indented continuation lines; on screen each
+    /// item reads as one paragraph that wraps to the pane (list items, nested ones included, keep their own line).
+    static func unwrapped(_ text: String) -> String {
+        var out: [String] = []
+        for line in text.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            let indented = line.first == " " || line.first == "\t"
+            let item = trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") || trimmed.range(of: #"^\d+\. "#, options: .regularExpression) != nil
+            if indented, !item, !trimmed.isEmpty, let last = out.last, !last.trimmingCharacters(in: .whitespaces).isEmpty {
+                out[out.count - 1] = last + " " + trimmed
+            } else {
+                out.append(line)
+            }
+        }
+        return out.joined(separator: "\n")
+    }
+
     private func readOnly(_ text: String, height: CGFloat) -> some View {
         ScrollView {
-            Text(verbatim: text).font(Ed.mono(Ed.TypeSize.body)).foregroundStyle(Ed.text2).textSelection(.enabled)
+            Text(verbatim: Self.unwrapped(text)).font(Ed.mono(Ed.TypeSize.body)).foregroundStyle(Ed.text2).textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading).padding(Ed.Space.s)
         }
         .frame(height: height)

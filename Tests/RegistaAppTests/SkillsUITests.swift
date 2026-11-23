@@ -424,3 +424,22 @@ extension MouseSuites {
     }
 }
 }
+
+/// A built-in recipe's steps, wrapped by hand for Claude, read on screen as one paragraph per item: continuation lines join
+/// their item, list items (nested ones included) keep their own line, blank lines stay.
+@Suite struct BuiltInStepsTextTests {
+    @Test func continuationLinesJoinTheirItem() {
+        let text = "1. Find the material: text_read the\n   script to know what was said.\n    - a nested item\n      that goes on\n2. project_new.\n\nA paragraph."
+        #expect(RulesSettings.unwrapped(text) == "1. Find the material: text_read the script to know what was said.\n    - a nested item that goes on\n2. project_new.\n\nA paragraph.")
+    }
+
+    @Test func everyBuiltInRecipeKeepsItsNumberedItems() {
+        for recipe in Recipes.all {
+            let steps = recipe.body
+            let items = steps.components(separatedBy: "\n").filter { $0.range(of: #"^\d+\. "#, options: .regularExpression) != nil }.count
+            let shown = RulesSettings.unwrapped(steps).components(separatedBy: "\n")
+            #expect(shown.filter { $0.range(of: #"^\d+\. "#, options: .regularExpression) != nil }.count == items, "\(recipe.name)")
+            #expect(!shown.contains { $0.hasPrefix("   ") && !$0.trimmingCharacters(in: .whitespaces).hasPrefix("- ") }, "\(recipe.name): a continuation line is left on its own")
+        }
+    }
+}
