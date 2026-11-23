@@ -130,6 +130,12 @@ struct InspectorPanel: View {
         return VStack(alignment: .leading, spacing: 0) {
             InspectorGroup(title: loc("Progetto")) {
                 InspectorInfoRow(label: loc("Formato"), value: Fmt.ratio(s.width, s.height) + " · \(s.width)×\(s.height)")
+                // The same choice as the toolbar's format menu (#151); the screen recording's «Formato di uscita» stays in its group.
+                RSegmented(items: ScreenLook.formats.map { ($0, $0) },
+                           selection: Binding(get: { ScreenLook.formatID(p) ?? "" }, set: { id in
+                               if id != ScreenLook.formatID(p) { run(ScreenLook.format(id)) }
+                           }),
+                           symbols: ["16:9": "rectangle", "9:16": "rectangle.portrait", "4:5": "rectangle.portrait", "1:1": "square"])
                 InspectorInfoRow(label: loc("Fotogrammi"), value: String(Int(s.frameRate.doubleValue.rounded())) + " fps")
                 InspectorInfoRow(label: loc("Durata"), value: clockTime(p.duration.seconds))
                 InspectorInfoRow(label: loc("Clip"), value: "\(p.tracks.flatMap(\.clips).count)")

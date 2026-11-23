@@ -594,12 +594,23 @@ struct EditorToolbar: View {
     }
 
     /// The rule and the project's format after the level, then the free space: the whole text, or cut to the width left.
+    /// With a project the label is a compact menu of the four formats (#151): a choice runs project.format, one undo step.
     private func formatPart(whole: Bool) -> some View {
         HStack(spacing: Ed.Space.m) {
             Ed.rule.frame(width: 1, height: 16)
-            Text(verbatim: format).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).lineLimit(1)
-                .fixedSize(horizontal: whole, vertical: false)
-                .frame(minWidth: 0, idealWidth: whole ? nil : 56, alignment: .leading)
+            if let p = store.project {
+                FormatMenu(label: format, items: FormatMenu.presets(), selected: ScreenLook.formatID(p),
+                           tip: "Formato del video: 9:16, 4:5, 1:1 o 16:9; il volto resta nell'inquadratura", whole: whole) { id in
+                    let c = ScreenLook.format(id)
+                    store.run(c.id, c.params)
+                }
+                .frame(minWidth: 0, idealWidth: whole ? nil : 80, alignment: .leading)
+                .padding(.leading, -Ed.Space.s)   // the text where the plain label was; the hover fill reaches past it
+            } else {
+                Text(verbatim: format).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3).lineLimit(1)
+                    .fixedSize(horizontal: whole, vertical: false)
+                    .frame(minWidth: 0, idealWidth: whole ? nil : 56, alignment: .leading)
+            }
             Spacer(minLength: Ed.Space.s)
         }
         .padding(.leading, Ed.Space.m)
