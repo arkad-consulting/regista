@@ -12,3 +12,4 @@ Une personne qui parle à la caméra, en vertical 9:16.
 - Gardez sous-titres et titres hors des 8 % du haut, des 20 % du bas et du bord droit, où la plateforme dessine ses boutons.
 - Le visage reste dégagé : les yeux dans le tiers haut, aucune carte dessus.
 - Les plans de coupe commencent sur la phrase qu'ils illustrent, jamais dans un silence.
+- Parmi les lectures d'une ligne, gardez la plus propre et complète (sans accroc, sans reprise, avec une fin entière), souvent la dernière ; les mots de remplissage et les faux départs sont retirés.

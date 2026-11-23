@@ -32,6 +32,7 @@ These rules hold for every kind of video. The sheet of the project's kind adds i
 - A paid generation only after its cost is told and the person approves it.
 - Nothing invented on screen: no fact, number, name or quote that was not said or given.
 - Look at the frames before delivering, not only at the measurements.
+- Build what the person said yes to: a change they did not ask for goes back to them first, and one fix asked for is that fix and nothing more.
 
 ## Opening
 - The first 3 seconds say what the video is about and why it is worth staying. Never give away the result or the answer there: keep it for the payoff.
@@ -49,12 +50,14 @@ These rules hold for every kind of video. The sheet of the project's kind adds i
 - Captions never repeat a text already on screen (a title, a card).
 - Captions never cover the speaker's face and stay out of the platform's buttons and bars.
 - No caption after the last spoken word: words the transcription invents over a silent end are removed.
+- The words of one line sit on one baseline: words of different heights never jump up and down.
 
 ## Graphics and text
 - Every line stays long enough to be read: about half a second plus a third of a second per word.
 - Nothing meant to be read is smaller than 28 px on a 1080-wide frame.
 - No logo, title or card over the speaker's face.
 - One reading task at a time: never two loud texts in the same frame.
+- Colours and fonts come from the brand kit only, in every graphic and scene: never ad-hoc ones.
 
 ## Ending
 - The spoken payoff ends completely before anything closes.
@@ -66,3 +69,4 @@ These rules hold for every kind of video. The sheet of the project's kind adds i
 ## Sound
 - The voice at −15 LUFS, true peak at or under −1.5 dBTP.
 - Music under the voice is always lowered, and it fades out before the logo, not after.
+- The voice is brought to its level once: never a second normalization or other loudness processing on top.

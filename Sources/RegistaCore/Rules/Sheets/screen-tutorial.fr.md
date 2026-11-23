@@ -12,3 +12,4 @@ Un enregistrement d'écran fait dans Regista, avec ou sans le visage, en 16:9 ou
 - Le texte à l'écran reste lisible après le zoom : un petit texte d'interface demande un zoom plus serré, pas un sous-titre plus petit.
 - En 16:9, les sous-titres tiennent sur deux lignes d'environ 42 caractères.
 - Le logo arrive seulement à la fin, après le dernier mot prononcé.
+- L'écran est le sujet, le visage l'accompagne : au plus un changement de disposition toutes les 20 à 30 s.

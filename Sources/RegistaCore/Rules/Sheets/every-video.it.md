@@ -32,6 +32,7 @@ Queste regole valgono per ogni tipo di video. Il foglio del tipo del progetto ag
 - Una generazione a pagamento solo dopo averne detto il costo e con l'ok della persona.
 - Niente di inventato sullo schermo: nessun fatto, numero, nome o citazione che non sia stato detto o dato.
 - Prima di consegnare si guardano i fotogrammi, non solo le misure.
+- Si costruisce ciò a cui la persona ha detto sì: una modifica che non ha chiesto torna prima a lei, e una correzione chiesta è quella e nient'altro.
 
 ## Apertura
 - I primi 3 secondi dicono di cosa parla il video e perché vale la pena restare. Mai svelare lì il risultato o la risposta: tienili per il finale.
@@ -49,12 +50,14 @@ Queste regole valgono per ogni tipo di video. Il foglio del tipo del progetto ag
 - I sottotitoli non ripetono mai un testo già sullo schermo (un titolo, una card).
 - I sottotitoli non coprono mai il volto di chi parla e restano fuori da pulsanti e barre della piattaforma.
 - Nessun sottotitolo dopo l'ultima parola detta: le parole che la trascrizione inventa su un finale muto vanno tolte.
+- Le parole di una riga stanno su una sola linea di base: parole di altezze diverse non saltano mai su e giù.
 
 ## Grafica e testo
 - Ogni riga resta abbastanza da essere letta: circa mezzo secondo più un terzo di secondo per parola.
 - Niente di ciò che va letto è più piccolo di 28 px su un fotogramma largo 1080.
 - Nessun logo, titolo o card sopra il volto di chi parla.
 - Una sola cosa da leggere alla volta: mai due testi forti nello stesso fotogramma.
+- Colori e font vengono solo dal kit del marchio, in ogni grafica e scena: mai scelti a caso.
 
 ## Finale
 - La frase finale detta si chiude del tutto prima che qualcosa chiuda il video.
@@ -66,3 +69,4 @@ Queste regole valgono per ogni tipo di video. Il foglio del tipo del progetto ag
 ## Suono
 - La voce a −15 LUFS, picco reale entro −1,5 dBTP.
 - La musica sotto la voce è sempre abbassata, e sfuma prima del logo, non dopo.
+- La voce si porta al suo livello una volta sola: mai una seconda normalizzazione né altri trattamenti del volume sopra.

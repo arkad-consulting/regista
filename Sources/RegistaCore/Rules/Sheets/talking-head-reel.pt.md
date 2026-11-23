@@ -12,3 +12,4 @@ Uma pessoa falando para a câmera, na vertical 9:16.
 - Mantenha legendas e títulos fora dos 8 % de cima, dos 20 % de baixo e da borda direita, onde a plataforma desenha seus botões.
 - O rosto fica livre: olhos no terço de cima, nenhum cartão por cima.
 - Os inserts (B-roll) começam na frase que ilustram, nunca num silêncio.
+- Das leituras de uma linha, fique com a mais limpa e completa (sem tropeço, sem recomeço, com o final inteiro), em geral a última; vícios de fala e falsos começos saem.

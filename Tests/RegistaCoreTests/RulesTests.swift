@@ -433,7 +433,8 @@ private func rulesEngine(_ fakes: FakeServices = FakeServices()) throws -> (Engi
     #expect(text.contains("- captions: ghost-karaoke — The whole line shown faint"))
     #expect(text.contains("- pace: normal — Pauses up to 0.7 s stay; longer ones are cut, keeping 0.12 s of breath."))
     #expect(text.contains("- framing: alternate — A punch-in when the line of the script changes. How much closer the punch-in is: 1.15×."))
-    #expect(text.contains("win over the recipe's steps"), "recipe.get does not say the sheet wins")
+    // The recipe says once that the rules and choices win: its last line, right before them.
+    #expect(text.contains(Recipe.closing + "\n\n# Editing rules") && text.components(separatedBy: "win over").count == 2, "recipe.get does not say once that the sheet wins")
     #expect(!text.contains("faceless-sound"), "a choice of another kind is in the talking-head recipe")
     let voice = try #require(e.execute("recipe.get", params: ["name": "prompt-to-reel", "language": "en"])["text"]?.stringValue)
     #expect(voice.contains("- faceless-sound: directed") && !voice.contains("- framing:"))

@@ -12,3 +12,4 @@ Una persona che parla alla camera, in verticale 9:16.
 - Tieni sottotitoli e titoli fuori dall'8 % in alto, dal 20 % in basso e dal bordo destro, dove la piattaforma disegna i suoi pulsanti.
 - Il volto resta libero: occhi nel terzo alto, nessuna card sopra.
 - Gli inserti (B-roll) partono sulla frase che illustrano, mai in un silenzio.
+- Delle letture di una riga tieni la più pulita e completa (senza inciampi, senza ripartenze, con la fine intera), di solito l'ultima; intercalari e false partenze si tolgono.

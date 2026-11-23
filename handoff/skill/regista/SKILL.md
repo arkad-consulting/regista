@@ -14,7 +14,8 @@ tools. The user watches every step live in the Regista app, so keep it open.
    is not connected: tell the user to open Regista › Settings › Claude (Impostazioni › Claude) and press Connect Claude
    Desktop… (or Connect Claude Code…), then quit and reopen Claude Desktop (or start a new Claude Code session).
 2. Call `recipe_get` with no arguments. It lists the recipes. Pick the one that fits and read it whole
-   (`recipe_get {"name": …}`); it is the source of truth for steps, parameters and house rules:
+   (`recipe_get {"name": …}`); it is the source of truth for the steps and their parameters, and the user's rules and
+   choices that close it (caption style, pace, framing, music, graphics…) win over the steps:
    - `talking-head-reel`: a person speaking to camera, cut by takes, captioned.
    - `screen-tutorial`: a screen recording made in Regista (face optional): layout, zoom, cursor, shortcuts.
    - `voice-over-video`: no one on camera; the user's cloned voice over footage, stills and motion graphics.
@@ -32,7 +33,8 @@ tools. The user watches every step live in the Regista app, so keep it open.
 - Paid generation: `generate_providers` says what is available; `generate_estimate` gives the cost and records the
   request; the user approves it in the Regista app (one approval = exactly that request, once); then `generate_run`
   with the approval token `generate_list` shows. Say the cost first. Local generation (ComfyUI) is free.
-- No music unless asked (in `prompt-to-reel` the plan asks). No invented facts or numbers on screen.
+- Music only as the user's music choice says (by default only when asked; in `prompt-to-reel` the plan asks). No
+  invented facts or numbers on screen.
 - Ask at most one question before starting (format or language, when it is really unclear; `prompt-to-reel` has its own
   three); otherwise use the recipe's defaults and say what you chose.
 - Answer in the user's language, short sentences, no tool names unless they ask how it works.

@@ -24,7 +24,7 @@ extension Recipes {
            what the viewer should do after, the language. Nothing else before the plan.
         2. Look at what there is, without asking: voice_list, brandkit_list, media_list, effects_catalog
            {category: "templates"}.
-        3. The plan, in one message, then wait for the yes (or the changes):
+        3. The plan, in one message, then wait for the yes (or the changes); what the user says yes to is what is built:
            - Treatment: three structures this reel could have, one line each (a question answered, a mistake and its
              fix, a before and after, a countdown…), the one you chose and why. Its subject, goal and turn, the opening
              and how the ending echoes it, and one signature moment at the peak: the one picture that belongs to this
@@ -32,9 +32,11 @@ extension Recipes {
            - Script: one line per beat, 4–10 words (about 2.3 words a second; 20–45 s in all).
            - Scene plan, a table: scene | seconds | words said | what is seen | transition | music | sound. What is seen =
              a template with its fields, a HyperFrames scene in one line, a still, or footage from Media. Music = bed,
-             build or stop for each section. Sound = for each visible action, a name from sfx_library, or none. Two
-             moments are marked: a near-silence before the turn (0.4–0.8 s: music stop, no word, no effect) and a J-cut
-             (a sound that starts 0.3–2 s before the picture it announces).
+             build or stop for each section, as the music choice allows. Sound = as the sfx choice says (actions: each
+             visible action; sparse: the key moments), a name from sfx_library, or none. With the faceless-sound choice
+             directed, two moments are marked: a near-silence before the turn (0.4–0.8 s: music stop, no word, no
+             effect starts in it and no tail rings through it) and a J-cut (a sound that starts 0.3–2 s before the
+             picture it announces).
         4. project_new {name, directory: <projectsDirectory>, kind: "voice-over-video"} (1080×1920; this recipe follows
            that kind's rules), then brandkit_apply {kit}.
         5. Voice: the active profile's own cloned voice, as in the voice-over-video recipe (voice_preview {estimate:
@@ -65,7 +67,7 @@ extension Recipes {
         9. Captions: with a voice, captions_generate {sourceTrackId: <Voce track>, keywords}, then captions_clear {from, to}
            over the near-silence (a caption stays a moment after its last word). Without one there are no words to caption: each line is a title_add (band "lower") or the scene's own
            text.
-        10. Music: a file of the user's (media_list); none → say so, the effects carry it. One audio_addMusic {path, start,
+        10. Music, as the plan and the music choice have it: a file of the user's (media_list); none → say so, the effects carry it. One audio_addMusic {path, start,
             end, sourceIn} per section: bed = the default level, build = level −19 with fadeIn, stop = no call (end the
             section before it with fadeOut 0.15). Effects: sfx_add {name, at, volume 0.2–0.3} so that the sound's peak
             (sfx_library gives it) lands on the frame of its action: at = action − peak. The J-cut is the one whose start
@@ -82,13 +84,6 @@ extension Recipes {
 
         Finish with the report: the plan's scenes, what changed, the verdict of each check, the files; what you could not
         check is "not checked". With a cloned voice, the note the export gives ("AI-generated voice").
-
-        ## House rules
-        - The plan the user said yes to is what is built: a change they did not ask for goes back to them first.
-        - One signature moment; the rest is quiet. Two actions never share one sound effect's moment.
-        - The turn is the picture that changes most: its stage, its size or its movement breaks with what came before.
-        - The near-silence is kept in the mix: nothing starts in it, no tail of an effect rings through it.
-        - Brand kit colours and fonts only, in HyperFrames too.
         """,
         sheet: "voice-over-video")
 }

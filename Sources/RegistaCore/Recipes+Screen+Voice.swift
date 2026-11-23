@@ -22,7 +22,8 @@ extension Recipes {
 
         ## Steps
         1. Find the take: media_list → the files named session.json (their folder is the take; the newest unless the
-           user names one). Ask the format only if unclear: 16:9 for a tutorial, 9:16 for a reel.
+           user names one). The format is the person's format choice; with "project", ask only if unclear: 16:9 for a
+           tutorial, 9:16 for a reel.
         2. project_new {name, directory: <projectsDirectory from media_list>, width: 1920, height: 1080, kind:
            "screen-tutorial"} for 16:9 (no width/height = 1080×1920, a 9:16 reel).
         3. recording_import {path: <the take's folder>, faces: true}. It builds the timeline — Schermo (screen),
@@ -51,11 +52,16 @@ extension Recipes {
            where something happens on screen; speed up a long wait with clip_speed {clipId: <screen clip>,
            rate: 2…4} instead of cutting through an action.
         9. Voice: audio_clean {} (denoise, −15 LUFS, true peak ≤ −1.5). Run it after the cuts.
-        10. Captions: for a reel always; for a 16:9 tutorial ask. captions_generate {style: "talking-head-v1",
-            keywords: [the names of the buttons and features shown], fixes: {misheard: "right"}}. Re-run after any cut.
+        10. Captions, in the person's caption style choice (none: no captions; for a 16:9 tutorial ask first):
+            captions_generate {style: <that choice>, keywords: [the names of the buttons and features shown], fixes:
+            {misheard: "right"}}. Re-run after any cut.
         11. Look: frame_contactSheet {times: [the click times from step 5, plus the start and the end]}. Check: the
             face never covers what is being clicked (move the bubble to another corner for that range), the zoom
             lands on the right element, captions are readable and clear of the face, no black frame. Fix, look again.
+        11b. Before the export the user sees: graphics as the person's graphics choice says (on: read effects_catalog and
+            propose as many items as its number says, one line each: what, where, why, as a yes/no list; apply what they
+            accept); titles, cards and sound effects with the reel-graphics recipe; music only as the music choice says
+            (audio_addMusic ducks it under the voice; audio_checkDucking proves it).
         12. Export: rules_check first (fix what fails), then export_render {path: <exportsDirectory>/<name>.mp4, preset: "16:9" | "9:16"} (expect −15 ±0.5
             LUFS when there is a voice), export_srt if there are captions, then recording_check {path: <mp4>}
             (sync, face in its box, zoom on the clicks) and project_save. When the project is 9:16, the cover: cover_set {time:
@@ -67,14 +73,6 @@ extension Recipes {
 
         Finish with a short report: the take used, the layout per range, how many zooms and cuts, where the
         files are, and anything you could not do (cursor baked in, no microphone, an engine missing).
-
-        ## House rules
-        - Never modify or delete the recording folder: the edit lives in the project.
-        - One layout change every 20–30 s at most; the screen is the subject, the face is company.
-        - No music unless asked; if asked, audio_addMusic (it ducks under the voice) and audio_checkDucking.
-        - Titles, cards and sound effects on top: the reel-graphics recipe.
-        - Never deliver a bare edit: before the export the user sees, read effects_catalog and propose 6–12
-          items that fit the lines (one line each: what, where, why) as a yes/no list; apply what they accept.
         """)
 
     public static let voiceOverVideo = Recipe(
@@ -113,7 +111,12 @@ extension Recipes {
         6. Picture, one visual per paragraph, covering the whole voice with no black gap:
            - the user's own material first — screen recordings, phone B-roll, photos (media_list → media_import →
              track_add {kind: "video"} once → timeline_place {assetId, trackId, start, sourceIn, sourceOut});
-             a photo is a 5 s still by default (timeline_trim to the paragraph's length);
+             a photo is a 5 s still by default (timeline_trim to the paragraph's length); frame 0 is their opening
+             shot, and titles there use animIn "none" (a title that pops in is not on frame 0);
+           - a landscape screen recording in a vertical frame: fit contain, scale 1; behind it, on the video track
+             below, the same picture cropped to fill, effect_add blur (radius ~45), clip_set brightness −0.3…−0.45;
+           - an image the user pastes in the chat is not a file you can import: ask them to save it in a media
+             folder, never swap in another picture of your own choosing;
            - motion graphics for numbers, lists and comparisons: effects_catalog {category: "templates"} →
              effects_preview → motion_add (colours and fonts from brandkit_apply);
            - generated shots only if the user asks: generate_providers (local ComfyUI is free on a Pro-tier Mac;
@@ -121,44 +124,27 @@ extension Recipes {
              the app. Real footage beats generated images.
            project_state shows the tracks and the duration: the last picture clip must end at or after the last
            voice clip.
-        7. Captions: captions_generate {style: "talking-head-v1", keywords: [the hook word, names, numbers]}.
-           They use the script's own words and spelling from the Voce track. Re-run after moving voice clips.
-        8. Titles, cards and sound effects: the reel-graphics recipe (titles land on the word; sound effects
-           sparse and quiet: sfx_library → sfx_add).
-        8b. Dress the edit — propose, never skip: read effects_catalog and propose to the user, line by line,
-            6–12 items that fit what is said (a counter or clock on the number, a headline on the punchline, a
-            chip on the thing shown, punch-ins on the strong words, transitions on section changes, the logo of
-            a brand that is named, a photo of a place that is named, a closing logo). One line each: what it is,
-            where it lands, why. Ask as a yes/no list (a multiple-choice question when the client has one) and
-            apply only what they accept. A first export without this pass is a draft, never the delivery.
-        9. Music only if asked: audio_addMusic {path} (ducked under the voice by default), then
-           audio_checkDucking (pass: music at least 15 dB under the voice while it speaks).
+        7. Captions, in the person's caption style choice (none: no captions): captions_generate {style: <that
+           choice>, keywords: [the hook word, names, numbers]}. They use the script's own words and spelling from the
+           Voce track. Re-run after moving voice clips.
+        8. Titles, cards and sound effects: the reel-graphics recipe (titles land on the word; sound effects as the
+           sfx choice says: sfx_library → sfx_add); the closing logo as the closing-logo choice says.
+        8b. Dress the edit, as the person's graphics choice says — on: read effects_catalog and propose to the user,
+            line by line, as many items as its number says that fit what is said (a counter or clock on the number, a
+            headline on the punchline, a chip on the thing shown, punch-ins on the strong words, transitions on
+            section changes, the logo of a brand that is named, a photo of a place that is named, a closing logo).
+            One line each: what it is, where it lands, why. Ask as a yes/no list (a multiple-choice question when the
+            client has one) and apply only what they accept. With the choice on, a first export without this pass is
+            a draft, never the delivery.
+        9. Music, as the person's music choice says (on-request: only if asked): audio_addMusic {path} (ducked under
+           the voice by default), then audio_checkDucking (pass: music at least 15 dB under the voice while it speaks).
         10. Look: frame_contactSheet {times: [the start of each voice clip + 0.5]}. Check: every beat has its
-            picture, nothing important sits under the caption band or in the top 110 px, text is readable. Fix,
-            look again.
+            picture, nothing important sits under the caption band or in the platform's zones (graphics_checkLayout
+            gives both), text is readable. Fix, look again.
         11. Export: rules_check first (fix what fails), then export_render {path: <exportsDirectory>/<name>.mp4, preset: "9:16", loudness: \(Int(LoudnessTarget.integrated))} (the mix is
             brought to −15 LUFS; the result gives the measured loudness and any warning), export_srt, project_save.
 
         Finish with a short report: text said, visuals used per paragraph, where the files are — and remind the
         user to add the note the export gives ("AI-generated voice") to the post description.
-
-        ## House rules
-        - Only the active profile's voice. Never the user's face on screen unless they ask for it.
-        - One visual idea per sentence; cut on the voice (a new picture starts with its paragraph).
-        - Brand kit colours and fonts only (brandkit_apply before the graphics).
-        - No invented facts or numbers on screen: only what the script says.
-        - Use every recording the user hands over where it belongs: a recording of a step (browsing a site,
-          the pricing page, a sign-up) goes, moving, under the line that tells that step.
-        - Never deliver a bare edit: the effects pass of step 8b comes before the export the user sees.
-        - The closing logo comes after the last spoken word, on a clean frame: no caption, no title, nothing else.
-        - Frame 0 is the user's own opening shot with at most two still titles: the subject and the angle (titles
-          there use animIn "none": a title that pops in is not on frame 0). Never the result or the punchline on
-          frame 0 — it spoils the video — and never reorder or replace the opening shot the user chose. When the
-          user asks for one fix, make that fix and nothing more.
-        - A landscape screen recording in a vertical frame is shown whole, edge to edge (fit contain, scale 1): never
-          zoomed until the sides are cut. Fill the empty bands with the same picture behind it, on the video track
-          below: crop to fill, effect_add blur (radius ~45), clip_set brightness −0.3…−0.45.
-        - An image the user pastes in the chat is not a file you can import: ask them to save it in a media
-          folder; never swap in another picture of your own choosing.
         """)
 }

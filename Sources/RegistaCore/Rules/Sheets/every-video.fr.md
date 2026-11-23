@@ -32,6 +32,7 @@ Ces règles valent pour tous les types de vidéo. La fiche du type du projet ajo
 - Une génération payante seulement après en avoir annoncé le coût et avec l'accord de la personne.
 - Rien d'inventé à l'écran : aucun fait, chiffre, nom ou citation qui n'a pas été dit ou fourni.
 - Avant de livrer, regardez les images, pas seulement les mesures.
+- On construit ce que la personne a validé : un changement qu'elle n'a pas demandé lui revient d'abord, et une correction demandée est cette correction et rien d'autre.
 
 ## Ouverture
 - Les 3 premières secondes disent de quoi parle la vidéo et pourquoi rester. N'y dévoilez jamais le résultat ni la réponse : gardez-les pour la fin.
@@ -49,12 +50,14 @@ Ces règles valent pour tous les types de vidéo. La fiche du type du projet ajo
 - Les sous-titres ne répètent jamais un texte déjà à l'écran (un titre, une carte).
 - Les sous-titres ne couvrent jamais le visage de la personne qui parle et restent hors des boutons et des barres de la plateforme.
 - Aucun sous-titre après le dernier mot prononcé : les mots que la transcription invente sur une fin silencieuse sont retirés.
+- Les mots d'une ligne reposent sur une même ligne de base : des mots de hauteurs différentes ne sautent jamais de haut en bas.
 
 ## Graphismes et texte
 - Chaque ligne reste assez longtemps pour être lue : environ une demi-seconde plus un tiers de seconde par mot.
 - Rien de ce qui doit être lu n'est plus petit que 28 px sur une image de 1080 de large.
 - Aucun logo, titre ou carte sur le visage de la personne qui parle.
 - Une seule lecture à la fois : jamais deux textes forts dans la même image.
+- Couleurs et polices viennent seulement du kit de marque, dans chaque graphisme et chaque scène : jamais choisies au hasard.
 
 ## Fin
 - La phrase finale se termine entièrement avant que quoi que ce soit ne ferme la vidéo.
@@ -66,3 +69,4 @@ Ces règles valent pour tous les types de vidéo. La fiche du type du projet ajo
 ## Son
 - La voix à −15 LUFS, crête réelle à −1,5 dBTP au plus.
 - La musique sous la voix est toujours baissée, et elle s'éteint avant le logo, pas après.
+- La voix est amenée à son niveau une seule fois : jamais une deuxième normalisation ni un autre traitement du volume par-dessus.

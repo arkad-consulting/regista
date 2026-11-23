@@ -12,3 +12,4 @@ A person speaking to the camera, vertical 9:16.
 - Keep captions and titles out of the top ~8 %, the bottom ~20 % and the right edge of the frame, where the platform draws its buttons.
 - The face stays clear: eyes in the upper third, no card over it.
 - Inserts (B-roll) start on the sentence they illustrate, never in a silence.
+- Of the readings of a line, keep the cleanest complete one (no stumble, no restart, a complete ending), usually the last; fillers and false starts go.

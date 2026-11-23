@@ -12,3 +12,4 @@ A screen recording made in Regista, with or without the face, 16:9 or 9:16.
 - Text on the screen stays readable after the zoom: small interface text needs a closer zoom, not a smaller caption.
 - In 16:9, captions keep to two lines of about 42 characters.
 - The logo comes only at the end, after the last spoken word.
+- The screen is the subject and the face is company: one layout change every 20–30 s at most.

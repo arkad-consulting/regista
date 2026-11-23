@@ -448,8 +448,7 @@ public struct RuleBook: Sendable {
     /// with what it does, the number with what it is.
     public func choicesBriefing(_ kind: String, language: String) -> String {
         var out = "# The person's choices (\(kind))\n\nWhat the person chose for this kind of video (rules.get reads them; rules.set changes "
-            + "one only when the person asks; Settings › Rules in the app). These choices and the rules above win over the recipe's steps "
-            + "where they say otherwise."
+            + "one only when the person asks; Settings › Rules in the app)."
         for c in choices(kind, language: language) {
             out += "\n- \(c.spec.id): \(c.value)"
             if let option = c.spec.option(c.value) { out += " — " + option.meaning.english }

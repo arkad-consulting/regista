@@ -12,3 +12,4 @@ Una registrazione dello schermo fatta in Regista, con o senza il volto, 16:9 o 9
 - Il testo sullo schermo resta leggibile dopo lo zoom: un testo piccolo dell'interfaccia chiede uno zoom più stretto, non un sottotitolo più piccolo.
 - In 16:9 i sottotitoli stanno in due righe di circa 42 caratteri.
 - Il logo arriva solo alla fine, dopo l'ultima parola detta.
+- Lo schermo è il soggetto, il volto fa compagnia: al massimo un cambio di layout ogni 20–30 s.
