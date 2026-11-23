@@ -22,13 +22,29 @@ public struct Recipe: Sendable {
     /// The kind of video its projects have (project.new {kind}), which selects the editing rules.
     public var kind: String { sheet ?? name }
 
-    /// The recipe with the given arguments stated at the top (unknown or empty ones are ignored).
+    /// The recipe with the given arguments stated at the top (unknown or empty ones are ignored), closed by what every
+    /// recipe says of the person's own ways of editing (#157).
     public func text(_ arguments: [String: String] = [:]) -> String {
         let given = self.arguments.compactMap { a -> String? in
             guard let v = arguments[a.name]?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty else { return nil }
             return "- \(a.name): \(v)"
         }
-        return given.isEmpty ? body : "Inputs:\n" + given.joined(separator: "\n") + "\n\n" + body
+        let full = body + "\n\n" + Self.skillsNote(name)
+        return given.isEmpty ? full : "Inputs:\n" + given.joined(separator: "\n") + "\n\n" + full
+    }
+
+    /// Making or changing a way of editing: the person's skills (#157).
+    static func skillsNote(_ recipe: String) -> String {
+        """
+        ## The person's own ways of editing (skills)
+        When the person wants a way of editing kept for next time ("make a skill for long interviews, with elegant
+        captions and no zoom"), write it out for them first, then, only after their OK: skill_create {title, basedOn,
+        steps, rules: {prose, checks}, choices}, or skill_duplicate {from: "\(recipe)", title} and skill_set to change the
+        copy (a built-in recipe is never changed). skill_list and skill_get read theirs; recipe_get lists them after the
+        recipes. skill_export writes one to a file for a colleague; skill_import adds one from a file (dryRun: true
+        first: show the person what it says). Each change is one history_undo step. A skill never changes the rules that
+        always hold.
+        """
     }
 }
 

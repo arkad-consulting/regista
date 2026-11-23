@@ -2180,7 +2180,7 @@ Returns: the new skill as skill.get.
 
 ### `skill.export`
 
-**Export a skill** · MCP tool: `skill_export` · undo: no — reads only · takes `project`
+**Export a skill** · MCP tool: `skill_export` · undo: no — writes a file where the person chose, outside the project · takes `project`
 
 Write a skill of the person's as one Markdown file where the person chose (to send to a colleague, who adds it with skill.import or «Importa una skill…»). A built-in recipe is not exported (duplicate it first). Returns the file.
 

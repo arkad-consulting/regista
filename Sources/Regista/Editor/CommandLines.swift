@@ -37,6 +37,19 @@ enum CommandLines {
             return count(r["effects"]?.arrayValue?.count ?? r["sounds"]?.arrayValue?.count ?? 0, "1 effetto sonoro", "%@ effetti sonori")
         case "brandkit.list": return count(r["kits"]?.arrayValue?.count ?? 0, "1 brand kit", "%@ brand kit")
 
+        // The person's skills (#157)
+        case "skill.list": return count(r["skills"]?.arrayValue?.count ?? 0, "1 skill tua", "%@ skill tue")
+        case "skill.get": return loc("Letta la skill «%@»", r["title"]?.stringValue ?? "")
+        case "skill.create": return loc("Creata la skill «%@»", r["title"]?.stringValue ?? "")
+        case "skill.set": return loc("Modificata la skill «%@»", r["title"]?.stringValue ?? "")
+        case "skill.duplicate": return loc("Copia fatta: la skill «%@»", r["title"]?.stringValue ?? "")
+        case "skill.remove": return loc("Eliminata la skill «%@»", r["title"]?.stringValue ?? "")
+        case "skill.export": return loc("Skill esportata in %@", file(r["path"]))
+        case "skill.import":
+            let title = r["skill"]?["title"]?.stringValue ?? ""
+            if r["replaced"] == true { return loc("Sostituita la skill «%@»", title) }
+            return loc("Aggiunta la skill «%@»", title)
+
         // The project
         case "project.new": return loc("Progetto «%@» creato", r["name"]?.stringValue ?? "")
         case "project.save": return loc("Salvato in «%@»", file(r["path"]))

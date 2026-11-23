@@ -150,6 +150,7 @@ enum SkillExport: Command {
     static let id = "skill.export"
     static let summary = "Write a skill of the person's as one Markdown file where the person chose (to send to a colleague, who adds it with skill.import or «Importa una skill…»). A built-in recipe is not exported (duplicate it first). Returns the file."
     static let kind = CommandKind.query
+    static let undoNote: String? = "no — writes a file where the person chose, outside the project"
     static let params: [ParamSpec] = [
         .required("skill", .string, "A skill of the person's (skill.list)."),
         .required("path", .string, "The file to write (.md added if missing), or a folder (the skill's file name in it)."),

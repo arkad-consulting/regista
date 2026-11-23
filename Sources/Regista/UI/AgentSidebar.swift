@@ -25,7 +25,8 @@ enum ActivityFeed {
     /// preview): they keep their own row.
     static let visibleQueries: Set<String> = ["export.render", "export.srt", "export.mlt", "brandkit.create", "brandkit.update",
                                               "brandkit.setLogo", "brandkit.setFont", "brandkit.export", "brandkit.import",
-                                              "brandkit.delete", "generate.estimate", "recording.synthesize", "voice.preview"]
+                                              "brandkit.delete", "generate.estimate", "recording.synthesize", "voice.preview",
+                                              "skill.create", "skill.set", "skill.duplicate", "skill.remove", "skill.export", "skill.import"]
 
     /// Whether a command only looks.
     static func isLook(_ id: String, kind: CommandKind?) -> Bool { kind == .query && !visibleQueries.contains(id) }

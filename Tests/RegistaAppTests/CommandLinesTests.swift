@@ -33,6 +33,14 @@ private let sampleResults: [String: JSONValue] = {
         "brandkit.apply": ["kit": "journey-kit", "name": "Journey Kit", "titles": ["hook"], "captionTracks": ["t3"], "titlesRestyled": 1, "logos": 0, "warnings": []],
         "brandkit.check": ["pass": true, "kit": "journey-kit", "captions": [:], "logos": []],
         "brandkit.list": ["kits": [["id": "neutral", "name": "Neutral"], ["id": "journey-kit", "name": "Journey Kit"]], "active": "neutral"],
+        "skill.list": ["skills": [["skill": "long-interview", "title": "Intervista lunga"]], "builtIns": [], "folder": "/scratch/skills"],
+        "skill.get": ["skill": "long-interview", "title": "Intervista lunga", "steps": "1. Leggi le domande."],
+        "skill.create": ["skill": "long-interview", "title": "Intervista lunga", "steps": "1. Leggi le domande."],
+        "skill.set": ["skill": "long-interview", "title": "Intervista lunga", "steps": "1. Leggi le domande."],
+        "skill.duplicate": ["skill": "intervista-due", "title": "Intervista due", "basedOn": "talking-head-reel"],
+        "skill.remove": ["removed": "long-interview", "title": "Intervista lunga"],
+        "skill.export": ["path": "/scratch/intervista-lunga.md", "skill": "long-interview", "title": "Intervista lunga", "bytes": 120],
+        "skill.import": ["added": "long-interview", "replaced": false, "skill": ["skill": "long-interview", "title": "Intervista lunga"]],
         "callout.add": ["clip": clip, "trackId": "t6", "box": [100, 200, 300, 120], "warnings": []],
         "captions.checkFaces": ["pass": true, "chunks": 5, "framesChecked": 40, "framesWithFaces": 40, "overlappingChunks": 0, "moved": 1, "placedOverFaces": 0, "warnings": []],
         "captions.checkTiming": ["words": 10, "framesDecoded": 180, "detected": 10, "undetected": 0, "withinTolerance": 10, "maxAbsError": 1, "pass": true],
@@ -211,6 +219,9 @@ extension MouseSuites {
         Words.applies = { true }
         defer { Words.override = nil; Words.applies = nil }
         #expect(CommandLines.line("script.set", sampleResults["script.set"]!) == "2 righe di copione")
+        #expect(CommandLines.line("skill.create", sampleResults["skill.create"]!) == "Creata la skill «Intervista lunga»")
+        #expect(CommandLines.line("skill.import", sampleResults["skill.import"]!) == "Aggiunta la skill «Intervista lunga»")
+        #expect(CommandLines.line("skill.export", sampleResults["skill.export"]!) == "Skill esportata in intervista-lunga.md")
         #expect(CommandLines.line("takes.list", sampleResults["takes.list"]!) == "2 riprese trovate, una per riga")
         #expect(CommandLines.line("edit.autoCut", sampleResults["edit.autoCut"]!) == "Tagliato a 0:03.5 in 2 pezzi")
         #expect(CommandLines.line("transcript.run", sampleResults["transcript.run"]!) == "10 parole trascritte")

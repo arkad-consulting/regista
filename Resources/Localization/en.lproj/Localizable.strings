@@ -2698,3 +2698,15 @@
 "Hai già una skill «%@»: sostituiscila, o aggiungi questa con un altro nome." = "You already have a skill “%@”: replace it, or add this one under another name.";
 "Sostituisci" = "Replace";
 "Le regole si cambiano in Impostazioni › Regia e skill" = "Rules are changed in Settings › Direction & skills";
+
+/* The Claude panel's line for each skill command (#157). */
+"1 skill tua" = "1 skill of yours";
+"%@ skill tue" = "%@ skills of yours";
+"Letta la skill «%@»" = "Read the skill “%@”";
+"Creata la skill «%@»" = "Created the skill “%@”";
+"Modificata la skill «%@»" = "Changed the skill “%@”";
+"Copia fatta: la skill «%@»" = "Copy made: the skill “%@”";
+"Eliminata la skill «%@»" = "Deleted the skill “%@”";
+"Skill esportata in %@" = "Skill exported to %@";
+"Aggiunta la skill «%@»" = "Added the skill “%@”";
+"Sostituita la skill «%@»" = "Replaced the skill “%@”";
