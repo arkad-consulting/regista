@@ -31,6 +31,48 @@ import Testing
     app.rig.elements(containing: text).first { $0.isControl }
 }
 
+/// The title of a choice's row (its text: the lookup key in a window without words).
+@MainActor private func choiceTitle(_ app: AppRig, _ title: String) -> RigElement? {
+    app.rig.elements().first { $0.role == "AXStaticText" && $0.value == title }
+}
+
+/// A control on a choice's row, right of its title.
+@MainActor private func onChoiceRow(_ app: AppRig, _ title: String, _ match: (RigElement) -> Bool) -> RigElement? {
+    guard let t = choiceTitle(app, title) else { return nil }
+    return app.rig.elements().first { $0.isControl && abs($0.centre.y - t.centre.y) < 8 && $0.frame.minX > t.frame.maxX && match($0) }
+}
+
+/// A segment of a choice (named by its option's label).
+@MainActor private func segment(_ app: AppRig, choice: String, _ label: String) -> RigElement? {
+    onChoiceRow(app, choice) { $0.name == label }
+}
+
+/// The menu of a choice with more than four options (its value: the current option's label).
+@MainActor private func menuControl(_ app: AppRig, choice: String) -> RigElement? {
+    onChoiceRow(app, choice) { $0.role == "AXButton" }
+}
+
+/// The number of a choice (an InspectorValueField, named by its tooltip).
+@MainActor private func numberField(_ app: AppRig, choice: String) -> RigElement? {
+    guard let t = choiceTitle(app, choice) else { return nil }
+    return app.rig.elements().first { $0.name.contains("Clicca per scrivere il valore") && abs($0.centre.y - t.centre.y) < 8 }
+}
+
+/// Scrolls the sheet's pane (at the top of its scroll area, never over the prose editor's own scroll view) until what
+/// `find` returns is whole in view.
+@MainActor private func reveal(_ app: AppRig, _ find: () -> RigElement?, sourceLocation: SourceLocation = #_sourceLocation) async throws {
+    for _ in 0..<40 {
+        let e = try #require(find(), "nothing to bring into view", sourceLocation: sourceLocation)
+        guard let pane = app.rig.elements().filter({ $0.role == "AXScrollArea" && $0.frame.minX > RulesSettings.listWidth })
+            .max(by: { $0.frame.height < $1.frame.height })?.frame else { return }
+        let shown = e.frame.height < pane.height - 4 ? pane.insetBy(dx: 0, dy: -0.5).contains(e.frame) : pane.insetBy(dx: 0, dy: 4).contains(e.centre)
+        if shown { return }
+        app.rig.scrollContent(at: CGPoint(x: pane.midX, y: pane.minY + 12), by: e.frame.midY > pane.midY ? 80 : -80)
+        await app.settle()
+    }
+    Issue.record("could not bring \(find()?.description ?? "it") into view", sourceLocation: sourceLocation)
+}
+
 /// A reel that breaks the rules: a title over the opening captions, a logo landing on the last spoken word (4.46 s).
 @MainActor func breakTheRules(_ app: AppRig) async throws {
     try await app.store.perform("title.add", ["text": "APERTURA", "start": 0, "duration": 2])
@@ -92,6 +134,8 @@ extension MouseSuites {
 
         // The prose: typing saves after a pause, and says so.
         n = app.store.activity.count
+        // The editor is under the checks and the choices: the pane scrolls to it.
+        try await reveal(app) { app.rig.elements().first { $0.role == "AXTextArea" } }
         let editor = try #require(app.rig.elements().first { $0.role == "AXTextArea" && $0.visible }, "no editor")
         app.rig.click(CGPoint(x: editor.frame.maxX - 20, y: editor.frame.maxY - 12))
         app.rig.pump(0.1)
@@ -106,10 +150,12 @@ extension MouseSuites {
         #expect(!app.rig.elements(containing: "salvato").isEmpty, "the editor does not say saved")
         // …and when the cursor leaves (a click on another control): saved at once, well before the pause.
         app.rig.type("QY")
+        try await reveal(app) { app.rig.elements().first { $0.label == "The logo only at the end" && $0.isControl } }
         let logoEnd = try #require(ruleSwitch(app, "The logo only at the end"))
         app.rig.click(logoEnd.centre)
         _ = await until(app, 0.8) { book.text("every-video", language: "en")?.contains("QXQY") == true }
         #expect(book.text("every-video", language: "en")?.contains("QXQY") == true, "leaving the editor did not save the prose")
+        await app.settle()
 
         // Reset.
         n = app.store.activity.count
@@ -123,6 +169,139 @@ extension MouseSuites {
         _ = await until(app) { ruleSwitch(app, "Minimum text size")?.value == "1" }
         #expect(ruleSwitch(app, "Minimum text size")?.value == "1", "the default did not come back on screen")
         #expect(app.rig.elements(containing: "QX").isEmpty, "the edited prose is still on screen")
+    }
+
+    /// The Scelte section (one regia): a segment, the menu and the number field of a choice each change that choice's
+    /// line of the sheet and nothing else, through rules.set, once; the edited sheet's row in the side list is marked;
+    /// Ripristina il predefinito brings every choice back to its default. On «Per ogni video», then on a kind.
+    @Test func theChoicesChangeTheirLineAndResetGoesBackToTheDefault() async throws {
+        let saved = UserDefaults.standard.object(forKey: SettingsRoute.rulesKey)
+        defer { UserDefaults.standard.set(saved, forKey: SettingsRoute.rulesKey) }
+        UserDefaults.standard.removeObject(forKey: SettingsRoute.rulesKey)
+        let app = try await AppRig()
+        defer { app.close() }
+        let book = rulesBook(app)
+        await hostRules(app)
+        // The header's lines (its comments left out: the sheet a set writes is in the interface language).
+        let lines = { (kind: String) in (RuleSheetText.parse(book.text(kind, language: "en") ?? "").header ?? []).filter { !$0.hasPrefix("#") } }
+
+        /// Clicks `target` once it is in view (the pane scrolls), and says which lines of `kind`'s sheet changed.
+        func click(_ find: () -> RigElement?, _ what: String, kind: String = RuleBook.everyVideo, command: String = "rules.set",
+                   sourceLocation: SourceLocation = #_sourceLocation) async throws -> [String] {
+            let before = lines(kind)
+            try await reveal(app, find)
+            let target = try #require(find(), "no \(what)", sourceLocation: sourceLocation)
+            let n = app.store.activity.count
+            app.rig.click(target.centre)
+            _ = await until(app) { lines(kind) != before }
+            await app.settle()
+            #expect(app.commands(since: n) == [command], "\(what) ran \(app.commands(since: n))", sourceLocation: sourceLocation)
+            #expect(find() != nil, "\(what) is gone after the click", sourceLocation: sourceLocation)
+            let after = lines(kind)
+            return after.count == before.count ? zip(before, after).filter { $0 != $1 }.map(\.1) : after.filter { !before.contains($0) }
+        }
+
+        // A segment: pace → Fast. One line changes, and the meaning under the title follows.
+        #expect(segment(app, choice: "Pace", "Normal")?.selected == true, "the default pace is not chosen")
+        #expect(try await click({ segment(app, choice: "Pace", "Fast") }, "the Fast segment") == ["pace: fast"])
+        #expect(segment(app, choice: "Pace", "Fast")?.selected == true, "the segment did not stay chosen")
+        #expect(app.rig.elements(containing: "longer ones are cut").contains { $0.name.contains("0.4") || $0.name.contains("0,4") },
+                "the meaning does not follow the chosen pace: \(app.rig.elements(containing: "longer ones are cut").map(\.name))")
+        #expect(app.rig.elements().contains { $0.isControl && $0.name.hasPrefix("For every video") && $0.name.contains("•") }, "the edited sheet's row is not marked")
+
+        // The menu (more than four options): Caption style → Ghost karaoke.
+        let menu = { menuControl(app, choice: "Caption style") }
+        try await reveal(app, menu)
+        #expect(menu()?.value == "Talking head", "the caption style's menu does not read its option: \(String(describing: menu()))")
+        app.rig.takeKey()
+        app.rig.click(try #require(menu()).centre)
+        let pop = try #require(await openedPopover(app), "the caption style's menu did not open")
+        let rows = pop.elements().filter { $0.isControl && $0.visible }
+        #expect(rows.count == 5 && rows.first { $0.selected }?.name.hasPrefix("Talking head") == true, "the menu lists \(rows.map(\.name))")
+        var before = lines(RuleBook.everyVideo)
+        var n = app.store.activity.count
+        pop.click(try #require(rows.first { $0.name.hasPrefix("Ghost karaoke") }).centre)
+        _ = await until(app) { lines(RuleBook.everyVideo) != before }
+        await app.settle()
+        #expect(app.commands(since: n) == ["rules.set"], "the menu ran \(app.commands(since: n))")
+        #expect(zip(before, lines(RuleBook.everyVideo)).filter { $0 != $1 }.map(\.1) == ["captions: ghost-karaoke"])
+        #expect(menu()?.value == "Ghost karaoke", "the menu does not read the new option")
+
+        // The number field: framing's zoom, a click makes a field, Return saves; the graphics' range takes «4–10».
+        for (choice, typed, line) in [("Framing", "1,3", "framing: alternate 1.3"), ("Graphics before delivering", "4–10", "graphics: on 4-10")] {
+            let field = { numberField(app, choice: choice) }
+            try await reveal(app, field)
+            before = lines(RuleBook.everyVideo)
+            n = app.store.activity.count
+            app.rig.click(try #require(field(), "no number for \(choice)").centre)
+            app.rig.pump(0.1)
+            #expect(app.rig.isTyping, "a click on \(choice)'s number did not make a field")
+            app.rig.key("a", keyCode: 0, modifiers: .command)
+            app.rig.type(typed)
+            app.rig.key(.returnKey)
+            _ = await until(app) { lines(RuleBook.everyVideo) != before }
+            await app.settle()
+            #expect(app.commands(since: n) == ["rules.set"], "\(choice)'s number ran \(app.commands(since: n))")
+            #expect(zip(before, lines(RuleBook.everyVideo)).filter { $0 != $1 }.map(\.1) == [line])
+        }
+
+        // Reset (below the pane, always in view): every choice back to its default, on screen and in the sheet.
+        n = app.store.activity.count
+        app.rig.click(try #require(control(app, containing: "Ripristina il predefinito")).centre)
+        _ = await until(app) { !book.edited(RuleBook.everyVideo) }
+        await app.settle()
+        #expect(app.commands(since: n) == ["rules.reset"])
+        _ = await until(app) { segment(app, choice: "Pace", "Normal")?.selected == true }
+        #expect(segment(app, choice: "Pace", "Normal")?.selected == true, "the default pace did not come back")
+        #expect(menuControl(app, choice: "Caption style")?.value == "Talking head", "the default caption style did not come back")
+
+        // On a kind: only its own choices, and a change writes the kind's sheet, not «Per ogni video».
+        app.rig.click(try #require(control(app, containing: "Talking-head reel")).centre)
+        _ = await until(app) { choiceTitle(app, "Sound without a face") == nil && segment(app, choice: "Sound effects", "None") != nil }
+        await app.settle()
+        #expect(app.rig.elements(containing: "Sound without a face").isEmpty, "the reel shows a choice of faceless videos")
+        #expect(try await click({ segment(app, choice: "Sound effects", "None") }, "the reel's None segment", kind: "talking-head-reel").contains("sfx: none"))
+        #expect(!book.edited(RuleBook.everyVideo), "a choice on a kind wrote «Per ogni video»")
+        #expect(app.rig.elements().contains { $0.isControl && $0.name.hasPrefix("Talking-head reel") && $0.name.contains("•") }, "the edited kind's row is not marked")
+        _ = try? await app.store.silent("rules.reset", ["kind": "talking-head-reel"])
+    }
+
+    /// The Scelte section in Italian and French, on «Per ogni video» and on the talking-head reel: each row's title whole,
+    /// its controls right of it inside the pane, its meaning under it (REGISTA_UI_SNAPSHOTS: the whole pane, to look at).
+    @Test(arguments: ["it", "fr"])
+    func theChoicesReadWholeInTheirLanguage(_ language: String) async throws {
+        let saved = UserDefaults.standard.object(forKey: SettingsRoute.rulesKey)
+        defer { UserDefaults.standard.set(saved, forKey: SettingsRoute.rulesKey) }
+        let app = try await AppRig()
+        defer { app.close() }
+        let table = MouseRig.table(language)
+        let height: CGFloat = 1500
+        for kind in [RuleBook.everyVideo, "talking-head-reel"] {
+            UserDefaults.standard.set(kind, forKey: SettingsRoute.rulesKey)
+            app.host(SettingsView(pinned: .rules, height: height).environment(\.colorScheme, .dark).background(Color(nsColor: .windowBackgroundColor)),
+                     size: CGSize(width: SettingsView.size.width, height: height), language: language)
+            await app.settle()
+            let specs = RuleChoiceSpec.all.filter { $0.applies(to: kind) }
+            let titles = specs.map { table.localizedString(forKey: $0.title, value: nil, table: nil) }
+            // The rows of this sheet (a kind's: without the choices of other kinds).
+            let others = RuleChoiceSpec.all.filter { !$0.applies(to: kind) }.map { table.localizedString(forKey: $0.title, value: nil, table: nil) }
+            _ = await app.until(4) { choiceTitle(app, titles.last!) != nil && others.allSatisfy { choiceTitle(app, $0) == nil } }
+            await app.settle()
+            let font = NSFont.systemFont(ofSize: Ed.TypeSize.body)
+            for (spec, title) in zip(specs, titles) {
+                guard let t = choiceTitle(app, title) else { Issue.record("\(language) \(kind): no row «\(title)»"); continue }
+                #expect(naturalWidth(title, font) <= t.frame.width + 1, "\(language): «\(title)» is cut (\(t.frame.width) pt)")
+                let controls = app.rig.elements().filter { $0.isControl && abs($0.centre.y - t.centre.y) < 8 && $0.frame.minX > RulesSettings.listWidth }
+                #expect(!controls.isEmpty, "\(language): «\(title)» has no control")
+                for c in controls {
+                    #expect(c.frame.minX >= t.frame.maxX && c.frame.maxX <= SettingsView.size.width - 20 + 0.5,
+                            "\(language): \(spec.id)'s \(c.description) at \(c.frame) overlaps its title or leaves the pane")
+                }
+            }
+            if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+                try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("settings-rules-choices-\(kind)-\(language).png"))
+            }
+        }
     }
 
     /// #130: the list of sheets holds every built-in kind's name whole, on one line, in the four languages, beside an
@@ -657,3 +836,4 @@ extension MouseSuites {
     }
 }
 }
+

@@ -21,8 +21,8 @@ final class RulesRevision: ObservableObject {
 }
 
 /// The rule sheets as Impostazioni › Regole shows them: read with rules.list / rules.get, written with rules.set, reset,
-/// addKind, removeKind (logged like any command). A switch or a number saves at once; the prose saves when the editor
-/// loses the cursor or after a short pause in typing.
+/// addKind, removeKind (logged like any command). A switch, a choice or a number saves at once; the prose saves when the
+/// editor loses the cursor or after a short pause in typing.
 @MainActor
 final class RulesModel: ObservableObject {
     struct Sheet: Equatable, Identifiable {
@@ -44,11 +44,35 @@ final class RulesModel: ObservableObject {
         var unit: String?
     }
 
+    /// A choice of the sheet on screen (one regia): its options, the option it has, its number when it has one.
+    struct Choice: Equatable, Identifiable {
+        struct Option: Equatable {
+            let id: String
+            /// English label (a lookup key).
+            let label: String
+            /// What it does, as the engine gives it (message / messageKey / messageArgs).
+            let meaning: JSONValue
+        }
+        let id: String
+        /// English title (a lookup key).
+        let title: String
+        /// What the choice is about (a lookup key): the menu's tooltip.
+        let meaning: String
+        var value: String
+        let options: [Option]
+        var number: [Double]?
+        var unit: String?
+
+        var option: Option? { options.first { $0.id == value } }
+    }
+
     weak var store: EditorStore?
     let demo: Bool
     @Published var sheets: [Sheet] = []
     @Published private(set) var kind = RuleBook.everyVideo
     @Published var checks: [Check] = []
+    /// The person's choices that apply to the sheet on screen (one regia).
+    @Published var choices: [Choice] = []
     @Published private(set) var prose = ""
     @Published var problems: [String] = []
     @Published var path: String?
@@ -109,12 +133,24 @@ final class RulesModel: ObservableObject {
         return Sheet(kind: kind, title: j["title"]?.stringValue ?? kind, builtIn: j["builtIn"]?.boolValue ?? false, edited: j["edited"]?.boolValue ?? false)
     }
 
+    static func choice(_ c: JSONValue) -> Choice? {
+        guard let id = c["id"]?.stringValue, let value = c["value"]?.stringValue else { return nil }
+        let n = c["number"]
+        let number = n.flatMap { $0["value"]?.doubleValue.map { [$0] } ?? $0["value"]?.arrayValue?.compactMap(\.doubleValue) }
+        return Choice(id: id, title: c["title"]?.stringValue ?? id, meaning: c["meaning"]?.stringValue ?? "", value: value,
+                      options: (c["options"]?.arrayValue ?? []).compactMap { o in
+                          o["id"]?.stringValue.map { Choice.Option(id: $0, label: o["label"]?.stringValue ?? $0, meaning: o) }
+                      },
+                      number: number, unit: n?["unit"]?.stringValue)
+    }
+
     private func apply(_ s: JSONValue, prose withProse: Bool) {
         checks = (s["checks"]?.arrayValue ?? []).compactMap { c in
             guard let id = c["id"]?.stringValue else { return nil }
             return Check(id: id, title: c["title"]?.stringValue ?? id, on: c["on"]?.boolValue ?? true, value: c["value"]?.doubleValue,
                          unit: c["unit"]?.stringValue)
         }
+        choices = (s["choices"]?.arrayValue ?? []).compactMap(Self.choice)
         problems = (s["status"]?["problems"]?.arrayValue ?? []).map { loc(message: $0) }
         path = s["path"]?.stringValue
         if let i = sheets.firstIndex(where: { $0.kind == kind }) { sheets[i].edited = s["edited"]?.boolValue ?? false }
@@ -151,6 +187,24 @@ final class RulesModel: ObservableObject {
         }
         guard let i = checks.firstIndex(where: { $0.id == id }) else { return }
         write(["kind": .string(kind), "checks": .object([id: ["on": .bool(checks[i].on), "value": .number(v)]])])
+    }
+
+    func choose(_ id: String, _ value: String) {
+        guard let i = choices.firstIndex(where: { $0.id == id }), choices[i].value != value else { return }
+        choices[i].value = value
+        write(["kind": .string(kind), "choices": .object([id: .string(value)])])
+    }
+
+    /// A choice's number as typed ("1,3", "4–10"): sent as numbers, the engine checks the range.
+    func choose(_ id: String, number text: String) {
+        let parts = text.replacingOccurrences(of: ",", with: ".").replacingOccurrences(of: "–", with: "-")
+            .split(separator: "-").map { $0.trimmingCharacters(in: .whitespaces) }
+        let values = parts.compactMap(Double.init).filter(\.isFinite)
+        guard !values.isEmpty, values.count == parts.count, choices.contains(where: { $0.id == id }) else {
+            error = loc("«%@» non è un numero", text)
+            return
+        }
+        write(["kind": .string(kind), "choices": .object([id: ["number": .array(values.map { .number($0) })]])])
     }
 
     /// The editor's text changed: saved after a pause in typing.
@@ -283,6 +337,7 @@ final class RulesModel: ObservableObject {
         m.checks = book.checks(RuleBook.everyVideo, language: language).map {
             Check(id: $0.spec.id, title: $0.spec.title, on: $0.spec.id != "text-size", value: $0.value, unit: $0.spec.number?.unit)
         }
+        m.choices = book.choices(RuleBook.everyVideo, language: language).compactMap { choice($0.json) }
         m.prose = RuleSheetText.parse(book.text(RuleBook.everyVideo, language: language) ?? "").prose
         m.stored = m.prose
         m.path = "/rules/every-video.md"
@@ -291,7 +346,8 @@ final class RulesModel: ObservableObject {
 }
 
 /// Impostazioni › Regole (#31): the sheets on the left (for every video, the kinds, «new kind…»), the sheet on screen on
-/// the right: its checks with their switches and numbers, the prose Claude reads (Markdown), Mostra nel Finder, Importa…,
+/// the right: its checks with their switches and numbers, its choices (Scelte: a segmented control, or a menu above four
+/// options, and the number where one exists), the prose Claude reads (Markdown), Mostra nel Finder, Importa…,
 /// Ripristina il predefinito (Elimina… for a kind of the user's own). Design-system controls only, so every one is driven
 /// by the mouse tests (the native form is not, #36).
 struct RulesSettings: View {
@@ -400,6 +456,9 @@ struct RulesSettings: View {
         return origin + " · " + count
     }
 
+    /// The prose editor's height: the pane scrolls (the checks, the choices, then the prose), the buttons stay below it.
+    static let editorHeight: CGFloat = 240
+
     private var sheetPane: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline, spacing: Ed.Space.m) {
@@ -407,6 +466,18 @@ struct RulesSettings: View {
                 Spacer(minLength: Ed.Space.s)
                 Text(verbatim: meta).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).lineLimit(1)
             }
+            .padding(.horizontal, 20)
+            ScrollView {
+                sheetContent.padding(.horizontal, 20).padding(.bottom, Ed.Space.s)
+            }
+            buttons.padding(.horizontal, 20)
+        }
+        .padding(EdgeInsets(top: Ed.Space.l, leading: 0, bottom: 14, trailing: 0))
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private var sheetContent: some View {
+        VStack(alignment: .leading, spacing: 10) {
             Text(verbatim: loc("Controlli prima dell'export")).font(Ed.ui(Ed.TypeSize.small, .semibold)).foregroundStyle(Ed.text3)
             VStack(spacing: 0) {
                 ForEach(Array(model.checks.enumerated()), id: \.element.id) { i, c in
@@ -427,6 +498,17 @@ struct RulesSettings: View {
             if let e = model.error {
                 Text(verbatim: e).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.danger).fixedSize(horizontal: false, vertical: true)
             }
+            if !model.choices.isEmpty {
+                Text(verbatim: loc("Scelte")).font(Ed.ui(Ed.TypeSize.small, .semibold)).foregroundStyle(Ed.text3).padding(.top, Ed.Space.xs)
+                VStack(spacing: 0) {
+                    ForEach(Array(model.choices.enumerated()), id: \.element.id) { i, c in
+                        choiceRow(c)
+                        if i < model.choices.count - 1 { Ed.line.frame(height: 1) }
+                    }
+                }
+                .padding(.horizontal, Ed.Space.m)
+                .rCard(.raised, padding: 0)
+            }
             HStack(alignment: .firstTextBaseline, spacing: Ed.Space.m) {
                 Text(verbatim: loc("Regole che Claude legge prima di montare")).font(Ed.ui(Ed.TypeSize.small, .semibold)).foregroundStyle(Ed.text3)
                 Spacer(minLength: Ed.Space.s)
@@ -436,7 +518,11 @@ struct RulesSettings: View {
                 Text(verbatim: loc("Markdown · %@", model.fileName)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).lineLimit(1)
             }
             RTextEditor(placeholder: "Le regole, in Markdown", text: Binding(get: { model.prose }, set: { model.edit($0) }),
-                        kind: .scrolls(min: 80, max: .infinity), mono: true, onBlur: { model.flush() })
+                        kind: .scrolls(min: Self.editorHeight, max: Self.editorHeight), mono: true, onBlur: { model.flush() })
+        }
+    }
+
+    private var buttons: some View {
             HStack(spacing: Ed.Space.s) {
                 EdButton(title: "Mostra nel Finder", disabled: model.finderURL == nil) { model.showInFinder() }
                 EdButton(title: "Importa…") { model.importFile() }
@@ -447,10 +533,47 @@ struct RulesSettings: View {
                     EdButton(title: "Ripristina il predefinito", disabled: model.sheet?.edited != true) { model.reset() }
                 }
             }
-        }
-        .padding(EdgeInsets(top: Ed.Space.l, leading: 20, bottom: 14, trailing: 20))
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
+
+    /// A choice: its title, the number where it has one and the control on one line; under them what the current option
+    /// does. Four options or fewer: a segmented control; more: a menu (the caption style, the format).
+    private func choiceRow(_ c: RulesModel.Choice) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: Ed.Space.s) {
+                Text(verbatim: loc(c.title)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text).lineLimit(1).groupTip(loc(c.meaning))
+                Spacer(minLength: Ed.Space.s)
+                if let n = c.number {
+                    InspectorValueField(text: Self.numbers(n), width: n.count == 2 ? 58 : 46, alignment: .center) { model.choose(c.id, number: $0) }
+                    if let unit = c.unit, !unit.isEmpty {
+                        Text(verbatim: unit).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3)
+                    }
+                }
+                if c.options.count > 4 {
+                    FormatMenu(label: loc(c.option?.label ?? c.value),
+                               items: c.options.map { FormatMenu.Item(id: $0.id, title: loc($0.label), symbol: Self.symbol(choice: c.id, option: $0.id)) },
+                               selected: c.value, tip: loc(c.meaning)) { model.choose(c.id, $0) }
+                } else {
+                    RSegmented(items: c.options.map { ($0.id, $0.label) }, selection: Binding(get: { c.value }, set: { model.choose(c.id, $0) }), fill: false)
+                        .fixedSize()
+                }
+            }
+            if let meaning = c.option?.meaning {
+                Text(verbatim: loc(message: meaning)).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3)
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.vertical, 7)
+        .frame(minHeight: 34)
+    }
+
+    /// The glyph of a menu's option: a format's shape, a caption style's speech bubble.
+    static func symbol(choice: String, option: String) -> String {
+        guard choice == "format" else { return "captions.bubble" }
+        return option == "project" ? "aspectratio" : FormatMenu.symbol(option)
+    }
+
+    /// "1,15", "6–12": a choice's number, or its range, as the person reads it.
+    static func numbers(_ values: [Double]) -> String { values.map(number).joined(separator: "–") }
 
     private func checkRow(_ c: RulesModel.Check) -> some View {
         HStack(spacing: Ed.Space.s) {

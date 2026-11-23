@@ -76,6 +76,9 @@ Keep these the same everywhere in `*.lproj/Localizable.strings` (scheme and chec
 | citazione (words someone said, with their source: the `quote-card` template) | quote | citation | citação |
 | svolta (the moment of a video that changes what the viewer thinks: the rule sheets) | turn | tournant | virada |
 | verdetto (what a check says in the report: passed, fixed, known issue, not checked) | verdict | verdict | veredito |
+| scelta / Scelte (what a rule sheet leaves to the person: caption style, pace, framing…, Impostazioni › Regole) | choice / Choices | choix / Choix | escolha / Escolhas |
+| ritmo (a choice: how long the pauses between sentences last) | pace | rythme | ritmo |
+| inquadratura (a choice: one framing, or punch-ins that hide the cuts) | framing | cadrage | enquadramento |
 
 Names never translated: Regista, Claude, Claude Code, Claude Desktop, MCP, ComfyUI, Higgsfield, WhisperX, VoxCPM2,
 HyperFrames, Blender, Shotcut, FFmpeg, macOS, Arkad, WeSites, the shortcut glyphs (⌘ ⌥ ⇧ ⌃).

@@ -54,6 +54,10 @@ extension MouseSuites.ClickAudits {
         let rows = await ClickAudit(app: app, screen: "settings-\(tab.rawValue)", noOps: [
             SettingsTab.allCases.first { $0 == tab }!.title: "the tab already shown",
             "For every video": "Regole: the sheet already shown (the tab opens on it)",
+            // Regole › Scelte: the option each choice in view already has (the defaults: opening title, how it opens, structure).
+            "Off": "Regole: the opening title's option already chosen (off by default)",
+            "Statement": "Regole: how it opens, the option already chosen",
+            "Free": "Regole: the structure already chosen",
         ], restore: {
             for (k, v) in saved where k != SettingsRoute.tabKey { UserDefaults.standard.set(v, forKey: k) }
             UserDefaults.standard.set(tab.rawValue, forKey: SettingsRoute.tabKey)

@@ -2647,3 +2647,6 @@
 "The brand kit's logo, when the project's kit has one." = "O logo do kit de marca, quando o kit do projeto tem um.";
 "A logo at the end, always." = "Um logo no fim, sempre.";
 "No logo at the end." = "Sem logo no fim.";
+
+/* The person's choices in Impostazioni › Regole (#156). */
+"Scelte" = "Escolhas";
