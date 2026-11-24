@@ -212,7 +212,7 @@ private let interview = """
     }
     // Choices: the skill's line over the sheet of its recipe over «For every video» over the default.
     #expect(text.contains("- pace: fast") && text.contains("- music: bed") && text.contains("- captions: talking-head-v1"))
-    #expect(text.contains("text-size (30 px)"), "the checks do not come from the recipe's sheet")
+    #expect(text.contains("text-size 30 px"), "the checks do not come from the recipe's sheet")
     // A project's kind can be the skill: its checks follow its recipe's sheet, then its own lines.
     try e.execute("project.setKind", params: ["kind": "long-interview"])
     let check = try e.execute("rules.check")

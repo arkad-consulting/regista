@@ -1,6 +1,6 @@
 {
  "name": "looks-layouts",
- "description": "Speaker layouts, HUD and the blur transition (issue #22, rounds 2–3) on 12 s of the WeSites take, without engines: letterbox-headline with a headline (0–3 s), split-card (3–6 s), pip-bubble over B-roll from later in the same take (6–9 s), a neon inset-frame (9–12 s, zooming in from full frame); the status row with three chapters, level meters from the real mix over the inset, a blur transition at 6 s; then the console theme on a second project. Checks: each layout one undo step and the boxes where the geometry says (letterbox band 1080×608 at y 560, bubble clear of the Instagram rail and the caption band), the headline, every HUD shape and the blur visible in its window (effects.check: frame with vs without it), the export lasts the timeline, the bubble in the export exactly over its window (media.checkOverlay on the PiP track: luma PSNR against the render without it below 34 dB inside — the bubble is small — and above 30 dB outside), the console bundle one step. Needs only the footage (ffmpeg for the meters' mix).",
+ "description": "Speaker layouts, HUD and the blur transition (issue #22, rounds 2–3) on 12 s of the WeSites take, without engines: letterbox-headline with a headline (0–3 s), split-card (3–6 s), pip-bubble over B-roll from later in the same take (6–9 s), a neon inset-frame (9–12 s, zooming in from full frame); the status row with three chapters, level meters from the real mix over the inset, a blur transition at 6 s; then the console theme on a second project. Checks: each layout one undo step and the boxes where the geometry says (letterbox band 1080×608 at y 560, bubble clear of the Instagram rail and the caption band), the headline, every HUD shape and the blur visible in its window (effects.check: frame with vs without it), the export lasts the timeline, the bubble in the export exactly over its window (media.checkOverlay on the PiP track: luma PSNR against the render without it below 34 dB inside — the bubble is small — and above 30 dB outside), the console bundle one step. Needs only the footage (ffmpeg for the meters' mix). The take's sound is not levelled (no audio.clean without the engines): the voice-loudness rule fails and it exports anyway.",
  "requires": ["footage"],
  "defaults": {"REGISTA_GOLDEN_MEDIA": "${HOME}/.config/regista/test-media/wesites-2026-10-26"},
  "footage": ["${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV"],
@@ -30,7 +30,7 @@
 
   {"command": "effects.check", "params": {},
    "expect": {"result.pass": true, "result.items": {"count": 4}, "result.items.0.visible": true, "result.items.1.visible": true, "result.items.2.visible": true, "result.items.3.visible": true}},
-  {"command": "export.render", "params": {"path": "${WORK}/looks-layouts.mp4"}, "expect": {"result.duration": {"approx": 12, "tol": 0.05}}},
+  {"command": "export.render", "params": {"path": "${WORK}/looks-layouts.mp4", "exportAnyway": true}, "expect": {"result.duration": {"approx": 12, "tol": 0.05}}},
   {"command": "media.checkOverlay", "params": {"path": "${WORK}/looks-layouts.mp4", "trackId": "${pip}", "differ": 34}, "expect": {"result.pass": true}},
   {"command": "frame.contactSheet", "params": {"times": [1.5, 4.5, 7.5, 9.1, 10.5, 11.9], "path": "${WORK}/looks-layouts.jpg"}},
 

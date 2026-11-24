@@ -77,7 +77,7 @@ extension Recipes {
             signature moment, shape of the music, ending. At least three must be its own; fewer → change the weakest.
         13. Checks: rules_check, graphics_checkLayout, then export_render {path: <exportsDirectory>/<name>.mp4, preset:
             "9:16", loudness: −15} and on the file sfx_checkOnsets {path} (every planned sound is in the mix, on its
-            frame), audio_checkDucking (with voice and music), captions_checkTiming (with captions). The round of fixes,
+            frame), rules_check again (it measures caption timing on the file). The round of fixes,
             export again, export_srt (with captions), project_save.
 
         Finish with the report: the plan's scenes, what changed, the verdict of each check, the files; what you could not

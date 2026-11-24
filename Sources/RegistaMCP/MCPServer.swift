@@ -27,8 +27,8 @@ public final class MCPServer {
     stop words) → captions_generate {style: the person's caption style choice, keywords, fixes for names as the \
     script and the person's Names sections spell them} → \
     frame_contactSheet to look at the result (images come back inline) and fix what looks wrong → \
-    export_render 9:16 + export_srt + export_mlt → project_save → captions_checkTiming and media_checkSync \
-    on the mp4. Every effect, look, style and motion template (animated cards, checklists, counters, carousels, \
+    export_render 9:16 + export_srt + export_mlt → project_save → rules_check again (it measures the caption \
+    timing on the export) and media_checkSync on the mp4. Every effect, look, style and motion template (animated cards, checklists, counters, carousels, \
     device frames, charts) is in effects_catalog with what it looks like, when to use it and when not to: read it, \
     propose 1–3 items that fit the line to the user with a one-line reason each, show one with effects_preview when \
     they ask (renders it without touching the edit), then apply it with the command the catalog gives (motion \

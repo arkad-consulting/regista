@@ -285,6 +285,11 @@ public struct EngineServices {
         return s
     }
 
+    /// What the measured rule checks keep between two runs (#145): the renders of each state of the edit, measures taken.
+    public var memory = RuleMemory()
+    /// Stand-ins for the commands the measured rule checks call (tests): a command id answered here is not run.
+    public var ruleMeasures: [String: ([String: JSONValue]) throws -> JSONValue] = [:]
+
     /// The minimum tier per transcription engine (the engine ids are manifest ids).
     public static func minimumTier(transcriber id: String) -> MachineTier {
         EngineManifest.shared.minimumTier(id)

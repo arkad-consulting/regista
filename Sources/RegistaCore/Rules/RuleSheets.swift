@@ -103,6 +103,13 @@ public struct RuleCheckSpec: Sendable {
                       number: Number(defaultValue: 28, unit: "px", range: 1...500,
                                      meaning: rulePhrase("Smallest text, in pixels on a 1080-wide frame"))),
         RuleCheckSpec(id: "reading-time", title: rulePhrase("Text on screen long enough to read, inside the frame"), section: "text"),
+        // The «always» measures (#145): the commands that measure them, called by the check (RuleMeasures.swift).
+        RuleCheckSpec(id: "captions-faces", title: rulePhrase("No caption over a face"), section: "always"),
+        RuleCheckSpec(id: "captions-timing", title: rulePhrase("Captions gone with their words"), section: "always"),
+        RuleCheckSpec(id: "music-ducked", title: rulePhrase("Music lowered under the voice"), section: "always"),
+        RuleCheckSpec(id: "voice-loudness", title: rulePhrase("The voice at its loudness"), section: "always",
+                      number: Number(defaultValue: LoudnessTarget.integrated, unit: "LUFS", range: -30 ... -5,
+                                     meaning: rulePhrase("Loudness of the voice, LUFS (±1, peak at most −1.5 dBTP)"), stricter: .exact)),
     ]
 
     public static func named(_ id: String) -> RuleCheckSpec? { all.first { $0.id == id } }
@@ -544,12 +551,14 @@ public struct RuleBook: Sendable {
 
     /// The rules an agent reads with a recipe: the checks that run, then the prose of "for every video" and of the kind.
     public func briefing(_ kind: String, language: String) -> String {
-        let on = checks(kind, language: language).filter(\.on).map { c -> String in
-            c.spec.number.map { "\(c.spec.id) (\(RuleSheetText.format(c.value ?? $0.defaultValue)) \($0.unit))" } ?? c.spec.id
-        }
+        // The checks off by name, the numbers of those on (rules.list names every check).
+        let all = checks(kind, language: language)
+        let off = all.filter { !$0.on }.map(\.spec.id)
+        let numbers = all.filter(\.on).compactMap { c in c.spec.number.map { "\(c.spec.id) \(RuleSheetText.format(c.value ?? $0.defaultValue)) \($0.unit)" } }
         var out = "# Editing rules (\(kind))\n\nThese rules come from the user's rule sheets (rules.get / rules.set; Settings › Rules in the app) "
-            + "and always hold. Before export run rules.check: export.render refuses while a check fails. Checks on: "
-            + (on.isEmpty ? "none" : on.joined(separator: ", ")) + "."
+            + "and always hold. Before export run rules.check: export.render refuses while a check fails. Checks: "
+            + (off.isEmpty ? "all on" : off.count == all.count ? "all off" : "all on but " + off.joined(separator: ", "))
+            + (numbers.isEmpty ? "" : " (" + numbers.joined(separator: ", ") + ")") + "."
         for sheet in chain(kind) {
             let prose = RuleSheetText.parse(text(sheet, language: language) ?? "").prose.trimmingCharacters(in: .whitespacesAndNewlines)
             if !prose.isEmpty { out += "\n\n" + prose }

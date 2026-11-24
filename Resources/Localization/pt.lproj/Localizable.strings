@@ -2725,3 +2725,19 @@
 "«%1$@» is under the platform's top bar (above %2$@ px)." = "“%1$@” fica sob a barra superior da plataforma (acima de %2$@ px).";
 "«%1$@» is under the platform's buttons at the bottom (below %2$@ px)." = "“%1$@” fica sob os botões inferiores da plataforma (abaixo de %2$@ px).";
 "«%1$@» is under the platform's buttons on the right (past %2$@ px)." = "“%1$@” fica sob os botões à direita da plataforma (além de %2$@ px).";
+
+/* Checks that measure (#145): the always-measures inside the regia. */
+"No caption over a face" = "Nenhuma legenda sobre um rosto";
+"Captions gone with their words" = "Legendas que somem com suas palavras";
+"Music lowered under the voice" = "Música abaixada sob a voz";
+"The voice at its loudness" = "A voz na sua loudness";
+"Loudness of the voice, LUFS (±1, peak at most −1.5 dBTP)" = "Loudness da voz, LUFS (±1, pico até −1,5 dBTP)";
+"No render of this edit yet: export it, then check again." = "Ainda não há renderização desta edição: exporte-a e verifique de novo.";
+"It could not be measured: %1$@" = "Não foi possível medir: %1$@";
+"No face track on the picture: run faces.track to check the captions against the face." = "Sem rastreamento do rosto: execute faces.track para verificar as legendas em relação ao rosto.";
+"The caption «%1$@» covers a face at %2$@ s." = "A legenda “%1$@” cobre um rosto em %2$@ s.";
+"%1$@ caption words are not on screen with the voice in the render (the first, «%2$@», at %3$@ s)." = "Na renderização, %1$@ palavras das legendas não estão na tela junto com a voz (a primeira, “%2$@”, em %3$@ s).";
+"The captions leave their band in the render." = "Na renderização, as legendas saem da sua faixa.";
+"Lower the music under the voice to %1$@ dB" = "Abaixar a música sob a voz para %1$@ dB";
+"The music is %1$@ dB under the voice while it speaks: at least %2$@ dB." = "Enquanto a voz fala, a música está %1$@ dB abaixo: pelo menos %2$@ dB.";
+"The voice is at %1$@ LUFS with a true peak of %2$@ dBTP: it must be at %3$@ LUFS ±1, its peak at most −1.5 dBTP." = "A voz está em %1$@ LUFS com pico real de %2$@ dBTP: ela deve ficar em %3$@ LUFS ±1, com o pico até −1,5 dBTP.";

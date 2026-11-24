@@ -7,6 +7,10 @@ logo-end: on
 face-clear: on
 text-size: on 28
 reading-time: on
+captions-faces: on
+captions-timing: on
+music-ducked: on
+voice-loudness: on -15
 # Une ligne par choix : son id, l'option choisie, et son nombre quand il en a un.
 opening-title: off
 hook: statement

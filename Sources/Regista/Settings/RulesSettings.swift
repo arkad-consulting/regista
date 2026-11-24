@@ -816,6 +816,8 @@ struct RulesSettings: View {
 
     private var rulesPane: some View {
         VStack(alignment: .leading, spacing: 10) {
+            // What is wrong in the sheet first: the list of checks is long, a problem under it would be out of sight.
+            messages
             Text(verbatim: loc("Controlli prima dell'export")).font(Ed.ui(Ed.TypeSize.small, .semibold)).foregroundStyle(Ed.text3)
             VStack(spacing: 0) {
                 ForEach(Array(model.checks.enumerated()), id: \.element.id) { i, c in
@@ -830,7 +832,6 @@ struct RulesSettings: View {
                 Text(verbatim: loc("Un controllo cambiato qui vale solo per questa skill; gli altri seguono «%@».", loc("For every video")))
                     .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
             }
-            messages
             HStack(alignment: .firstTextBaseline, spacing: Ed.Space.m) {
                 Text(verbatim: loc(model.isSkill ? "Regole che la skill aggiunge" : "Regole che Claude legge prima di montare"))
                     .font(Ed.ui(Ed.TypeSize.small, .semibold)).foregroundStyle(Ed.text3)

@@ -33,7 +33,7 @@ enum Render {
 
 enum ExportRender: Command {
     static let id = "export.render"
-    static let summary = "Render the final video: the timeline to an mp4 with the same compositor frame.render uses (crops/keyframes/grade, captions drawn natively); H.264 High yuv420p 30 fps, faststart, AAC 48 kHz 192 kb/s; preset \"9:16\" for a reel. The sound is the mix of the unmuted audio tracks through a limiter. It runs rules.check first and refuses while a rule of the project's kind fails, with the list and the fixes (rules.fix {all: true} applies the safe ones). Returns frames, duration, the measured loudness (expect −15 ±0.5 LUFS, true peak ≤ −1.5), the rule check and warnings (e.g. stale captions)."
+    static let summary = "Render the final video: the timeline to an mp4 with the same compositor frame.render uses (crops/keyframes/grade, captions drawn natively); H.264 High yuv420p 30 fps, faststart, AAC 48 kHz 192 kb/s; preset \"9:16\" for a reel. The sound is the mix of the unmuted audio tracks through a limiter. It runs rules.check first and refuses while a rule of the project's kind fails, with the list and the fixes (rules.fix {all: true} applies the safe ones); the file is then the render the measured checks read (caption timing, still stretches, jump cuts) while the edit stays as it is. Returns frames, duration, the measured loudness (expect −15 ±0.5 LUFS, true peak ≤ −1.5), the rule check and warnings (e.g. stale captions)."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [
         .required("path", .string, "Output .mp4."),
@@ -103,6 +103,11 @@ enum ExportRender: Command {
             }
         } }
         let report = try CommandJob.stage(0.1, 1) { try renderer.export(job, audio: wav, to: output, bitrate: Int((p.number("bitrate") ?? 14) * 1_000_000)) }
+        // The render of this state of the edit: the measured rule checks read it while the edit stays as it is (#145).
+        if coverPNG == nil {
+            ctx.services.memory.recordRender(project, RuleMemory.Render(url: output, preset: preset.id, captions: job.captions != nil,
+                                                                       frameRate: job.frameRate.doubleValue, width: preset.width, height: preset.height))
+        }
         var result: [String: JSONValue] = [
             "path": .string(output.path), "preset": .string(preset.id), "width": .number(Double(preset.width)),
             "height": .number(Double(preset.height)), "fps": .number(job.frameRate.doubleValue), "frames": .number(Double(report.frames)),

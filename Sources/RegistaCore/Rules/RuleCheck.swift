@@ -222,6 +222,10 @@ enum RuleCheck {
             case "face-clear": return faceClear(renderer)
             case "text-size": return (textSize(value), nil)
             case "reading-time": return (readingTime(), nil)
+            case "captions-faces": return captionsFaces()
+            case "captions-timing": return captionsTiming()
+            case "music-ducked": return musicDucked()
+            case "voice-loudness": return voiceLoudness(value)
             default: return ([], nil)
             }
         }

@@ -59,7 +59,7 @@ extension Recipes {
             lands on the right element, captions are readable and clear of the face, no black frame. Fix, look again.
         11b. Before the export: proposals from effects_catalog as the graphics choice says (a yes/no list, one line
             each); titles, cards and sound effects: the reel-graphics recipe; music as the music choice says
-            (audio_addMusic, then audio_checkDucking).
+            (audio_addMusic).
         12. Export: rules_check first (fix what fails), then export_render {path: <exportsDirectory>/<name>.mp4, preset: "16:9" | "9:16"} (expect −15 ±0.5
             LUFS when there is a voice), export_srt if there are captions, then recording_check {path: <mp4>}
             (sync, face in its box, zoom on the clicks) and project_save. When the project is 9:16, the cover: cover_set {time:
@@ -134,7 +134,7 @@ extension Recipes {
             client has one) and apply only what they accept. With the choice on, a first export without this pass is
             a draft, never the delivery.
         9. Music, as the person's music choice says (on-request: only if asked): audio_addMusic {path} (ducked under
-           the voice by default), then audio_checkDucking (pass: music at least 15 dB under the voice while it speaks).
+           the voice by default).
         10. Look: frame_contactSheet {times: [the start of each voice clip + 0.5]}. Check: every beat has its
             picture, nothing important sits under the caption band or in the platform's zones (graphics_checkLayout
             gives both), text is readable. Fix, look again.

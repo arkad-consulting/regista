@@ -125,8 +125,8 @@ extension Journey {
         step("Claude connects", sees: "«Claude collegato», the Claude panel open")
         let recipe = await readRecipe(link, "reel-graphics", order: ["brandkit_apply", "transcript_timeline", "title_add", "effects_catalog", "effects_preview",
                                                                     "motion_add", "sticker_add", "sfx_onCuts", "audio_addMusic", "frame_contactSheet",
-                                                                    "graphics_checkLayout", "rules_check", "export_render", "audio_checkDucking",
-                                                                    "sfx_checkOnsets", "captions_checkTiming", "effects_check", "export_mlt"])
+                                                                    "graphics_checkLayout", "rules_check", "export_render",
+                                                                    "sfx_checkOnsets", "effects_check", "export_mlt"])
         let wrong = recipeParameters(recipe)
         #expect(wrong.isEmpty, "the recipe names parameters its tools do not accept: \(wrong)")
 

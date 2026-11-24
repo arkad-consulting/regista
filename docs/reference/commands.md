@@ -840,7 +840,7 @@ Returns: the path, image counts and warnings (what Shotcut cannot represent: ani
 
 **Export the video** · MCP tool: `export_render` · undo: no — reads only · takes `project`
 
-Render the final video: the timeline to an mp4 with the same compositor frame.render uses (crops/keyframes/grade, captions drawn natively); H.264 High yuv420p 30 fps, faststart, AAC 48 kHz 192 kb/s; preset "9:16" for a reel. The sound is the mix of the unmuted audio tracks through a limiter. It runs rules.check first and refuses while a rule of the project's kind fails, with the list and the fixes (rules.fix {all: true} applies the safe ones). Returns frames, duration, the measured loudness (expect −15 ±0.5 LUFS, true peak ≤ −1.5), the rule check and warnings (e.g. stale captions).
+Render the final video: the timeline to an mp4 with the same compositor frame.render uses (crops/keyframes/grade, captions drawn natively); H.264 High yuv420p 30 fps, faststart, AAC 48 kHz 192 kb/s; preset "9:16" for a reel. The sound is the mix of the unmuted audio tracks through a limiter. It runs rules.check first and refuses while a rule of the project's kind fails, with the list and the fixes (rules.fix {all: true} applies the safe ones); the file is then the render the measured checks read (caption timing, still stretches, jump cuts) while the edit stays as it is. Returns frames, duration, the measured loudness (expect −15 ±0.5 LUFS, true peak ≤ −1.5), the rule check and warnings (e.g. stale captions).
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1983,7 +1983,7 @@ Apply the safe fixes of the failing rule checks, all in one undo step: those of 
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `check` | one of `title-captions`, `logo-captions`, `logo-pause`, `logo-end`, `face-clear`, `text-size`, `reading-time` | no | – | Fix only this check's violations. |
+| `check` | one of `title-captions`, `logo-captions`, `logo-pause`, `logo-end`, `face-clear`, `text-size`, `reading-time`, `captions-faces`, `captions-timing`, `music-ducked`, `voice-loudness` | no | – | Fix only this check's violations. |
 | `all` | boolean | no | – | Fix every failing check that has a fix. |
 
 Returns: the fixes applied and the check after them.
@@ -2049,7 +2049,7 @@ Write a rule sheet (the user's copy in the rules folder, which replaces the ship
 | `kind` | string | yes | – | every-video, a built-in kind or a kind of the user's. |
 | `text` | string | no | – | The whole file: header between two --- lines, then the prose (written as given; header problems are reported). |
 | `prose` | string | no | – | New prose (Markdown) under the current header. |
-| `checks` | object | no | – | Switches to change: {id: true \| false \| {on, value}} (ids: title-captions, logo-captions, logo-pause, logo-end, face-clear, text-size, reading-time). |
+| `checks` | object | no | – | Switches to change: {id: true \| false \| {on, value}} (ids: title-captions, logo-captions, logo-pause, logo-end, face-clear, text-size, reading-time, captions-faces, captions-timing, music-ducked, voice-loudness). |
 | `choices` | object | no | – | Choices to change: {id: option \| {value, number}} (ids: opening-title, hook, structure, pace, framing, colour, format, captions, keywords, graphics, music, sfx, faceless-sound, closing-logo; a kind takes only its own choices, rules.list says which). |
 | `language` | one of `it`, `en`, `fr`, `pt` | no | sheets read (it, en, fr, pt | Language of the default sheets read (it, en, fr, pt; default: the app's interface language). A sheet the user wrote is the same in every language. |
 
@@ -2176,7 +2176,7 @@ Write a new skill of the person's — only when the person asked for it, after s
 | `title` | string | yes | – | The skill's name as the person says it (one line). |
 | `basedOn` | string | no | – | A built-in recipe (talking-head-reel, screen-tutorial, voice-over-video, reel-graphics, prompt-to-reel) or none (default). |
 | `steps` | string | no | – | Its steps, in Markdown (a numbered list). |
-| `rules` | object | no | – | Its rules: {prose: Markdown, checks: {id: true \| false \| {on, value}}} (ids: title-captions, logo-captions, logo-pause, logo-end, face-clear, text-size, reading-time). |
+| `rules` | object | no | – | Its rules: {prose: Markdown, checks: {id: true \| false \| {on, value}}} (ids: title-captions, logo-captions, logo-pause, logo-end, face-clear, text-size, reading-time, captions-faces, captions-timing, music-ducked, voice-loudness). |
 | `choices` | object | no | – | Its choices: {id: option \| {value, number}} (ids: opening-title, hook, structure, pace, framing, colour, format, captions, keywords, graphics, music, sfx, faceless-sound, closing-logo). |
 | `language` | one of `it`, `en`, `fr`, `pt` | no | sheets read (it, en, fr, pt | Language of the default sheets read (it, en, fr, pt; default: the app's interface language). A sheet the user wrote is the same in every language. |
 

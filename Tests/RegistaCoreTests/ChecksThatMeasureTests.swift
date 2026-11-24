@@ -96,3 +96,161 @@ private func row(_ check: JSONValue, _ id: String) -> JSONValue? {
     let html = "<html><head><title>x</title><style>h1{color:red}</style></head><body><h1>Tre&nbsp;modi</h1><!-- note --><p>per fare &amp; rifare</p><script>var a = 1</script></body></html>"
     #expect(GraphicsHyperframes.visibleText(html) == "Tre modi per fare & rifare")
 }
+
+// MARK: 2. The «always» measures
+
+/// The audio toolkit stand-in of the sound checks: a loudness per stem, by the name the measuring code gives its file
+/// (audio.checkDucking's voice and music while someone speaks, the voice mix of voice-loudness).
+private final class StemAudio: AudioToolkit {
+    var voice = Loudness(integrated: -15.1, truePeak: -2.0, range: 3, threshold: -25)
+    var musicUnderSpeech = -32.0
+    /// Set: every measure fails with it (an engine that is missing).
+    var missing: String?
+
+    private let wavs = FakeAudio()
+    func extractAudio(from source: URL, channels: Int, speech: URL, working: URL) throws {
+        try wavs.extractAudio(from: source, channels: channels, speech: speech, working: working)
+    }
+    func loudness(of spans: [AudioSpan]) throws -> Loudness {
+        if let missing { throw CommandError(.io, missing) }
+        let name = spans.first?.url.deletingPathExtension().lastPathComponent ?? ""
+        switch name {
+        case "m-speech": return Loudness(integrated: musicUnderSpeech, truePeak: -20, range: 2, threshold: -40)
+        case "m-gaps": return Loudness(integrated: -24, truePeak: -18, range: 2, threshold: -35)
+        case "v-speech": return Loudness(integrated: -15, truePeak: -2, range: 3, threshold: -25)
+        default: return voice
+        }
+    }
+    func mix(_ clips: [AudioMixClip], length: Int, rate: Int, gain: Double, ceiling: Double, to output: URL) throws {
+        if let missing { throw CommandError(.io, missing) }
+        try WAVAudio(sampleRate: rate, channels: 2, samples: [Float](repeating: 0, count: 2 * max(length, 1))).write16(to: output)
+    }
+}
+
+/// The 6 s take on V1 and its sound on A1 (the voice), transcribed; the sound checks measure through `audio`.
+private func soundEngine(_ audio: StemAudio) throws -> Engine {
+    let e = try measuringEngine { $0.audio = audio }
+    try e.execute("transcript.run", params: ["assetId": "a1"])
+    try e.execute("track.add", params: ["kind": "audio"])
+    try e.execute("timeline.place", params: ["assetId": "a1", "trackId": "t2", "start": 0, "linkTo": "c1"])
+    return e
+}
+
+@Test func theVoiceAtItsLoudnessPassesOffItFailsAndBlocksTheExportUnlessExportedAnyway() throws {
+    let audio = StemAudio()
+    let e = try soundEngine(audio)
+    var check = try e.execute("rules.check")
+    #expect(violations(check, "voice-loudness").isEmpty && row(check, "voice-loudness")?["ran"] == true, "\(check)")
+    // A different state of the voice (another level) is measured again: the measure is kept per state.
+    audio.voice = Loudness(integrated: -20.4, truePeak: -6, range: 3, threshold: -30)
+    try e.execute("clip.set", params: ["clipId": "c2", "gain": -5])
+    check = try e.execute("rules.check", params: ["language": "en"])
+    let v = try #require(violations(check, "voice-loudness").first, "\(check)")
+    #expect(v["severity"] == "fail" && v.value(at: "messageArgs.0") == -20.4 && v.value(at: "messageArgs.2") == -15)
+    let out = tempDir().appendingPathComponent("out.mp4").path
+    do {
+        try e.execute("export.render", params: ["path": .string(out)])
+        Issue.record("the export was not refused")
+    } catch let error as CommandError {
+        #expect(error.message.contains("voice-loudness"), "\(error.message)")
+    }
+    let anyway = try e.execute("export.render", params: ["path": .string(out), "exportAnyway": true])
+    #expect(anyway.value(at: "rules.exportedAnyway") == true)
+    // Its number is the target: a sheet that says −20 lets this voice through.
+    try e.execute("rules.set", params: ["kind": "every-video", "checks": ["voice-loudness": ["value": -20]]])
+    #expect(violations(try e.execute("rules.check"), "voice-loudness").isEmpty)
+}
+
+@Test func aMissingSoundEngineIsNotCheckedAndNeverBlocksTheExport() throws {
+    let audio = StemAudio()
+    let e = try soundEngine(audio)
+    try e.execute("audio.addMusic", params: ["path": .string(fakeMedia("bed.wav"))])
+    audio.missing = "ffmpeg not found"
+    let check = try e.execute("rules.check", params: ["language": "en"])
+    for id in ["voice-loudness", "music-ducked"] {
+        let r = try #require(row(check, id))
+        #expect(r["ran"] == false && r.value(at: "skipped.messageArgs.0")?.stringValue?.contains("ffmpeg not found") == true, "\(id): \(r)")
+        #expect(violations(check, id).isEmpty)
+    }
+    #expect(check["notChecked"]?.arrayValue?.map { $0["check"]?.stringValue ?? "" }.contains("voice-loudness") == true)
+    #expect(check["pass"] == true)
+    // The export is not refused for them (it fails further on, on the stand-in's own mix: not a rule).
+    do {
+        try e.execute("export.render", params: ["path": .string(tempDir().appendingPathComponent("out.mp4").path)])
+    } catch let error as CommandError {
+        #expect(!error.message.contains("editing rule"), "\(error.message)")
+    }
+}
+
+@Test func musicUnderTheVoicePassesAndMusicTooLoudFailsWithAFixThatDucksIt() throws {
+    let audio = StemAudio()
+    let e = try soundEngine(audio)
+    try e.execute("audio.addMusic", params: ["path": .string(fakeMedia("bed.wav"))])
+    #expect(violations(try e.execute("rules.check"), "music-ducked").isEmpty)
+    // 6 dB under the voice instead of 15: a failure, its fix ducks the music deeper.
+    audio.musicUnderSpeech = -21
+    try e.execute("clip.set", params: ["clipId": "c3", "gain": 2])
+    let check = try e.execute("rules.check", params: ["language": "en"])
+    let v = try #require(violations(check, "music-ducked").first, "\(check)")
+    #expect(v["severity"] == "fail" && v.value(at: "messageArgs.0") == 6 && v.value(at: "fix.command") == "audio.duck", "\(v)")
+    #expect((v.value(at: "fix.params.duck")?.doubleValue ?? 0) <= -10)
+    #expect(throws: CommandError.self) { try e.execute("export.render", params: ["path": .string(tempDir().appendingPathComponent("o.mp4").path)]) }
+}
+
+@Test func captionsOverAFacePassWhenPlacedOffItFailOnItAndAreNotCheckedWithoutAFaceTrack() throws {
+    var fakes = FakeServices()
+    fakes.faceTrack = facesOverTheCaptions()
+    fakes.words = [Word("bonjour", 0.2, 0.6), Word("je", 0.7, 0.8), Word("suis", 0.8, 1.0), Word("pâtissière.", 1.0, 1.6),
+                   Word("chaque", 2.0, 2.3), Word("année.", 2.3, 2.8)]
+    let e = try measuringEngine(fakes)
+    try e.execute("transcript.run", params: ["assetId": "a1", "language": "fr"])
+    try e.execute("captions.generate", params: ["avoidFaces": false])
+    // No face track yet: not checked, and the export is not blocked by it.
+    var check = try e.execute("rules.check", params: ["language": "en"])
+    #expect(row(check, "captions-faces")?["ran"] == false && row(check, "captions-faces")?.value(at: "skipped.message")?.stringValue?.contains("faces.track") == true)
+    try e.execute("faces.track", params: ["assetId": "a1"])
+    check = try e.execute("rules.check", params: ["language": "en"])
+    let v = try #require(violations(check, "captions-faces").first, "\(check)")
+    #expect(v["severity"] == "fail" && check["pass"] == false)
+    try e.execute("captions.generate", params: ["avoidFaces": true])
+    check = try e.execute("rules.check")
+    #expect(violations(check, "captions-faces").isEmpty && row(check, "captions-faces")?["ran"] == true, "\(check)")
+}
+
+@Test func captionTimingWaitsForARenderOfThisEditAndMeasuresIt() throws {
+    nonisolated(unsafe) var answer: JSONValue = ["pass": true, "outliers": [], "band": ["inside": true]]
+    nonisolated(unsafe) var asked: [[String: JSONValue]] = []
+    let e = try measuringEngine { s in
+        s.ruleMeasures["captions.checkTiming"] = { params in asked.append(params); return answer }
+    }
+    try e.execute("transcript.run", params: ["assetId": "a1"])
+    try e.execute("captions.generate")
+    var check = try e.execute("rules.check", params: ["language": "en"])
+    #expect(row(check, "captions-timing")?["ran"] == false && row(check, "captions-timing")?.value(at: "skipped.messageKey") == "No render of this edit yet: export it, then check again.")
+    let out = tempDir().appendingPathComponent("out.mp4").path
+    try e.execute("export.render", params: ["path": .string(out)])
+    check = try e.execute("rules.check")
+    #expect(row(check, "captions-timing")?["ran"] == true && violations(check, "captions-timing").isEmpty && asked.last?["path"]?.stringValue == out)
+    // The same render, the words late in it: a failure. The edit changed: no render of it, not checked.
+    answer = ["pass": false, "outliers": [["word": "DUE", "expected": 45, "observed": 52, "error": 7]], "band": ["inside": true]]
+    let other = try measuringEngine { s in s.ruleMeasures["captions.checkTiming"] = { _ in answer } }
+    try other.execute("transcript.run", params: ["assetId": "a1"])
+    try other.execute("captions.generate")
+    try other.execute("export.render", params: ["path": .string(tempDir().appendingPathComponent("o.mp4").path)])
+    let late = try #require(violations(try other.execute("rules.check", params: ["language": "en"]), "captions-timing").first)
+    #expect(late["severity"] == "fail" && late.value(at: "messageArgs.1") == "DUE" && late.value(at: "messageArgs.2") == 1.5, "\(late)")
+    try other.execute("title.add", params: ["text": "HOOK", "start": 0, "duration": 2])
+    #expect(row(try other.execute("rules.check"), "captions-timing")?["ran"] == false)
+}
+
+
+/// A face over the opening seconds and a child's lower in the frame, where the fixed caption band would land (y 1050–1330).
+private func facesOverTheCaptions(frames: Int = 300) -> FaceTrack {
+    let fs = (0..<frames).map { i -> FaceTrack.Frame in
+        let d = Double(i)
+        let mother = [250 + d, 420, 360, 420.0]
+        let child = [640 + d * 0.5, 1050, 260, 280.0]
+        return FaceTrack.Frame(t: Double(i) / 30, raw: mother, smooth: mother, others: [child])
+    }
+    return FaceTrack(video: "v", engine: "test", width: 1080, height: 1920, fps: 30, minCutoff: 0.3, beta: 0.01, cuts: [], frames: fs)
+}

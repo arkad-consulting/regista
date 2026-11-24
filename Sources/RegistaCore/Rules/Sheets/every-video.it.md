@@ -7,6 +7,10 @@ logo-end: on
 face-clear: on
 text-size: on 28
 reading-time: on
+captions-faces: on
+captions-timing: on
+music-ducked: on
+voice-loudness: on -15
 # Una riga per scelta: il suo id, l'opzione scelta, e il suo numero quando ne ha uno.
 opening-title: off
 hook: statement

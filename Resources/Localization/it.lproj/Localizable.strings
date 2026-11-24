@@ -2725,3 +2725,19 @@
 "«%1$@» is under the platform's top bar (above %2$@ px)." = "«%1$@» finisce sotto la barra in alto della piattaforma (sopra %2$@ px).";
 "«%1$@» is under the platform's buttons at the bottom (below %2$@ px)." = "«%1$@» finisce sotto i pulsanti in basso della piattaforma (sotto %2$@ px).";
 "«%1$@» is under the platform's buttons on the right (past %2$@ px)." = "«%1$@» finisce sotto i pulsanti a destra della piattaforma (oltre %2$@ px).";
+
+/* Checks that measure (#145): the always-measures inside the regia. */
+"No caption over a face" = "Nessun sottotitolo sopra un volto";
+"Captions gone with their words" = "Sottotitoli che spariscono con le loro parole";
+"Music lowered under the voice" = "Musica abbassata sotto la voce";
+"The voice at its loudness" = "La voce al suo volume";
+"Loudness of the voice, LUFS (±1, peak at most −1.5 dBTP)" = "Volume della voce, LUFS (±1, picco al massimo −1,5 dBTP)";
+"No render of this edit yet: export it, then check again." = "Ancora nessun render di questo montaggio: esportalo, poi controlla di nuovo.";
+"It could not be measured: %1$@" = "Non si è potuto misurare: %1$@";
+"No face track on the picture: run faces.track to check the captions against the face." = "Nessun tracciamento del volto: esegui faces.track per controllare i sottotitoli rispetto al volto.";
+"The caption «%1$@» covers a face at %2$@ s." = "Il sottotitolo «%1$@» copre un volto a %2$@ s.";
+"%1$@ caption words are not on screen with the voice in the render (the first, «%2$@», at %3$@ s)." = "Nel render %1$@ parole dei sottotitoli non sono sullo schermo insieme alla voce (la prima, «%2$@», a %3$@ s).";
+"The captions leave their band in the render." = "Nel render i sottotitoli escono dalla loro fascia.";
+"Lower the music under the voice to %1$@ dB" = "Abbassa la musica sotto la voce a %1$@ dB";
+"The music is %1$@ dB under the voice while it speaks: at least %2$@ dB." = "Mentre la voce parla la musica è %1$@ dB sotto: almeno %2$@ dB.";
+"The voice is at %1$@ LUFS with a true peak of %2$@ dBTP: it must be at %3$@ LUFS ±1, its peak at most −1.5 dBTP." = "La voce è a %1$@ LUFS con un picco reale di %2$@ dBTP: deve stare a %3$@ LUFS ±1, con il picco al massimo a −1,5 dBTP.";

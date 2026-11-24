@@ -100,7 +100,7 @@ extension Journey {
         let link = try await connectClaude()
         let recipe = await readRecipe(link, "prompt-to-reel", order: ["voice_list", "effects_catalog", "project_new", "brandkit_apply", "voice_say", "motion_add",
                                                                       "graphics_hyperframes", "captions_generate", "audio_addMusic", "sfx_add", "frame_contactSheet",
-                                                                      "rules_check", "export_render", "sfx_checkOnsets", "audio_checkDucking", "captions_checkTiming",
+                                                                      "rules_check", "export_render", "sfx_checkOnsets",
                                                                       "export_srt", "project_save"])
         let mismatches = recipeParameters(recipe)
         #expect(mismatches.isEmpty, "\(mismatches.joined(separator: "\n"))")

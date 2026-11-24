@@ -2725,3 +2725,19 @@
 "«%1$@» is under the platform's top bar (above %2$@ px)." = "« %1$@ » passe sous la barre du haut de la plateforme (au-dessus de %2$@ px).";
 "«%1$@» is under the platform's buttons at the bottom (below %2$@ px)." = "« %1$@ » passe sous les boutons du bas de la plateforme (sous %2$@ px).";
 "«%1$@» is under the platform's buttons on the right (past %2$@ px)." = "« %1$@ » passe sous les boutons de droite de la plateforme (au-delà de %2$@ px).";
+
+/* Checks that measure (#145): the always-measures inside the regia. */
+"No caption over a face" = "Aucun sous-titre sur un visage";
+"Captions gone with their words" = "Sous-titres qui partent avec leurs mots";
+"Music lowered under the voice" = "Musique baissée sous la voix";
+"The voice at its loudness" = "La voix à sa loudness";
+"Loudness of the voice, LUFS (±1, peak at most −1.5 dBTP)" = "Loudness de la voix, LUFS (±1, crête à −1,5 dBTP au plus)";
+"No render of this edit yet: export it, then check again." = "Pas encore de rendu de ce montage : exportez-le, puis vérifiez à nouveau.";
+"It could not be measured: %1$@" = "Impossible de mesurer : %1$@";
+"No face track on the picture: run faces.track to check the captions against the face." = "Pas de suivi du visage : lancez faces.track pour contrôler les sous-titres par rapport au visage.";
+"The caption «%1$@» covers a face at %2$@ s." = "Le sous-titre « %1$@ » couvre un visage à %2$@ s.";
+"%1$@ caption words are not on screen with the voice in the render (the first, «%2$@», at %3$@ s)." = "Dans le rendu, %1$@ mots des sous-titres ne sont pas à l'écran avec la voix (le premier, « %2$@ », à %3$@ s).";
+"The captions leave their band in the render." = "Dans le rendu, les sous-titres sortent de leur bande.";
+"Lower the music under the voice to %1$@ dB" = "Baisser la musique sous la voix à %1$@ dB";
+"The music is %1$@ dB under the voice while it speaks: at least %2$@ dB." = "Pendant que la voix parle, la musique est %1$@ dB en dessous : au moins %2$@ dB.";
+"The voice is at %1$@ LUFS with a true peak of %2$@ dBTP: it must be at %3$@ LUFS ±1, its peak at most −1.5 dBTP." = "La voix est à %1$@ LUFS avec une crête réelle de %2$@ dBTP : elle doit être à %3$@ LUFS ±1, sa crête à −1,5 dBTP au plus.";

@@ -2725,3 +2725,19 @@
 "«%1$@» is under the platform's top bar (above %2$@ px)." = "“%1$@” is under the platform's top bar (above %2$@ px).";
 "«%1$@» is under the platform's buttons at the bottom (below %2$@ px)." = "“%1$@” is under the platform's buttons at the bottom (below %2$@ px).";
 "«%1$@» is under the platform's buttons on the right (past %2$@ px)." = "“%1$@” is under the platform's buttons on the right (past %2$@ px).";
+
+/* Checks that measure (#145): the always-measures inside the regia. */
+"No caption over a face" = "No caption over a face";
+"Captions gone with their words" = "Captions gone with their words";
+"Music lowered under the voice" = "Music lowered under the voice";
+"The voice at its loudness" = "The voice at its loudness";
+"Loudness of the voice, LUFS (±1, peak at most −1.5 dBTP)" = "Loudness of the voice, LUFS (±1, peak at most −1.5 dBTP)";
+"No render of this edit yet: export it, then check again." = "No render of this edit yet: export it, then check again.";
+"It could not be measured: %1$@" = "It could not be measured: %1$@";
+"No face track on the picture: run faces.track to check the captions against the face." = "No face track on the picture: run faces.track to check the captions against the face.";
+"The caption «%1$@» covers a face at %2$@ s." = "The caption “%1$@” covers a face at %2$@ s.";
+"%1$@ caption words are not on screen with the voice in the render (the first, «%2$@», at %3$@ s)." = "%1$@ caption words are not on screen with the voice in the render (the first, “%2$@”, at %3$@ s).";
+"The captions leave their band in the render." = "The captions leave their band in the render.";
+"Lower the music under the voice to %1$@ dB" = "Lower the music under the voice to %1$@ dB";
+"The music is %1$@ dB under the voice while it speaks: at least %2$@ dB." = "The music is %1$@ dB under the voice while it speaks: at least %2$@ dB.";
+"The voice is at %1$@ LUFS with a true peak of %2$@ dBTP: it must be at %3$@ LUFS ±1, its peak at most −1.5 dBTP." = "The voice is at %1$@ LUFS with a true peak of %2$@ dBTP: it must be at %3$@ LUFS ±1, its peak at most −1.5 dBTP.";

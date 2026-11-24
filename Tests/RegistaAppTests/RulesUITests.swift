@@ -324,7 +324,7 @@ extension MouseSuites {
 
     /// One list (#156): every check and every choice the tab shows comes from the specs — on «Per ogni video» all of them,
     /// on each built-in kind the choices that apply to it, in the specs' order — and a misspelled key or an option that
-    /// does not exist in a sheet shows under the checks with its line, as an unknown check does.
+    /// does not exist in a sheet shows above the checks with its line, as an unknown check does.
     @Test func everyCheckAndChoiceComesFromTheSpecsAndAMisspelledKeyIsReported() async throws {
         let saved = UserDefaults.standard.object(forKey: SettingsRoute.rulesKey)
         defer { UserDefaults.standard.set(saved, forKey: SettingsRoute.rulesKey) }
@@ -445,7 +445,7 @@ extension MouseSuites {
         #expect(UserDefaults.standard.string(forKey: SettingsRoute.rulesKey) == longKind, "\(language): a click at the end of the skill's row did not select it")
     }
 
-    /// A row on the left opens its item; a skill's header problem shows under the checks with its line; on «Per ogni
+    /// A row on the left opens its item; a skill's header problem shows above the checks with its line; on «Per ogni
     /// video», Importa… asks for a file and Mostra nel Finder shows the sheet's folder or file.
     @Test func aSkillsHeaderProblemShowsAndEveryVideoKeepsItsButtons() async throws {
         let saved = UserDefaults.standard.object(forKey: SettingsRoute.rulesKey)

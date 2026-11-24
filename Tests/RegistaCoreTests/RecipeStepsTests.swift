@@ -47,7 +47,7 @@ let movedRules: [(recipe: String, subject: String, homes: [RuleHome])] = [
     ("talking-head-reel", "the export settings for the platform", [.command("export.render")]),
     ("talking-head-reel", "captions and graphics out of the platform's zones (top, bottom, right edge) and in their band",
      [.sheet("talking-head-reel", section: nil, phrase: "where the platform draws its buttons"),
-      .sheet("every-video", section: "## Captions", phrase: "stay out of the platform's buttons"), .command("graphics.checkLayout"), .command("captions.checkTiming")]),
+      .sheet("every-video", section: "## Captions", phrase: "stay out of the platform's buttons"), .command("graphics.checkLayout"), .check("captions-timing")]),
     ("talking-head-reel", "no music baked in", [.choice("music", option: "on-request")]),
     ("talking-head-reel", "never a bare edit: proposals from the catalog before delivering", [.choice("graphics", option: "on")]),
     ("talking-head-reel", "captions on one baseline", [.sheet("every-video", section: "## Captions", phrase: "sit on one baseline")]),
@@ -65,7 +65,7 @@ let movedRules: [(recipe: String, subject: String, homes: [RuleHome])] = [
     ("screen-tutorial", "one layout change every 20–30 s at most; the screen is the subject",
      [.sheet("screen-tutorial", section: nil, phrase: "one layout change every 20–30 s at most")]),
     ("screen-tutorial", "no music unless asked, ducked under the voice",
-     [.choice("music", option: "on-request"), .sheet("every-video", section: "## Sound", phrase: "Music under the voice is always lowered"), .command("audio.checkDucking")]),
+     [.choice("music", option: "on-request"), .sheet("every-video", section: "## Sound", phrase: "Music under the voice is always lowered"), .check("music-ducked")]),
     ("screen-tutorial", "titles, cards and sound effects: the reel-graphics recipe", [.step("screen-tutorial", phrase: "the reel-graphics recipe")]),
     ("screen-tutorial", "never a bare edit", [.choice("graphics", option: "on")]),
     ("screen-tutorial", "the format, asked only if unclear", [.choice("format", option: "project")]),
@@ -125,7 +125,7 @@ let movedRules: [(recipe: String, subject: String, homes: [RuleHome])] = [
     ("reel-graphics", "the captions keep their look", [.choice("captions", option: "talking-head-v1")]),
     ("reel-graphics", "sound effects sparse, on beats, quiet, never two at once", [.sheet("reel-graphics", section: nil, phrase: "never two at once"), .choice("sfx", option: "sparse")]),
     ("reel-graphics", "music only when asked, always ducked",
-     [.choice("music", option: "on-request"), .sheet("every-video", section: "## Sound", phrase: "always lowered"), .command("audio.checkDucking")]),
+     [.choice("music", option: "on-request"), .sheet("every-video", section: "## Sound", phrase: "always lowered"), .check("music-ducked")]),
     ("reel-graphics", "readable text", [.check("text-size")]),
 ]
 
@@ -256,37 +256,46 @@ let movedRules: [(recipe: String, subject: String, homes: [RuleHome])] = [
 /// Every command a recipe named before it lost its rules is still named.
 @Test func everyCommandARecipeNamedIsStillNamed() throws {
     let named: [String: [String]] = [
-        "talking-head-reel": ["audio_clean", "callout_add", "captions_checkFaces", "captions_checkTiming", "captions_generate", "captions_get", "captions_place",
+        "talking-head-reel": ["audio_clean", "callout_add", "captions_generate", "captions_get", "captions_place",
                               "captions_setKeywords", "captions_setStyle", "clip_place", "clip_set", "cover_make", "cover_set", "edit_autoCut", "edit_punchIns",
                               "effects_catalog", "export_mlt", "export_render", "export_srt", "faces_checkFraming", "faces_track", "frame_contactSheet",
                               "frame_elements", "frame_render", "graphics_checkLayout", "history_undo", "media_checkSync", "media_extractAudio", "media_import",
                               "media_list", "motion_add", "overlay_add", "project_new", "project_save", "recipe_get", "rules_check", "script_fromTranscript",
                               "script_set", "takes_list", "takes_select", "text_read", "transcript_deleteWords", "transcript_fillers", "transcript_run",
                               "transcript_timeline"],
-        "reel-graphics": ["adjust_set", "audio_addMusic", "audio_checkDucking", "brandkit_apply", "brandkit_check", "brandkit_list", "callout_add",
-                          "captions_checkTiming", "captions_generate", "clip_follow", "clip_set", "clip_speed", "edit_beatSync", "effect_add", "effects_catalog",
+        "reel-graphics": ["adjust_set", "audio_addMusic", "brandkit_apply", "brandkit_check", "brandkit_list", "callout_add",
+                          "captions_generate", "clip_follow", "clip_set", "clip_speed", "edit_beatSync", "effect_add", "effects_catalog",
                           "effects_check", "effects_preview", "export_mlt", "export_render", "frame_contactSheet", "frame_render", "generate_estimate",
                           "generate_list", "generate_providers", "generate_run", "generate_status", "generate_upscale", "graphics_blenderTitle",
                           "graphics_checkBehindSubject", "graphics_checkLayout", "graphics_hyperframes", "hands_track", "history_undo", "layout_speaker",
                           "logo_add", "logo_animate", "look_apply", "matte_track", "media_checkOverlay", "meters_add", "motion_add", "overlay_add",
                           "progress_add", "rules_check", "sfx_add", "sfx_checkOnsets", "sfx_library", "sfx_onCuts", "status_add", "sticker_add", "style_apply",
                           "timeline_delete", "timeline_move", "timeline_trim", "title_add", "transcript_timeline", "transition_add"],
-        "screen-tutorial": ["audio_addMusic", "audio_checkDucking", "audio_clean", "captions_generate", "clip_speed", "cover_make", "cover_set", "cursor_style",
+        "screen-tutorial": ["audio_addMusic", "audio_clean", "captions_generate", "clip_speed", "cover_make", "cover_set", "cursor_style",
                             "edit_autoZoom", "effects_catalog", "export_render", "export_srt", "frame_contactSheet", "history_undo", "keys_overlay", "layout_apply",
                             "layout_presets", "media_list", "project_format", "project_new", "project_save", "recording_check", "recording_import", "rules_check",
                             "transcript_deleteWords", "transcript_fillers", "transcript_run", "transcript_timeline", "voice_say"],
-        "voice-over-video": ["audio_addMusic", "audio_checkDucking", "brandkit_apply", "captions_generate", "clip_set", "effect_add", "effects_catalog",
+        "voice-over-video": ["audio_addMusic", "brandkit_apply", "captions_generate", "clip_set", "effect_add", "effects_catalog",
                              "effects_preview", "export_render", "export_srt", "frame_contactSheet", "generate_check", "generate_providers", "media_import",
                              "media_list", "motion_add", "profile_create", "project_new", "project_save", "project_state", "rules_check", "sfx_add",
                              "sfx_library", "text_read", "timeline_place", "timeline_trim", "track_add", "voice_lexicon", "voice_list", "voice_preview",
                              "voice_say"],
-        "prompt-to-reel": ["audio_addMusic", "audio_checkDucking", "brandkit_apply", "brandkit_list", "captions_checkTiming", "captions_clear",
+        "prompt-to-reel": ["audio_addMusic", "brandkit_apply", "brandkit_list", "captions_clear",
                            "captions_generate", "clip_place", "effects_catalog", "export_render", "export_srt", "frame_contactSheet", "frame_render",
                            "generate_check", "generate_providers", "graphics_checkLayout", "graphics_hyperframes", "media_import", "media_list", "motion_add",
                            "project_new", "project_save", "rules_check", "sfx_add", "sfx_checkOnsets", "sfx_library", "timeline_place", "title_add", "track_add",
                            "transition_add", "voice_list", "voice_preview", "voice_say"],
     ]
     #expect(Set(named.keys) == Set(Recipes.all.map(\.name)))
+    // The measures rules.check runs since #145: no recipe calls them on its own any more, and each is a check.
+    let measured = ["captions_checkFaces": "captions-faces", "captions_checkTiming": "captions-timing", "audio_checkDucking": "music-ducked",
+                    "media_measureLoudness": "voice-loudness"]
+    for r in Recipes.all {
+        for (command, check) in measured {
+            #expect(!r.text().contains(command), "\(r.name) still calls \(command) on its own")
+            #expect(RuleCheckSpec.named(check) != nil)
+        }
+    }
     for r in Recipes.all {
         let words = Set(r.text().components(separatedBy: CharacterSet.letters.union(CharacterSet(charactersIn: "_")).inverted))
         let lost = try #require(named[r.name]).filter { !words.contains($0) }

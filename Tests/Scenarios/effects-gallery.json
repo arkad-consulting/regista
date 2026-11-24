@@ -1,7 +1,7 @@
 {
   "name": "effects-gallery",
   "defaults": {"REGISTA_GOLDEN_MEDIA": "${HOME}/.config/regista/test-media/wesites-2026-10-26"},
-  "description": "Effects for users (issue #16) on the 2026-10-26 WeSites take: five linked segments, the WeSites kit, a film look at 60 % + adjustments on the whole picture, speed changes (0.5× slow motion, a hero ramp, a reversed clip, a freeze frame), a glitch and a punch-in, a sticker, a circle callout, a progress bar, a logo sting, a whip transition, punches on given beats and the Pulito style; exported 9:16. Checks: durations after each speed change, the export lasts the timeline, A/V sync under one frame on the plain clips (media.checkSync) and on the slowed/ramped ones (effects.check: stretched sound against the picture), every effect visible in its window (frame with vs without it), a look at intensity 0 identical to no look, nothing generated in the caption band, one undo step for the style. Needs only the footage (ffmpeg for audio and the reversed copy).",
+  "description": "Effects for users (issue #16) on the 2026-10-26 WeSites take: five linked segments, the WeSites kit, a film look at 60 % + adjustments on the whole picture, speed changes (0.5× slow motion, a hero ramp, a reversed clip, a freeze frame), a glitch and a punch-in, a sticker, a circle callout, a progress bar, a logo sting, a whip transition, punches on given beats and the Pulito style; exported 9:16. Checks: durations after each speed change, the export lasts the timeline, A/V sync under one frame on the plain clips (media.checkSync) and on the slowed/ramped ones (effects.check: stretched sound against the picture), every effect visible in its window (frame with vs without it), a look at intensity 0 identical to no look, nothing generated in the caption band, one undo step for the style. Needs only the footage (ffmpeg for audio and the reversed copy). The take's sound is not levelled (no audio.clean without the engines): the voice-loudness rule fails and it exports anyway.",
   "requires": ["footage"],
   "footage": ["${REGISTA_GOLDEN_MEDIA}/raw/IMG_3437.MOV", "${REGISTA_GOLDEN_MEDIA}/assets/wesites-mark.svg"],
   "steps": [
@@ -52,7 +52,7 @@
     {"command": "project.state", "capture": {"state": "result"}},
 
     {"command": "graphics.checkLayout", "params": {"step": 3}, "expect": {"result.pass": true}},
-    {"command": "export.render", "params": {"path": "${WORK}/effects-gallery.mp4", "preset": "9:16"},
+    {"command": "export.render", "params": {"path": "${WORK}/effects-gallery.mp4", "preset": "9:16", "exportAnyway": true},
      "expect": {"result.duration": {"approx": "${state.duration}", "tol": 0.000001}, "result.width": 1080, "result.height": 1920}},
     {"command": "media.probe", "params": {"path": "${WORK}/effects-gallery.mp4"},
      "expect": {"result.duration": {"approx": "${state.duration}", "tol": 0.067}, "result.video.fps": "30/1"}},

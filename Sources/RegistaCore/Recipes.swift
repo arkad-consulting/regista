@@ -115,7 +115,7 @@ public enum Recipes {
            Keywords match any case; the mixed-case styles show them in the accent colour without a box.
         10. captions_generate {style: <the caption style choice, such as talking-head-v1>, keywords: [...], fixes:
             {...}}. With a face track, chunks that would cover a face (any face: a child in the arms too) move to
-            another band or beside it, or split shorter; captions_checkFaces must pass. Read its preview (and
+            another band or beside it, or split shorter (rules_check measures it). Read its preview (and
             captions_get for the full list): fix misheard or wrongly split words with fixes (display form,
             {"WRONG": "RIGHT"}, "" removes a word): spell names as the script and the person's «Nomi» sections
             (listed at the top) write them. If a keyword
@@ -137,8 +137,8 @@ public enum Recipes {
             or take the hook's words, place} then cover_make {} (the PNG next to the exports, <name>-cover.png); when its
             check fails, the cover_set it names (another place, or fewer words). export_render {appendCover: true} holds
             it for the last 3 frames when the user picks the thumbnail in the phone app.
-        13. Verify the file: captions_checkTiming {path: <mp4>} (pass, words on their frame, band inside),
-            captions_checkFaces and faces_checkFraming (pass), and media_checkSync {path: <mp4>} (lag < 1 frame). Finish with a short report: takes kept, keywords,
+        13. Verify the file: rules_check again (it now measures the caption timing on the export),
+            faces_checkFraming and media_checkSync {path: <mp4>} (lag < 1 frame). Finish with a short report: takes kept, keywords,
             fixes, what you corrected after looking, the numbers, and the paths of the mp4 / srt / mlt.
         14. Graphics, after step 11 and before step 12, as the person's graphics choice says — on: read effects_catalog
             and propose as many items as its number says, each fitting a line (one line each: what, where, why), as a yes/no
@@ -192,8 +192,7 @@ public enum Recipes {
           rotation), then clip_place {clipId, x, y (the centre) | dx, dy, scale, rotation}; its animation follows.
         - "rimettili come prima" / "put them back": captions_place {reset: true} (one chunk: + time or chunk);
           clip_place {clipId, reset: true}.
-        - A chunk placed by hand stays there even over a face (captions_checkFaces reports it as a warning, not a
-          failure): say so if it happens. Lines are kept inside the frame; read the warnings for the platform's zones
+        - A chunk placed by hand stays there even over a face (the face check warns, it does not fail): say so if it happens. Lines are kept inside the frame; read the warnings for the platform's zones
           and the caption band (graphics_checkLayout gives both), then look with frame_render at that time.
         """)
 }
@@ -297,9 +296,8 @@ extension Recipes {
            nothing in the caption band or the platform's zones (the layout check of step 10 gives both), text
            readable (the text-size check), no card over the mouth, no two cards at once, no gimmicks.
         10. Checks: graphics_checkLayout (pass = caption band clean), rules_check (fix what fails), export_render {path, preset: "9:16",
-            loudness: −15} (−15 ±1 LUFS, true peak ≤ −1.5), audio_checkDucking (music ≥ 15 dB under the voice),
-            sfx_checkOnsets {path} (every effect within 1 frame), media_checkOverlay {path, trackId: <inserts>}
-            (inserts exactly in their windows), captions_checkTiming, effects_check {path} (every effect visible in
+            loudness: −15} (−15 ±1 LUFS, true peak ≤ −1.5), sfx_checkOnsets {path} (every effect within 1 frame), media_checkOverlay {path, trackId: <inserts>}
+            (inserts exactly in their windows), effects_check {path} (every effect visible in
             its window, look at 0 = identity, retimed sound on the picture), then export_mlt (Shotcut: overlays,
             titles, music and SFX with gain and ducking; animations, effects, transitions, looks, speed changes and
             callout draw-ons are listed as not exported).
