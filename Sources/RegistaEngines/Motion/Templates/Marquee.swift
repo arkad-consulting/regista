@@ -22,7 +22,7 @@ enum Marquee: MotionTemplate {
             .init("theme2", "choice", "light", "Second row pills.", choices: ["dark", "light", "accent"]),
             .init("speed", "number", 110, "Scroll speed, px per second."),
         ],
-        form: ["items", "items2", "y1", "y2"], duration: 4, band: nil, layering: .split)
+        form: ["items", "items2", "y1", "y2"], duration: 4, band: nil, layering: .split, scrolls: true)
 
     static func draw(_ c: MotionCanvas) -> CIImage? {
         let m = c.m

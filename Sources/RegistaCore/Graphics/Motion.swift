@@ -34,11 +34,14 @@ public struct MotionSpec: Sendable {
     public var syncField: String?
     /// The template fills the frame by design (backgrounds, device frame, HUD): the caption-band check skips it.
     public var coversFrame: Bool
+    /// Its text scrolls past and is not meant to be read in full (marquee rows): the reading-time check skips it.
+    public var scrolls: Bool
 
     public init(id: String, label: String, symbol: String, guide: CatalogGuide, fields: [EffectsCatalog.Field], form: [String],
                 duration: Double = 3, band: String? = "top", layering: MotionLayer.Layering = .front, consumesBelow: Bool = false,
-                syncField: String? = nil, coversFrame: Bool = false) {
+                syncField: String? = nil, coversFrame: Bool = false, scrolls: Bool = false) {
         self.coversFrame = coversFrame
+        self.scrolls = scrolls
         self.id = id
         self.label = label
         self.symbol = symbol

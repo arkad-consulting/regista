@@ -1,6 +1,6 @@
 {
  "name": "motion-gallery",
- "description": "Every motion template (issue #22) on a synthetic talking head (media.synthesize: a speaker silhouette with its exact person matte, so the behind/in-front layering is tested without footage or Vision), in the Arkad kit: each template added with motion.add in its own 3 s window (no warnings), the catalog lists them all, effects.preview renders one without touching the edit or the undo history, effects.check finds every template visible at three moments and none of their ink in the caption band (templates that cover the frame by design are exempt), exported 9:16. Needs no engines and no footage (ffmpeg only for the export).",
+ "description": "Every motion template (issue #22) on a synthetic talking head (media.synthesize: a speaker silhouette with its exact person matte, so the behind/in-front layering is tested without footage or Vision), in the Arkad kit: each template added with motion.add in its own 3 s window (no warnings), the catalog lists them all, effects.preview renders one without touching the edit or the undo history, effects.check finds every template visible at three moments and none of their ink in the caption band (templates that cover the frame by design are exempt), exported 9:16 anyway (a gallery: its templates' texts are not timed to be read, so the reading-time rule fails by design). Needs no engines and no footage (ffmpeg only for the export).",
  "steps": [
   {
    "command": "project.new",
@@ -648,7 +648,8 @@
    "command": "export.render",
    "params": {
     "path": "${WORK}/motion-gallery.mp4",
-    "preset": "9:16"
+    "preset": "9:16",
+    "exportAnyway": true
    },
    "expect": {
     "result.width": 1080,

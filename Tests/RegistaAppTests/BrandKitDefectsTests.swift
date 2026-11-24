@@ -98,7 +98,7 @@ extension MouseSuites {
             #expect(brandRow() != nil && j.shows(kit.name), "\(language): no tick «Marca» with the kit's name: \(j.screen())")
             j.step("\(language): Esporta with the kit applied, no title outside its colours", sees: "«\(loc("Marca"))» \(kit.name), a tick")
 
-            let green = try await j.store.perform("title.add", ["text": "FUORI MARCA", "start": 2, "duration": 1, "color": "#00FF00"])
+            let green = try await j.store.perform("title.add", ["text": "FUORI MARCA", "start": 2, "duration": 2, "color": "#00FF00"])
             let greenID = try #require(green.value(at: "clip.id")?.stringValue)
             await j.app.settle()
             await j.app.idle(0.3)

@@ -141,7 +141,8 @@ enum RulesList: Command {
             "folder": .string(book.directory.path), "language": .string(language),
             "sheets": .array(([RuleBook.everyVideo] + book.kinds).map { Rules.sheet($0, book, language: language, full: false) }),
             "checks": .array(RuleCheckSpec.all.map { s in
-                var o: [String: JSONValue] = ["id": .string(s.id), "title": .string(s.title)]
+                var o: [String: JSONValue] = ["id": .string(s.id), "title": .string(s.title), "section": .string(s.section),
+                                              "kinds": s.kinds.map { .array($0.map { .string($0) }) } ?? .null]
                 if let n = s.number { o["default"] = .number(n.defaultValue); o["unit"] = .string(n.unit); o["meaning"] = .string(n.meaning) }
                 return .object(o)
             }),
@@ -346,12 +347,12 @@ enum ProjectSetChoices: Command {
 
 enum RulesCheck: Command {
     static let id = "rules.check"
-    static let summary = "Check the edit against the rules of its kind before export (export.render runs it too and refuses while a check fails): no captions while the opening title is on screen, none on the closing logo, a clean pause between the last spoken word and the logo, a logo only at the end, no logo or title over the speaker's face, no text under the minimum size. Each violation has its time and, where a safe one exists, its fix as a command call (one undo step; rules.fix applies them). Warnings do not block. Returns pass, the violations, each check's state (on, number, skipped and why) and the problems of the sheets' headers."
+    static let summary = "Check the edit against the rules of its kind before export (export.render runs it too and refuses while a check fails): no captions while the opening title is on screen, none on the closing logo, a clean pause between the last spoken word and the logo, a logo only at the end, no logo or title over the speaker's face, no text under the minimum size, every title, card, motion-template and HyperFrames text on screen the time it takes to read (0.6 s + 1 s per 12 letters) and inside the frame and the platform's zones. Each violation has its time and, where a safe one exists, its fix as a command call (one undo step; rules.fix applies them). Warnings do not block; a check that cannot be measured here is listed under notChecked with why (it never blocks and never passes). Returns pass, the violations, each check's state (on, number, skipped and why), notChecked and the problems of the sheets' headers."
     static let kind = CommandKind.query
     static let params: [ParamSpec] = [Rules.languageParam]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
-        RuleCheck.run(try ctx.requireProject(), book: ctx.services.rules, language: Rules.language(p), renderer: ctx.services.renderer).json
+        RuleCheck.run(try ctx.requireProject(), book: ctx.services.rules, language: Rules.language(p), ctx: ctx).json
     }
 }
 
@@ -371,7 +372,7 @@ enum RulesFix: Command {
         let language = RuleBook.interfaceLanguage()
         var applied: [JSONValue] = [], done: Set<String> = []
         for _ in 0..<20 {
-            let report = RuleCheck.run(ctx.project!, book: ctx.services.rules, language: language, renderer: ctx.services.renderer)
+            let report = RuleCheck.run(ctx.project!, book: ctx.services.rules, language: language, ctx: ctx)
             guard let v = report.failures.first(where: { $0.fix != nil && (only == nil || $0.check == only) && !done.contains($0.line) }),
                   let fix = v.fix else { break }
             done.insert(v.line)
@@ -379,7 +380,7 @@ enum RulesFix: Command {
             _ = try Nested.run(command, fix.params.objectValue ?? [:], &ctx)
             applied.append(["check": .string(v.check), "command": .string(fix.command), "params": fix.params, "message": .string(fix.label.english)])
         }
-        let after = RuleCheck.run(ctx.project!, book: ctx.services.rules, language: language, renderer: ctx.services.renderer)
+        let after = RuleCheck.run(ctx.project!, book: ctx.services.rules, language: language, ctx: ctx)
         return ["applied": .array(applied), "check": after.json]
     }
 }

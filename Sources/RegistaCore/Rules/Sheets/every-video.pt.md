@@ -6,6 +6,7 @@ logo-pause: on 0.3
 logo-end: on
 face-clear: on
 text-size: on 28
+reading-time: on
 # Uma linha por escolha: o id, a opção escolhida e o número quando ela tem um.
 opening-title: off
 hook: statement
@@ -53,7 +54,7 @@ Estas regras valem para todos os tipos de vídeo. A folha do tipo do projeto acr
 - As palavras de uma linha ficam sobre uma mesma linha de base.
 
 ## Gráficos e texto
-- Cada linha fica o bastante para ser lida: cerca de meio segundo mais um terço de segundo por palavra.
+- Cada linha fica o bastante para ser lida: 0,6 s mais 1 s a cada 12 letras (a cada 6 caracteres em chinês, japonês, coreano), inteira dentro do quadro e fora das zonas da plataforma.
 - Nada do que deve ser lido é menor que 28 px num quadro de 1080 de largura.
 - Nenhum logo, título ou cartão sobre o rosto de quem fala.
 - Uma leitura de cada vez: nunca dois textos fortes no mesmo quadro.

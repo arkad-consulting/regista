@@ -6,6 +6,7 @@ logo-pause: on 0.3
 logo-end: on
 face-clear: on
 text-size: on 28
+reading-time: on
 # Une ligne par choix : son id, l'option choisie, et son nombre quand il en a un.
 opening-title: off
 hook: statement
@@ -53,7 +54,7 @@ Ces règles valent pour tous les types de vidéo. La fiche du type du projet ajo
 - Les mots d'une ligne reposent sur une même ligne de base.
 
 ## Graphismes et texte
-- Chaque ligne reste assez longtemps pour être lue : environ une demi-seconde plus un tiers de seconde par mot.
+- Chaque ligne reste assez longtemps pour être lue : 0,6 s plus 1 s toutes les 12 lettres (tous les 6 caractères en chinois, japonais, coréen), entière dans le cadre et hors des zones de la plateforme.
 - Rien de ce qui doit être lu n'est plus petit que 28 px sur une image de 1080 de large.
 - Aucun logo, titre ou carte sur le visage de la personne qui parle.
 - Une seule lecture à la fois : jamais deux textes forts dans la même image.

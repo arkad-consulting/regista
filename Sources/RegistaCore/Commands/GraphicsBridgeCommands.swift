@@ -197,6 +197,11 @@ enum GraphicsHyperframes: Command {
             }
             try JSONValue.object(["seconds": .number(renderSeconds), "frames": .number(Double(pngs.count))]).data().write(to: marker)
         }
+        // The composition's visible text beside the render: the reading-time check measures it (#145).
+        let sceneText = dir.appendingPathComponent(RuleCheck.sceneTextFile)
+        if !FileManager.default.fileExists(atPath: sceneText.path), let html = try? String(contentsOf: entry, encoding: .utf8) {
+            try? Data(Self.visibleText(html).utf8).write(to: sceneText)
+        }
         var extra: [String: JSONValue] = [:]
         if let d = p.time("duration") { extra["duration"] = .number(d.seconds) }
         if !p.has("band") && !p.has("position") && !p.has("top") && p.bool("fullFrame") != true { extra["band"] = "top" }
@@ -206,5 +211,17 @@ enum GraphicsHyperframes: Command {
         result["renderSeconds"] = .number((renderSeconds * 10).rounded() / 10)
         result["frames"] = .string(frames.path)
         return .object(result)
+    }
+
+    /// The text a composition shows: its HTML without scripts, styles and tags, entities read, spaces collapsed.
+    static func visibleText(_ html: String) -> String {
+        var s = html
+        for pattern in [#"(?is)<(script|style|head)\b.*?</\1>"#, #"(?s)<!--.*?-->"#, #"<[^>]*>"#] {
+            s = s.replacingOccurrences(of: pattern, with: " ", options: .regularExpression)
+        }
+        for (entity, char) in [("&nbsp;", " "), ("&amp;", "&"), ("&lt;", "<"), ("&gt;", ">"), ("&quot;", "\""), ("&#39;", "'"), ("&apos;", "'")] {
+            s = s.replacingOccurrences(of: entity, with: char)
+        }
+        return s.split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
 }

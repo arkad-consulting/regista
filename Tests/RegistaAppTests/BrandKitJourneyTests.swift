@@ -230,7 +230,7 @@ extension Journey {
         // 7. The kit's check: by the command, and in the window as Esporta's «Marca» row (#97).
         let pass = try await store.perform("brandkit.check")
         step("brandkit.check on the tab", sees: "pass \(pass["pass"]?.boolValue == true)")
-        let off = try await store.perform("title.add", ["text": "FUORI MARCA", "start": 0.5, "duration": 1, "color": "#00FF00"])
+        let off = try await store.perform("title.add", ["text": "FUORI MARCA", "start": 0.5, "duration": 2, "color": "#00FF00"])
         let offID = off.value(at: "clip.id")?.stringValue ?? "?"
         let broken = try await store.perform("brandkit.check")
         let names = broken["titlesOutside"]?.arrayValue?.contains { $0["clipId"]?.stringValue == offID } == true

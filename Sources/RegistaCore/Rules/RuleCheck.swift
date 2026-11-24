@@ -76,6 +76,13 @@ public struct RuleReport: Sendable {
                 o["violations"] = .number(Double(violations.filter { $0.check == r.state.spec.id }.count))
                 return .object(o)
             }),
+            // What could not be measured (an engine or a render missing): a warning, never a pass.
+            "notChecked": .array(rows.filter { $0.state.on && $0.skipped != nil }.map { r in
+                var o = r.skipped!.json.objectValue!
+                o["check"] = .string(r.state.spec.id)
+                o["title"] = .string(r.state.spec.title)
+                return .object(o)
+            }),
             "sheetProblems": .array(problems.map { p in
                 var o = p.problem.json.objectValue!
                 o["sheet"] = .string(p.sheet)
@@ -103,16 +110,19 @@ enum RuleCheck {
         return (max(.zero, end - length).snapped(to: project.settings.frameRate), end)
     }
 
-    static func run(_ project: Project, book: RuleBook, language: String, renderer: VideoRenderer?) -> RuleReport {
+    /// The checks of the project's kind on `project`; `ctx` gives the engines the measured checks call (the project in it
+    /// is not read).
+    static func run(_ project: Project, book: RuleBook, language: String, ctx: CommandContext?) -> RuleReport {
         let (kind, source, note) = book.kind(of: project)
         let states = book.checks(kind, language: language)
         var scene = Scene(project)
+        scene.context = ctx
         scene.closingSeconds = ProjectChoices(project, book: book).number("closing-logo")?.first
         var rows: [RuleReport.Row] = []
         var violations: [RuleViolation] = []
         for state in states {
             guard state.on else { rows.append(.init(state: state, skipped: nil)); continue }
-            let (found, skipped) = scene.check(state.spec.id, value: state.value ?? state.spec.number?.defaultValue ?? 0, renderer: renderer)
+            let (found, skipped) = scene.check(state.spec.id, value: state.value ?? state.spec.number?.defaultValue ?? 0)
             violations += found
             rows.append(.init(state: state, skipped: skipped))
         }
@@ -149,6 +159,9 @@ enum RuleCheck {
         var captions: [(track: Track, captions: Captions)] = []
         /// How long the closing logo stays (the project's closing-logo seconds): the logo-end fix keeps it that long.
         var closingSeconds: Double?
+        /// The engines the measured checks call (nil: none, those checks say so).
+        var context: CommandContext?
+        var renderer: VideoRenderer? { context?.services.renderer }
 
         init(_ project: Project) {
             self.project = project
@@ -200,7 +213,7 @@ enum RuleCheck {
             return clip.start > .zero && clip.start.seconds >= end.seconds / 2
         }
 
-        func check(_ id: String, value: Double, renderer: VideoRenderer?) -> ([RuleViolation], RuleText?) {
+        func check(_ id: String, value: Double) -> ([RuleViolation], RuleText?) {
             switch id {
             case "title-captions": return (titleCaptions(), nil)
             case "logo-captions": return (logoCaptions(), nil)
@@ -208,6 +221,7 @@ enum RuleCheck {
             case "logo-end": return (logoEnd(), nil)
             case "face-clear": return faceClear(renderer)
             case "text-size": return (textSize(value), nil)
+            case "reading-time": return (readingTime(), nil)
             default: return ([], nil)
             }
         }

@@ -2715,3 +2715,13 @@
 "Diverso dalla tua regia (%1$@: %2$@)" = "Different from your direction (%1$@: %2$@)";
 "Torna alla tua regia: il passo segue di nuovo Impostazioni › Regia e skill" = "Back to your direction: the step follows Settings › Direction & skills again";
 "Scelte del progetto" = "Project choices";
+
+/* Checks that measure (#145): reading time and text in frame. */
+"Text on screen long enough to read, inside the frame" = "Text on screen long enough to read, inside the frame";
+"Keep it on screen until %1$@ s" = "Keep it on screen until %1$@ s";
+"«%1$@» is on screen %2$@ s and needs %3$@ s to be read: %4$@ s missing." = "“%1$@” is on screen %2$@ s and needs %3$@ s to be read: %4$@ s missing.";
+"«%1$@» is on screen %2$@ s and needs %3$@ s to be read: %4$@ s missing, and what follows leaves no room. The text is too long: shorten it." = "“%1$@” is on screen %2$@ s and needs %3$@ s to be read: %4$@ s missing, and what follows leaves no room. The text is too long: shorten it.";
+"«%1$@» goes out of the frame by %2$@ px." = "“%1$@” goes out of the frame by %2$@ px.";
+"«%1$@» is under the platform's top bar (above %2$@ px)." = "“%1$@” is under the platform's top bar (above %2$@ px).";
+"«%1$@» is under the platform's buttons at the bottom (below %2$@ px)." = "“%1$@” is under the platform's buttons at the bottom (below %2$@ px).";
+"«%1$@» is under the platform's buttons on the right (past %2$@ px)." = "“%1$@” is under the platform's buttons on the right (past %2$@ px).";

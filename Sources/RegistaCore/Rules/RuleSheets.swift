@@ -59,7 +59,8 @@ public struct RuleText: Hashable, Sendable {
     static func n(_ v: Int) -> Arg { .number(Double(v), decimals: 0) }
 }
 
-/// A check a sheet can switch: id, title, and its number when it has one.
+/// A check a sheet can switch: id, title, its number when it has one, the part of the regia it belongs to and the kinds
+/// of video it applies to.
 public struct RuleCheckSpec: Sendable {
     public struct Number: Sendable {
         public var defaultValue: Double
@@ -67,24 +68,41 @@ public struct RuleCheckSpec: Sendable {
         public var range: ClosedRange<Double>
         /// What the number is, in English (a lookup key).
         public var meaning: String
+        /// Which way the number makes the check stricter (a skill from a file may only move it that way).
+        public var stricter: Stricter = .higher
     }
+
+    /// `higher`: a larger number is stricter (a minimum); `lower`: a smaller one is (a longest time); `exact`: a target.
+    public enum Stricter: String, Sendable { case higher, lower, exact }
 
     public var id: String
     /// English title (a lookup key).
     public var title: String
+    /// The section of the «For every video» sheet it belongs to: always, opening, picture, captions, text, ending, sound.
+    public var section: String
     public var number: Number?
+    /// The built-in kinds it applies to (nil: every kind).
+    public var kinds: [String]? = nil
+
+    /// Whether the check is one of `kind`'s: «For every video» shows every check, a kind of the user's own those of the
+    /// recipe it is based on (RuleBook.checks).
+    public func applies(to kind: String) -> Bool {
+        guard let kinds, kind != RuleBook.everyVideo, RuleBook.builtInKinds.contains(kind) else { return true }
+        return kinds.contains(kind)
+    }
 
     public static let all: [RuleCheckSpec] = [
-        RuleCheckSpec(id: "title-captions", title: rulePhrase("No captions while the opening title is on screen")),
-        RuleCheckSpec(id: "logo-captions", title: rulePhrase("No captions on the closing logo")),
-        RuleCheckSpec(id: "logo-pause", title: rulePhrase("A clean pause before the logo"),
+        RuleCheckSpec(id: "title-captions", title: rulePhrase("No captions while the opening title is on screen"), section: "opening"),
+        RuleCheckSpec(id: "logo-captions", title: rulePhrase("No captions on the closing logo"), section: "ending"),
+        RuleCheckSpec(id: "logo-pause", title: rulePhrase("A clean pause before the logo"), section: "ending",
                       number: Number(defaultValue: 0.3, unit: "s", range: 0...5,
                                      meaning: rulePhrase("Minimum seconds between the last spoken word and the logo"))),
-        RuleCheckSpec(id: "logo-end", title: rulePhrase("The logo only at the end")),
-        RuleCheckSpec(id: "face-clear", title: rulePhrase("No logo or title over the speaker's face")),
-        RuleCheckSpec(id: "text-size", title: rulePhrase("Minimum text size"),
+        RuleCheckSpec(id: "logo-end", title: rulePhrase("The logo only at the end"), section: "ending"),
+        RuleCheckSpec(id: "face-clear", title: rulePhrase("No logo or title over the speaker's face"), section: "text"),
+        RuleCheckSpec(id: "text-size", title: rulePhrase("Minimum text size"), section: "text",
                       number: Number(defaultValue: 28, unit: "px", range: 1...500,
                                      meaning: rulePhrase("Smallest text, in pixels on a 1080-wide frame"))),
+        RuleCheckSpec(id: "reading-time", title: rulePhrase("Text on screen long enough to read, inside the frame"), section: "text"),
     ]
 
     public static func named(_ id: String) -> RuleCheckSpec? { all.first { $0.id == id } }
@@ -379,7 +397,8 @@ public struct RuleBook: Sendable {
         public var source: String
 
         public var json: JSONValue {
-            var o: [String: JSONValue] = ["id": .string(spec.id), "title": .string(spec.title), "on": .bool(on), "source": .string(source)]
+            var o: [String: JSONValue] = ["id": .string(spec.id), "title": .string(spec.title), "on": .bool(on), "source": .string(source),
+                                          "section": .string(spec.section), "kinds": spec.kinds.map { .array($0.map { .string($0) }) } ?? .null]
             if let n = spec.number {
                 o["value"] = .number(value ?? n.defaultValue)
                 o["default"] = .number(n.defaultValue)
@@ -390,9 +409,11 @@ public struct RuleBook: Sendable {
         }
     }
 
-    /// The checks of `kind`: the defaults, then the "for every video" sheet's lines, then the kind's own.
+    /// The checks of `kind` (those that apply to it): the defaults, then the "for every video" sheet's lines, then the kind's own.
     public func checks(_ kind: String, language: String) -> [CheckState] {
-        var states = RuleCheckSpec.all.map { CheckState(spec: $0, on: true, value: $0.number?.defaultValue, source: "default") }
+        // A kind of the user's own has the checks of the recipe it is based on (all of them when it is based on none).
+        let scope = Self.isBuiltIn(kind) ? kind : (chain(kind).dropLast().last ?? Self.everyVideo)
+        var states = RuleCheckSpec.all.filter { $0.applies(to: scope) }.map { CheckState(spec: $0, on: true, value: $0.number?.defaultValue, source: "default") }
         for sheet in chain(kind) {
             for e in RuleSheetText.parse(text(sheet, language: language) ?? "").entries {
                 guard let i = states.firstIndex(where: { $0.spec.id == e.id }) else { continue }

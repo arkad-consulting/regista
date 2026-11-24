@@ -368,8 +368,10 @@ enum Skills {
             if state.on && !e.on {
                 throw CommandError.invalid("\(command): refused: line \(e.line) switches off «\(e.id)», a rule that always holds — a skill from a file can make a check stricter, never switch one off")
             }
-            if let v = e.value, let now = state.value, v < now {
-                throw CommandError.invalid("\(command): refused: line \(e.line) lowers «\(e.id)» to \(RuleSheetText.format(v)) (it is \(RuleSheetText.format(now))) — a skill from a file can make a check stricter, never looser")
+            let stricter = state.spec.number?.stricter ?? .higher
+            if let v = e.value, let now = state.value, stricter == .exact ? v != now : (stricter == .lower ? v > now : v < now) {
+                let verb = stricter == .higher ? "lowers" : (stricter == .lower ? "raises" : "moves")
+                throw CommandError.invalid("\(command): refused: line \(e.line) \(verb) «\(e.id)» to \(RuleSheetText.format(v)) (it is \(RuleSheetText.format(now))) — a skill from a file can make a check stricter, never looser")
             }
         }
         // Composed again from what was understood: the header's comments and unknown spacing go, its lines stay in order.

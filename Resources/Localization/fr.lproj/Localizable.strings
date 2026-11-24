@@ -2715,3 +2715,13 @@
 "Diverso dalla tua regia (%1$@: %2$@)" = "Différent de votre réalisation (%1$@ : %2$@)";
 "Torna alla tua regia: il passo segue di nuovo Impostazioni › Regia e skill" = "Revenir à votre réalisation : l'étape suit de nouveau Réglages › Réalisation et skills";
 "Scelte del progetto" = "Choix du projet";
+
+/* Checks that measure (#145): reading time and text in frame. */
+"Text on screen long enough to read, inside the frame" = "Texte à l'écran le temps de le lire, dans le cadre";
+"Keep it on screen until %1$@ s" = "Le garder à l'écran jusqu'à %1$@ s";
+"«%1$@» is on screen %2$@ s and needs %3$@ s to be read: %4$@ s missing." = "« %1$@ » reste à l'écran %2$@ s et il faut %3$@ s pour le lire : il manque %4$@ s.";
+"«%1$@» is on screen %2$@ s and needs %3$@ s to be read: %4$@ s missing, and what follows leaves no room. The text is too long: shorten it." = "« %1$@ » reste à l'écran %2$@ s et il faut %3$@ s pour le lire : il manque %4$@ s, et ce qui suit ne laisse pas de place. Le texte est trop long : raccourcissez-le.";
+"«%1$@» goes out of the frame by %2$@ px." = "« %1$@ » sort du cadre de %2$@ px.";
+"«%1$@» is under the platform's top bar (above %2$@ px)." = "« %1$@ » passe sous la barre du haut de la plateforme (au-dessus de %2$@ px).";
+"«%1$@» is under the platform's buttons at the bottom (below %2$@ px)." = "« %1$@ » passe sous les boutons du bas de la plateforme (sous %2$@ px).";
+"«%1$@» is under the platform's buttons on the right (past %2$@ px)." = "« %1$@ » passe sous les boutons de droite de la plateforme (au-delà de %2$@ px).";
