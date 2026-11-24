@@ -110,7 +110,18 @@ public struct RuleCheckSpec: Sendable {
         RuleCheckSpec(id: "voice-loudness", title: rulePhrase("The voice at its loudness"), section: "always",
                       number: Number(defaultValue: LoudnessTarget.integrated, unit: "LUFS", range: -30 ... -5,
                                      meaning: rulePhrase("Loudness of the voice, LUFS (±1, peak at most −1.5 dBTP)"), stricter: .exact)),
+        // The faceless reels (#145): measured on the render (still stretches, jump cuts) and on the generated voice (RuleFaceless.swift).
+        RuleCheckSpec(id: "still-stretch", title: rulePhrase("No long still stretch"), section: "picture",
+                      number: Number(defaultValue: 2, unit: "s", range: 0.5...30,
+                                     meaning: rulePhrase("Longest seconds the whole picture may stay nearly still"), stricter: .lower),
+                      kinds: RuleCheckSpec.faceless),
+        RuleCheckSpec(id: "jump-cut", title: rulePhrase("No jump cut"), section: "picture", kinds: RuleCheckSpec.faceless),
+        RuleCheckSpec(id: "voice-read-back", title: rulePhrase("The generated voice says the script"), section: "sound", kinds: RuleCheckSpec.faceless),
     ]
+
+    /// The kinds with no one on camera and a generated voice: the voice-over video and the reel from one sentence (whose
+    /// projects are voice-over videos).
+    public static let faceless = ["voice-over-video", "prompt-to-reel"]
 
     public static func named(_ id: String) -> RuleCheckSpec? { all.first { $0.id == id } }
     public static var ids: [String] { all.map(\.id) }

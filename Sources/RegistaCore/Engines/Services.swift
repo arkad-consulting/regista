@@ -287,6 +287,8 @@ public struct EngineServices {
 
     /// What the measured rule checks keep between two runs (#145): the renders of each state of the edit, measures taken.
     public var memory = RuleMemory()
+    /// Small grey copies of a render's frames for the picture checks (still stretches, jump cuts); nil: ffmpeg's.
+    public var frames: FrameSampler?
     /// Stand-ins for the commands the measured rule checks call (tests): a command id answered here is not run.
     public var ruleMeasures: [String: ([String: JSONValue]) throws -> JSONValue] = [:]
 

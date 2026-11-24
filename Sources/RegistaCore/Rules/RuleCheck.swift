@@ -226,6 +226,9 @@ enum RuleCheck {
             case "captions-timing": return captionsTiming()
             case "music-ducked": return musicDucked()
             case "voice-loudness": return voiceLoudness(value)
+            case "still-stretch": return stillStretch(value)
+            case "jump-cut": return jumpCut()
+            case "voice-read-back": return voiceReadBack()
             default: return ([], nil)
             }
         }

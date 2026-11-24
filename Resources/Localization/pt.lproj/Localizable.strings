@@ -2741,3 +2741,17 @@
 "Lower the music under the voice to %1$@ dB" = "Abaixar a música sob a voz para %1$@ dB";
 "The music is %1$@ dB under the voice while it speaks: at least %2$@ dB." = "Enquanto a voz fala, a música está %1$@ dB abaixo: pelo menos %2$@ dB.";
 "The voice is at %1$@ LUFS with a true peak of %2$@ dBTP: it must be at %3$@ LUFS ±1, its peak at most −1.5 dBTP." = "A voz está em %1$@ LUFS com pico real de %2$@ dBTP: ela deve ficar em %3$@ LUFS ±1, com o pico até −1,5 dBTP.";
+
+/* Checks that measure (#145): faceless reels. */
+"No long still stretch" = "Nenhum trecho parado longo";
+"Longest seconds the whole picture may stay nearly still" = "Segundos no máximo em que a imagem inteira pode ficar quase parada";
+"No jump cut" = "Nenhum jump cut";
+"The generated voice says the script" = "A voz gerada diz o roteiro";
+"The render's frames could not be read." = "Não foi possível ler os quadros da renderização.";
+"The picture stays nearly still for %1$@ s (from %2$@ s): at most %3$@ s." = "A imagem fica quase parada por %1$@ s (a partir de %2$@ s): no máximo %3$@ s.";
+"The same picture on both sides of the cut at %1$@ s: a jump cut." = "A mesma imagem dos dois lados do corte em %1$@ s: um jump cut.";
+"No transcription engine here." = "Não há motor de transcrição aqui.";
+"No transcription engine: %1$@" = "Sem motor de transcrição: %1$@";
+"The voice says «%1$@» where the script has «%2$@» (at %3$@ s): voice.lexicon sets how a word is said." = "A voz diz “%1$@” onde o roteiro tem “%2$@” (em %3$@ s): voice.lexicon define como uma palavra é pronunciada.";
+"The voice leaves out «%1$@» of the script (at %2$@ s): voice.lexicon sets how a word is said." = "A voz pula “%1$@” do roteiro (em %2$@ s): voice.lexicon define como uma palavra é pronunciada.";
+"The voice says «%1$@», which is not in the script (at %2$@ s)." = "A voz diz “%1$@”, que não está no roteiro (em %2$@ s).";

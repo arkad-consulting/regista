@@ -11,6 +11,9 @@ captions-faces: on
 captions-timing: on
 music-ducked: on
 voice-loudness: on -15
+still-stretch: on 2
+jump-cut: on
+voice-read-back: on
 # Uma linha por escolha: o id, a opção escolhida e o número quando ela tem um.
 opening-title: off
 hook: statement

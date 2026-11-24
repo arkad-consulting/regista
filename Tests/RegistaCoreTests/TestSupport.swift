@@ -138,6 +138,11 @@ struct FakeTranscriber: Transcriber {
 
 final class Counter { var n = 0 }
 
+/// No ffmpeg in unit tests: the picture checks read no frames unless a test hands its own.
+struct NoFrames: FrameSampler {
+    func greyFrames(of video: URL, width: Int, height: Int) throws -> [[UInt8]] { throw CommandError(.io, "no frames in the unit tests' stand-in") }
+}
+
 /// Copies the working wav as dual-mono stereo: perfectly in sync by construction.
 final class FakeCleaner: VoiceCleaner {
     var requests: [VoiceCleanRequest] = []
@@ -182,9 +187,11 @@ struct FakeServices {
     func make() -> EngineServices {
         var config = EngineConfig()
         config.cacheDirectory = cache.path
-        return EngineServices(config: config, tier: tier, audio: audio,
-                              transcribers: [FakeTranscriber(words: words), FakeTranscriber(id: WhisperXTranscriber.engineID, words: words)],
-                              cleaner: cleaner, faces: faceTrack.map { FixedFaces(track: $0) as FaceTracker } ?? FakeFaces())
+        var s = EngineServices(config: config, tier: tier, audio: audio,
+                               transcribers: [FakeTranscriber(words: words), FakeTranscriber(id: WhisperXTranscriber.engineID, words: words)],
+                               cleaner: cleaner, faces: faceTrack.map { FixedFaces(track: $0) as FaceTracker } ?? FakeFaces())
+        s.frames = NoFrames()
+        return s
     }
 }
 

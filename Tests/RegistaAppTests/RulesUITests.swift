@@ -337,8 +337,9 @@ extension MouseSuites {
             let model = RulesModel()
             model.store = app.store
             await model.load()
-            #expect(model.checks.map(\.id) == RuleCheckSpec.ids, "\(kind): the checks are not the specs: \(model.checks.map(\.id))")
-            #expect(model.checks.map(\.title) == RuleCheckSpec.all.map(\.title), "\(kind)")
+            let checks = RuleCheckSpec.all.filter { $0.applies(to: kind) }
+            #expect(model.checks.map(\.id) == checks.map(\.id), "\(kind): the checks are not the specs: \(model.checks.map(\.id))")
+            #expect(model.checks.map(\.title) == checks.map(\.title), "\(kind)")
             let choices = RuleChoiceSpec.all.filter { $0.applies(to: kind) }
             #expect(model.choices.map(\.id) == choices.map(\.id), "\(kind): the choices are not the specs: \(model.choices.map(\.id))")
             for (c, spec) in zip(model.choices, choices) {
@@ -350,9 +351,10 @@ extension MouseSuites {
             app.host(SettingsView(pinned: .rules, height: 1500).environment(\.colorScheme, .dark).background(Color(nsColor: .windowBackgroundColor)),
                      size: CGSize(width: SettingsView.size.width, height: 1500))
             await app.settle()
-            _ = await until(app, 4) { app.rig.elements().contains { $0.label == RuleCheckSpec.all.last!.title && $0.isControl } && model.kind == kind }
+            _ = await until(app, 4) { app.rig.elements().contains { $0.label == checks.last!.title && $0.isControl } && model.kind == kind }
             for check in RuleCheckSpec.all {
-                #expect(app.rig.elements().contains { $0.label == check.title && $0.isControl }, "\(kind): no switch for \(check.id)")
+                let shown = app.rig.elements().contains { $0.label == check.title && $0.isControl }
+                #expect(shown == check.applies(to: kind), "\(kind): the switch for \(check.id) is \(shown ? "there" : "missing")")
             }
             try await openPane(app, "Scelte")
             _ = await until(app, 4) { choiceTitle(app, choices.last!.title) != nil }

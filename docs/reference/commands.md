@@ -1967,7 +1967,7 @@ Returns: the new sheet.
 
 **Check the editing rules** · MCP tool: `rules_check` · undo: no — reads only · takes `project`
 
-Check the edit against the rules of its kind before export (export.render runs it too and refuses while a check fails): no captions while the opening title is on screen, none on the closing logo, a clean pause between the last spoken word and the logo, a logo only at the end, no logo or title over the speaker's face, no text under the minimum size, every title, card, motion-template and HyperFrames text on screen the time it takes to read (0.6 s + 1 s per 12 letters) and inside the frame and the platform's zones. Each violation has its time and, where a safe one exists, its fix as a command call (one undo step; rules.fix applies them). Warnings do not block; a check that cannot be measured here is listed under notChecked with why (it never blocks and never passes). Returns pass, the violations, each check's state (on, number, skipped and why), notChecked and the problems of the sheets' headers.
+Check the edit against the rules of its kind before export (export.render runs it too and refuses while a check fails): no captions while the opening title is on screen, none on the closing logo, a clean pause between the last spoken word and the logo, a logo only at the end, no logo or title over the speaker's face, no text under the minimum size, every title, card, motion-template and HyperFrames text on screen the time it takes to read (0.6 s + 1 s per 12 letters) and inside the frame and the platform's zones; the always-measures (no caption over a face, caption timing on the render of this edit, music under the voice, the voice at its loudness); in a faceless reel no long still stretch, no jump cut and the generated voice read back against its script. Each violation has its time and, where a safe one exists, its fix as a command call (one undo step; rules.fix applies them). Warnings do not block; a check that cannot be measured here is listed under notChecked with why (it never blocks and never passes). Returns pass, the violations, each check's state (on, number, skipped and why), notChecked and the problems of the sheets' headers.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1983,7 +1983,7 @@ Apply the safe fixes of the failing rule checks, all in one undo step: those of 
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `check` | one of `title-captions`, `logo-captions`, `logo-pause`, `logo-end`, `face-clear`, `text-size`, `reading-time`, `captions-faces`, `captions-timing`, `music-ducked`, `voice-loudness` | no | – | Fix only this check's violations. |
+| `check` | one of `title-captions`, `logo-captions`, `logo-pause`, `logo-end`, `face-clear`, `text-size`, `reading-time`, `captions-faces`, `captions-timing`, `music-ducked`, `voice-loudness`, `still-stretch`, `jump-cut`, `voice-read-back` | no | – | Fix only this check's violations. |
 | `all` | boolean | no | – | Fix every failing check that has a fix. |
 
 Returns: the fixes applied and the check after them.
@@ -2049,7 +2049,7 @@ Write a rule sheet (the user's copy in the rules folder, which replaces the ship
 | `kind` | string | yes | – | every-video, a built-in kind or a kind of the user's. |
 | `text` | string | no | – | The whole file: header between two --- lines, then the prose (written as given; header problems are reported). |
 | `prose` | string | no | – | New prose (Markdown) under the current header. |
-| `checks` | object | no | – | Switches to change: {id: true \| false \| {on, value}} (ids: title-captions, logo-captions, logo-pause, logo-end, face-clear, text-size, reading-time, captions-faces, captions-timing, music-ducked, voice-loudness). |
+| `checks` | object | no | – | Switches to change: {id: true \| false \| {on, value}} (ids: title-captions, logo-captions, logo-pause, logo-end, face-clear, text-size, reading-time, captions-faces, captions-timing, music-ducked, voice-loudness, still-stretch, jump-cut, voice-read-back). |
 | `choices` | object | no | – | Choices to change: {id: option \| {value, number}} (ids: opening-title, hook, structure, pace, framing, colour, format, captions, keywords, graphics, music, sfx, faceless-sound, closing-logo; a kind takes only its own choices, rules.list says which). |
 | `language` | one of `it`, `en`, `fr`, `pt` | no | sheets read (it, en, fr, pt | Language of the default sheets read (it, en, fr, pt; default: the app's interface language). A sheet the user wrote is the same in every language. |
 
@@ -2176,7 +2176,7 @@ Write a new skill of the person's — only when the person asked for it, after s
 | `title` | string | yes | – | The skill's name as the person says it (one line). |
 | `basedOn` | string | no | – | A built-in recipe (talking-head-reel, screen-tutorial, voice-over-video, reel-graphics, prompt-to-reel) or none (default). |
 | `steps` | string | no | – | Its steps, in Markdown (a numbered list). |
-| `rules` | object | no | – | Its rules: {prose: Markdown, checks: {id: true \| false \| {on, value}}} (ids: title-captions, logo-captions, logo-pause, logo-end, face-clear, text-size, reading-time, captions-faces, captions-timing, music-ducked, voice-loudness). |
+| `rules` | object | no | – | Its rules: {prose: Markdown, checks: {id: true \| false \| {on, value}}} (ids: title-captions, logo-captions, logo-pause, logo-end, face-clear, text-size, reading-time, captions-faces, captions-timing, music-ducked, voice-loudness, still-stretch, jump-cut, voice-read-back). |
 | `choices` | object | no | – | Its choices: {id: option \| {value, number}} (ids: opening-title, hook, structure, pace, framing, colour, format, captions, keywords, graphics, music, sfx, faceless-sound, closing-logo). |
 | `language` | one of `it`, `en`, `fr`, `pt` | no | sheets read (it, en, fr, pt | Language of the default sheets read (it, en, fr, pt; default: the app's interface language). A sheet the user wrote is the same in every language. |
 

@@ -254,3 +254,105 @@ private func facesOverTheCaptions(frames: Int = 300) -> FaceTrack {
     }
     return FaceTrack(video: "v", engine: "test", width: 1080, height: 1920, fps: 30, minCutoff: 0.3, beta: 0.01, cuts: [], frames: fs)
 }
+
+// MARK: 3. Faceless reels
+
+/// `count` grey 12×8 frames of one level each, a 4×4 block at `x(i)` when given.
+private func frames(_ levels: [UInt8], block: ((Int) -> Int)? = nil) -> [[UInt8]] {
+    levels.enumerated().map { i, level in
+        var f = [UInt8](repeating: level, count: 12 * 8)
+        if let x = block?(i) { for y in 2..<6 { for dx in 0..<4 where x + dx < 12 { f[y * 12 + x + dx] = 255 } } }
+        return f
+    }
+}
+
+@Test func aStillStretchLongerThanTheLimitIsFoundAndAMovingTitleOnAStillIsMotion() {
+    // 4 fps: 3 s of the same frame between moving parts.
+    let moving = (0..<4).map { UInt8(40 * $0) }
+    let still3 = frames(moving + [UInt8](repeating: 200, count: 13) + moving)
+    let found = RuleCheck.stillStretches(still3, fps: 4, limit: 2)
+    #expect(found.count == 1 && abs(found[0].seconds - 3) < 1e-9 && abs(found[0].start - 1) < 1e-9, "\(found)")
+    let still15 = frames(moving + [UInt8](repeating: 200, count: 7) + moving)
+    #expect(RuleCheck.stillStretches(still15, fps: 4, limit: 2).isEmpty)
+    // The same still image for 4 s with a title sliding across it: motion.
+    let titled = frames([UInt8](repeating: 90, count: 17), block: { $0 % 8 })
+    #expect(RuleCheck.stillStretches(titled, fps: 4, limit: 2).isEmpty)
+    // At 30 fps the check looks at every 7th or 8th frame (4 a second).
+    let still30 = frames([UInt8](repeating: 10, count: 120))
+    #expect(RuleCheck.stillStretches(still30, fps: 30, limit: 2).first.map { $0.seconds > 3.5 } == true)
+}
+
+/// A voice-over video of two 3 s pictures cut at 3 s on V1, exported (a scratch file stands for the render), its frames
+/// from `pictures` at 4 fps.
+private func facelessEngine(_ pictures: [[UInt8]]) throws -> Engine {
+    let e = try measuringEngine { s in s.frames = FixedFrames(frames: pictures) }
+    try e.execute("project.setKind", params: ["kind": "voice-over-video"])
+    try e.execute("timeline.trim", params: ["clipId": "c1", "edge": "end", "to": 3])
+    try e.execute("timeline.place", params: ["assetId": "a1", "trackId": "t1", "sourceIn": 3, "sourceOut": 6, "start": 3])
+    let out = tempDir().appendingPathComponent("out.mp4")
+    try e.execute("export.render", params: ["path": .string(out.path), "exportAnyway": true])
+    return e
+}
+
+struct FixedFrames: FrameSampler {
+    var frames: [[UInt8]]
+    func greyFrames(of video: URL, width: Int, height: Int) throws -> [[UInt8]] { frames }
+}
+
+@Test func twoSameFramesAcrossACutWarnAndDifferentOnesDoNot() throws {
+    // 30 fps frames as the render has them: frame 89 before the cut at 3 s, frame 90 after.
+    let same = try facelessEngine(frames([UInt8](repeating: 100, count: 180)))
+    let check = try same.execute("rules.check", params: ["language": "en"])
+    let v = try #require(violations(check, "jump-cut").first, "\(check)")
+    #expect(v["severity"] == "warn" && v["time"] == 3 && check["pass"] == true)
+    let different = try facelessEngine(frames((0..<180).map { $0 < 90 ? 20 : 220 }))
+    #expect(violations(try different.execute("rules.check"), "jump-cut").isEmpty)
+}
+
+@Test func theStillStretchCheckRunsOnTheRenderOfAFacelessReelOnly() throws {
+    let e = try facelessEngine(frames([UInt8](repeating: 128, count: 180)))
+    let check = try e.execute("rules.check", params: ["language": "en"])
+    let v = try #require(violations(check, "still-stretch").first, "\(check)")
+    #expect(v["severity"] == "warn" && v.value(at: "messageArgs.2") == 2)
+    // A talking-head reel has neither check.
+    let reel = try measuringEngine()
+    let ids = try reel.execute("rules.check")["checks"]?.arrayValue?.compactMap { $0["id"]?.stringValue } ?? []
+    #expect(!ids.contains("still-stretch") && !ids.contains("jump-cut") && !ids.contains("voice-read-back") && ids.contains("reading-time"))
+}
+
+@Test func theVoiceReadBackReportsExactlyTheWordThatDiffers() throws {
+    let script = "Oggi vi mostro come montare un reel in dieci minuti."
+    let heard = [Word("Oggi", 0.1, 0.4), Word("vi", 0.45, 0.55), Word("mostro", 0.6, 0.9), Word("come", 0.95, 1.1),
+                 Word("montare", 1.15, 1.5), Word("un", 1.55, 1.6), Word("rail", 1.65, 1.9), Word("in", 1.95, 2.0),
+                 Word("dieci", 2.05, 2.3), Word("minuti.", 2.35, 2.8)]
+    let d = VoiceReadBack.differences(script: script, heard: heard)
+    #expect(d == [VoiceReadBack.Difference(heard: "rail", script: "reel", time: 1.65)], "\(d)")
+    #expect(VoiceReadBack.differences(script: script, heard: heard.filter { $0.text != "rail" }) == [VoiceReadBack.Difference(heard: nil, script: "reel", time: 1.6)])
+
+    // Through rules.check: a generated voice clip at 2 s, its words heard by the transcription stand-in.
+    var fakes = FakeServices()
+    fakes.words = heard
+    var project = Project(name: "vo")
+    project.kind = "voice-over-video"
+    let path = fakeMedia("voice.wav")
+    project.assets = [MediaAsset(id: "a1", name: "voice.wav", path: path, duration: t(3), video: nil, audio: AudioInfo(sampleRate: 48000, channels: 1, codec: "pcm"),
+                                 generated: GenerationInfo(provider: "voxcpm", model: "test", kind: .voice, prompt: script, seed: nil, cost: 0, unit: "",
+                                                           created: "", jobID: "j1", requestHash: "h1"))]
+    var track = Track(id: "t1", kind: .audio, name: "Voce")
+    track.clips = [Clip(id: "c1", assetID: "a1", sourceIn: .zero, sourceOut: t(3), start: t(2))]
+    project.tracks = [track]
+    let e = Engine(scratch: project, services: fakes.make())
+    let check = try e.execute("rules.check", params: ["language": "en"])
+    let found = violations(check, "voice-read-back")
+    #expect(found.count == 1 && found.first?["severity"] == "warn", "\(check)")
+    #expect(found.first?.value(at: "messageArgs.0") == "rail" && found.first?.value(at: "messageArgs.1") == "reel" && found.first?["time"]?.doubleValue.map { abs($0 - 3.67) < 0.04 } == true)
+    #expect(found.first?["message"]?.stringValue?.contains("voice.lexicon") == true)
+
+    // Without a transcription engine: not checked.
+    fakes.words = heard
+    var none = fakes.make()
+    none.transcribers = [WhisperCppTranscriber.engineID: FakeTranscriber(words: heard, reason: "no model")]
+    none.tier = .base
+    let off = try Engine(scratch: project, services: none).execute("rules.check")
+    #expect(row(off, "voice-read-back")?["ran"] == false && violations(off, "voice-read-back").isEmpty)
+}
