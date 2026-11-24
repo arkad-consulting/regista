@@ -2767,3 +2767,8 @@
 
 /* Checks that measure (#145): the voice as the export levels it. */
 "In the export, with the mix brought to %1$@ LUFS, the voice is at %2$@ LUFS: at least %3$@ LUFS (the rest of the mix is too loud beside it)." = "Na exportação, com o mix levado a %1$@ LUFS, a voz fica em %2$@ LUFS: pelo menos %3$@ LUFS (o resto do mix está alto demais ao lado dela).";
+
+/* The «not checked» lines in the person's words, with the way to measure (#166). */
+"Esporta per misurare" = "Exportar para medir";
+"It is measured on the exported video: export it, then it is checked." = "Isso se mede no vídeo exportado: exporte-o e depois é verificado.";
+"The face has not been found yet: «Find the face» finds it, then it is checked." = "O rosto ainda não foi encontrado: “Encontrar o rosto” o encontra, depois é verificado.";

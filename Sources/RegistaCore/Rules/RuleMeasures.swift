@@ -101,6 +101,13 @@ extension RuleCheck {
 
     static func renderFirst() -> RuleText {
         RuleText(rulePhrase("No render of this edit yet: export it, then check again."))
+            .forApp(rulePhrase("It is measured on the exported video: export it, then it is checked."), action: "export")
+    }
+
+    /// No face track: Claude runs faces.track, the person «Trova il volto» (#166).
+    static func faceFirst() -> RuleText {
+        RuleText(rulePhrase("No face track on the picture: run faces.track to check the face."))
+            .forApp(rulePhrase("The face has not been found yet: «Find the face» finds it, then it is checked."), action: "faces")
     }
 
     static func notMeasured(_ error: Error) -> RuleText {
@@ -128,7 +135,7 @@ extension RuleCheck.Scene {
             let r: JSONValue
             do { r = try measure(CaptionsCheckFaces.self, ["trackId": .string(track.id)]) } catch {
                 if (error as? CommandError)?.message.contains("faces.track") == true {
-                    return ([], RuleText(rulePhrase("No face track on the picture: run faces.track to check the face.")))
+                    return ([], RuleCheck.faceFirst())
                 }
                 return ([], RuleCheck.notMeasured(error))
             }

@@ -329,7 +329,7 @@ enum RuleCheck {
             let items = logos + titles
             guard !items.isEmpty else { return ([], nil) }
             var faces = OutputFaces(job: RenderJob(project: project, preset: ExportPreset.named(nil, project: project)))
-            guard faces.available else { return ([], RuleText(rulePhrase("No face track on the picture: run faces.track to check the face."))) }
+            guard faces.available else { return ([], RuleCheck.faceFirst()) }
             let step = MediaTime(ticks: frame.ticks * 3)
             var out: [RuleViolation] = []
             for item in items {

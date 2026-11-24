@@ -33,12 +33,14 @@ struct RulesReport: Equatable {
     /// The checks that could not be measured here (an engine or a render missing): a grey line each, never passed.
     var unchecked: [Unchecked] = []
 
-    /// A check not measured: its English title (a lookup key) and why, in the app's language.
+    /// A check not measured: its English title (a lookup key), why, in the app's language and with the app's words (a
+    /// button by its label, never a command: #166), and what the app can do about it ("faces", "export"; nil: nothing).
     struct Unchecked: Equatable, Identifiable {
         var id: String { check }
         let check: String
         let title: String
         let reason: String
+        var action: String? = nil
     }
 
     var failures: [Violation] { violations.filter(\.blocking) }
@@ -69,7 +71,8 @@ struct RulesReport: Equatable {
         }
         let passed = checks.filter { $0["ran"]?.boolValue == true && ($0["violations"]?.doubleValue ?? 0) == 0 }.compactMap { $0["title"]?.stringValue }
         let unchecked = checks.filter { $0["on"]?.boolValue != false && $0["ran"]?.boolValue == false && ($0["skipped"] ?? .null) != .null }.map {
-            Unchecked(check: $0["id"]?.stringValue ?? "", title: $0["title"]?.stringValue ?? "", reason: loc(message: $0["skipped"]))
+            Unchecked(check: $0["id"]?.stringValue ?? "", title: $0["title"]?.stringValue ?? "", reason: loc(message: $0["skipped"]),
+                      action: $0["skipped"]?["action"]?.stringValue)
         }
         let problems = (c["sheetProblems"]?.arrayValue ?? []).map { loc(message: $0) } + (c["note"].flatMap { $0 == .null ? nil : [loc(message: $0)] } ?? [])
         let shown = kinds.first { $0.kind == kind }?.shownTitle ?? loc(c["kindTitle"]?.stringValue ?? kind)
@@ -101,7 +104,8 @@ struct RulesReport: Equatable {
                       time: 12.4, blocking: true, fix: StepCall(id: "timeline.trim", params: ["clipId": "title2", "edge": "end", "to": 14.5])),
         ]
         let timing = RuleCheckSpec.named("captions-timing")!.title
-        let unchecked = [Unchecked(check: "captions-timing", title: timing, reason: loc("No render of this edit yet: export it, then check again."))]
+        let unchecked = [Unchecked(check: "captions-timing", title: timing, reason: loc("It is measured on the exported video: export it, then it is checked."),
+                                   action: "export")]
         // l10n-ignore-end
         let shown = [RuleCheckSpec.all[0].title, RuleCheckSpec.all[2].title, reading, timing]
         return RulesReport(kind: "talking-head-reel", kindTitle: loc("Talking-head reel"), violations: violations,
@@ -271,22 +275,38 @@ struct ExportRulesCard: View {
     }
 
     /// The checks not measured here, under the card and its buttons (the way on stays right under what fails): a grey
-    /// line each with why, never counted as passed, never a control (#145).
-    static func unchecked(_ report: RulesReport) -> some View {
+    /// line each with why, in the person's words (#166), never counted as passed. Where the app has the way to measure,
+    /// a compact link under it: «Trova il volto» (`act("faces")`), «Esporta per misurare» (`act("export")`, offered while
+    /// no rule blocks the export: then the export's own buttons are the way on).
+    static func unchecked(_ report: RulesReport, act: @escaping (String) -> Void) -> some View {
         // Checks not measured for the same reason (no face track: the logo and the captions) share one line.
-        let groups = report.unchecked.reduce(into: [(reason: String, titles: [String])]()) { g, u in
-            if let i = g.firstIndex(where: { $0.reason == u.reason }) { g[i].titles.append(loc(u.title)) } else { g.append((u.reason, [loc(u.title)])) }
+        let groups = report.unchecked.reduce(into: [(reason: String, titles: [String], action: String?)]()) { g, u in
+            if let i = g.firstIndex(where: { $0.reason == u.reason }) { g[i].titles.append(loc(u.title)) } else { g.append((u.reason, [loc(u.title)], u.action)) }
         }
         return VStack(alignment: .leading, spacing: Ed.Space.xs) {
             ForEach(groups, id: \.reason) { group in
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Image(systemName: "circle.dashed").font(Ed.icon(Ed.TypeSize.caption, .bold)).foregroundStyle(Ed.text3)
-                    Text(verbatim: loc("%1$@ — non controllato: %2$@", group.titles.joined(separator: " · "), group.reason))
-                        .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: Ed.Space.xxs) {
+                        Text(verbatim: loc("%1$@ — non controllato: %2$@", group.titles.joined(separator: " · "), group.reason))
+                            .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+                        if let action = group.action, let title = linkTitle(action), action != "export" || report.failures.isEmpty {
+                            AccentLinkButton(title: title) { act(action) }
+                        }
+                    }
                 }
             }
         }
         .padding(.horizontal, Ed.Space.xs)
+    }
+
+    /// The link of a «not checked» line's action (nil: the app has none).
+    static func linkTitle(_ action: String) -> String? {
+        switch action {
+        case "faces": "Trova il volto"
+        case "export": "Esporta per misurare"
+        default: nil
+        }
     }
 
     private func violation(_ v: RulesReport.Violation) -> some View {

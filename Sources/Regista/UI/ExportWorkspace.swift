@@ -85,7 +85,7 @@ struct ExportSettingsPanel: View {
                     // A rule fails: the way to export sits right under what fails, never below the fold of Controlli and
                     // File (at the default window size a card with three failures pushed it out of sight).
                     if !report.failures.isEmpty { rulesActions(report) }
-                    if !report.unchecked.isEmpty { ExportRulesCard.unchecked(report) }
+                    if !report.unchecked.isEmpty { ExportRulesCard.unchecked(report) { measure($0) } }
                 }
                 section("Controlli") {
                     check("Durata", store.project.map { shortTime($0.duration.seconds) } ?? "–", ok: (store.project?.duration ?? .zero) > .zero)
@@ -139,13 +139,30 @@ struct ExportSettingsPanel: View {
             guard rulesDemo == nil, let s = store.project?.settings else { return }
             o.follow(tab: store.tabID, width: s.width, height: s.height)
         }
-        .task(id: "\(store.projectVersion)-\(revision.value)") {
+        // An export ending checks again too: the measures of the render (#166, «Esporta per misurare»).
+        .task(id: "\(store.projectVersion)-\(revision.value)-\(lastExport)") {
             guard rulesDemo == nil else { return }
             rules.store = store
             // A burst of edits checks once, after the last.
             if rules.report != nil { try? await Task.sleep(for: .seconds(ExportRulesModel.pause)) }
             guard !Task.isCancelled else { return }
             await rules.refresh()
+        }
+    }
+
+    /// The last export.render and how it ended (the card checks again when one ends).
+    private var lastExport: String {
+        store.activity.last { $0.command == "export.render" }.map { "\($0.id)-\($0.status)" } ?? ""
+    }
+
+    /// A «not checked» line's link (#166): «Trova il volto» runs the step's job, «Esporta per misurare» the export as
+    /// «Esporta video…» does.
+    private func measure(_ action: String) {
+        guard rulesDemo == nil else { return }
+        switch action {
+        case "faces": store.runStep(.faces, settings: store.stepSettings)
+        case "export": exportVideo(anyway: false)
+        default: break
         }
     }
 

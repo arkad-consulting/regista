@@ -613,7 +613,7 @@ extension MouseSuites {
             let table = MouseRig.table(language)
             func word(_ key: String) -> String { table.localizedString(forKey: key, value: nil, table: nil) }
             let timing = word(try #require(RuleCheckSpec.named("captions-timing")).title)
-            let reason = String(format: word(skipped.value(at: "skipped.messageKey")?.stringValue ?? ""), locale: Locale(identifier: language), arguments: [])
+            let reason = String(format: word(skipped.value(at: "skipped.appMessageKey")?.stringValue ?? ""), locale: Locale(identifier: language), arguments: [])
             let grey = String(format: word("%1$@ — non controllato: %2$@"), locale: Locale(identifier: language), arguments: [timing, reason])
             _ = await until(app, 6) { !app.rig.elements(containing: grey).isEmpty }
             let line = try #require(app.rig.elements(containing: grey).first, "\(language): no «not checked» line: \(app.rig.elements(containing: timing).map(\.name))")
@@ -626,6 +626,84 @@ extension MouseSuites {
                 try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("export-card-not-checked-\(language).png"))
             }
         }
+    }
+
+    /// #166: the «not checked» lines speak the person's words: the step by its label, never a command (rules.check keeps
+    /// Claude's text with the command). «Trova il volto» under the face's line runs the face step (faces.track) and the line
+    /// goes; «Esporta per misurare» is there once no rule blocks the export, and runs the export (into the file the save
+    /// panel is answered with), after which the card measures the render. The lines stay grey: a click on one runs nothing.
+    /// Snapshots in Italian and French with both links (REGISTA_UI_SNAPSHOTS).
+    @Test func theNotCheckedLinesNameWhatThePersonClicksAndTheirLinksMeasure() async throws {
+        let app = try await AppRig()
+        defer { app.close() }
+        let check = try await app.store.silent("rules.check")
+        let notChecked = check["notChecked"]?.arrayValue ?? []
+        let face = try #require(notChecked.first { $0["action"] == "faces" }, "no check waits for the face: \(notChecked)")
+        let render = try #require(notChecked.first { $0["action"] == "export" }, "no check waits for a render: \(notChecked)")
+        // Claude's text names the command, the person's the button.
+        #expect(face["message"]?.stringValue?.contains("faces.track") == true && face["appMessageKey"] != nil, "\(face)")
+        if (check["failures"]?.doubleValue ?? 0) > 0 { try await app.store.perform("rules.fix", ["all": true]) }
+        #expect(try await app.store.silent("rules.check")["pass"] == true, "the rig's reel still breaks a rule after rules.fix")
+        app.hostEditor(Navigation(activity: .export, rightTab: .inspector), size: CGSize(width: 1440, height: 1300))
+        await app.settle()
+        // Checks not measured for one reason share a line: found by its reason, with the check's title in it.
+        func line(_ c: JSONValue) -> RigElement? {
+            app.rig.elements(containing: loc(message: c)).first { $0.name.contains(loc(c["title"]?.stringValue ?? "")) && $0.name.contains("non controllato") }
+        }
+        _ = await until(app, 6) { line(face) != nil && line(render) != nil && control(app, containing: "Esporta per misurare") != nil }
+        let faceLine = try #require(line(face), "no line for the face: \(app.rig.elements(containing: "non controllato").map(\.name))")
+        #expect(!faceLine.name.contains("faces.track"), "the face's line reads «\(faceLine.name)»")
+        #expect(!faceLine.isControl && line(render)?.isControl == false, "a «not checked» line is a control")
+        #expect(app.rig.elements(containing: "non controllato").allSatisfy { !$0.name.contains("faces.track") && !$0.name.contains("export.render") })
+        var n = app.store.activity.count
+        app.rig.click(faceLine.centre)
+        await app.settle()
+        #expect(app.commands(since: n).isEmpty, "a click on the grey line ran \(app.commands(since: n))")
+
+        // Both links, snapshots in Italian and French.
+        for language in ["it", "fr"] {
+            app.hostEditor(Navigation(activity: .export, rightTab: .inspector), size: CGSize(width: 1440, height: 1300), language: language)
+            await app.settle()
+            let table = MouseRig.table(language)
+            func word(_ key: String) -> String { table.localizedString(forKey: key, value: nil, table: nil) }
+            let faceWords = String(format: word("%1$@ — non controllato: %2$@"), locale: Locale(identifier: language),
+                                   arguments: [word(face["title"]?.stringValue ?? ""), word(face["appMessageKey"]?.stringValue ?? "")])
+            #expect(app.rig.elements().contains { $0.name.hasSuffix(faceWords.components(separatedBy: " — ").last ?? faceWords) },
+                    "\(language): the face's line does not name «\(word("Trova il volto"))»: \(app.rig.elements(containing: word("Trova il volto")).map(\.name))")
+            for link in ["Trova il volto", "Esporta per misurare"] {
+                _ = await until(app, 6) { !app.rig.elements(containing: word(link)).filter(\.isControl).isEmpty }
+                #expect(!app.rig.elements(containing: word(link)).filter(\.isControl).isEmpty, "\(language): no «\(word(link))» link")
+            }
+            #expect(app.rig.elements(containing: "faces.track").isEmpty, "\(language): a line names a command")
+            if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+                try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("export-card-measure-links-\(language).png"))
+            }
+        }
+        // The clicks in Italian (the window keeps the last language a rig was hosted in).
+        app.hostEditor(Navigation(activity: .export, rightTab: .inspector), size: CGSize(width: 1440, height: 1300), language: "it")
+        await app.settle()
+
+        // «Trova il volto»: the face step (faces.track), then the line goes.
+        _ = await until(app, 6) { control(app, containing: "Trova il volto") != nil }
+        n = app.store.activity.count
+        app.rig.click(try #require(control(app, containing: "Trova il volto"),
+                                   "no «Trova il volto» link: \(app.rig.elements(containing: "volto").map { "\($0.role) \($0.name)" })").centre)
+        _ = await until(app, 60) { app.store.runningStepJob == nil && app.commands(since: n).contains("faces.track") }
+        await app.settle()
+        #expect(app.commands(since: n).filter { $0 == "faces.track" }.count == 1, "the link ran \(app.commands(since: n))")
+        #expect(await until(app, 10) { line(face) == nil }, "the face's line is still there after the face was found")
+        #expect(control(app, containing: "Esporta per misurare") != nil, "the export link went with the face's line")
+
+        // «Esporta per misurare»: the export into the answered file, then the card measures the render.
+        let out = rigTempDir("measure-export").appendingPathComponent("misura.mp4")
+        RigGuard.panelAnswer = [out]
+        defer { RigGuard.panelAnswer = nil }
+        n = app.store.activity.count
+        app.rig.click(try #require(control(app, containing: "Esporta per misurare")).centre)
+        _ = await until(app, 120) { FileManager.default.fileExists(atPath: out.path) && app.store.jobs.latest("export")?.isRunning == false }
+        #expect(app.commands(since: n).filter { $0 == "export.render" }.count == 1, "the link ran \(app.commands(since: n))")
+        #expect(app.store.jobs.latest("export")?.state == .done && FileManager.default.fileExists(atPath: out.path), "the export did not end with a file")
+        #expect(await until(app, 30) { line(render) == nil }, "the card did not measure the render after the export")
     }
 
     /// #145: Regole in Italian and French: the checks in the sections of the regia, the four measures under «Sempre» with

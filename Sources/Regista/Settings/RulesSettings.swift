@@ -4,10 +4,11 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// A text the engine gives as `message` / `messageKey` / `messageArgs` (the editing rules, #31), in the app's language:
-/// the numbers among the values written as that language writes them (#47).
+/// the numbers among the values written as that language writes them (#47); the person's version (`appMessageKey`,
+/// a button by its label instead of a command, #166) when there is one.
 func loc(message m: JSONValue?) -> String {
     guard let m else { return "" }
-    let key = m["messageKey"]?.stringValue ?? m["message"]?.stringValue ?? ""
+    let key = m["appMessageKey"]?.stringValue ?? m["messageKey"]?.stringValue ?? m["message"]?.stringValue ?? ""
     let args = m["messageArgs"]?.arrayValue?.compactMap { $0.stringValue ?? $0.doubleValue.map(Words.number) } ?? []
     return args.isEmpty ? loc(key) : String(format: loc(key), locale: Locale.current, arguments: args)
 }

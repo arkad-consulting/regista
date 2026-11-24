@@ -39,16 +39,32 @@ public struct RuleText: Hashable, Sendable {
 
     public var key: String
     public var args: [Arg]
+    /// The same sentence for the person in the app (#166), where Claude's names a command: the step or button by its
+    /// label (a lookup key, the same values). Nil: the app shows `key`.
+    public var appKey: String?
+    /// What the app can do about it, as a link beside the text: "faces" (find the face), "export" (export to measure).
+    public var action: String?
 
     init(_ key: String, _ args: Arg...) {
         self.key = key
         self.args = args
     }
 
+    /// This text with the person's version and the app's action.
+    func forApp(_ appKey: String, action: String?) -> RuleText {
+        var t = self
+        t.appKey = appKey
+        t.action = action
+        return t
+    }
+
     public var english: String { args.isEmpty ? key : String(format: key, arguments: args.map { $0.english as CVarArg }) }
 
     public var json: JSONValue {
-        ["message": .string(english), "messageKey": .string(key), "messageArgs": .array(args.map(\.json))]
+        var o: [String: JSONValue] = ["message": .string(english), "messageKey": .string(key), "messageArgs": .array(args.map(\.json))]
+        if let appKey { o["appMessageKey"] = .string(appKey) }
+        if let action { o["action"] = .string(action) }
+        return .object(o)
     }
 
     /// Seconds as the messages give them: rounded to the hundredth ("1.25" in the English sentence).
