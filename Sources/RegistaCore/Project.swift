@@ -32,6 +32,9 @@ public struct Project: Codable, Hashable, Sendable {
     /// Kind of video (a recipe id or a kind of the user's own, #31): selects the rule sheet. nil (projects made before
     /// kinds existed, or never set): the kind follows the format (`RuleBook.kind(of:)`).
     public var kind: String?
+    /// The project's own choices (project.setChoices): for this project they win over the person's sheets (ProjectChoices).
+    /// nil: the regia of its kind decides every choice.
+    public var choices: [String: ChoiceOverride]?
     /// The reel's cover (#42, cover.set / cover.make): the frame's time, an optional title, its preset and place.
     public var cover: Cover?
     /// Next serial per id prefix: ids stay short, stable and predictable ("c3").

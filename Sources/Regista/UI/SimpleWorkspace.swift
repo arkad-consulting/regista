@@ -417,13 +417,15 @@ private func openPro(_ store: EditorStore, _ go: (inout Navigation) -> Void) {
 private struct CutPanel: View {
     @EnvironmentObject private var store: EditorStore
     let snap: SimpleSnapshot
-    @State private var draft: CutPreset = .medium
+    @State private var draft: String?
     @State private var pausesDraft = true
 
     private var cut: Bool { snap[.cut].status == .done || store.project?.takes != nil || snap.retakes.count > 0 }
 
     var body: some View {
-        let preset = cut ? (snap.cutPreset ?? .medium) : draft
+        // Before the cut, the pace the project's choice says (or the one picked here); after it, the cut's own (none lit
+        // when Pro set pauses of no pace).
+        let pace = cut ? snap.pace : draft ?? snap.pace
         let pauses = cut ? snap.pauses : pausesDraft
         VStack(alignment: .leading, spacing: Ed.Space.xl) {
             // #152: the framing check found a head cut; one click frames the clips on the face again.
@@ -436,17 +438,16 @@ private struct CutPanel: View {
             }
             RSection("PAUSE") {
                 RToggle(title: "Togli le pause lunghe", isOn: Binding(get: { pauses }, set: { on in
-                    if cut { store.simpleCut(preset, pauses: on) } else { pausesDraft = on }
+                    if cut { store.simpleCut(pace ?? snap.pace ?? SimplePace.spec.defaultOption, pauses: on) } else { pausesDraft = on }
                 }), subtitle: "Resta un respiro prima e dopo ogni frase.")
-                RSegmented(items: CutPreset.allCases.map { ($0, $0.title) }, selection: Binding(get: { preset }, set: { p in
+                RSegmented(items: SimplePace.ids.map { ($0, SimplePace.title($0)) }, selection: Binding(get: { pace ?? "" }, set: { p in
                     if cut { store.simpleCut(p, pauses: pauses) } else { draft = p }
-                }), tips: [.natural: "Lascia le pause brevi: un ritmo calmo", .medium: "Il ritmo dei reel approvati",
-                           .tight: "Taglia quasi tutte le pause: un ritmo veloce"])
+                }), tips: Dictionary(uniqueKeysWithValues: SimplePace.ids.map { ($0, SimplePace.tip($0)) }))
                 .disabled(!pauses).opacity(pauses ? 1 : 0.45)
             }
             if !cut, snap[.cut].status != .running, snap.allJob?.isRunning != true {
                 EdButton(title: loc("Taglia il video"), symbol: "scissors", prominent: true, fill: true, disabled: snap.busy != nil) {
-                    store.simpleCut(draft, pauses: pausesDraft)
+                    store.simpleCut(pace ?? SimplePace.spec.defaultOption, pauses: pausesDraft)
                 }
             } else if cut {
                 RSection("RIPRESE") {
@@ -834,7 +835,7 @@ enum SimpleDemo {
         s.retakes = [Retake(line: 1, text: "Ciao, oggi vi mostro come si monta un reel.", takes: 3, chosen: 3),
                      Retake(line: 4, text: "Le pause spariscono da sole.", takes: 2, chosen: 2)]
         // l10n-ignore-end
-        s.cutPreset = .medium
+        s.pace = "normal"
         s.pauses = true
         s.states[.cut] = st(.done, String(format: lookup("%d tagli · %@ di montaggio"), 9, "0:42"))
         s.states[.captions] = st(.done, String(format: lookup("%d blocchi · %d parole chiave"), 31, 7))

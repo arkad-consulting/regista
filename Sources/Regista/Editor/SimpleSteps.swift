@@ -93,20 +93,18 @@ struct SimpleEngines: Equatable {
 
 // MARK: - Presets
 
-/// How tight the cut is: the pauses longer than `maxPause` go, `keepPause` of breath stays on each side.
-enum CutPreset: String, CaseIterable, Identifiable {
-    case natural, medium, tight
-    var id: String { rawValue }
-    var maxPause: Double { switch self { case .natural: 1.0; case .medium: 0.7; case .tight: 0.4 } }
-    var keepPause: Double { switch self { case .natural: 0.2; case .medium: 0.12; case .tight: 0.06 } }
-    var title: String { switch self { case .natural: "Naturale"; case .medium: "Medio"; case .tight: "Serrato" } }
+/// How tight the cut is: the pace choice's options (one list, RuleChoiceSpec: the same as Settings › Regia e skill), each
+/// with its pauses — those longer than `maxPause` go, `keepPause` of breath stays on each side.
+enum SimplePace {
+    static var spec: RuleChoiceSpec { RuleChoiceSpec.named("pace")! }
+    static var ids: [String] { spec.optionIDs }
+    static func title(_ id: String) -> String { spec.option(id)?.label ?? id }
+    /// What the option does, with its numbers, in the interface language (the segment's tooltip).
+    static func tip(_ id: String) -> String { spec.option(id).map { loc(message: $0.meaning.json) } ?? "" }
+    static func pauses(_ id: String) -> (maxPause: Double, keepPause: Double) { ProjectChoices.pace(id) }
 
     /// Pauses kept (the switch off): no pause inside a take is long enough to go.
     static let keepAll = 30.0
-
-    static func matching(maxPause: Double, keepPause: Double) -> CutPreset? {
-        allCases.first { abs($0.maxPause - maxPause) < 0.005 && abs($0.keepPause - keepPause) < 0.005 }
-    }
 }
 
 /// The music's level before the ducking, LUFS (the bed under a −15 LUFS voice).
@@ -150,10 +148,11 @@ enum SimpleGraphics {
 enum SimpleCalls {
     /// The first cut: the Pro steps it needs, as one job (those already done are skipped), with the preset's pauses.
     static let cutSteps: [TextStep] = [.transcribe, .takes, .cut]
-    static func cutSettings(_ preset: CutPreset, pauses: Bool, base: StepSettings) -> StepSettings {
+    static func cutSettings(_ pace: String, pauses: Bool, base: StepSettings) -> StepSettings {
+        let p = SimplePace.pauses(pace)
         var s = base
-        s.minPause = pauses ? preset.maxPause : CutPreset.keepAll
-        s.breath = preset.keepPause
+        s.minPause = pauses ? p.maxPause : SimplePace.keepAll
+        s.breath = p.keepPause
         return s
     }
     /// Captions on: the transcription when it is missing, then the captions in `style` with the suggested keywords.
@@ -164,9 +163,10 @@ enum SimpleCalls {
         return s
     }
 
-    static func cut(_ preset: CutPreset, pauses: Bool) -> StepCall {
-        StepCall(id: "edit.autoCut", params: ["replace": true, "maxPause": .number(pauses ? preset.maxPause : CutPreset.keepAll),
-                                              "keepPause": .number(preset.keepPause)])
+    static func cut(_ pace: String, pauses: Bool) -> StepCall {
+        let p = SimplePace.pauses(pace)
+        return StepCall(id: "edit.autoCut", params: ["replace": true, "maxPause": .number(pauses ? p.maxPause : SimplePace.keepAll),
+                                                     "keepPause": .number(p.keepPause)])
     }
     /// Another take for a line, and the cut that uses it: one undo step.
     static func pick(line: Int, take: Int) -> StepCall {
@@ -238,7 +238,8 @@ struct SimpleSnapshot {
     var hasProject = false
     var engines = SimpleEngines.ready
     // Cut and takes
-    var cutPreset: CutPreset? = .medium
+    /// The cut's pace (nil: pauses of no pace's, set in Pro); before the cut, the project's choice.
+    var pace: String? = SimplePace.spec.defaultOption
     var pauses = true
     var retakes: [Retake] = []
     // Captions
@@ -285,10 +286,14 @@ struct SimpleSnapshot {
     }
 
     /// The snapshot of `p`: `running` steps from the tab's jobs, `musicLoudness` the measured level of music files by path.
+    /// `choices`: the project's resolved choices (the store's, from the person's sheets); nil: the defaults.
     static func compute(_ p: Project?, engines: SimpleEngines, running: Set<SimpleStep> = [], musicLoudness: [String: Double] = [:],
-                        voiceOver: VoicePanelState? = nil, framing: FramingCheck? = nil, lookup: (String) -> String = loc) -> SimpleSnapshot {
+                        voiceOver: VoicePanelState? = nil, framing: FramingCheck? = nil, choices: ProjectChoices? = nil,
+                        lookup: (String) -> String = loc) -> SimpleSnapshot {
         let text = TextSteps.compute(p, framing: framing, lookup: lookup)
+        let choices = choices ?? ProjectChoices(p, book: nil)
         var s = SimpleSnapshot(states: [:], hasProject: p != nil, engines: engines)
+        s.pace = choices.value("pace")
         s.voiceOver = voiceOver
         for step in SimpleStep.allCases {
             var st = state(step, p, text, engines, lookup)
@@ -297,9 +302,11 @@ struct SimpleSnapshot {
         }
         guard let p else { return s }
         if let takes = p.takes {
-            s.cutPreset = CutPreset.matching(maxPause: takes.options.maxPause, keepPause: takes.options.keepPause)
-            s.pauses = takes.options.maxPause < CutPreset.keepAll - 0.5
-            if !s.pauses { s.cutPreset = CutPreset.allCases.first { abs($0.keepPause - takes.options.keepPause) < 0.005 } }
+            s.pauses = takes.options.maxPause < SimplePace.keepAll - 0.5
+            // Pauses kept: the pace whose breath it is (natural's 0.2 s, before the choices, is calm's).
+            let keep = takes.options.keepPause
+            s.pace = s.pauses ? ProjectChoices.pace(maxPause: takes.options.maxPause, keepPause: keep)
+                : abs(keep - 0.2) < 0.005 ? "calm" : SimplePace.ids.first { abs(SimplePace.pauses($0).keepPause - keep) < 0.005 }
             s.retakes = takes.lines.enumerated().compactMap { i, l in
                 l.takes.count > 1 ? Retake(line: i + 1, text: l.text, takes: l.takes.count, chosen: l.chosen.map { $0 + 1 }) : nil
             }
@@ -438,28 +445,31 @@ extension EditorStore {
             else if title == SimpleStep.look.title() { running.insert(.look) }
         }
         var s = SimpleSnapshot.compute(project, engines: simpleEngines, running: running, musicLoudness: musicLoudness,
-                                       voiceOver: voice.state, framing: framing)
+                                       voiceOver: voice.state, framing: framing, choices: projectChoices)
         s.jobs = jobsByStep
         s.allJob = all
         s.logoAtEnd = project.map(engine.context.services.rules.logoOnlyAtEnd) ?? false
         return s
     }
 
+    /// What the person wants for this project: the regia of its kind (the person's sheets), its own choices on top.
+    var projectChoices: ProjectChoices { ProjectChoices(project, book: engine.context.services.rules) }
+
     /// Runs one Simple control's command (instant, one undo step); its error shows in the window.
     func runSimple(_ call: StepCall) { run(call.id, call.params) }
 
-    /// Taglio e riprese: the first time a job that transcribes, finds the takes and cuts with the preset (the steps
-    /// already done are skipped); afterwards, the cut again with the new preset (one undo step). The choice is saved for
-    /// the Pro steps too.
-    func simpleCut(_ preset: CutPreset, pauses: Bool) {
+    /// Taglio e riprese: the first time a job that transcribes, finds the takes and cuts at the pace (the steps already
+    /// done are skipped); afterwards, the cut again at the new pace (one undo step). The pace is saved for the Pro steps too.
+    func simpleCut(_ pace: String, pauses: Bool) {
         let d = UserDefaults.standard
-        d.set(pauses ? preset.maxPause : CutPreset.keepAll, forKey: StepSettings.minPauseKey)
-        d.set(preset.keepPause, forKey: StepSettings.breathKey)
+        let p = SimplePace.pauses(pace)
+        d.set(pauses ? p.maxPause : SimplePace.keepAll, forKey: StepSettings.minPauseKey)
+        d.set(p.keepPause, forKey: StepSettings.breathKey)
         if TextSteps.compute(project)[.cut].status == .done || project?.takes != nil {
-            return runSimple(SimpleCalls.cut(preset, pauses: pauses))
+            return runSimple(SimpleCalls.cut(pace, pauses: pauses))
         }
         runSimpleSteps(SimpleCalls.cutSteps, kind: "simple.cut", title: SimpleStep.cut.title(),
-                       settings: SimpleCalls.cutSettings(preset, pauses: pauses, base: StepSettings.saved(project: project)))
+                       settings: SimpleCalls.cutSettings(pace, pauses: pauses, base: StepSettings.saved(project: project)))
     }
 
     /// Sottotitoli on: a job that transcribes when needed, then makes the captions in the chosen style with the

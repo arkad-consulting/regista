@@ -178,21 +178,26 @@ private let base = StepSettings(language: "it")
     #expect(s[.sound].status == .notNeeded && s[.graphics].status == .notNeeded)
     #expect(s.next == .cut && s.canDoEverything)
 
-    // Taglio e riprese: the first cut is one job (transcribe, takes, cut) with the preset's pauses.
-    let tight = SimpleCalls.cutSettings(.tight, pauses: true, base: base)
+    // Taglio e riprese: the first cut is one job (transcribe, takes, cut) with the pace's pauses.
+    let tight = SimpleCalls.cutSettings("fast", pauses: true, base: base)
     #expect(try await job(e, SimpleCalls.cutSteps, tight) == ["media.extractAudio", "transcript.run", "script.fromTranscript", "takes.list", "edit.autoCut"])
     s = snap(e)
-    #expect(s[.cut].status == .done && s.cutPreset == .tight && s.pauses)
+    #expect(s[.cut].status == .done && s.pace == "fast" && s.pauses)
     #expect(s.next == .captions)
     let retake = try #require(s.retakes.first, "the first line was read twice")
     #expect(retake.takes == 2)
     // Another take, and the cut that uses it: one undo step.
     try control(e, SimpleCalls.pick(line: retake.line, take: retake.chosen == 1 ? 2 : 1))
     #expect(snap(e)[.cut].status == .done)
-    try control(e, SimpleCalls.cut(.natural, pauses: true))
-    #expect(snap(e).cutPreset == .natural)
-    try control(e, SimpleCalls.cut(.natural, pauses: false))
-    #expect(!snap(e).pauses && snap(e).cutPreset == .natural)
+    try control(e, SimpleCalls.cut("calm", pauses: true))
+    #expect(snap(e).pace == "calm")
+    try control(e, SimpleCalls.cut("calm", pauses: false))
+    #expect(!snap(e).pauses && snap(e).pace == "calm")
+    // A cut made with the presets before the choices («Naturale», 1.0/0.2 s) shows as the calm pace.
+    try control(e, StepCall(id: "edit.autoCut", params: ["replace": true, "maxPause": 1.0, "keepPause": 0.2]))
+    #expect(snap(e).pace == "calm")
+    try control(e, StepCall(id: "edit.autoCut", params: ["replace": true, "maxPause": 0.9, "keepPause": 0.2]))
+    #expect(snap(e).pace == nil, "pauses of no pace (set in Pro) light no segment")
 
     // Sottotitoli: on (a job), another style, off — each undoable.
     try await job(e, SimpleCalls.captionSteps, SimpleCalls.captionSettings(style: "bold-keyword", base: base))
@@ -318,8 +323,8 @@ private struct StubProber: MediaProber {
     guard FileManager.default.isExecutableFile(atPath: ffmpeg) else { return }
     let e = engine(), dir = tempDir()
     try imported(e, dir)
-    // Taglio e riprese (Medio), the other take of the line read twice.
-    try await job(e, SimpleCalls.cutSteps, SimpleCalls.cutSettings(.medium, pauses: true, base: base))
+    // Taglio e riprese (Normale), the other take of the line read twice.
+    try await job(e, SimpleCalls.cutSteps, SimpleCalls.cutSettings("normal", pauses: true, base: base))
     if let r = snap(e).retakes.first { _ = try e.execute("edit.autoCut", params: SimpleCalls.pick(line: r.line, take: r.takes).params) }
     // Sottotitoli in the approved style.
     try await job(e, SimpleCalls.captionSteps, SimpleCalls.captionSettings(style: "talking-head-v1", base: base))

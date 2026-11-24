@@ -428,10 +428,10 @@ public struct RuleBook: Sendable {
         }
     }
 
-    /// The choices of `kind` (those that apply to it): the defaults, then the "for every video" sheet's lines, then the
-    /// kind's own.
-    public func choices(_ kind: String, language: String) -> [ChoiceState] {
-        var states = RuleChoiceSpec.all.filter { $0.applies(to: kind) }
+    /// The choices of `kind` (those that apply to it; `all`: every choice): the defaults, then the "for every video" sheet's
+    /// lines, then the kind's own.
+    public func choices(_ kind: String, language: String, all: Bool = false) -> [ChoiceState] {
+        var states = RuleChoiceSpec.all.filter { all || $0.applies(to: kind) }
             .map { ChoiceState(spec: $0, value: $0.defaultOption, number: $0.number?.defaultValue, source: "default") }
         for sheet in chain(kind) {
             for e in RuleSheetText.parse(text(sheet, language: language) ?? "").choices {
