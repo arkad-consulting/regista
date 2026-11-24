@@ -33,6 +33,9 @@ extension RuleCheck {
         }
     }
 
+    /// Text and list fields of the motion templates that are not read: SF Symbol names, a font, glyphs between words.
+    static let fieldsNotRead: Set<String> = ["symbols", "accessories", "font", "serif", "separator", "attachmentLength"]
+
     /// The file beside a HyperFrames render with the visible text of its composition (graphics.hyperframes writes it).
     static let sceneTextFile = "scene-text.txt"
 }
@@ -58,7 +61,7 @@ extension RuleCheck.Scene {
                 } else if let s = clip.sticker, s.kind == .emoji {
                     out.append(Reading(track: track, clip: clip, kind: .sticker, text: s.value))
                 } else if let m = clip.motion, let spec = MotionRegistry.spec(m.template), !spec.scrolls {
-                    let words = spec.fields.flatMap { f -> [String] in
+                    let words = spec.fields.filter { !RuleCheck.fieldsNotRead.contains($0.name) }.flatMap { f -> [String] in
                         switch f.type {
                         case "text": [m.string(f.name)]
                         case "list": m.strings(f.name)

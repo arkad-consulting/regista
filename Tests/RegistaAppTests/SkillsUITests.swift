@@ -117,6 +117,7 @@ extension MouseSuites {
         #expect(control(app, "Esporta…") == nil && control(app, containing: "Rinomina o elimina") == nil, "a built-in offers to export or rename")
         // A switch and a choice: nothing runs, nothing is written.
         let n = app.store.activity.count
+        try await reveal(app) { app.rig.elements().first { $0.label == "Minimum text size" && $0.isControl } }
         app.rig.click(try #require(ruleSwitch(app, "Minimum text size")).centre)
         await app.settle()
         try await pane(app, "Scelte")
@@ -168,6 +169,7 @@ extension MouseSuites {
             #expect(FileManager.default.contents(atPath: file.path) != before, "\(what) did not change the skill's file", sourceLocation: sourceLocation)
         }
         // Regole: a switch, then the prose.
+        try await reveal(app) { app.rig.elements().first { $0.label == "The logo only at the end" && $0.isControl } }
         try await changed("the switch") { app.rig.click(try #require(ruleSwitch(app, "The logo only at the end")).centre) }
         #expect(RuleSheetText.parse(book.skill(slug)?.sheetText ?? "").entries.first { $0.id == "logo-end" }?.on == false)
         #expect(!book.edited(RuleBook.everyVideo), "a skill's switch wrote «Per ogni video»")

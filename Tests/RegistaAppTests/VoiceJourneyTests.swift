@@ -247,16 +247,23 @@ extension Journey {
         await app.settle()
         step("Sottotitoli da questo testo", sees: "the captions on T1 from the voice's words")
 
-        // 11. The rules of a voice-over video, the export: the AI-voice note, «Copia» on the rig's pasteboard.
+        // 11. The rules of a voice-over video, the export: the AI-voice note, «Copia» on the rig's pasteboard. The footage's
+        // own sound is not wanted under the voice: muted, so the voice is the mix the export levels (#145).
+        if let footageSound { _ = try await store.perform("track.set", ["trackId": .string(footageSound.id), "muted": true]) }
         try await tap("Esporta")
         let kindTitle = loc(RuleBook.builtInTitle("voice-over-video") ?? "")
         let card = await until(6) { shows(kindTitle) }
         #expect(card, "the rules card does not follow the voice-over video's sheet («\(kindTitle)»): \(screen())")
+        // The note sits under the rules card, which lists the generated voice read back (#145): scrolled into view.
+        _ = await reveal(loc("Copia"), at: CGPoint(x: 200, y: 500))
         #expect(await until(3) { shows(loc("Voce generata con IA")) }, "Esporta does not show the AI-voice note: \(screen())")
         step("Clicks Esporta", sees: "the rules card \(card ? "of «\(kindTitle)»" : "of another kind"); «\(loc("Voce generata con IA"))»")
         let out = scratch.appendingPathComponent("voce-a-mano.mp4")
         RigGuard.panelAnswer = [out]
-        if let fixAll = control("Sistema tutto ed esporta") { rig.click(fixAll.centre) } else { try await tap("Esporta video…") }
+        if let fixAll = control("Sistema tutto ed esporta") { rig.click(fixAll.centre) } else {
+            _ = await reveal(loc("Esporta video…"), at: CGPoint(x: 200, y: 500))
+            try await tap("Esporta video…")
+        }
         await app.settle()
         #expect(await until(180) { FileManager.default.fileExists(atPath: out.path) && store.jobs.latest("export")?.isRunning == false },
                 "no exported file (export job: \(String(describing: store.jobs.latest("export").map { "\($0.state) \($0.detail)" }))): \(screen())")

@@ -30,12 +30,23 @@ struct RulesReport: Equatable {
     var passed: [String]
     var problems: [String]
     var kinds: [RulesModel.Sheet]
+    /// The checks that could not be measured here (an engine or a render missing): a grey line each, never passed.
+    var unchecked: [Unchecked] = []
+
+    /// A check not measured: its English title (a lookup key) and why, in the app's language.
+    struct Unchecked: Equatable, Identifiable {
+        var id: String { check }
+        let check: String
+        let title: String
+        let reason: String
+    }
 
     var failures: [Violation] { violations.filter(\.blocking) }
     var fixable: Bool { failures.contains { $0.fix != nil } }
 
     init(kind: String, kindTitle: String, followsFormat: Bool = true, violations: [Violation], passed: [String], problems: [String],
-         kinds: [RulesModel.Sheet]) {
+         kinds: [RulesModel.Sheet], unchecked: [Unchecked] = []) {
+        self.unchecked = unchecked
         self.kind = kind
         self.kindTitle = kindTitle
         self.followsFormat = followsFormat
@@ -57,17 +68,22 @@ struct RulesReport: Equatable {
                              blocking: v["severity"]?.stringValue != "warn", fix: fix)
         }
         let passed = checks.filter { $0["ran"]?.boolValue == true && ($0["violations"]?.doubleValue ?? 0) == 0 }.compactMap { $0["title"]?.stringValue }
+        let unchecked = checks.filter { $0["on"]?.boolValue != false && $0["ran"]?.boolValue == false && ($0["skipped"] ?? .null) != .null }.map {
+            Unchecked(check: $0["id"]?.stringValue ?? "", title: $0["title"]?.stringValue ?? "", reason: loc(message: $0["skipped"]))
+        }
         let problems = (c["sheetProblems"]?.arrayValue ?? []).map { loc(message: $0) } + (c["note"].flatMap { $0 == .null ? nil : [loc(message: $0)] } ?? [])
         let shown = kinds.first { $0.kind == kind }?.shownTitle ?? loc(c["kindTitle"]?.stringValue ?? kind)
         self.init(kind: kind, kindTitle: shown, followsFormat: c["kindSource"]?.stringValue != "project", violations: violations, passed: passed,
-                  problems: problems, kinds: kinds)
+                  problems: problems, kinds: kinds, unchecked: unchecked)
     }
 
-    /// Sample reports for the renders (ui.screenshot export-rules, export-rules-pass): a reel with two rules broken, and one that passes.
+    /// Sample reports for the renders (ui.screenshot export-rules, export-rules-pass): a reel with three rules broken and one
+    /// check it could not measure, and one that passes.
     static func sample(failing: Bool) -> RulesReport {
         let book = RuleBook(directory: URL(fileURLWithPath: "/nonexistent"))
         let kinds = RuleBook.builtInKinds.map { RulesModel.Sheet(kind: $0, title: book.title($0, language: "en"), builtIn: true, edited: false) }
-        let all = RuleCheckSpec.all.map(\.title)
+        let all = RuleCheckSpec.all.filter { $0.applies(to: "talking-head-reel") }.map(\.title)
+        let reading = RuleCheckSpec.named("reading-time")!.title
         guard failing else {
             return RulesReport(kind: "talking-head-reel", kindTitle: loc("Talking-head reel"), violations: [], passed: all, problems: [], kinds: kinds)
         }
@@ -79,10 +95,17 @@ struct RulesReport: Equatable {
             Violation(id: 1, check: "logo-pause", title: RuleCheckSpec.all[2].title,
                       message: loc("The logo enters %1$@ s before the last spoken word ends: the pause must be at least %2$@ s.", Words.number(0.3), Words.number(0.3)),
                       time: 41.5, blocking: true, fix: StepCall(id: "timeline.move", params: ["clipId": "logo", "start": 42.2])),
+            Violation(id: 2, check: "reading-time", title: reading,
+                      message: loc("«%1$@» is on screen %2$@ s and needs %3$@ s to be read: %4$@ s missing.", "TRE ERRORI DA EVITARE", Words.number(1.2),
+                                   Words.number(2.1), Words.number(0.9)),
+                      time: 12.4, blocking: true, fix: StepCall(id: "timeline.trim", params: ["clipId": "title2", "edge": "end", "to": 14.5])),
         ]
+        let timing = RuleCheckSpec.named("captions-timing")!.title
+        let unchecked = [Unchecked(check: "captions-timing", title: timing, reason: loc("No render of this edit yet: export it, then check again."))]
         // l10n-ignore-end
+        let shown = [RuleCheckSpec.all[0].title, RuleCheckSpec.all[2].title, reading, timing]
         return RulesReport(kind: "talking-head-reel", kindTitle: loc("Talking-head reel"), violations: violations,
-                           passed: all.filter { $0 != RuleCheckSpec.all[0].title && $0 != RuleCheckSpec.all[2].title }, problems: [], kinds: kinds)
+                           passed: all.filter { !shown.contains($0) }, problems: [], kinds: kinds, unchecked: unchecked)
     }
 }
 
@@ -245,6 +268,25 @@ struct ExportRulesCard: View {
             }
         }
         .padding(.horizontal, Ed.Space.xs).padding(.bottom, Ed.Space.xs)
+    }
+
+    /// The checks not measured here, under the card and its buttons (the way on stays right under what fails): a grey
+    /// line each with why, never counted as passed, never a control (#145).
+    static func unchecked(_ report: RulesReport) -> some View {
+        // Checks not measured for the same reason (no face track: the logo and the captions) share one line.
+        let groups = report.unchecked.reduce(into: [(reason: String, titles: [String])]()) { g, u in
+            if let i = g.firstIndex(where: { $0.reason == u.reason }) { g[i].titles.append(loc(u.title)) } else { g.append((u.reason, [loc(u.title)])) }
+        }
+        return VStack(alignment: .leading, spacing: Ed.Space.xs) {
+            ForEach(groups, id: \.reason) { group in
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: "circle.dashed").font(Ed.icon(Ed.TypeSize.caption, .bold)).foregroundStyle(Ed.text3)
+                    Text(verbatim: loc("%1$@ — non controllato: %2$@", group.titles.joined(separator: " · "), group.reason))
+                        .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(.horizontal, Ed.Space.xs)
     }
 
     private func violation(_ v: RulesReport.Violation) -> some View {

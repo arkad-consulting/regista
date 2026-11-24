@@ -51,7 +51,7 @@ enum ExportRender: Command {
         let renderer = try Render.renderer(ctx, command: id)
         guard project.duration > .zero else { throw CommandError.conflict("\(id): the timeline is empty") }
         // The editing rules (#31): no delivery while a check fails, unless the person said to export anyway.
-        let rules = RuleCheck.run(project, book: ctx.services.rules, language: RuleBook.interfaceLanguage(), ctx: ctx)
+        let rules = RuleCheck.run(project, book: ctx.services.rules, language: RuleBook.interfaceLanguage(), ctx: ctx, levelledTo: p.number("loudness"))
         let anyway = p.bool("exportAnyway") == true
         if !rules.pass && !anyway {
             let failures = rules.failures

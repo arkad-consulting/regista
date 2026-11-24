@@ -218,11 +218,14 @@ extension Journey {
             step("rules_fix {all: true}", sees: await seesClaude("rules.fix", fixed.reply))
         }
         let movie = scratch.appendingPathComponent("voce.mp4")
-        let export = await claude(link, "export.render", ["path": .string(movie.path), "preset": "9:16"], timeout: 180)
+        // As the recipe says: the mix brought to −15 LUFS (the voice-loudness rule measures the voice as this export levels it).
+        let export = await claude(link, "export.render", ["path": .string(movie.path), "preset": "9:16", "loudness": -15], timeout: 180)
         #expect(!export.reply.isError && FileManager.default.fileExists(atPath: movie.path), "export_render: \(export.reply.text.prefix(300))")
         #expect(export.reply.result?["aiDisclosure"] != nil, "export_render does not carry the AI-voice note")
         step("export_render {preset: 9:16}", sees: await seesClaude("export.render", export.reply))
         try await tap("Esporta")
+        // The note sits under the rules card, which lists the generated voice read back (#145): scrolled into view.
+        _ = await reveal(loc("Copia"), at: CGPoint(x: 200, y: 500))
         #expect(await until(3) { shows(loc("Voce generata con IA")) }, "Esporta does not show the AI-voice note for a project with a generated voice: \(screen())")
         step("Clicks Esporta", sees: "«Voce generata con IA» with the sentence to copy")
 

@@ -61,7 +61,7 @@ Queste regole valgono per ogni tipo di video. Il foglio del tipo del progetto ag
 - Le parole di una riga stanno su una sola linea di base.
 
 ## Grafica e testo
-- Ogni riga resta abbastanza da essere letta: 0,6 s più 1 s ogni 12 lettere (ogni 6 caratteri in cinese, giapponese, coreano), tutta dentro l'inquadratura e fuori dalle zone della piattaforma.
+- Ogni riga resta abbastanza da essere letta: 0,6 s + 1 s ogni 12 lettere (6 in cinese, giapponese, coreano), tutta nell'inquadratura.
 - Niente di ciò che va letto è più piccolo di 28 px su un fotogramma largo 1080.
 - Nessun logo, titolo o card sopra il volto di chi parla.
 - Una sola cosa da leggere alla volta: mai due testi forti nello stesso fotogramma.

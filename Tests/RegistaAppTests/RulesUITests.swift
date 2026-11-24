@@ -92,7 +92,8 @@ extension MouseSuites {
     private func hostRules(_ app: AppRig) async {
         app.host(SettingsView(pinned: .rules).environment(\.colorScheme, .dark).background(Color(nsColor: .windowBackgroundColor)), size: SettingsView.size)
         await app.settle()
-        _ = await until(app) { ruleSwitch(app, "Minimum text size") != nil }
+        // The checks stand in sections (#145): the first one, «Sempre»'s, is in view at once.
+        _ = await until(app) { ruleSwitch(app, "No caption over a face") != nil }
     }
 
     /// A switch and a number save at once (rules.set), the prose after a pause in typing and when the editor loses the
@@ -109,6 +110,7 @@ extension MouseSuites {
 
         // The switch.
         var n = app.store.activity.count
+        try await reveal(app) { app.rig.elements().first { $0.label == "Minimum text size" && $0.isControl } }
         let sw = try #require(ruleSwitch(app, "Minimum text size"), "no switch for text-size")
         #expect(sw.value == "1")
         app.rig.click(sw.centre)
@@ -172,6 +174,7 @@ extension MouseSuites {
         await app.settle()
         #expect(app.commands(since: n) == ["rules.reset"], "reset ran \(app.commands(since: n))")
         #expect(!book.edited("every-video"))
+        try await reveal(app) { app.rig.elements().first { $0.label == "Minimum text size" && $0.isControl } }
         _ = await until(app) { ruleSwitch(app, "Minimum text size")?.value == "1" }
         #expect(ruleSwitch(app, "Minimum text size")?.value == "1", "the default did not come back on screen")
         #expect(app.rig.elements(containing: "QX").isEmpty, "the edited prose is still on screen")
@@ -516,7 +519,7 @@ extension MouseSuites {
         // Sistema: the violation's own fix, one undo step.
         var n = app.store.activity.count
         let undo = app.store.undoNames.count
-        let fixCommand = try #require(failing.first?["fix"]?["command"]?.stringValue)
+        let fixCommand = try #require(failing.first?["fix"]?["command"]?.stringValue, "\(failing)")
         app.rig.click(try #require(app.rig.elements().first { $0.isControl && $0.name == "Sistema" }).centre)
         await app.settle()
         #expect(app.commands(since: n) == [fixCommand], "Sistema ran \(app.commands(since: n))")
@@ -554,6 +557,150 @@ extension MouseSuites {
         _ = await until(app) { control(app, containing: "Esporta video…") != nil }
         #expect(!app.rig.elements(containing: "controlli rispettati").isEmpty, "the card is not one line when everything passes")
         #expect(control(app, containing: "Esporta lo stesso") == nil && control(app, containing: "Esporta video…") != nil)
+    }
+
+    /// #145: the Export card on the rig's reel with a title too short to read (a new check failing, with its fix) and the
+    /// captions not yet measured on a render (a grey «not checked» line with its reason, never counted as passed): «Vai a»
+    /// moves the playhead to the title, «Sistema» lengthens it in one undo step; the grey line is no control and a click on
+    /// it runs nothing. Snapshots in Italian and French (REGISTA_UI_SNAPSHOTS).
+    @Test func theExportCardShowsANewCheckFailingAndANotCheckedLine() async throws {
+        let app = try await AppRig()
+        defer { app.close() }
+        try await app.store.perform("title.add", ["text": "TRE ERRORI\nDA EVITARE", "start": 3.2, "duration": 1])
+        let check = try await app.store.silent("rules.check")
+        let reading = try #require(check["violations"]?.arrayValue?.first { $0["check"] == "reading-time" }, "\(check)")
+        let skipped = try #require(check["checks"]?.arrayValue?.first { $0["id"] == "captions-timing" })
+        #expect(skipped["ran"] == false && skipped["skipped"] != .null, "\(skipped)")
+        app.hostEditor(Navigation(activity: .export, rightTab: .inspector), size: CGSize(width: 1440, height: 1300))
+        await app.settle()
+        let grey = loc("%1$@ — non controllato: %2$@", loc(try #require(RuleCheckSpec.named("captions-timing")).title), loc(message: skipped["skipped"]))
+        _ = await until(app, 6) { !app.rig.elements(containing: grey).isEmpty }
+        let line = try #require(app.rig.elements(containing: grey).first)
+
+        // A click on the grey line runs nothing and leaves it there.
+        var n = app.store.activity.count
+        app.rig.click(line.centre)
+        await app.settle()
+        #expect(app.commands(since: n).isEmpty && !app.rig.elements(containing: grey).isEmpty, "a click on the grey line ran \(app.commands(since: n))")
+
+        // Vai a: the playhead to the title.
+        let at = try #require(reading["time"]?.doubleValue)
+        app.store.preview.seek(0)
+        _ = await until(app, 4) { control(app, containing: "Vai a \(ExportRulesCard.time(at))") != nil }
+        app.rig.click(try #require(control(app, containing: "Vai a \(ExportRulesCard.time(at))"), "no «Vai a» for the title").centre)
+        await app.settle()
+        #expect(abs(app.store.preview.playhead.time - at) < 0.05, "Vai a did not move the playhead to \(at)")
+
+        // Sistema on the title's row: timeline.trim, one undo step; the card checks again.
+        let rows = app.rig.elements().filter { $0.isControl && $0.name == "Sistema" }
+        let readingKey = try #require(RuleCheckSpec.named("reading-time")).title
+        let readingTitle = try #require(app.rig.elements(containing: loc(readingKey)).first)
+        let fix = try #require(rows.filter { $0.frame.minY > readingTitle.frame.minY }.min { $0.frame.minY < $1.frame.minY }, "no «Sistema» under the title's check")
+        n = app.store.activity.count
+        let undo = app.store.undoNames.count
+        app.rig.click(fix.centre)
+        await app.settle()
+        #expect(app.commands(since: n) == ["timeline.trim"], "Sistema ran \(app.commands(since: n))")
+        #expect(app.store.undoNames.count == undo + 1, "the fix is not one undo step")
+        let after = try await app.store.silent("rules.check")
+        #expect(after["violations"]?.arrayValue?.contains { $0["check"] == "reading-time" } == false, "\(after)")
+        #expect(!app.rig.elements(containing: grey).isEmpty, "the grey line went after the fix")
+        // The card in Italian and French, the title back as it was (the fix undone).
+        try await app.store.perform("history.undo")
+        for language in ["it", "fr"] {
+            app.hostEditor(Navigation(activity: .export, rightTab: .inspector), size: CGSize(width: 1440, height: 1300), language: language)
+            await app.settle()
+            let table = MouseRig.table(language)
+            func word(_ key: String) -> String { table.localizedString(forKey: key, value: nil, table: nil) }
+            let timing = word(try #require(RuleCheckSpec.named("captions-timing")).title)
+            let reason = String(format: word(skipped.value(at: "skipped.messageKey")?.stringValue ?? ""), locale: Locale(identifier: language), arguments: [])
+            let grey = String(format: word("%1$@ — non controllato: %2$@"), locale: Locale(identifier: language), arguments: [timing, reason])
+            _ = await until(app, 6) { !app.rig.elements(containing: grey).isEmpty }
+            let line = try #require(app.rig.elements(containing: grey).first, "\(language): no «not checked» line: \(app.rig.elements(containing: timing).map(\.name))")
+            #expect(!line.isControl, "\(language): the «not checked» line is a control")
+            let title = word(try #require(RuleCheckSpec.named("reading-time")).title)
+            #expect(!app.rig.elements(containing: title).isEmpty, "\(language): the failing check is not on the card")
+            #expect(app.rig.elements(containing: word("Captions gone with their words")).allSatisfy { $0.frame.minY >= line.frame.minY - 1 },
+                    "\(language): the check not measured is counted among the passed ones")
+            if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+                try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("export-card-not-checked-\(language).png"))
+            }
+        }
+    }
+
+    /// #145: Regole in Italian and French: the checks in the sections of the regia, the four measures under «Sempre» with
+    /// the voice's number editable like the others; every title whole (REGISTA_UI_SNAPSHOTS: the pane, to look at).
+    @Test(arguments: ["it", "fr"])
+    func theChecksStandInTheSectionsOfTheRegia(_ language: String) async throws {
+        let saved = UserDefaults.standard.object(forKey: SettingsRoute.rulesKey)
+        defer { UserDefaults.standard.set(saved, forKey: SettingsRoute.rulesKey) }
+        UserDefaults.standard.set(RuleBook.everyVideo, forKey: SettingsRoute.rulesKey)
+        let app = try await AppRig()
+        defer { app.close() }
+        let table = MouseRig.table(language)
+        func word(_ key: String) -> String { table.localizedString(forKey: key, value: nil, table: nil) }
+        let height: CGFloat = 1900
+        app.host(SettingsView(pinned: .rules, height: height).environment(\.colorScheme, .dark).background(Color(nsColor: .windowBackgroundColor)),
+                 size: CGSize(width: SettingsView.size.width, height: height), language: language)
+        await app.settle()
+        let always = word("regia.always").uppercased()
+        _ = await app.until(6) { app.rig.elements().contains { $0.value == always } }
+        let heading = try #require(app.rig.elements().first { $0.value == always }, "\(language): no «\(always)» heading")
+        let font = NSFont.systemFont(ofSize: Ed.TypeSize.body)
+        var previous = heading.frame.minY
+        for id in ["captions-faces", "captions-timing", "music-ducked", "voice-loudness"] {
+            let title = word(try #require(RuleCheckSpec.named(id)).title)
+            let sw = try #require(app.rig.elements().first { $0.label == title && $0.isControl }, "\(language): no switch for \(id)")
+            let text = try #require(app.rig.elements().first { $0.role == "AXStaticText" && $0.value == title }, "\(language): no title for \(id)")
+            #expect(sw.frame.minY > previous, "\(language): \(id) is not in its place under «\(always)»")
+            #expect(naturalWidth(title, font) <= text.frame.width + 1 || text.frame.height > font.pointSize * 1.8, "\(language): «\(title)» is cut")
+            previous = sw.frame.minY
+        }
+        // The headings come in the sheet's order, each over its own checks.
+        let used = Set(RuleCheckSpec.all.map(\.section))
+        let headings = RulesSettings.sectionOrder.filter(used.contains).map { word(RulesSettings.sectionTitle($0)).uppercased() }
+        let ys = headings.compactMap { h in app.rig.elements().first { $0.value == h }?.frame.minY }
+        #expect(ys == ys.sorted() && ys.count == headings.count, "\(language): the sections are \(ys.count) of \(headings.count) or out of order")
+        // The voice's number: a value field on its row, like the others.
+        let voice = try #require(app.rig.elements().first { $0.role == "AXStaticText" && $0.value == word("The voice at its loudness") })
+        #expect(app.rig.elements().contains { $0.name.contains("Clicca per scrivere il valore") && abs($0.centre.y - voice.centre.y) < 10 } ||
+                app.rig.elements().contains { $0.role == "AXStaticText" && $0.value == "LUFS" && abs($0.centre.y - voice.centre.y) < 10 },
+                "\(language): the voice's number is not on its row")
+        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+            try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("settings-rules-sections-\(language).png"))
+        }
+    }
+
+    /// #145: the voice's number on «Sempre» is typed like the others: it writes its line in the sheet, nothing else.
+    @Test func theVoicesNumberWritesItsLine() async throws {
+        let saved = UserDefaults.standard.object(forKey: SettingsRoute.rulesKey)
+        defer { UserDefaults.standard.set(saved, forKey: SettingsRoute.rulesKey) }
+        UserDefaults.standard.set(RuleBook.everyVideo, forKey: SettingsRoute.rulesKey)
+        let app = try await AppRig()
+        defer { app.close() }
+        let book = rulesBook(app)
+        let height: CGFloat = 1900
+        app.host(SettingsView(pinned: .rules, height: height).environment(\.colorScheme, .dark).background(Color(nsColor: .windowBackgroundColor)),
+                 size: CGSize(width: SettingsView.size.width, height: height))
+        await app.settle()
+        _ = await until(app, 6) { ruleSwitch(app, "The voice at its loudness") != nil }
+        let sw = try #require(ruleSwitch(app, "The voice at its loudness"))
+        let field = try #require(app.rig.elements().first { $0.name.contains("Clicca per scrivere il valore") && abs($0.centre.y - sw.centre.y) < 10 },
+                                 "no number on the voice's row")
+        let entries = { RuleSheetText.parse(book.text(RuleBook.everyVideo, language: "en") ?? "").entries.map { RuleSheetText.line($0.id, on: $0.on, value: $0.value) } }
+        let before = entries()
+        let n = app.store.activity.count
+        app.rig.click(field.centre)
+        app.rig.pump(0.1)
+        #expect(app.rig.isTyping, "a click on the voice's number did not make a field")
+        app.rig.key("a", keyCode: 0, modifiers: .command)
+        app.rig.type("-16")
+        app.rig.key(.returnKey)
+        _ = await until(app) { entries() != before }
+        await app.settle()
+        #expect(app.commands(since: n) == ["rules.set"], "the number ran \(app.commands(since: n))")
+        #expect(zip(before, entries()).filter { $0 != $1 }.map(\.1) == ["voice-loudness: on -16"], "\(entries())")
+        #expect(ruleSwitch(app, "The voice at its loudness") != nil, "the row is gone after the number")
     }
 
     /// #47: the kind menu's first entry leaves the kind to the project's format: chosen while the project has no kind of

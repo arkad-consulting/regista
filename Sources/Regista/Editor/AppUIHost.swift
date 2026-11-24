@@ -160,7 +160,7 @@ final class AppUIHost: UIHost, @unchecked Sendable {
                     }
                 } else {
                     let size = CGSize(width: width ?? Int(live?.width ?? 1440), height: height ?? Int(live?.height ?? 900))
-                    // export-rules / export-rules-pass: Esporta with the editing rules' card from a sample report (#31).
+                    // export-rules / export-rules-pass: Esporta with the editing rules' card from a sample report (#31, #145).
                     let rulesDemo = workspace?.hasPrefix("export-rules") == true ? RulesReport.sample(failing: workspace == "export-rules") : nil
                     var nav = Self.navigation(for: rulesDemo != nil ? "export" : workspace, current: store.nav)
                     // `texts`: the steps from sample data (E2 #54); `jobs`: sample jobs in the status bar.

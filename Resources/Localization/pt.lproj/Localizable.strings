@@ -2734,7 +2734,6 @@
 "Loudness of the voice, LUFS (±1, peak at most −1.5 dBTP)" = "Loudness da voz, LUFS (±1, pico até −1,5 dBTP)";
 "No render of this edit yet: export it, then check again." = "Ainda não há renderização desta edição: exporte-a e verifique de novo.";
 "It could not be measured: %1$@" = "Não foi possível medir: %1$@";
-"No face track on the picture: run faces.track to check the captions against the face." = "Sem rastreamento do rosto: execute faces.track para verificar as legendas em relação ao rosto.";
 "The caption «%1$@» covers a face at %2$@ s." = "A legenda “%1$@” cobre um rosto em %2$@ s.";
 "%1$@ caption words are not on screen with the voice in the render (the first, «%2$@», at %3$@ s)." = "Na renderização, %1$@ palavras das legendas não estão na tela junto com a voz (a primeira, “%2$@”, em %3$@ s).";
 "The captions leave their band in the render." = "Na renderização, as legendas saem da sua faixa.";
@@ -2755,3 +2754,16 @@
 "The voice says «%1$@» where the script has «%2$@» (at %3$@ s): voice.lexicon sets how a word is said." = "A voz diz “%1$@” onde o roteiro tem “%2$@” (em %3$@ s): voice.lexicon define como uma palavra é pronunciada.";
 "The voice leaves out «%1$@» of the script (at %2$@ s): voice.lexicon sets how a word is said." = "A voz pula “%1$@” do roteiro (em %2$@ s): voice.lexicon define como uma palavra é pronunciada.";
 "The voice says «%1$@», which is not in the script (at %2$@ s)." = "A voz diz “%1$@”, que não está no roteiro (em %2$@ s).";
+
+/* Checks that measure (#145): the regia's sections and a check not measured. */
+"regia.always" = "Sempre";
+"regia.opening" = "Abertura";
+"regia.picture" = "Imagem";
+"regia.captions" = "Legendas";
+"regia.text" = "Gráficos e texto";
+"regia.ending" = "Final";
+"regia.sound" = "Som";
+"%1$@ — non controllato: %2$@" = "%1$@ — não verificado: %2$@";
+
+/* Checks that measure (#145): the voice as the export levels it. */
+"In the export, with the mix brought to %1$@ LUFS, the voice is at %2$@ LUFS: at least %3$@ LUFS (the rest of the mix is too loud beside it)." = "Na exportação, com o mix levado a %1$@ LUFS, a voz fica em %2$@ LUFS: pelo menos %3$@ LUFS (o resto do mix está alto demais ao lado dela).";

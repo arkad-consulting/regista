@@ -2734,7 +2734,6 @@
 "Loudness of the voice, LUFS (±1, peak at most −1.5 dBTP)" = "Volume della voce, LUFS (±1, picco al massimo −1,5 dBTP)";
 "No render of this edit yet: export it, then check again." = "Ancora nessun render di questo montaggio: esportalo, poi controlla di nuovo.";
 "It could not be measured: %1$@" = "Non si è potuto misurare: %1$@";
-"No face track on the picture: run faces.track to check the captions against the face." = "Nessun tracciamento del volto: esegui faces.track per controllare i sottotitoli rispetto al volto.";
 "The caption «%1$@» covers a face at %2$@ s." = "Il sottotitolo «%1$@» copre un volto a %2$@ s.";
 "%1$@ caption words are not on screen with the voice in the render (the first, «%2$@», at %3$@ s)." = "Nel render %1$@ parole dei sottotitoli non sono sullo schermo insieme alla voce (la prima, «%2$@», a %3$@ s).";
 "The captions leave their band in the render." = "Nel render i sottotitoli escono dalla loro fascia.";
@@ -2755,3 +2754,16 @@
 "The voice says «%1$@» where the script has «%2$@» (at %3$@ s): voice.lexicon sets how a word is said." = "La voce dice «%1$@» dove il copione ha «%2$@» (a %3$@ s): voice.lexicon decide come si pronuncia una parola.";
 "The voice leaves out «%1$@» of the script (at %2$@ s): voice.lexicon sets how a word is said." = "La voce salta «%1$@» del copione (a %2$@ s): voice.lexicon decide come si pronuncia una parola.";
 "The voice says «%1$@», which is not in the script (at %2$@ s)." = "La voce dice «%1$@», che non è nel copione (a %2$@ s).";
+
+/* Checks that measure (#145): the regia's sections and a check not measured. */
+"regia.always" = "Sempre";
+"regia.opening" = "Apertura";
+"regia.picture" = "Immagine";
+"regia.captions" = "Sottotitoli";
+"regia.text" = "Grafica e testo";
+"regia.ending" = "Finale";
+"regia.sound" = "Suono";
+"%1$@ — non controllato: %2$@" = "%1$@ — non controllato: %2$@";
+
+/* Checks that measure (#145): the voice as the export levels it. */
+"In the export, with the mix brought to %1$@ LUFS, the voice is at %2$@ LUFS: at least %3$@ LUFS (the rest of the mix is too loud beside it)." = "Nell'export, con il mix portato a %1$@ LUFS, la voce è a %2$@ LUFS: almeno %3$@ LUFS (il resto del mix è troppo forte accanto a lei).";

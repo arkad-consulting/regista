@@ -112,11 +112,15 @@ enum RuleCheck {
 
     /// The checks of the project's kind on `project`; `ctx` gives the engines the measured checks call (the project in it
     /// is not read).
-    static func run(_ project: Project, book: RuleBook, language: String, ctx: CommandContext?) -> RuleReport {
+    /// `levelledTo`: the loudness the export brings the whole mix to (the app's export does, at the house loudness;
+    /// export.render passes its own `loudness`, nil without one).
+    static func run(_ project: Project, book: RuleBook, language: String, ctx: CommandContext?,
+                    levelledTo: Double? = LoudnessTarget.integrated) -> RuleReport {
         let (kind, source, note) = book.kind(of: project)
         let states = book.checks(kind, language: language)
         var scene = Scene(project)
         scene.context = ctx
+        scene.levelledTo = levelledTo
         scene.closingSeconds = ProjectChoices(project, book: book).number("closing-logo")?.first
         var rows: [RuleReport.Row] = []
         var violations: [RuleViolation] = []
@@ -162,6 +166,8 @@ enum RuleCheck {
         /// The engines the measured checks call (nil: none, those checks say so).
         var context: CommandContext?
         var renderer: VideoRenderer? { context?.services.renderer }
+        /// The loudness the export brings the whole mix to (nil: the mix as it is).
+        var levelledTo: Double?
 
         init(_ project: Project) {
             self.project = project

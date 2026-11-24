@@ -85,6 +85,7 @@ struct ExportSettingsPanel: View {
                     // A rule fails: the way to export sits right under what fails, never below the fold of Controlli and
                     // File (at the default window size a card with three failures pushed it out of sight).
                     if !report.failures.isEmpty { rulesActions(report) }
+                    if !report.unchecked.isEmpty { ExportRulesCard.unchecked(report) }
                 }
                 section("Controlli") {
                     check("Durata", store.project.map { shortTime($0.duration.seconds) } ?? "–", ok: (store.project?.duration ?? .zero) > .zero)

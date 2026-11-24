@@ -128,7 +128,7 @@ extension RuleCheck.Scene {
             let r: JSONValue
             do { r = try measure(CaptionsCheckFaces.self, ["trackId": .string(track.id)]) } catch {
                 if (error as? CommandError)?.message.contains("faces.track") == true {
-                    return ([], RuleText(rulePhrase("No face track on the picture: run faces.track to check the captions against the face.")))
+                    return ([], RuleText(rulePhrase("No face track on the picture: run faces.track to check the face.")))
                 }
                 return ([], RuleCheck.notMeasured(error))
             }
@@ -198,30 +198,57 @@ extension RuleCheck.Scene {
                                time: music.clips.map(\.start).min() ?? .zero, clipID: music.clips.first?.id, fix: fix)], nil)
     }
 
-    /// The voice mix (the voice track through the export's mixer: gains and fades) at the target, ±1 LU, its true peak at
-    /// most −1.5 dBTP. No voice: nothing to measure.
+    /// The voice as the export makes it: the voice track through the export's mixer (gains and fades); when the export
+    /// brings the whole mix to a loudness (`levelledTo`: the app's export and export.render {loudness} do), the voice
+    /// moves with it by that mix's distance from it, and the export's limiter holds the peak: then at least the target
+    /// −1 LU. Not levelled: at the target ±1 LU, its true peak at most −1.5 dBTP. No voice: nothing to measure.
     func voiceLoudness(_ target: Double) -> ([RuleViolation], RuleText?) {
         guard let voice = AudioTracks.voice(project), !voice.muted, let c = context else { return ([], nil) }
         let rate = project.settings.sampleRate
         let files = voice.clips.compactMap { project.asset($0.assetID) }.map { RuleMemory.stamp(URL(fileURLWithPath: $0.path)) }
-        let measured: Loudness
-        do {
-            measured = try c.services.memory.remember("voice|\(RuleMemory.digest(voice))|\(files.joined(separator: ","))") {
+        let audio = project.tracks.filter { $0.kind == .audio && !$0.muted }
+        let allFiles = audio.flatMap(\.clips).compactMap { project.asset($0.assetID) }.map { RuleMemory.stamp(URL(fileURLWithPath: $0.path)) }
+        /// The loudness of `tracks` (nil: every track that plays) through the export's mixer, ducking included.
+        func mixed(_ name: String, _ tracks: Set<String>?, key: String) throws -> Loudness {
+            try c.services.memory.remember(key) {
                 let dir = TemporaryFolder.url.appendingPathComponent("regista-voice-\(UUID().uuidString.prefix(8))")
                 try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
                 defer { try? FileManager.default.removeItem(at: dir) }
                 let length = Int((project.duration.seconds * Double(rate)).rounded())
-                let wav = dir.appendingPathComponent("voice.wav")
-                try c.services.audio.mix(AudioPlan.clips(project, rate: rate, tracks: [voice.id]), length: length, rate: rate, gain: 0, ceiling: 0, to: wav)
+                let envelopes = try AudioPlan.writeEnvelopes(project, rate: rate, to: dir)
+                let wav = dir.appendingPathComponent("\(name).wav")
+                try c.services.audio.mix(AudioPlan.clips(project, rate: rate, tracks: tracks, envelopes: envelopes), length: length, rate: rate,
+                                         gain: 0, ceiling: 0, to: wav)
                 return try c.services.audio.loudness(of: [AudioSpan(url: wav, channels: 2)])
             }
+        }
+        var level: Double, peak: Double?
+        do {
+            let measured = try mixed("voice", [voice.id], key: "voice|\(RuleMemory.digest(voice))|\(files.joined(separator: ","))")
+            level = measured.integrated.isFinite ? measured.integrated : -70
+            peak = measured.truePeak
+            if let levelledTo {
+                let all = audio.count == 1 ? measured
+                    : try mixed("mix", nil, key: "mix|\(RuleMemory.digest(audio))|\(allFiles.joined(separator: ","))|\(project.duration.ticks)")
+                if all.integrated.isFinite {
+                    level += levelledTo - all.integrated
+                    peak = nil
+                }
+            }
         } catch { return ([], RuleCheck.notMeasured(error)) }
-        let level = measured.integrated.isFinite ? measured.integrated : -70
-        guard abs(level - target) > RuleCheck.voiceTolerance + 0.05 || measured.truePeak > RuleCheck.voicePeak + 0.05 else { return ([], nil) }
+        // Levelled with the whole mix, a voice a little over the target comes from the quieter stretches of the rest (music
+        // alone) that the levelling lifts too, and the export's limiter holds its peak: only a voice the rest drowns fails.
+        let off = peak == nil ? target - level : abs(level - target)
+        guard off > RuleCheck.voiceTolerance + 0.05 || (peak ?? -.infinity) > RuleCheck.voicePeak + 0.05 else { return ([], nil) }
         func db(_ v: Double) -> RuleText.Arg { .number((v * 10).rounded() / 10, decimals: 1) }
-        return ([RuleViolation(check: "voice-loudness", severity: .fail,
-                               text: RuleText(rulePhrase("The voice is at %1$@ LUFS with a true peak of %2$@ dBTP: it must be at %3$@ LUFS ±1, its peak at most −1.5 dBTP."),
-                                              db(level), db(measured.truePeak), db(target)),
+        let text = if let peak {
+            RuleText(rulePhrase("The voice is at %1$@ LUFS with a true peak of %2$@ dBTP: it must be at %3$@ LUFS ±1, its peak at most −1.5 dBTP."),
+                     db(level), db(peak), db(target))
+        } else {
+            RuleText(rulePhrase("In the export, with the mix brought to %1$@ LUFS, the voice is at %2$@ LUFS: at least %3$@ LUFS (the rest of the mix is too loud beside it)."),
+                     db(levelledTo ?? target), db(level), db(target - RuleCheck.voiceTolerance))
+        }
+        return ([RuleViolation(check: "voice-loudness", severity: .fail, text: text,
                                time: voice.clips.map(\.start).min() ?? .zero, clipID: voice.clips.first?.id, fix: nil)], nil)
     }
 }

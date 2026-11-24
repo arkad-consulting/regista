@@ -104,6 +104,8 @@ private func row(_ check: JSONValue, _ id: String) -> JSONValue? {
 private final class StemAudio: AudioToolkit {
     var voice = Loudness(integrated: -15.1, truePeak: -2.0, range: 3, threshold: -25)
     var musicUnderSpeech = -32.0
+    /// The whole mix (nil: as loud as the voice).
+    var mix: Loudness?
     /// Set: every measure fails with it (an engine that is missing).
     var missing: String?
 
@@ -118,6 +120,7 @@ private final class StemAudio: AudioToolkit {
         case "m-speech": return Loudness(integrated: musicUnderSpeech, truePeak: -20, range: 2, threshold: -40)
         case "m-gaps": return Loudness(integrated: -24, truePeak: -18, range: 2, threshold: -35)
         case "v-speech": return Loudness(integrated: -15, truePeak: -2, range: 3, threshold: -25)
+        case "mix": return mix ?? voice
         default: return voice
         }
     }
@@ -141,23 +144,29 @@ private func soundEngine(_ audio: StemAudio) throws -> Engine {
     let e = try soundEngine(audio)
     var check = try e.execute("rules.check")
     #expect(violations(check, "voice-loudness").isEmpty && row(check, "voice-loudness")?["ran"] == true, "\(check)")
-    // A different state of the voice (another level) is measured again: the measure is kept per state.
+    // A quiet voice alone: the export brings the mix (the voice) to −15, so the check (the app's export levels) passes;
+    // export.render without loudness exports it as it is, and refuses it.
     audio.voice = Loudness(integrated: -20.4, truePeak: -6, range: 3, threshold: -30)
     try e.execute("clip.set", params: ["clipId": "c2", "gain": -5])
-    check = try e.execute("rules.check", params: ["language": "en"])
-    let v = try #require(violations(check, "voice-loudness").first, "\(check)")
-    #expect(v["severity"] == "fail" && v.value(at: "messageArgs.0") == -20.4 && v.value(at: "messageArgs.2") == -15)
+    #expect(violations(try e.execute("rules.check"), "voice-loudness").isEmpty)
     let out = tempDir().appendingPathComponent("out.mp4").path
     do {
         try e.execute("export.render", params: ["path": .string(out)])
         Issue.record("the export was not refused")
     } catch let error as CommandError {
-        #expect(error.message.contains("voice-loudness"), "\(error.message)")
+        #expect(error.message.contains("voice-loudness") && error.message.contains("-20.4 LUFS"), "\(error.message)")
     }
     let anyway = try e.execute("export.render", params: ["path": .string(out), "exportAnyway": true])
     #expect(anyway.value(at: "rules.exportedAnyway") == true)
-    // Its number is the target: a sheet that says −20 lets this voice through.
-    try e.execute("rules.set", params: ["kind": "every-video", "checks": ["voice-loudness": ["value": -20]]])
+    // Music that makes the mix 4 dB louder than the voice: levelled, the voice ends at −19: a failure, here and at export.
+    audio.mix = Loudness(integrated: -16.4, truePeak: -3, range: 3, threshold: -26)
+    try e.execute("audio.addMusic", params: ["path": .string(fakeMedia("bed.wav"))])
+    check = try e.execute("rules.check", params: ["language": "en"])
+    let v = try #require(violations(check, "voice-loudness").first, "\(check)")
+    #expect(v["severity"] == "fail" && v.value(at: "messageArgs.0") == -15 && v.value(at: "messageArgs.1") == -19 && v.value(at: "messageArgs.2") == -16, "\(v)")
+    #expect(throws: CommandError.self) { try e.execute("export.render", params: ["path": .string(out), "loudness": -15]) }
+    // Its number is the target: a sheet that says −19 lets this voice through.
+    try e.execute("rules.set", params: ["kind": "every-video", "checks": ["voice-loudness": ["value": -19]]])
     #expect(violations(try e.execute("rules.check"), "voice-loudness").isEmpty)
 }
 

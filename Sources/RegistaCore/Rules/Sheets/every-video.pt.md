@@ -61,7 +61,7 @@ Estas regras valem para todos os tipos de vídeo. A folha do tipo do projeto acr
 - As palavras de uma linha ficam sobre uma mesma linha de base.
 
 ## Gráficos e texto
-- Cada linha fica o bastante para ser lida: 0,6 s mais 1 s a cada 12 letras (a cada 6 caracteres em chinês, japonês, coreano), inteira dentro do quadro e fora das zonas da plataforma.
+- Cada linha fica o bastante para ser lida: 0,6 s + 1 s a cada 12 letras (6 em chinês, japonês, coreano), inteira no quadro.
 - Nada do que deve ser lido é menor que 28 px num quadro de 1080 de largura.
 - Nenhum logo, título ou cartão sobre o rosto de quem fala.
 - Uma leitura de cada vez: nunca dois textos fortes no mesmo quadro.

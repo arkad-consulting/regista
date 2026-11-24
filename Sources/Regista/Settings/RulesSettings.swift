@@ -54,6 +54,8 @@ final class RulesModel: ObservableObject {
         var on: Bool
         var value: Double?
         var unit: String?
+        /// The part of the regia it belongs to (always, opening, picture, captions, text, ending, sound).
+        var section = "always"
     }
 
     /// A choice of the sheet on screen (one regia): its options, the option it has, its number when it has one.
@@ -252,7 +254,7 @@ final class RulesModel: ObservableObject {
         checks = (s["checks"]?.arrayValue ?? []).compactMap { c in
             guard let id = c["id"]?.stringValue else { return nil }
             return Check(id: id, title: c["title"]?.stringValue ?? id, on: c["on"]?.boolValue ?? true, value: c["value"]?.doubleValue,
-                         unit: c["unit"]?.stringValue)
+                         unit: c["unit"]?.stringValue, section: c["section"]?.stringValue ?? "always")
         }
         choices = (s["choices"]?.arrayValue ?? []).compactMap(Self.choice)
         problems = (s["status"]?["problems"]?.arrayValue ?? []).map { loc(message: $0) }
@@ -598,7 +600,7 @@ final class RulesModel: ObservableObject {
         m.skills = [Skill(slug: "youtube-tutorial", title: "Tutorial YouTube", basedOn: "screen-tutorial")]
         // l10n-ignore-end
         m.checks = book.checks(RuleBook.everyVideo, language: language).map {
-            Check(id: $0.spec.id, title: $0.spec.title, on: $0.spec.id != "text-size", value: $0.value, unit: $0.spec.number?.unit)
+            Check(id: $0.spec.id, title: $0.spec.title, on: $0.spec.id != "text-size", value: $0.value, unit: $0.spec.number?.unit, section: $0.spec.section)
         }
         m.choices = book.choices(RuleBook.everyVideo, language: language).compactMap { choice($0.json) }
         m.prose = RuleSheetText.parse(book.text(RuleBook.everyVideo, language: language) ?? "").prose
@@ -751,6 +753,30 @@ struct RulesSettings: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
+    /// The regia's sections, in the order of the «For every video» sheet's headings.
+    static let sectionOrder = ["always", "opening", "picture", "captions", "text", "ending", "sound"]
+
+    /// A section's heading (its key).
+    static func sectionTitle(_ section: String) -> String {
+        switch section {
+        case "always": "regia.always"
+        case "opening": "regia.opening"
+        case "picture": "regia.picture"
+        case "captions": "regia.captions"
+        case "text": "regia.text"
+        case "ending": "regia.ending"
+        default: "regia.sound"
+        }
+    }
+
+    /// The checks grouped by section, the sections in their order, each check where the specs put it.
+    static func sections(_ checks: [RulesModel.Check]) -> [(section: String, checks: [RulesModel.Check])] {
+        sectionOrder.compactMap { s in
+            let c = checks.filter { $0.section == s }
+            return c.isEmpty ? nil : (s, c)
+        }
+    }
+
     static func paneTitle(_ p: RulesModel.Pane) -> String {
         switch p {
         case .rules: "Regole"
@@ -819,15 +845,20 @@ struct RulesSettings: View {
             // What is wrong in the sheet first: the list of checks is long, a problem under it would be out of sight.
             messages
             Text(verbatim: loc("Controlli prima dell'export")).font(Ed.ui(Ed.TypeSize.small, .semibold)).foregroundStyle(Ed.text3)
-            VStack(spacing: 0) {
-                ForEach(Array(model.checks.enumerated()), id: \.element.id) { i, c in
-                    checkRow(c)
-                    if i < model.checks.count - 1 { Ed.line.frame(height: 1) }
+            // One card per section of the regia, in the order of the «For every video» sheet.
+            ForEach(Self.sections(model.checks), id: \.section) { group in
+                Text(verbatim: loc(Self.sectionTitle(group.section)).uppercased())
+                    .font(Ed.ui(Ed.TypeSize.caption, .semibold)).foregroundStyle(Ed.text3).padding(.top, Ed.Space.xxs)
+                VStack(spacing: 0) {
+                    ForEach(Array(group.checks.enumerated()), id: \.element.id) { i, c in
+                        checkRow(c)
+                        if i < group.checks.count - 1 { Ed.line.frame(height: 1) }
+                    }
                 }
+                .padding(.horizontal, Ed.Space.m)
+                .rCard(.raised, padding: 0)
+                .disabled(model.isBuiltIn)
             }
-            .padding(.horizontal, Ed.Space.m)
-            .rCard(.raised, padding: 0)
-            .disabled(model.isBuiltIn)
             if model.isSkill {
                 Text(verbatim: loc("Un controllo cambiato qui vale solo per questa skill; gli altri seguono «%@».", loc("For every video")))
                     .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)

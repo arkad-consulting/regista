@@ -61,7 +61,7 @@ These rules hold for every kind of video. The sheet of the project's kind adds i
 - The words of a line sit on one baseline.
 
 ## Graphics and text
-- Every line stays long enough to be read: 0.6 s plus 1 s per 12 letters (per 6 characters in Chinese, Japanese, Korean), whole inside the frame and out of the platform's zones.
+- Every line stays long enough to be read: 0.6 s + 1 s per 12 letters (6 for Chinese, Japanese, Korean), whole in frame.
 - Nothing meant to be read is smaller than 28 px on a 1080-wide frame.
 - No logo, title or card over the speaker's face.
 - One reading task at a time: never two loud texts in the same frame.
