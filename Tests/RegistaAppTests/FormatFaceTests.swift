@@ -327,16 +327,25 @@ extension MouseSuites {
         app.store.recordingChoice = nil
     }
 
-    /// The snapshots of #160 in Italian and French, at the default window size and the minimum one: the camera alone in
-    /// 9:16, screen + face in 9:16 and 16:9, «Questo progetto» with another format. Every face-layout tile stays in view at
-    /// the default size (#52).
+    /// The snapshots of #160, at the default window size and the minimum one, in every state of the side column: a tab
+    /// without a project (the camera alone in 9:16, screen + face in 9:16 and 16:9) and a tab with one («Nuovo progetto»,
+    /// «Questo progetto» with and without the line about another format, the camera alone joining it). #52 / #163: at the
+    /// default size every face-layout tile is whole inside the column's scroll area and clear of its fade, in it / en / fr
+    /// / pt; at the minimum size the column may scroll, but no tile shows under the footer and a tile cut at the edge comes
+    /// with the cue that the column continues. Snapshots in Italian and French.
     @Test func snapshotsOfTheFormatOnTop() async throws {
         let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"].map { URL(fileURLWithPath: $0) }
-        struct State { let name: String; let preset: RecordingSources.Preset; let format: String?; let project: Bool }
+        struct State {
+            let name: String; let preset: RecordingSources.Preset; let format: String?; let project: Bool
+            var destination: RecordingDestination? = nil; var otherFormat = false
+        }
         let states = [State(name: "camera-9x16", preset: .face, format: "9:16", project: false),
                       State(name: "screen-face-9x16", preset: .screenFace, format: "9:16", project: false),
                       State(name: "screen-face-16x9", preset: .screenFace, format: nil, project: false),
-                      State(name: "this-project-other", preset: .screenFace, format: nil, project: true)]
+                      State(name: "new-project", preset: .screenFace, format: nil, project: true, destination: .newProject),
+                      State(name: "this-project", preset: .screenFace, format: nil, project: true, destination: .thisProject),
+                      State(name: "this-project-other", preset: .screenFace, format: nil, project: true, destination: .thisProject, otherFormat: true),
+                      State(name: "camera-this-project-other", preset: .face, format: nil, project: true, destination: .thisProject, otherFormat: true)]
         for state in states {
             let app = try await AppRig(project: state.project ? "empty" : nil)
             defer { app.close() }
@@ -346,33 +355,87 @@ extension MouseSuites {
             sources.videoFormat = state.format
             sources.layout = LayoutSpec(kind: .bubble)
             app.recorder.sources = sources
-            if state.project, let p = app.store.project {
+            if let d = state.destination { app.store.recordingChoice = d }
+            if state.otherFormat, let p = app.store.project {
                 app.store.recordingFormat = ScreenLook.formatID(p) == "16:9" ? "9:16" : "16:9"
             }
             for size in [CGSize(width: 1440, height: 900), CGSize(width: 1024, height: 640)] {
-                for lang in ["it", "fr"] {
+                for lang in ["it", "en", "fr", "pt"] {
                     let demo = RecordDemo(sources: sources, open: nil, grantPermissions: true)
                     app.rig?.close()
                     app.hostEditor(Navigation(activity: .record, rightTab: .claude), size: size, language: lang) { AnyView($0.environment(\.recordDemo, demo)) }
                     await app.settle()
                     await app.idle(0.2)
-                    #expect(segments(app).count >= 4, "\(state.name) \(lang) \(size): no format bar")
-                    // #52 at the default window size, in a tab without a project. With a project the destination's switch
-                    // pushes the second row of tiles under the footer, with or without the line about the format (#163).
-                    if state.preset == .screenFace, !state.project, size.width == 1440 {
-                        for (_, name) in FaceLayoutControls.names {
-                            let tile = app.rig.element(loc(name))
-                            #expect(tile.map { $0.clip.contains($0.frame) && $0.frame.maxY < Double(size.height) } == true,
-                                    "\(state.name) \(lang) \(Int(size.width)): «\(name)» is not in view: \(String(describing: tile?.frame))")
-                        }
+                    let tag = "\(state.name) \(lang) \(Int(size.width))"
+                    #expect(segments(app).count >= 4, "\(tag): no format bar")
+                    if state.destination != nil {
+                        let note = String(format: loc("Il progetto passa a %@ quando aggiungi la ripresa"), app.store.recordingFormat ?? "?")
+                        #expect((app.rig.element(note) != nil) == state.otherFormat, "\(tag): the line about the format is \(state.otherFormat ? "missing" : "shown")")
                     }
-                    if let dir {
+                    if let dir, lang == "it" || lang == "fr" {
                         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
                         try app.snapshot(to: dir.appendingPathComponent("registra-\(state.name)-\(Int(size.width))-\(lang).png"))
                     }
+                    await checkTiles(app, state.preset == .screenFace, atDefault: size.width == 1440, tag)
                 }
             }
         }
+    }
+
+    /// The face-layout tiles against the side column's scroll area and its footer (its first line: the automatic edit's
+    /// switch, else the destination, else the Record button). `atDefault` (the default window size): every tile inside the
+    /// area and above the fade the area draws while it continues below. Otherwise (the minimum size): while a tile is not
+    /// whole in view the cue says the column continues; scrolled to its end, every tile is whole in view, above the footer.
+    private func checkTiles(_ app: AppRig, _ shown: Bool, atDefault: Bool, _ tag: String, sourceLocation: SourceLocation = #_sourceLocation) async {
+        func look() -> (footer: RigElement?, section: RigElement?, tiles: [RigElement], cue: Bool) {
+            // The side column's elements (the right panel's history may name «Nuovo progetto» too).
+            let all = app.rig.elements().filter { $0.frame.minX < Chrome.activityWidth + Chrome.sideDefault }
+            let firsts = ["Montaggio automatico a fine registrazione", "Nuovo progetto", "Questo progetto", "Diventa un nuovo progetto in questa scheda",
+                          "Avvia / Ferma registrazione"].map { loc($0) }
+            let footer = all.filter { e in e.visible && firsts.contains { e.label.hasPrefix($0) || e.title == $0 } }.min { $0.frame.minY < $1.frame.minY }
+            // The tiles, clipped ones too: under the section's title («Solo schermo» is a preset above as well). A lazy grid
+            // far out of view may not lay them out at all.
+            let section = all.first { $0.name.caseInsensitiveCompare(loc("Volto nel video")) == .orderedSame }
+            let tiles = section.map { section in
+                FaceLayoutControls.names.compactMap { _, key in all.first { $0.isControl && $0.name == loc(key) && $0.frame.minY > section.frame.maxY } }
+            } ?? []
+            return (footer, section, tiles, all.contains { $0.name == loc("Altro sotto") && $0.visible })
+        }
+        func inView(_ t: RigElement, _ footer: RigElement, margin: Double) -> Bool {
+            t.clip.contains(t.frame) && t.clip.maxY - t.frame.maxY >= margin && t.frame.maxY <= footer.frame.minY
+        }
+        let seen = look()
+        guard let footer = seen.footer else { Issue.record("\(tag): no footer", sourceLocation: sourceLocation); return }
+        guard shown else {
+            #expect(seen.tiles.isEmpty, "\(tag): face-layout tiles with the camera alone", sourceLocation: sourceLocation)
+            return
+        }
+        guard let section = seen.section else { Issue.record("\(tag): no «Volto nel video» section", sourceLocation: sourceLocation); return }
+        for tile in seen.tiles {
+            FileHandle.standardError.write(Data("tiles \(tag) «\(tile.name)»: bottom \(Int(tile.frame.maxY)), area ends \(Int(tile.clip.maxY)), footer at \(Int(footer.frame.minY)), room \(Int(tile.clip.maxY - tile.frame.maxY))\n".utf8))
+            // Whatever shows of a tile is above the footer.
+            #expect(min(tile.frame.maxY, tile.clip.maxY) <= footer.frame.minY, "\(tag): «\(tile.name)» shows under the footer: \(tile.frame), footer at \(footer.frame.minY)",
+                    sourceLocation: sourceLocation)
+        }
+        let whole = seen.tiles.count == FaceLayoutControls.names.count && seen.tiles.allSatisfy { inView($0, footer, margin: ContinuesCue.height) }
+        if atDefault || whole {
+            #expect(whole, "\(tag): the tiles are not whole in view: \(seen.tiles.map { "\($0.name) \($0.frame) in \($0.clip)" })", sourceLocation: sourceLocation)
+            return
+        }
+        // The cue comes with the scroll area's first geometry: give the accessibility tree a moment, as #54 does.
+        var cue = seen.cue
+        for _ in 0..<40 where !cue {
+            await app.idle(0.1)
+            cue = look().cue
+        }
+        #expect(cue, "\(tag): tiles out of view and nothing says the column continues", sourceLocation: sourceLocation)
+        // Scrolled to its end: every tile whole in view, above the footer.
+        _ = app.rig.scrollContent(at: CGPoint(x: section.clip.midX, y: section.clip.midY), by: 2000)
+        await app.settle()
+        let end = look()
+        #expect(end.tiles.count == FaceLayoutControls.names.count && end.tiles.allSatisfy { inView($0, footer, margin: 0) },
+                "\(tag): scrolled to the end, the tiles are not whole above the footer: \(end.tiles.map { "\($0.name) \($0.frame) in \($0.clip)" })",
+                sourceLocation: sourceLocation)
     }
 }
 }

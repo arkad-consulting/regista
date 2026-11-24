@@ -182,7 +182,9 @@ struct RecordView: View {
     private var column: some View {
         VStack(spacing: 0) {
             ScrollView {
-                VStack(alignment: .leading, spacing: Ed.Space.xl) {
+                // Sections a step closer than a panel's usual: the face layout's tiles whole in view at the default
+                // window size, in a tab with a project too (#163).
+                VStack(alignment: .leading, spacing: Ed.Space.l) {
                     RSection(loc("Cosa registri")) {
                         RChips(items: RecordingSources.Preset.allCases.map { .init(id: $0, title: loc($0.title), symbol: $0.symbol) },
                                selection: s.preset, columns: 2) { p in
@@ -357,11 +359,11 @@ struct RecordView: View {
                 Label { Text(verbatim: why).fixedSize(horizontal: false, vertical: true) } icon: { Image(systemName: "exclamationmark.circle") }
                     .font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.warn)
             }
-            RToggle(title: loc("Montaggio automatico a fine registrazione"), isOn: $autoEdit,
-                    // One line for the reason (#52: the face layout above stays in view at the default window size).
-                    subtitle: s.screen ? loc("Solo per camera e voce") : nil)
-                .disabled(s.screen)
-                .opacity(s.screen ? 0.5 : 1)
+            // Only for camera and voice: with the screen on it cannot apply, and its lines go to the face layout's tiles
+            // above, whole in view at the default window size in every state (#52, #163).
+            if !s.screen {
+                RToggle(title: loc("Montaggio automatico a fine registrazione"), isOn: $autoEdit)
+            }
             if elsewhere == nil {
             destination
             HStack(spacing: Ed.Space.s) {
