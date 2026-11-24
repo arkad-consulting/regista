@@ -129,7 +129,6 @@
 "Le parole compaiono mentre parli, con le più importanti evidenziate." = "As palavras aparecem enquanto você fala, com as mais importantes destacadas.";
 "Le pause lunghe spariscono e di ogni frase resta la ripresa migliore." = "As pausas longas somem e fica a melhor tomada de cada frase.";
 "Leggero" = "Leve";
-"Leggero, al massimo sei, a qualche secondo l'uno dall'altro." = "Suave, no máximo seis, a alguns segundos um do outro.";
 "Livello semplice: sei passi guidati, un'anteprima e Fai tutto" = "Nível simples: seis passos guiados, uma prévia e Fazer tudo";
 "Luce leggera" = "Luz leve";
 "Mostra il file della registrazione nel Finder" = "Mostrar o arquivo da gravação no Finder";
@@ -2775,3 +2774,7 @@
 
 /* A camera clip placed in a project of another format, framed on the face (#154). */
 "inquadrata sul volto" = "enquadrado no rosto";
+
+/* The sound-effects switch says what the choice does (#167). */
+"Leggero, al massimo sei, a 3 s l'uno dall'altro." = "Suave, no máximo seis, a 3 s um do outro.";
+"Uno su ogni taglio, a 1 s l'uno dall'altro." = "Um em cada corte, a 1 s um do outro.";

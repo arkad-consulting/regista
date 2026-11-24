@@ -212,7 +212,7 @@ enum TakesSelect: Command {
 
 enum EditAutoCut: Command {
     static let id = "edit.autoCut"
-    static let summary = "Build the rough cut from the chosen takes: one clip per kept range (each chosen take, the pauses longer than maxPause inside it cut out; filler words stay: transcript.fillers lists them, transcript.deleteWords removes them) on a video track and the same ranges on an audio track, linked and frame-snapped so picture and sound cut together; 15 ms audio fades. replace: true rebuilds after takes.select. Expressed as ordinary track.add / timeline.delete / timeline.place commands, undone as one step. Returns the segments (line, take, source in/out, timeline start), track ids, duration and fromChoices (the person's choices used where the call left a value out: the pace)."
+    static let summary = "Build the rough cut from the chosen takes: one clip per kept range (each chosen take, the pauses longer than maxPause inside it cut out; filler words stay: transcript.fillers lists them, transcript.deleteWords removes them) on a video track and the same ranges on an audio track, linked and frame-snapped so picture and sound cut together; 15 ms audio fades. replace: true rebuilds after takes.select, keeping the light grade the picture had (lightGrade: true in the result). Expressed as ordinary track.add / timeline.delete / timeline.place commands, undone as one step. Returns the segments (line, take, source in/out, timeline start), track ids, duration and fromChoices (the person's choices used where the call left a value out: the pace)."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("videoTrackId", .string, "Video track (default: the first one, created if missing)."),
@@ -265,6 +265,8 @@ enum EditAutoCut: Command {
         let v = try track("videoTrackId", .video)
         let a = try track("audioTrackId", .audio)
         let existing = [v, a].flatMap { id in work.project!.tracks.first { $0.id == id }!.clips.map(\.id) }
+        // A cut done again keeps the light grade the picture had (#167): the colour choice asked for it, the new clips get it.
+        let lit = work.project!.tracks.first { $0.id == v }!.clips.contains { LightGrade.isOn($0.color) }
         if !existing.isEmpty {
             guard replace else { throw CommandError.conflict("\(id): tracks \(v)/\(a) already have clips — pass replace: true") }
             try work.perform(TimelineDelete.self, ["clipIds": .array(existing.map { .string($0) }), "linked": false], log: &log)
@@ -291,9 +293,15 @@ enum EditAutoCut: Command {
         if fade > .zero, !placed.isEmpty {
             try work.perform(ClipSet.self, ["trackId": .string(a), "fadeIn": .number(fade.seconds), "fadeOut": .number(fade.seconds)], log: &log)
         }
+        if lit, !placed.isEmpty {
+            try work.perform(ClipSet.self, ["trackId": .string(v), "brightness": .number(LightGrade.brightness), "contrast": .number(LightGrade.contrast),
+                                            "saturation": .number(LightGrade.saturation)], log: &log)
+        }
         if !dryRun { ctx = work }
-        return ["commands": .array(log), "segments": .array(placed), "videoTrackId": .string(v), "audioTrackId": .string(a),
-                "duration": ProjectState.seconds(start), "dryRun": .bool(dryRun), "fromChoices": used.json]
+        var result: [String: JSONValue] = ["commands": .array(log), "segments": .array(placed), "videoTrackId": .string(v), "audioTrackId": .string(a),
+                                           "duration": ProjectState.seconds(start), "dryRun": .bool(dryRun), "fromChoices": used.json]
+        if lit, !placed.isEmpty { result["lightGrade"] = true }
+        return .object(result)
     }
 }
 

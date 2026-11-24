@@ -206,7 +206,10 @@ extension MouseSuites.ClickAudits {
         // The bit rate slider reads its value as an assistive client does (#36): its click shows in the table.
         let bitrate = ExportOptions.shared.bitrate
         defer { ExportOptions.shared.bitrate = bitrate }
-        _ = try await audit("export", Navigation(activity: .export, rightTab: .inspector), area: WindowPart.content, noOps: [
+        // A taller window, as export-rules: the «not checked» lines and their links (#166) put the cover row at the bottom
+        // edge of a 900 pt window, half under the status bar.
+        _ = try await audit("export", Navigation(activity: .export, rightTab: .inspector), size: CGSize(width: 1440, height: 1300),
+                            area: CGRect(x: 52, y: 40, width: 1068, height: 1236), noOps: [
             "Reel 9:16": "the export format already chosen (the project's own)",
         ], restore: { _ in ExportOptions.shared.bitrate = bitrate })
     }

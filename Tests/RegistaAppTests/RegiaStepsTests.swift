@@ -69,17 +69,26 @@ extension MouseSuites {
         #expect(done.choices == nil, "«Fai tutto» stored choices of its own")
         #expect(store.simpleSnapshot.light, "«Fai tutto» did not put the light grade on (the colour choice, light by default)")
 
-        // A pace picked in the step: this project's own (one command, one undo step), the dot names the regia's.
+        // A pace picked in the step: this project's own (one command, one undo step), the dot names the regia's. The cut
+        // done again keeps the light grade (#167): the cut and the grade are that one undo step.
         try await j.openRow(.cut)
         var n = j.app.store.activity.count
+        let undo = store.undoNames.count
         try await j.tap("Calm")
         #expect(await j.until(10) { store.project?.takes?.options.maxPause == 1.2 }, "the cut did not follow the pace picked")
         #expect(j.app.commands(since: n) == ["project.setChoices"], "the pace ran \(j.app.commands(since: n))")
+        #expect(store.undoNames.count == undo + 1, "the pace is not one undo step")
+        #expect(store.simpleSnapshot.light, "the cut done again dropped the light grade")
+        #expect(store.project?.tracks.first { $0.kind == .video }?.clips.allSatisfy { LightGrade.isOn($0.color) } == true,
+                "a clip of the new cut has no light grade")
         #expect(store.project?.choices?["pace"]?.value == "calm")
         #expect(dot("pace", "fast") != nil && j.control(restore) != nil, "no dot or «Ripristina» after a change: \(j.screen())")
         j.step("Taglio e riprese › «\(loc("Calm"))»", sees: "the cut at the calm pace, the dot «\(dot("pace", "fast")?.label ?? "-")», «Ripristina»")
+        let calmCut = store.project?.tracks.first { $0.kind == .video }?.clips.map(\.id)
         try await store.perform("history.undo")
         #expect(store.project?.choices == nil && store.project?.takes?.options.maxPause == 0.4, "one undo did not take back the choice and its cut")
+        #expect(store.project?.tracks.first { $0.kind == .video }?.clips.map(\.id) != calmCut && store.simpleSnapshot.light,
+                "one undo did not bring back the cut before, with its grade")
         try await store.perform("history.redo")
         await j.app.settle()
         // «Ripristina»: back to the regia, the cut again at its pace, the dot gone.
@@ -101,7 +110,7 @@ extension MouseSuites {
         #expect(!anyDot())
 
         // Aspetto: the light grade (the colour choice, light by default: no choice of this project's) taken off is this
-        // project's choice «none». (The cut again above made new clips, without the grade.)
+        // project's choice «none».
         try await j.openRow(.look)
         if !store.simpleSnapshot.light {
             try await j.tap("Luce leggera")
@@ -120,6 +129,16 @@ extension MouseSuites {
         j.step("Musica e suoni › Un whoosh sui tagli", sees: "\(store.simpleSnapshot.effects) sounds on the cuts, the dot «\(dot("sfx", "none")?.label ?? "-")»")
         try await j.tap(restore)
         #expect(await j.until(10) { store.simpleSnapshot.effects == 0 && store.project?.choices == nil }, "«Ripristina» left the sounds the regia does not want")
+        // The switch says what the choice does (#167): sparse, at most six 3 s apart (turning it on where the regia says
+        // none); every action, one on every cut 1 s apart.
+        #expect(j.shows(loc("Leggero, al massimo sei, a 3 s l'uno dall'altro.")), "the switch does not say what sparse does: \(j.screen())")
+        try await store.perform("project.setChoices", ["choices": ["sfx": "actions"]])
+        await j.app.settle()
+        #expect(await j.until(5) { j.shows(loc("Uno su ogni taglio, a 1 s l'uno dall'altro.")) }, "the switch still says «at most six» for every action: \(j.screen())")
+        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+            try? j.app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("sound-step-every-action-\(language).png"))
+        }
+        try await store.perform("history.undo")
 
         // Grafica: the logo taken off is this project's choice «off»; «Ripristina» takes the choice back.
         let kit = try await j.brandKit("Regia Kit")

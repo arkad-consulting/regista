@@ -129,7 +129,6 @@
 "Le parole compaiono mentre parli, con le più importanti evidenziate." = "The words appear as you speak, the important ones highlighted.";
 "Le pause lunghe spariscono e di ogni frase resta la ripresa migliore." = "Long pauses go away and the best take of each sentence stays.";
 "Leggero" = "Light";
-"Leggero, al massimo sei, a qualche secondo l'uno dall'altro." = "Soft, six at most, a few seconds apart.";
 "Livello semplice: sei passi guidati, un'anteprima e Fai tutto" = "Simple level: six guided steps, one preview and Do everything";
 "Luce leggera" = "Light grade";
 "Mostra il file della registrazione nel Finder" = "Show the recording's file in Finder";
@@ -2775,3 +2774,7 @@
 
 /* A camera clip placed in a project of another format, framed on the face (#154). */
 "inquadrata sul volto" = "framed on the face";
+
+/* The sound-effects switch says what the choice does (#167). */
+"Leggero, al massimo sei, a 3 s l'uno dall'altro." = "Soft, six at most, 3 s apart.";
+"Uno su ogni taglio, a 1 s l'uno dall'altro." = "One on every cut, 1 s apart.";

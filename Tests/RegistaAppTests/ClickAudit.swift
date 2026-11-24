@@ -367,6 +367,9 @@ struct ClickAudit {
         for t in s.bench.tabs where t !== s { _ = await s.bench.close(t) }
         if s.bench.activeID != activeID { s.bench.select(activeID) }
         if s.project == nil, let path = app.projectPath { _ = try? await s.perform("project.open", ["path": .string(path.path)]) }
+        // A step a click started (the face step of Esporta's «Trova il volto», #166) ends first: its command would land after
+        // the undo and change the screen under the next clicks.
+        for _ in 0..<300 where s.runningStepJob != nil { await app.idle(0.1) }
         for _ in 0..<20 where s.undoNames.count > base.undo { _ = try? await s.perform("history.undo") }
         s.nav = nav
         s.tool = EditorStore.Tool(rawValue: base.ui["tool"] ?? "select") ?? .select

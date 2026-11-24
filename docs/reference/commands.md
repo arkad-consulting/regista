@@ -629,7 +629,7 @@ Returns: the style and whether it is drawn.
 
 **Automatic cut** · MCP tool: `edit_autoCut` · undo: yes — one undo step · takes `project`
 
-Build the rough cut from the chosen takes: one clip per kept range (each chosen take, the pauses longer than maxPause inside it cut out; filler words stay: transcript.fillers lists them, transcript.deleteWords removes them) on a video track and the same ranges on an audio track, linked and frame-snapped so picture and sound cut together; 15 ms audio fades. replace: true rebuilds after takes.select. Expressed as ordinary track.add / timeline.delete / timeline.place commands, undone as one step. Returns the segments (line, take, source in/out, timeline start), track ids, duration and fromChoices (the person's choices used where the call left a value out: the pace).
+Build the rough cut from the chosen takes: one clip per kept range (each chosen take, the pauses longer than maxPause inside it cut out; filler words stay: transcript.fillers lists them, transcript.deleteWords removes them) on a video track and the same ranges on an audio track, linked and frame-snapped so picture and sound cut together; 15 ms audio fades. replace: true rebuilds after takes.select, keeping the light grade the picture had (lightGrade: true in the result). Expressed as ordinary track.add / timeline.delete / timeline.place commands, undone as one step. Returns the segments (line, take, source in/out, timeline start), track ids, duration and fromChoices (the person's choices used where the call left a value out: the pace).
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|

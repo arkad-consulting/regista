@@ -129,7 +129,6 @@
 "Le parole compaiono mentre parli, con le più importanti evidenziate." = "Le parole compaiono mentre parli, con le più importanti evidenziate.";
 "Le pause lunghe spariscono e di ogni frase resta la ripresa migliore." = "Le pause lunghe spariscono e di ogni frase resta la ripresa migliore.";
 "Leggero" = "Leggero";
-"Leggero, al massimo sei, a qualche secondo l'uno dall'altro." = "Leggero, al massimo sei, a qualche secondo l'uno dall'altro.";
 "Livello semplice: sei passi guidati, un'anteprima e Fai tutto" = "Livello semplice: sei passi guidati, un'anteprima e Fai tutto";
 "Luce leggera" = "Luce leggera";
 "Mostra il file della registrazione nel Finder" = "Mostra il file della registrazione nel Finder";
@@ -2775,3 +2774,7 @@
 
 /* A camera clip placed in a project of another format, framed on the face (#154). */
 "inquadrata sul volto" = "inquadrata sul volto";
+
+/* The sound-effects switch says what the choice does (#167). */
+"Leggero, al massimo sei, a 3 s l'uno dall'altro." = "Leggero, al massimo sei, a 3 s l'uno dall'altro.";
+"Uno su ogni taglio, a 1 s l'uno dall'altro." = "Uno su ogni taglio, a 1 s l'uno dall'altro.";

@@ -616,6 +616,14 @@ private struct SoundPanel: View {
 
     private var canCutSounds: Bool { (store.project.flatMap(SimpleSnapshot.mainVideo)?.clips.count ?? 0) > 1 || snap.effects > 0 }
 
+    /// What the sound effects choice does (#167): on, the project's; off, the one turning it on gives (the regia's, sparse
+    /// when it says none), as sfx.onCuts places them.
+    private var effectsLine: String {
+        let c = snap.choices, now = c.value("sfx"), regia = c.regiaValue("sfx")
+        let density = now != "none" ? now : (regia != "none" ? regia : "sparse")
+        return density == "actions" ? "Uno su ogni taglio, a 1 s l'uno dall'altro." : "Leggero, al massimo sei, a 3 s l'uno dall'altro."
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: Ed.Space.xl) {
             RSection("") {
@@ -650,8 +658,7 @@ private struct SoundPanel: View {
             RSection("") {
                 regiaLabel("EFFETTI SONORI", ["sfx"], snap.choices)
                 RToggle(title: "Un whoosh sui tagli", isOn: Binding(get: { snap.effects > 0 }, set: { store.simpleSoundEffects($0) }),
-                        subtitle: canCutSounds ? "Leggero, al massimo sei, a qualche secondo l'uno dall'altro."
-                                               : "Prima taglia il video: i suoni vanno sui tagli.")
+                        subtitle: canCutSounds ? effectsLine : "Prima taglia il video: i suoni vanno sui tagli.")
                     .disabled(!canCutSounds)
             }
             AccentLinkButton(title: loc("Scegli i suoni uno per uno in Pro")) { openPro(store) { $0.select(.audio); $0.soundTab = .sfx } }
