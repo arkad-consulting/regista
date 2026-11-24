@@ -57,7 +57,8 @@ enum KickerHeadline: MotionTemplate {
         let h = c.px(size * 1.3)
         let pad = c.px(40)
         let sprite = c.sprite("hl|\(rs.map { "\($0.accent)\($0.text)" })|\(color)|\(accent)|\(size)", total + 2 * pad, h + 2 * pad) { ctx in
-            if color == "#FFFFFF" { ctx.setShadow(offset: CGSize(width: 0, height: c.px(6)), blur: c.px(24), color: CGColor(gray: 0, alpha: 0.3)) }
+            // A shadow offset ignores the flipped context: negative falls below.
+            if color == "#FFFFFF" { ctx.setShadow(offset: CGSize(width: 0, height: -c.px(6)), blur: c.px(24), color: CGColor(gray: 0, alpha: 0.3)) }
             var x = pad
             let base = pad + h * 0.78
             for r in rs {

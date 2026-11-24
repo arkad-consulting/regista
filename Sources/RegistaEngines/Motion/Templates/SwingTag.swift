@@ -54,7 +54,8 @@ enum SwingTag: MotionTemplate {
             path.addLine(to: CGPoint(x: r.minX, y: r.minY + cut))
             path.closeSubpath()
             ctx.saveGState()
-            ctx.setShadow(offset: CGSize(width: c.px(6), height: c.px(14)), blur: c.px(26), color: CGColor(gray: 0, alpha: 0.28))
+            // A shadow offset ignores the flipped context: negative falls below.
+            ctx.setShadow(offset: CGSize(width: c.px(6), height: -c.px(14)), blur: c.px(26), color: CGColor(gray: 0, alpha: 0.28))
             ctx.addPath(path); ctx.setFillColor(TitleRasterizer.color(paper)); ctx.fillPath()
             ctx.restoreGState()
             // A faint paper shade towards the bottom.

@@ -52,7 +52,8 @@ enum Cursor: MotionTemplate {
         let k = m.number("size", 2.4) * c.k
         let arrow = c.sprite("arrow|\(Int(k * 100))", 40 * k, 50 * k) { ctx in
             let path = CGScreenSynthesizer.Scene.cursorPath(at: CGPoint(x: 6 * k, y: 4 * k), scale: k)
-            ctx.setShadow(offset: CGSize(width: 0, height: 3 * k), blur: 6 * k, color: CGColor(gray: 0, alpha: 0.4))
+            // A shadow offset ignores the flipped context: negative falls below.
+            ctx.setShadow(offset: CGSize(width: 0, height: -3 * k), blur: 6 * k, color: CGColor(gray: 0, alpha: 0.4))
             ctx.addPath(path); ctx.setFillColor(CGColor(gray: 1, alpha: 1)); ctx.fillPath()
             ctx.setShadow(offset: .zero, blur: 0, color: nil)
             ctx.addPath(path); ctx.setStrokeColor(CGColor(gray: 0, alpha: 1)); ctx.setLineWidth(1.6 * k); ctx.setLineJoin(.round); ctx.strokePath()

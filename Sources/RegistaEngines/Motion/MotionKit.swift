@@ -320,11 +320,12 @@ public enum Draw {
         if let stroke { ctx.addPath(path); ctx.setStrokeColor(stroke); ctx.setLineWidth(lineWidth); ctx.strokePath() }
     }
 
-    /// A card: rounded rectangle with a soft shadow under it (leave `shadowRoom` around it in the sprite).
+    /// A card: rounded rectangle with a soft shadow under it (leave `shadowRoom` around it in the sprite). A positive `dy` moves the
+    /// shadow down: a shadow offset is in base space and ignores the flipped context of a sprite, so it is negated here.
     public static func card(_ ctx: CGContext, _ r: CGRect, radius: Double, fill: CGColor, shadow: Double = 0.22, blur: Double = 30, dy: Double = 10,
                             stroke: CGColor? = nil) {
         ctx.saveGState()
-        if shadow > 0 { ctx.setShadow(offset: CGSize(width: 0, height: dy), blur: blur, color: CGColor(gray: 0, alpha: shadow)) }
+        if shadow > 0 { ctx.setShadow(offset: CGSize(width: 0, height: -dy), blur: blur, color: CGColor(gray: 0, alpha: shadow)) }
         roundedRect(ctx, r, radius: radius, fill: fill)
         ctx.restoreGState()
         if let stroke { roundedRect(ctx, r.insetBy(dx: 0.5, dy: 0.5), radius: radius, fill: nil, stroke: stroke, lineWidth: 1) }

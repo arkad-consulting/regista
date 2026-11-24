@@ -78,7 +78,8 @@ enum Counter: MotionTemplate {
         let total = tw + (icon.isEmpty ? 0 : iconSize + gap)
         let hgt = c.px(size * 1.25)
         let sprite = c.sprite("n|\(text)|\(color)|\(size)|\(icon)|\(m.string("font"))", total + 2 * pad, hgt + 2 * pad) { ctx in
-            ctx.setShadow(offset: CGSize(width: 0, height: c.px(8)), blur: c.px(30), color: CGColor(gray: 0, alpha: 0.35))
+            // A shadow offset ignores the flipped context: negative falls below.
+            ctx.setShadow(offset: CGSize(width: 0, height: -c.px(8)), blur: c.px(30), color: CGColor(gray: 0, alpha: 0.35))
             var x = pad
             if !icon.isEmpty {
                 Draw.symbol(ctx, icon, in: CGRect(x: x, y: pad + (hgt - iconSize) / 2, width: iconSize, height: iconSize), color: TitleRasterizer.color(m.color("iconColor", "paper")))

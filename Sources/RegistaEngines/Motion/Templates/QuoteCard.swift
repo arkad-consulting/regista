@@ -57,8 +57,7 @@ enum QuoteCard: MotionTemplate {
         let pop = Anim.spring(c.t, 0, length: 0.45), leave = Anim.exit(c.t, c.d, 0.25)
         let fade = 1 - leave
         let card = c.sprite("quote-card|\(dark)", w + 2 * pad, h + 2 * pad) { ctx in
-            // A shadow offset ignores the flipped context: negative falls below the card.
-            Draw.card(ctx, CGRect(x: pad, y: pad, width: w, height: h), radius: c.px(26), fill: surface, shadow: 0.28, blur: c.px(30), dy: -c.px(12),
+            Draw.card(ctx, CGRect(x: pad, y: pad, width: w, height: h), radius: c.px(26), fill: surface, shadow: 0.28, blur: c.px(30), dy: c.px(12),
                       stroke: dark ? TitleRasterizer.color("#FFFFFF", alpha: 0.1) : TitleRasterizer.color("#000000", alpha: 0.06))
         }
         let cardTop = cy - h / 2 + c.px(18) * (1 - pop)

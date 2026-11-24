@@ -98,6 +98,30 @@ func tempFolder() throws -> URL {
     for t in MotionLibrary.templates { #expect(used.contains(t.spec.id), "motion-gallery.json does not add \(t.spec.id)") }
 }
 
+/// A card's soft shadow falls below it (#147): drawn in a sprite (flipped, top-left origin) and laid on a light wall, the
+/// band under the card is darker than the band over it.
+@Test func aCardCastsItsShadowBelowIt() throws {
+    let dir = try tempFolder()
+    defer { try? FileManager.default.removeItem(at: dir) }
+    let c = MotionCanvas(m: MotionLayer(template: "stat-card", fields: [:], style: MotionStyle.from(nil), layering: .front),
+                         t: 0, d: 1, part: .whole, W: 1080, H: 1920, store: MotionStore(), below: nil)
+    let card = CGRect(x: 100, y: 100, width: 200, height: 200)
+    let sprite = c.sprite("shadow-test", 400, 400) { ctx in
+        Draw.card(ctx, card, radius: 20, fill: TitleRasterizer.color("#FFFFFF"), shadow: 0.3, blur: 30, dy: 14)
+    }
+    let wall = CIImage(color: CIColor(red: 0.94, green: 0.93, blue: 0.9)).cropped(to: sprite.extent)
+    let out = dir.appendingPathComponent("card.png")
+    try CIContext().writePNGRepresentation(of: sprite.composited(over: wall), to: out, format: .RGBA8, colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!)
+    // Mean brightness of a 20 px band just outside the card's top or bottom edge (rows from the top of the image).
+    func band(_ rows: ClosedRange<Int>) throws -> Double {
+        var sum = 0, n = 0
+        for y in rows { for x in stride(from: 150, through: 250, by: 10) { let p = try pixel(out, x, y); sum += p.0 + p.1 + p.2; n += 3 } }
+        return Double(sum) / Double(n)
+    }
+    let above = try band(78...97), below = try band(303...322)
+    #expect(below < above - 6, "the band below the card (\(below)) is not darker than the band above it (\(above))")
+}
+
 @Test func counterWritesThousandsLikeTheCaptions() {
     #expect(Counter.format(11000, clock: false, decimals: 0) == "11,000")
     #expect(Counter.format(11000, clock: false, decimals: 0, separator: ".") == "11.000")

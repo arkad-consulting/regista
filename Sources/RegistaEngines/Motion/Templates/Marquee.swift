@@ -15,7 +15,7 @@ enum Marquee: MotionTemplate {
             .init("items", "list", ["Subtitles", "Zoom", "Sound", "Rhythm", "Logo", "Colour"], "Words of the first row (4–12)."),
             .init("items2", "list", ["Motion", "Grading", "Captions", "Transitions", "Music"], "Words of the second row (empty = one row)."),
             .init("y1", "number", 820, "First row centre, y on a 1080×1920 frame (forehead height: it passes behind the head)."),
-            .init("y2", "number", 1170, "Second row centre, y (chest/chin height, above the caption band)."),
+            .init("y2", "number", 1150, "Second row centre, y (chest/chin height, above the caption band, its shadow included)."),
             .init("behind1", "boolean", true, "First row passes behind the speaker."),
             .init("behind2", "boolean", false, "Second row passes behind the speaker."),
             .init("theme1", "choice", "dark", "First row pills.", choices: ["dark", "light", "accent"]),
@@ -29,7 +29,7 @@ enum Marquee: MotionTemplate {
         var rows: [(items: [String], y: Double, behind: Bool, theme: String, dir: Double)] = []
         let a = m.strings("items"), b = m.strings("items2")
         if !a.isEmpty { rows.append((a, m.number("y1", 820), m.bool("behind1", true), m.string("theme1", "dark"), -1)) }
-        if !b.isEmpty { rows.append((b, m.number("y2", 1170), m.bool("behind2", false), m.string("theme2", "light"), 1)) }
+        if !b.isEmpty { rows.append((b, m.number("y2", 1150), m.bool("behind2", false), m.string("theme2", "light"), 1)) }
         let env = Anim.envelope(c.t, c.d, in: 0.4, out: 0.3)
         var layers: [CIImage] = []
         for (r, row) in rows.enumerated() {
