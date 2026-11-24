@@ -24,6 +24,10 @@ L'installation tient en une seule commande dans le Terminal : tout est expliqué
 - *La barre d'état*, tout en bas, indique la mémoire et le niveau du Mac, le volume du montage et si le projet est
   enregistré. Quand Regista travaille (une transcription, un export), **Tâches** apparaît : un clic montre
   l'avancement, **Annuler** et les erreurs éventuelles.
+- *La barre au-dessus du montage* choisit **Simple** ou **Pro** et montre le format de la vidéo, par exemple Format
+  9:16 · 1080×1920 · 30 fps : un clic ouvre 9:16, 4:5, 1:1 et 16:9. Changer de format est une seule étape de ⌘Z, et les
+  clips de la caméra restent cadrés sur le visage, jamais coupés au centre. Le même choix est dans l'**Inspecteur**,
+  section **Projet**, sous **Format**.
 
 Chaque bouton fait une étape que vous annulez avec ⌘Z et refaites avec ⇧⌘Z, y compris les étapes de Claude.
 
@@ -35,6 +39,9 @@ C'est le chemin le plus simple : vous enregistrez, Regista monte tout seul, vous
    plutôt **ou importez une vidéo** et passez à l'étape 6.
 2. Dans **Enregistrer**, sous **Ce que vous enregistrez**, choisissez **Visage seul**. **Caméra** et **Micro** doivent
    être allumés. La première fois, macOS demande l'autorisation pour la caméra et le micro : acceptez.
+   Au-dessus de l'aperçu, choisissez le format de la vidéo : **Comme la caméra**, 9:16, 16:9, 4:5 ou 1:1. Un cadre sur
+   l'aperçu montre ce qui reste dans la vidéo. Si le projet de l'onglet a un autre format, il passe à celui choisi quand
+   vous ajoutez la prise ; une prise d'un autre format est cadrée sur le visage.
 3. Dans le panneau de droite, onglet **Prompteur**, collez votre texte : une phrase par ligne. Avec **Prompteur**
    allumé dans **Sources**, le prompteur s'ouvre et démarre avec l'enregistrement.
 4. Appuyez sur **Enregistrer** (⇧⌘R) et lisez. Si vous ratez une phrase, reprenez-la : le prompteur revient au début de
@@ -50,6 +57,9 @@ C'est le chemin le plus simple : vous enregistrez, Regista monte tout seul, vous
 7. Si le montage n'est pas encore fait, appuyez sur **Tout faire** : il coupe les pauses, choisit les prises, nettoie la
    voix, ajoute les sous-titres et une lumière plus vive. Vous pouvez l'arrêter à tout moment ; relancé, il n'ajoute
    rien deux fois.
+   D'abord, il trouve le visage dans chaque image (**Trouver le visage** : Apple Vision, sur le Mac, sans frais), pour
+   que sous-titres et cadrages le laissent libre ; à la fin, il vérifie qu'aucune tête n'est coupée. Si une l'est,
+   l'étape le dit et son bouton **Cadrer sur le visage** refait le cadrage.
 8. Ouvrez les étapes une à une et regardez le résultat dans le moniteur :
    - **Coupe et prises** : à quel point la coupe est serrée (les longues pauses disparaissent) et, pour les phrases lues
      plusieurs fois, quelle prise garder. Regista choisit la meilleure ; vous pouvez en essayer une autre.
@@ -65,6 +75,19 @@ C'est le chemin le plus simple : vous enregistrez, Regista monte tout seul, vous
 9. Appuyez sur **Exporter le reel**. **Exporter** s'ouvre au format **Reel 9:16**. Regardez les **Vérifications**
    (durée, volume, crête, sous-titres à jour), puis appuyez sur **Exporter la vidéo…** et choisissez le nom et le
    dossier. À la fin, **Afficher dans le Finder** ouvre le dossier.
+
+Chaque étape part de votre réalisation (voir « Réalisation et skills » plus bas) : le rythme de la coupe, le style des
+sous-titres, la lumière, la musique, les effets sonores, le logo. Un choix changé dans une étape vaut pour ce projet
+seulement : une pastille apparaît à côté (le pointeur dessus dit ce que veut votre réalisation) et, à côté du titre de
+l'étape, **Réinitialiser** ramène l'étape à votre réalisation. Cela aussi s'annule avec ⌘Z.
+
+Dans **Exporter**, la carte **Règles de montage** vérifie la vidéo avec les règles de son type : aucun sous-titre sur un
+visage, des sous-titres qui partent avec leurs mots, la musique baissée sous la voix, la voix à son volume, les textes à
+l'écran le temps de les lire, le logo seulement à la fin. Une règle non respectée a un lien vers le moment et, quand c'est
+possible, **Corriger** (une étape de ⌘Z) ; **Tout corriger et exporter** les corrige toutes, **Exporter quand même** est
+toujours là. Une vérification qui ne peut pas encore être mesurée reste sur une ligne grise, « non vérifié », avec la
+raison et un lien pour la mesurer : **Trouver le visage** ou **Exporter pour mesurer**. Elle ne compte jamais comme
+respectée.
 
 Regista retire les longues pauses et garde la meilleure prise de chaque phrase. Il ne retire pas encore les mots de
 remplissage comme « euh » à l'intérieur d'une phrase : si vous en trouvez un, enlevez-le à la main dans la transcription
@@ -82,14 +105,15 @@ dessous la timeline avec ses pistes : sous-titres, graphismes, prises, voix, mus
 timeline, les outils sélection (V), lame (C), texte (T) et main (H) ; à droite, l'indicateur de volume. Simple et Pro
 montrent le même projet : ce que vous changez dans l'un, vous le voyez dans l'autre.
 
-- **Médias** : les fichiers du projet. **Importer…** ajoute des vidéos, des sons et des images. Un double-clic sur un
-  fichier l'affiche dans le moniteur **Source**.
+- **Médias** : les fichiers du projet. **Importer…** ajoute des vidéos, des sons et des images ; une vidéo qui va sur un
+  montage vide dans un autre format que celui du projet est cadrée sur le visage. Un double-clic sur un fichier
+  l'affiche dans le moniteur **Source**.
 - **Textes et sous-titres** a quatre onglets. **Étapes** va de la vidéo aux sous-titres une étape à la fois
-  (**Transcrire**, **Script**, **Choisir les prises**, **Couper les pauses**, **Nettoyer la voix**, **Sous-titres**), ou
-  tout d'un coup avec **Tout faire**. **Sous-titres** change le style et les mots clés. **Transcription** suit la tête
-  de lecture : un clic sur un mot vous y amène ; sélectionnez des mots (⌥clic, ⇧clic) et retirez-les du montage avec
-  ⌫. **Prises** montre chaque lecture de chaque phrase : validez celle qui est choisie ou prenez-en une autre, puis
-  refaites la coupe.
+  (**Transcrire**, **Trouver le visage**, **Script**, **Choisir les prises**, **Couper les pauses**, **Nettoyer la
+  voix**, **Sous-titres**), ou tout d'un coup avec **Tout faire**. **Sous-titres** change le style et les mots clés.
+  **Transcription** suit la tête de lecture : un clic sur un mot vous y amène ; sélectionnez des mots (⌥clic, ⇧clic) et
+  retirez-les du montage avec ⌫. **Prises** montre chaque lecture de chaque phrase : validez celle qui est choisie ou
+  prenez-en une autre, puis refaites la coupe.
 - **Audio** a deux onglets. **Mix** : le volume du montage, le nettoyage de la voix, la musique
   (**Ajouter de la musique…**, son volume et de combien elle baisse sous la voix). **Effets sonores** : cherchez un son,
   écoutez-le d'un clic et placez-le à la tête de lecture.
@@ -166,6 +190,11 @@ l'export, les choix comme le style des sous-titres ou le rythme, et les règles 
   montre ce qu'il dit avant de l'ajouter ; **Exporter…** crée le fichier à envoyer.
 - Chaque skill a trois onglets : **Règles**, **Choix** et **Étapes** (les étapes que Claude suit). Chaque modification
   s'annule avec ⌘Z.
+- Dans **Règles**, les vérifications sont rangées par partie de la vidéo : **Toujours**, **Ouverture**, **Image**,
+  **Graphismes et texte**, **Fin**, **Son**. Chacune s'allume ou s'éteint ; là où elle a un nombre (la pause avant le
+  logo, le volume de la voix), vous le changez là. Dans **Choix**, vous dites comment vous voulez la vidéo : le rythme,
+  le style des sous-titres, la couleur, la musique, les effets sonores, le logo de fin. Claude et les étapes de Simple
+  partent de ces choix.
 - Vous pouvez aussi la demander à Claude, par exemple : « fais une skill pour les longues interviews, avec des
   sous-titres élégants et sans zoom ». Aucune skill ne change les règles qui valent toujours (votre voix seule, les
   originaux jamais touchés, aucune dépense sans votre accord).
@@ -210,6 +239,10 @@ Tout va dans le dossier Films › Regista (vous le changez dans **Réglages › 
 
 Avec **Enregistrement automatique** allumé, Regista enregistre chaque minute les projets qui ont déjà un dossier. Un
 projet jamais enregistré, c'est vous qui l'enregistrez avec ⌘S.
+
+Si Regista cesse de répondre pendant quelques secondes, il écrit tout seul un rapport de blocage sur le Mac : rien
+n'est envoyé. **Réglages › Général › Afficher les rapports de blocage** montre le plus récent dans le Finder, à joindre à
+un signalement.
 
 Tous les raccourcis clavier sont dans **Réglages › Raccourcis**. En cas de problème, lisez
 [Résolution des problèmes](troubleshooting.md) ; pour votre voix clonée, [Enregistrer votre voix](voice.md).

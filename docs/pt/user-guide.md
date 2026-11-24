@@ -23,6 +23,10 @@ A instalação é um único comando no Terminal: está tudo em [Instalação e m
 - *A barra de status*, lá embaixo, mostra a memória e o nível do Mac, o volume da edição e se o projeto está salvo.
   Quando o Regista está trabalhando (uma transcrição, uma exportação), aparece **Tarefas**: um clique mostra o
   andamento, **Cancelar** e os erros, se houver.
+- *A barra acima da edição* escolhe **Simples** ou **Pro** e mostra o formato do vídeo, por exemplo Formato 9:16 ·
+  1080×1920 · 30 fps: um clique abre 9:16, 4:5, 1:1 e 16:9. Mudar o formato é um passo só de ⌘Z, e os clipes da câmera
+  continuam enquadrados no rosto, nunca cortados no centro. A mesma escolha está no **Inspetor**, seção **Projeto**,
+  em **Formato**.
 
 Cada botão faz um passo que você desfaz com ⌘Z e refaz com ⇧⌘Z, inclusive os passos do Claude.
 
@@ -34,6 +38,9 @@ Este é o caminho mais simples: você grava, o Regista edita sozinho, você conf
    **ou importe um vídeo** e pule para o passo 6.
 2. Em **Gravar**, em **O que você grava**, escolha **Só o rosto**. **Câmera** e **Microfone** precisam estar ligados.
    Na primeira vez, o macOS pede permissão para a câmera e o microfone: permita.
+   Acima da prévia, escolha o formato do vídeo: **Como a câmera**, 9:16, 16:9, 4:5 ou 1:1. Uma moldura na prévia mostra
+   o que fica no vídeo. Se o projeto da aba tem outro formato, ele passa para o escolhido quando você acrescenta a tomada;
+   uma tomada de outro formato é enquadrada no rosto.
 3. No painel da direita, aba **Teleprompter**, cole o seu texto: uma frase por linha. Com **Teleprompter** ligado em
    **Origens**, o teleprompter abre e começa junto com a gravação.
 4. Aperte **Gravar** (⇧⌘R) e leia. Se errar uma frase, comece de novo: o teleprompter volta ao início da frase e marca
@@ -48,6 +55,9 @@ Este é o caminho mais simples: você grava, o Regista edita sozinho, você conf
 7. Se a edição ainda não estiver feita, aperte **Fazer tudo**: ele corta as pausas, escolhe as tomadas, limpa a voz,
    coloca as legendas e uma luz mais viva. Você pode interromper quando quiser; se rodar de novo, ele não acrescenta
    nada duas vezes.
+   Primeiro ele encontra o rosto em cada quadro (**Encontrar o rosto**: Apple Vision, no Mac, sem custo), para que
+   legendas e enquadramentos o deixem livre; no fim, confere que nenhuma cabeça ficou cortada. Se uma ficou, o passo
+   avisa e o botão **Enquadrar no rosto** refaz o enquadramento.
 8. Abra os passos um por um e veja o resultado no monitor:
    - **Corte e tomadas**: o quanto o corte é apertado (as pausas longas somem) e, para as frases lidas mais de uma vez,
      qual tomada manter. O Regista escolhe a melhor; você pode testar outra.
@@ -63,6 +73,18 @@ Este é o caminho mais simples: você grava, o Regista edita sozinho, você conf
    pico, legendas atualizadas), depois aperte **Exportar vídeo…** e escolha o nome e a pasta. No fim,
    **Mostrar no Finder** abre a pasta.
 
+Cada passo parte da sua direção (veja "Direção e skills" mais abaixo): o ritmo do corte, o estilo das legendas, a luz,
+a música, os efeitos sonoros, o logo. Uma escolha mudada num passo vale só para este projeto: aparece uma bolinha ao
+lado (o ponteiro em cima mostra o que a sua direção quer) e, ao lado do título do passo, **Redefinir** leva o passo de
+volta à sua direção. Isso também se desfaz com ⌘Z.
+
+Em **Exportar**, o cartão **Regras de edição** confere o vídeo com as regras do seu tipo: nenhuma legenda em cima de um
+rosto, legendas que somem com as suas palavras, música abaixada sob a voz, a voz no seu volume, textos na tela pelo
+tempo de ler, o logo só no fim. Uma regra quebrada tem um link para o momento e, quando dá, **Corrigir** (um passo de ⌘Z);
+**Corrigir tudo e exportar** corrige todas, e **Exportar mesmo assim** está sempre lá. Uma verificação que ainda não pode
+ser medida fica numa linha cinza, "não verificado", com o motivo e um link para medir: **Encontrar o rosto** ou
+**Exportar para medir**. Ela nunca conta como respeitada.
+
 O Regista tira as pausas longas e mantém a melhor tomada de cada frase. Ele ainda não tira palavras de preenchimento
 como "é…" no meio de uma frase: se encontrar uma, tire à mão na transcrição (veja mais abaixo).
 
@@ -77,13 +99,14 @@ tempo com as trilhas: legendas, gráficos, tomadas, voz, música e efeitos sonor
 ferramentas seleção (V), lâmina (C), texto (T) e mão (H); à direita, o medidor de volume. Simples e Pro mostram o mesmo
 projeto: o que você muda em um, vê no outro.
 
-- **Mídia**: os arquivos do projeto. **Importar…** acrescenta vídeos, sons e imagens. Dê um clique duplo num arquivo
-  para vê-lo no monitor **Origem**.
+- **Mídia**: os arquivos do projeto. **Importar…** acrescenta vídeos, sons e imagens; um vídeo que vai para uma edição
+  vazia num formato diferente do projeto é enquadrado no rosto. Dê um clique duplo num arquivo para vê-lo no monitor
+  **Origem**.
 - **Textos e legendas** tem quatro abas. **Passos** vai do vídeo às legendas um passo de cada vez (**Transcrever**,
-  **Roteiro**, **Escolher as tomadas**, **Cortar as pausas**, **Limpar a voz**, **Legendas**), ou tudo de uma vez com
-  **Fazer tudo**. **Legendas** muda o estilo e as palavras-chave. **Transcrição** acompanha o indicador: um clique numa
-  palavra leva você até ela; selecione palavras (⌥clique, ⇧clique) e tire-as da edição com ⌫. **Tomadas** mostra cada
-  leitura de cada frase: aprove a escolhida ou pegue outra, depois refaça o corte.
+  **Encontrar o rosto**, **Roteiro**, **Escolher as tomadas**, **Cortar as pausas**, **Limpar a voz**, **Legendas**), ou
+  tudo de uma vez com **Fazer tudo**. **Legendas** muda o estilo e as palavras-chave. **Transcrição** acompanha o
+  indicador: um clique numa palavra leva você até ela; selecione palavras (⌥clique, ⇧clique) e tire-as da edição com ⌫.
+  **Tomadas** mostra cada leitura de cada frase: aprove a escolhida ou pegue outra, depois refaça o corte.
 - **Áudio** tem duas abas. **Mixagem**: o volume da edição, a limpeza da voz, a música (**Adicionar música…**, o volume
   e o quanto ela abaixa sob a voz). **Efeitos sonoros**: procure um som, ouça com um clique e coloque no indicador.
 - **Gráficos**: **Filtros**, **Ajustar**, **Efeitos**, **Estilos**, **Motion design** e **Logo**. Cada item diz o que
@@ -151,6 +174,10 @@ Regista** e **As suas** skills. Uma skill é um jeito de editar: regras, escolha
   antes de adicioná-la; **Exportar…** cria o arquivo para enviar.
 - Cada skill tem três abas: **Regras**, **Escolhas** e **Passos** (os passos que o Claude segue). Cada mudança se
   desfaz com ⌘Z.
+- Em **Regras**, as verificações ficam nas partes do vídeo: **Sempre**, **Abertura**, **Imagem**, **Gráficos e texto**,
+  **Final**, **Som**. Cada uma liga ou desliga; onde tem um número (a pausa antes do logo, o volume da voz), você muda
+  ali. Em **Escolhas** você diz como quer o vídeo: o ritmo, o estilo das legendas, a cor, a música, os efeitos sonoros, o
+  logo final. O Claude e os passos do Simples partem dessas escolhas.
 - Você também pode pedir ao Claude, por exemplo: "faça uma skill para entrevistas longas, com legendas elegantes e sem
   zoom". Nenhuma skill muda as regras que valem sempre (só a sua voz, originais nunca tocados, nenhum gasto sem o seu
   ok).
@@ -193,6 +220,10 @@ Tudo vai para a pasta Filmes › Regista (você muda em **Ajustes › Geral**, *
 
 Com **Salvamento automático** ligado, o Regista salva a cada minuto os projetos que já têm uma pasta. Um projeto que
 nunca foi salvo, você salva com ⌘S.
+
+Se o Regista parar de responder por alguns segundos, ele escreve sozinho um relatório de travamento no Mac: nada é
+enviado. **Ajustes › Geral › Mostrar os relatórios de travamento** mostra o mais recente no Finder, para anexar a um
+relato de problema.
 
 Todos os atalhos de teclado estão em **Ajustes › Atalhos**. Se algo der errado, leia
 [Solução de problemas](troubleshooting.md); para a sua voz clonada, [Gravar sua voz](voice.md).

@@ -22,6 +22,10 @@ It installs with one command in Terminal: everything is in [Installation and eng
 - *The status bar*, at the bottom, shows the Mac's memory and tier, the loudness of the edit and whether the project is
   saved. While Regista works (a transcription, an export) **Jobs** appears: click it to see the progress, **Cancel** and
   any errors.
+- *The bar above the edit* chooses **Simple** or **Pro** and shows the video's format, for example Format 9:16 ·
+  1080×1920 · 30 fps: a click opens 9:16, 4:5, 1:1 and 16:9. A change of format is a single ⌘Z step, and the camera
+  clips stay framed on the face, never cut around the centre. The same choice is in the **Inspector**, **Project**
+  section, under **Format**.
 
 Every button makes one step you can undo with ⌘Z and redo with ⇧⌘Z, Claude's steps too.
 
@@ -33,6 +37,9 @@ This is the simplest path: you record, Regista edits by itself, you check and ex
    **or import a video** instead and skip to step 6.
 2. In **Record**, under **What you record**, choose **Face only**. **Camera** and **Microphone** must be on. The first
    time, macOS asks permission for the camera and the microphone: allow it.
+   Above the preview choose the video's format: **As the camera**, 9:16, 16:9, 4:5 or 1:1. A frame on the preview shows
+   what stays in the video. If the tab's project has another format, it changes to the one chosen when you add the take;
+   a take of another format is framed on the face.
 3. In the right panel, **Teleprompter** tab, paste your text: one sentence per line. With **Teleprompter** on under
    **Sources**, the teleprompter opens and starts with the recording.
 4. Press **Record** (⇧⌘R) and read. If you get a sentence wrong, start it again: the teleprompter goes back to the start
@@ -45,6 +52,9 @@ This is the simplest path: you record, Regista edits by itself, you check and ex
    **Appearance**, **Music & sounds**, **Voice**, **Graphics**. Each says whether it is done, to do or optional.
 7. If the edit is not done yet, press **Do everything**: it cuts the pauses, picks the takes, cleans the voice, adds the
    captions and a brighter light. You can stop it at any time; run it again and it adds nothing twice.
+   First it finds the face in every frame (**Find the face**: Apple Vision, on the Mac, no cost), so captions and
+   framing keep it clear; at the end it checks that no head is cut. If one is, the step says so and its button
+   **Frame on the face** frames it again.
 8. Open the steps one by one and watch the result in the monitor:
    - **Cut & takes**: how tight the cut is (long pauses go) and, for sentences read more than once, which take to keep.
      Regista picks the best one; you can try another.
@@ -60,6 +70,18 @@ This is the simplest path: you record, Regista edits by itself, you check and ex
    peak, captions up to date), then press **Export video…** and choose the name and the folder. When it is done,
    **Show in Finder** opens the folder.
 
+Every step starts from your direction (see "Direction & skills" below): the pace of the cut, the caption style, the
+light, the music, the sound effects, the logo. A choice you change in a step holds for this project only: a dot appears
+beside it (hover over it to see what your direction wants) and, beside the step's title, **Reset** takes the step back to
+your direction. That too can be undone with ⌘Z.
+
+In **Export**, the **Editing rules** card checks the video against the rules of its kind: no caption over a face,
+captions gone with their words, music lowered under the voice, the voice at its loudness, on-screen text long enough to
+read, the logo only at the end. A broken rule has a link to the moment and, where it can, **Fix** (one ⌘Z step); **Fix all and
+export** fixes them all, and **Export anyway** is always there. A check that cannot be measured yet stays on a grey line,
+"not checked", with the reason and a link that measures it: **Find the face** or **Export to measure**. It never counts
+as passed.
+
 Regista removes long pauses and keeps the best take of each sentence. It does not yet remove filler words such as "um"
 inside a sentence: if you find one, remove it by hand from the transcript (see below).
 
@@ -74,10 +96,10 @@ timeline with its tracks: captions, graphics, takes, voice, music and sound effe
 select (V), blade (C), text (T) and hand (H) tools; on the right, the loudness meter. Simple and Pro show the same
 project: what you change in one, you see in the other.
 
-- **Media**: the project's files. **Import…** adds videos, sounds and images. Double-click a file to see it in the
-  **Source** monitor.
-- **Text & captions** has four tabs. **Steps** goes from the video to the captions one step at a time
-  (**Transcribe**, **Script**, **Choose the takes**, **Cut the pauses**, **Clean the voice**, **Captions**), or all at
+- **Media**: the project's files. **Import…** adds videos, sounds and images; a video that goes on an empty edit in a
+  format other than the project's is framed on the face. Double-click a file to see it in the **Source** monitor.
+- **Text & captions** has four tabs. **Steps** goes from the video to the captions one step at a time (**Transcribe**,
+  **Find the face**, **Script**, **Choose the takes**, **Cut the pauses**, **Clean the voice**, **Captions**), or all at
   once with **Do everything**. **Captions** changes the style and the keywords. **Transcript** follows the playhead:
   click a word to go there; select words (⌥-click, ⇧-click) and take them out of the edit with ⌫. **Takes** shows every
   reading of each sentence: approve the chosen one or pick another, then redo the cut.
@@ -151,6 +173,10 @@ choices such as the caption style or the pace, and the rules Claude reads), the 
   before adding it; **Export…** makes the file to send.
 - Every skill has three tabs: **Rules**, **Choices** and **Steps** (the steps Claude follows). Every change can be
   undone with ⌘Z.
+- In **Rules** the checks stand in the parts of the video: **Always**, **Opening**, **Picture**, **Graphics and text**,
+  **Ending**, **Sound**. Each one turns on or off; where it has a number (the pause before the logo, the voice's
+  loudness) you change it there. In **Choices** you say how you want the video: the pace, the caption style, the colour,
+  the music, the sound effects, the closing logo. Claude and the Simple steps start from these choices.
 - You can also ask Claude, for example: "make a skill for long interviews, with elegant captions and no zoom". No skill
   changes the rules that always hold (only your own voice, originals never touched, nothing paid without your OK).
 
@@ -192,6 +218,9 @@ Everything goes into the Movies › Regista folder (change it in **Settings › 
 
 With **Automatic saving** on, Regista saves every minute the projects that already have a folder. A project never saved
 you save yourself with ⌘S.
+
+If Regista stops answering for a few seconds, it writes a hang report on the Mac by itself: nothing is sent.
+**Settings › General › Show the hang reports** shows the newest one in the Finder, to attach to a bug report.
 
 Every keyboard shortcut is in **Settings › Shortcuts**. If something goes wrong, read [Troubleshooting](troubleshooting.md);
 for your cloned voice, [Recording your voice](voice.md).

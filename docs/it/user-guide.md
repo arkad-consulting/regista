@@ -23,6 +23,10 @@ Si installa con un solo comando nel Terminale: trovi tutto in [Installazione e m
 - *La barra di stato*, in fondo, dice la memoria e il livello del Mac, il volume del montaggio e se il progetto è
   salvato. Quando Regista lavora (una trascrizione, un export) compare **Lavori**: un clic mostra l'avanzamento,
   **Annulla** e gli eventuali errori.
+- *La barra sopra il montaggio* sceglie **Semplice** o **Pro** e mostra il formato del video, per esempio Formato 9:16 ·
+  1080×1920 · 30 fps: un clic apre 9:16, 4:5, 1:1 e 16:9. Cambiare formato è un passo solo di ⌘Z e le clip della
+  camera restano inquadrate sul volto, mai tagliate al centro. La stessa scelta c'è nell'**Ispettore**, sezione
+  **Progetto**, sotto **Formato**.
 
 Ogni pulsante fa un passo che puoi annullare con ⌘Z e ripetere con ⇧⌘Z, anche i passi fatti da Claude.
 
@@ -34,6 +38,9 @@ Questo è il percorso più semplice: registri, Regista monta da solo, tu control
    **o importa un video** e salta al punto 6.
 2. In **Registra**, sotto **Cosa registri**, scegli **Solo volto**. **Camera** e **Microfono** devono essere accesi.
    La prima volta macOS chiede il permesso per la camera e il microfono: consentilo.
+   Sopra l'anteprima scegli il formato del video: **Come la camera**, 9:16, 16:9, 4:5 o 1:1. Una cornice sull'anteprima
+   mostra cosa resta nel video. Se il progetto della scheda ha un altro formato, passa a quello scelto quando aggiungi la
+   ripresa; una ripresa di un altro formato viene inquadrata sul volto.
 3. Nel pannello destro, scheda **Gobbo**, incolla il testo: una frase per riga. Con **Gobbo** acceso in **Sorgenti**,
    il gobbo si apre e parte insieme alla registrazione.
 4. Premi **Registra** (⇧⌘R) e leggi. Se sbagli una frase, ricominciala: il gobbo torna all'inizio della frase e segna
@@ -47,6 +54,9 @@ Questo è il percorso più semplice: registri, Regista monta da solo, tu control
    facoltativo.
 7. Se il montaggio non è ancora fatto, premi **Fai tutto**: taglia le pause, sceglie le riprese, pulisce la voce, mette
    i sottotitoli e una luce più viva. Puoi fermarlo quando vuoi; se lo rilanci, non aggiunge niente due volte.
+   Per prima cosa trova il volto in ogni fotogramma (**Trova il volto**: Apple Vision, sul Mac, senza costi), così
+   sottotitoli e inquadrature lo lasciano libero; alla fine controlla che nessuna testa sia tagliata. Se una lo è, il
+   passo lo dice e il suo pulsante **Inquadra sul volto** rifà l'inquadratura.
 8. Apri i passi uno per uno e guarda il risultato nel monitor:
    - **Taglio e riprese**: quanto stretto è il taglio (le pause lunghe spariscono) e, per le frasi lette più volte, quale
      ripresa tenere. Regista sceglie la migliore; puoi provarne un'altra.
@@ -62,6 +72,18 @@ Questo è il percorso più semplice: registri, Regista monta da solo, tu control
    picco, sottotitoli aggiornati), poi premi **Esporta video…**, scegli il nome e la cartella. Alla fine
    **Mostra nel Finder** apre la cartella.
 
+Ogni passo parte dalla tua regia (vedi «Regia e skill» più sotto): il ritmo del taglio, lo stile dei sottotitoli, la
+luce, la musica, gli effetti sonori, il logo. Una scelta cambiata in un passo vale solo per questo progetto: accanto
+compare un pallino (il puntatore sopra dice cosa vuole la regia) e, accanto al titolo del passo, **Ripristina** riporta il
+passo alla regia. Anche questo si annulla con ⌘Z.
+
+In **Esporta**, la scheda **Regole di montaggio** controlla il video con le regole del suo tipo: nessun sottotitolo sopra
+un volto, sottotitoli che spariscono con le loro parole, musica abbassata sotto la voce, la voce al suo volume, testi a
+schermo il tempo di leggerli, il logo solo alla fine. Una regola rotta ha un link che porta al punto e, quando si può, **Sistema** (un
+passo di ⌘Z); **Sistema tutto ed esporta** le corregge tutte, **Esporta lo stesso** c'è sempre. Un controllo che non si
+può ancora misurare resta su una riga grigia, «non controllato», con il motivo e un link per misurarlo: **Trova il
+volto** o **Esporta per misurare**. Non conta mai come rispettato.
+
 Regista toglie le pause lunghe e tiene la ripresa migliore di ogni frase. Non toglie ancora gli intercalari come «ehm»
 dentro una frase: se ne trovi uno, toglilo a mano dalla trascrizione (vedi più sotto).
 
@@ -76,13 +98,15 @@ timeline con le piste: sottotitoli, grafica, riprese, voce, musica ed effetti so
 gli strumenti selezione (V), lama (C), testo (T) e mano (H); a destra il misuratore del volume. Semplice e Pro mostrano
 lo stesso progetto: quello che cambi in uno lo vedi nell'altro.
 
-- **Media**: i file del progetto. **Importa…** aggiunge video, audio e immagini. Doppio clic su un file per vederlo
-  nel monitor **Sorgente**.
+- **Media**: i file del progetto. **Importa…** aggiunge video, audio e immagini; un video che va nel montaggio vuoto in
+  un formato diverso da quello del progetto è inquadrato sul volto. Doppio clic su un file per vederlo nel monitor
+  **Sorgente**.
 - **Testi e sottotitoli** ha quattro schede. **Passi** fa il percorso dal video ai sottotitoli un passo alla volta
-  (**Trascrivi**, **Copione**, **Scegli le riprese**, **Taglia le pause**, **Pulisci la voce**, **Sottotitoli**), oppure
-  tutto insieme con **Fai tutto**. **Sottotitoli** cambia stile e parole chiave. **Trascrizione** segue la testina: un
-  clic su una parola ti porta lì; selezioni delle parole (⌥clic, ⇧clic) e le togli dal montaggio con ⌫. **Riprese**
-  mostra le letture di ogni frase: approvi quella scelta o ne scegli un'altra, poi rifai il taglio.
+  (**Trascrivi**, **Trova il volto**, **Copione**, **Scegli le riprese**, **Taglia le pause**, **Pulisci la voce**,
+  **Sottotitoli**), oppure tutto insieme con **Fai tutto**. **Sottotitoli** cambia stile e parole chiave.
+  **Trascrizione** segue la testina: un clic su una parola ti porta lì; selezioni delle parole (⌥clic, ⇧clic) e le togli
+  dal montaggio con ⌫. **Riprese** mostra le letture di ogni frase: approvi quella scelta o ne scegli un'altra, poi
+  rifai il taglio.
 - **Audio** ha due schede. **Mix**: il volume del montaggio, la pulizia della voce, la musica (**Aggiungi musica…**, il
   volume e quanto si abbassa sotto la voce). **Effetti sonori**: cerchi un suono, lo ascolti con un clic e lo metti alla
   testina.
@@ -153,6 +177,10 @@ prima dell'export, le scelte come lo stile dei sottotitoli o il ritmo, e le rego
   cosa dice prima di aggiungerla; **Esporta…** crea il file da mandare.
 - Ogni skill ha tre schede: **Regole**, **Scelte** e **Passi** (i passi che Claude segue). Ogni modifica si annulla
   con ⌘Z.
+- In **Regole** i controlli stanno nelle parti del video: **Sempre**, **Apertura**, **Immagine**, **Grafica e testo**,
+  **Finale**, **Suono**. Ognuno si accende o si spegne; dove ha un numero (la pausa prima del logo, il volume della voce)
+  lo cambi lì. In **Scelte** dici come vuoi il video: il ritmo, lo stile dei sottotitoli, il colore, la musica, gli
+  effetti sonori, il logo finale. Claude e i passi di Semplice partono da queste scelte.
 - Puoi anche chiederla a Claude, per esempio: «fai una skill per le interviste lunghe, con i sottotitoli eleganti e
   senza zoom». Le regole che valgono sempre (la tua voce sola, gli originali mai toccati, niente spese senza il tuo ok)
   nessuna skill le cambia.
@@ -196,6 +224,9 @@ Tutto va nella cartella Filmati › Regista (la cambi in **Impostazioni › Gene
 
 Con **Salvataggio automatico** acceso, Regista salva ogni minuto i progetti che hanno già una cartella. Un progetto mai
 salvato lo salvi tu con ⌘S.
+
+Se Regista smette di rispondere per qualche secondo, scrive da solo un rapporto di blocco sul Mac: niente viene inviato.
+**Impostazioni › Generale › Mostra i rapporti di blocco** mostra l'ultimo nel Finder, da allegare a una segnalazione.
 
 Tutte le scorciatoie da tastiera sono in **Impostazioni › Scorciatoie**. Se qualcosa non va, leggi
 [Risoluzione dei problemi](troubleshooting.md); per la tua voce clonata, [Registrare la tua voce](voice.md).
