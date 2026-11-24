@@ -249,23 +249,53 @@ public enum ComfyServer {
         stop(config, grace: grace)
     }
 
-    /// Stops the process group Regista started (nothing when there is none).
-    public static func stop(_ config: EngineConfig, grace: TimeInterval = 10) {
-        guard let mine = started(config) else { return }
+    /// Stops the process group Regista started (nothing when there is none): SIGTERM, then SIGKILL after `grace` seconds.
+    /// It returns once the leader is reaped and nothing of its group runs, at most `limit` seconds after the SIGKILL; when
+    /// something still runs then, it says so in the job's line and keeps the record (the next run stops it again).
+    /// Returns whether the group is gone.
+    @discardableResult
+    public static func stop(_ config: EngineConfig, grace: TimeInterval = 10, limit: TimeInterval = 10) -> Bool {
+        guard let mine = started(config) else { return true }
         kill(-mine.pid, SIGTERM)
-        let until = Date().addingTimeInterval(grace)
-        while Date() < until {
-            _ = waitpid(mine.pid, nil, WNOHANG)   // our own child: reap it (a zombie still answers kill 0)
-            if kill(-mine.pid, 0) != 0 { break }
-            Thread.sleep(forTimeInterval: 0.1)
-        }
-        if kill(-mine.pid, 0) == 0 {
+        var gone = ended(group: mine.pid, within: grace)
+        if !gone {
             kill(-mine.pid, SIGKILL)
-            for _ in 0..<50 where kill(-mine.pid, 0) == 0 {
-                _ = waitpid(mine.pid, nil, WNOHANG)
-                Thread.sleep(forTimeInterval: 0.05)
-            }
+            gone = ended(group: mine.pid, within: limit)
+        }
+        guard gone else {
+            CommandJob.say("ComfyUI (process \(mine.pid)) still runs \(Int(grace + limit)) s after Regista stopped it: stop it in Activity Monitor")
+            return false
         }
         try? FileManager.default.removeItem(at: recordFile(config))
+        return true
+    }
+
+    /// Whether a process runs: it exists and is not a zombie (a zombie has ended and only waits to be reaped, yet it still
+    /// answers `kill(pid, 0)`).
+    public static func isRunning(_ pid: Int32) -> Bool { startTime(pid) != nil }
+
+    /// The processes of a group that still run (zombies left out).
+    static func running(group: Int32) -> [Int32] {
+        var pids = [pid_t](repeating: 0, count: 512)
+        _ = proc_listpgrppids(group, &pids, Int32(pids.count * MemoryLayout<pid_t>.size))
+        return pids.filter { $0 > 0 && isRunning($0) }
+    }
+
+    /// Waits, at most `seconds`, until the group's leader is reaped (Regista's own child; one another process started is
+    /// reaped by that process) and nothing of its group runs. `kill(-group, 0)` alone is not enough (#149): once only
+    /// zombies are left it stops answering, so a stop could return before reaping the leader, which still answered
+    /// `kill(pid, 0)`.
+    static func ended(group leader: Int32, within seconds: TimeInterval) -> Bool {
+        let until = Date().addingTimeInterval(seconds)
+        var reaped = false
+        while true {
+            if !reaped {
+                let r = waitpid(leader, nil, WNOHANG)
+                reaped = r == leader || (r == -1 && errno == ECHILD)
+            }
+            if reaped && running(group: leader).isEmpty { return true }
+            if Date() >= until { return false }
+            Thread.sleep(forTimeInterval: 0.05)
+        }
     }
 }

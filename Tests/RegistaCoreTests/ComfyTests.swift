@@ -144,6 +144,17 @@ private func standInStart(_ dir: URL) throws -> URL {
     return script
 }
 
+/// Whether `pid` stops running (gone, or a zombie that only waits to be reaped) within `seconds` (#149: one look right
+/// after the stop failed on a busy run).
+private func ends(_ pid: Int32, within seconds: Double = 10) -> Bool {
+    let until = Date().addingTimeInterval(seconds)
+    while ComfyServer.isRunning(pid) {
+        if Date() > until { return false }
+        Thread.sleep(forTimeInterval: 0.05)
+    }
+    return true
+}
+
 private func pid(_ file: URL) -> Int32? {
     (try? String(contentsOf: file, encoding: .utf8)).flatMap { Int32($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
 }
@@ -164,7 +175,8 @@ private func pid(_ file: URL) -> Int32? {
     #expect(said.withLock { $0 }.contains { $0.contains("starting ComfyUI: waiting for it to answer at \(fake.base.absoluteString)") })
     let server = try #require(pid(dir.appendingPathComponent("server.pid")))
     let child = try #require(pid(dir.appendingPathComponent("child.pid")))
-    #expect(kill(server, 0) != 0 && kill(child, 0) != 0, "the script and its child are stopped")
+    #expect(ends(server) && ends(child), "the script and its child are stopped")
+    #expect(kill(server, 0) != 0, "the stop returned before reaping the script it started")
     #expect(ComfyServer.started(config) == nil && fake.requests("/free").isEmpty, "stopped, not freed")
 
     // keepRunning: the next job finds it running; the run after it without keepRunning stops it.
@@ -176,9 +188,9 @@ private func pid(_ file: URL) -> Int32? {
     }
     try e.execute("generate.run", params: ["kind": "image", "prompt": "kept", "keepRunning": true])
     let kept = try #require(ComfyServer.started(config))
-    #expect(kill(kept.pid, 0) == 0)
+    #expect(ComfyServer.isRunning(kept.pid))
     try e.execute("generate.run", params: ["kind": "image", "prompt": "then stopped"])
-    #expect(kill(kept.pid, 0) != 0 && ComfyServer.started(config) == nil)
+    #expect(ends(kept.pid) && kill(kept.pid, 0) != 0 && ComfyServer.started(config) == nil)
 }
 
 /// #123: a server Regista started and kept up (keepRunning) is stopped when the next run, without keepRunning, is refused
@@ -213,10 +225,10 @@ private func pid(_ file: URL) -> Int32? {
     nodes.withLock { $0 = Data("{}".utf8) }
     let prompts = fake.requests("/prompt").count
     #expect(throws: CommandError.self) { try e.execute("generate.run", params: ["kind": "image", "prompt": "refused, kept", "keepRunning": true]) }
-    #expect(kill(kept.pid, 0) == 0 && ComfyServer.started(config) != nil, "a refused run with keepRunning stopped the server")
+    #expect(ComfyServer.isRunning(kept.pid) && ComfyServer.started(config) != nil, "a refused run with keepRunning stopped the server")
     #expect(throws: CommandError.self) { try e.execute("generate.run", params: ["kind": "image", "prompt": "refused"]) }
     #expect(fake.requests("/prompt").count == prompts, "a refused run queued something")
-    #expect(kill(kept.pid, 0) != 0 && ComfyServer.started(config) == nil, "the refused run left the server Regista started running")
+    #expect(ends(kept.pid) && kill(kept.pid, 0) != 0 && ComfyServer.started(config) == nil, "the refused run left the server Regista started running")
 }
 
 @Test func whereComfyUIIsFoldersExecutablesAndTheUsualPlaces() throws {
