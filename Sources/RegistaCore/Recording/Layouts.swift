@@ -65,6 +65,20 @@ public struct LayoutSpec: Codable, Hashable, Sendable {
         return parts.joined(separator: " ")
     }
 
+    /// Whether a layout of `kind` lays out in a frame of `aspect` (width / height): side by side needs width, so not in a
+    /// portrait frame; the vertical stack needs height, so not in a landscape one.
+    public static func applies(_ kind: Kind, aspect: Double) -> Bool {
+        !(aspect < 1 && kind == .split) && !(aspect > 1 && kind == .stack)
+    }
+
+    /// The layout a frame of `aspect` gives (project.format, Registra's preview): side by side becomes the vertical stack
+    /// in a portrait frame and back in a landscape one, the face on the same side; the others stay as they are.
+    public func fitted(aspect: Double) -> LayoutSpec {
+        if aspect < 1, kind == .split { return LayoutSpec(kind: .stack, side: side == "left" ? "top" : nil) }
+        if aspect > 1, kind == .stack { return LayoutSpec(kind: .split, side: side == "top" ? "left" : nil) }
+        return self
+    }
+
     /// Checks the options against the kind.
     public func validate() throws {
         if let c = corner {

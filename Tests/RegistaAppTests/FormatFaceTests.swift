@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 @testable import RegistaCore
 import RegistaEngines
 import SwiftUI
@@ -45,7 +46,9 @@ func landscapeTake(_ name: String = "Registrazione 2026-11-22 \(UUID().uuidStrin
     })
 }
 
-@MainActor func untilFramed(_ seconds: Double = 30, _ done: () -> Bool) async throws {
+/// Waits for an import to land: up to 90 s, as the full suite runs it beside hundreds of other tests (30 s was not always
+/// enough there for an import, a face track and project.format; alone it takes a few seconds).
+@MainActor func untilFramed(_ seconds: Double = 90, _ done: () -> Bool) async throws {
     let end = Date().addingTimeInterval(seconds)
     while !done(), Date() < end { try await Task.sleep(for: .milliseconds(100)) }
 }
@@ -83,19 +86,70 @@ func landscapeTake(_ name: String = "Registrazione 2026-11-22 \(UUID().uuidStrin
 
 // #153: Registra chooses the video's format before recording.
 
-@Test func theTakeFormatFollowsTheChoiceAndTheSources() {
+@Test func theTakeFormatFollowsTheChoiceTheSourcesAndTheDestination() {
     var s = RecordingSources()
     s.apply(.face)
-    #expect(s.takeFormat == nil && s.formatChoice == RecordingSources.cameraFormat && s.guideAspect == nil)
+    var o = s.output(project: nil, forProject: nil)
+    #expect(s.takeFormat == nil && o == TakeOutput(id: RecordingSources.cameraFormat, aspect: nil) && s.guideAspect(o) == nil)
     s.videoFormat = "9:16"
-    #expect(s.takeFormat == "9:16" && s.formatChoice == "9:16" && abs((s.guideAspect ?? 0) - 1080.0 / 1920) < 1e-9)
+    o = s.output(project: nil, forProject: nil)
+    #expect(s.takeFormat == "9:16" && o.id == "9:16" && abs((s.guideAspect(o) ?? 0) - 1080.0 / 1920) < 1e-9)
     s.videoFormat = "16:9"
-    #expect(s.guideAspect == nil, "the camera's own aspect needs no guide")
+    #expect(s.guideAspect(s.output(project: nil, forProject: nil)) == nil, "the camera's own aspect needs no guide")
     s.videoFormat = nil
     s.apply(.screenFace)
-    #expect(s.takeFormat == "16:9" && s.formatChoice == "16:9" && s.guideAspect == nil)
+    o = s.output(project: nil, forProject: nil)
+    #expect(s.takeFormat == "16:9" && o.id == "16:9" && s.guideAspect(o) == nil && abs(o.frameAspect - 16.0 / 9) < 1e-9)
     s.videoFormat = "9:16"
-    #expect(s.takeFormat == "9:16" && s.guideAspect == nil, "a screen session has no camera preview guide")
+    o = s.output(project: nil, forProject: nil)
+    // #160: with the screen the preview draws the composition in the format's frame (no camera guide).
+    #expect(s.takeFormat == "9:16" && s.guideAspect(o) == nil && abs(o.frameAspect - 1080.0 / 1920) < 1e-9)
+    // «Questo progetto»: the project's format, or the one chosen for it; the sources' choice does not count.
+    o = s.output(project: (1920, 1080), forProject: nil)
+    #expect(o.id == "16:9" && abs(o.frameAspect - 16.0 / 9) < 1e-9, "\(o)")
+    o = s.output(project: (1920, 1080), forProject: "4:5")
+    #expect(o.id == "4:5" && abs(o.frameAspect - 0.8) < 1e-9)
+    o = s.output(project: (1280, 800), forProject: nil)
+    #expect(o.id == "1280×800" && abs(o.frameAspect - 1.6) < 1e-9)
+    #expect(RecordingSources.formatChoices(camera: true) == [RecordingSources.cameraFormat, "9:16", "16:9", "4:5", "1:1"])
+    #expect(RecordingSources.formatChoices(camera: false) == ["9:16", "16:9", "4:5", "1:1"])
+}
+
+/// #160: the layouts a format lays out, with the rule project.format uses.
+@Test func aPortraitFrameStacksTheFaceAndALandscapeOnePutsItBeside() {
+    let split = LayoutSpec(kind: .split, side: "left"), stack = LayoutSpec(kind: .stack, side: "top")
+    #expect(split.fitted(aspect: 1080.0 / 1920) == LayoutSpec(kind: .stack, side: "top"))
+    #expect(stack.fitted(aspect: 16.0 / 9) == LayoutSpec(kind: .split, side: "left"))
+    #expect(split.fitted(aspect: 1) == split && stack.fitted(aspect: 1) == stack, "a square frame keeps both")
+    #expect(LayoutSpec(kind: .bubble).fitted(aspect: 0.8) == LayoutSpec(kind: .bubble))
+    #expect(FaceLayoutControls.unavailable(aspect: 1080.0 / 1920).keys.sorted { $0.rawValue < $1.rawValue } == [.split])
+    #expect(FaceLayoutControls.unavailable(aspect: 0.8).keys.sorted { $0.rawValue < $1.rawValue } == [.split])
+    #expect(FaceLayoutControls.unavailable(aspect: 16.0 / 9).keys.sorted { $0.rawValue < $1.rawValue } == [.stack])
+    #expect(FaceLayoutControls.unavailable(aspect: 1).isEmpty)
+}
+
+@MainActor
+@Test func anotherFormatForThisProjectChangesItWhenTheTakeLands() async throws {
+    let b = faceBench("format-this-project")
+    let tab = b.newTab()
+    b.select(tab.tabID)
+    try await tab.perform("project.new", ["name": "orizzontale", "directory": .string(rigTempDir("projects").path), "width": 1920, "height": 1080])
+    tab.recordingChoice = .thisProject
+    tab.recordingFormat = "9:16"
+    b.recordingStarted()
+    b.recordingStopped()
+    let undo = tab.undoNames.count
+    b.recordingFinished(try landscapeTake(), session: false)
+    try await untilFramed { b.notice != nil && tab.project?.settings.width == 1080 }
+    let p = try #require(tab.project)
+    #expect(p.settings.width == 1080 && p.settings.height == 1920, "the project stayed \(p.settings.width)×\(p.settings.height)")
+    #expect(tab.recordingFormat == nil, "the choice outlived the take")
+    let (crop, pass) = try await framing(tab)
+    let c = try #require(crop, "the clip was not framed on the face")
+    #expect(abs(c[0] / c[1] - 1080.0 / 1920) < 0.01 && c[2] > 900, "\(c)")
+    #expect(pass, "faces.checkFraming fails after the project changed format")
+    #expect(tab.undoNames.dropFirst(undo).filter { $0 == "project.format" }.count == 1,
+            "the format change is not one undo step: \(tab.undoNames.dropFirst(undo))")
 }
 
 @MainActor
@@ -124,73 +178,201 @@ func landscapeTake(_ name: String = "Registrazione 2026-11-22 \(UUID().uuidStrin
 
 extension MouseSuites {
 @Suite(.serialized) @MainActor struct RegistraFormatTests {
-    private func menu(_ app: AppRig) -> RigElement? {
-        let names = [loc("Come la camera"), "9:16", "16:9", "4:5", "1:1"]
-        return app.rig.elements().first { $0.isControl && $0.visible && names.contains($0.value) && $0.frame.minX < 400 }
+    /// The names of the format control's segments.
+    private static let names = [loc("Come la camera"), "9:16", "16:9", "4:5", "1:1"]
+
+    /// The format control's segment `name` (#160: on the bar above the preview, no longer in the side panel).
+    private func segment(_ app: AppRig, _ name: String) -> RigElement? {
+        app.rig.elements().first { $0.isControl && $0.visible && $0.name == name }
     }
 
-    private func guide(_ app: AppRig, _ id: String) -> Bool {
-        !app.rig.elements().filter { $0.label == String(format: loc("Cornice del video %@"), id) }.isEmpty
+    /// The segments shown, left to right.
+    private func segments(_ app: AppRig) -> [RigElement] {
+        app.rig.elements().filter { $0.isControl && $0.visible && Self.names.contains($0.name) }.sorted { $0.frame.minX < $1.frame.minX }
     }
 
-    private func choose(_ app: AppRig, _ title: String) async throws {
+    /// The frame of the take's format on the preview: the camera's guide, or the screen modes' composition.
+    private func frame(_ app: AppRig, _ id: String) -> RigElement? {
+        app.rig.elements().first { $0.label == String(format: loc("Cornice del video %@"), id) }
+    }
+
+    /// Clicks a segment; returns how many times the sources changed meanwhile.
+    @discardableResult
+    private func click(_ app: AppRig, _ name: String) async throws -> Int {
         app.rig.takeKey()
-        let m = try #require(menu(app), "no format menu on Registra")
-        app.rig.click(m.centre)
-        let pop = try #require(await openedPopover(app), "the menu did not open: \(m)")
-        let row = try #require(pop.elements().first { $0.isControl && $0.visible && $0.name.hasPrefix(title) }, "no «\(title)»")
-        pop.click(row.centre)
+        let s = try #require(segment(app, name), "no «\(name)» on the format bar: \(segments(app).map(\.name))")
+        var changes = 0
+        let sink = app.recorder.$sources.dropFirst().sink { _ in changes += 1 }
+        app.rig.click(s.centre)
         await app.settle()
+        sink.cancel()
+        #expect(segment(app, name) != nil, "«\(name)» went away after its click")
+        return changes
     }
 
-    @Test func theVideoFormatIsChosenOnRegistraAndTheGuideShowsIt() async throws {
+    /// Centred above the preview: the bar's middle at the preview's middle, its bottom above the preview's top.
+    private func checkPlace(_ app: AppRig, preview: RigElement, sourceLocation: SourceLocation = #_sourceLocation) {
+        let all = segments(app)
+        guard let first = all.first, let last = all.last else { Issue.record("no format bar", sourceLocation: sourceLocation); return }
+        let mid = (first.frame.minX + last.frame.maxX) / 2
+        #expect(abs(mid - preview.frame.midX) < 3, "the bar is not centred over the preview: \(mid) vs \(preview.frame.midX)", sourceLocation: sourceLocation)
+        #expect(first.frame.maxY <= preview.frame.minY + 1, "the bar is not above the preview: \(first.frame) / \(preview.frame)", sourceLocation: sourceLocation)
+    }
+
+    @Test func theFormatIsChosenAboveThePreviewAndTheGuideShowsIt() async throws {
         let app = try await AppRig(project: nil)
         defer { app.close() }
         app.recorder.sources.apply(.face)
         app.recorder.sources.videoFormat = nil
         app.hostEditor(Navigation(activity: .record, rightTab: .claude))
         await app.settle()
-        #expect(menu(app)?.value == loc("Come la camera"), "\(String(describing: menu(app)))")
-        #expect(!guide(app, "9:16"))
-        // Its list: as the camera, then the four formats.
-        let m = try #require(menu(app))
-        app.rig.click(m.centre)
-        let pop = try #require(await openedPopover(app), "no popover after a click on \(m)")
-        #expect(pop.elements().filter { $0.isControl && $0.visible }.count == 5)
-        // A second click on the label closes it, choosing nothing.
-        app.rig.takeKey()
-        app.rig.click(m.centre)
-        _ = await app.until(3) { !pop.window.isVisible }
-        app.rig.hold(0.4)
-        #expect(app.recorder.sources.videoFormat == nil)
-        try await choose(app, "9:16")
-        #expect(app.recorder.sources.videoFormat == "9:16" && menu(app)?.value == "9:16")
-        #expect(guide(app, "9:16"), "no guide frame on the camera preview")
+        // As the camera (an icon, named by its tooltip), then the four formats; the chip of the side panel is gone.
+        #expect(segments(app).map(\.name) == Self.names, "\(segments(app).map(\.name))")
+        #expect(segment(app, loc("Come la camera"))?.selected == true)
+        #expect(!app.rig.elements().contains { $0.role == "AXButton" && $0.value == "9:16" }, "the old format chip is still there")
+        #expect(frame(app, "9:16") == nil)
+        #expect(try await click(app, "9:16") == 1, "a click on 9:16 did not change the format once")
+        #expect(app.recorder.sources.videoFormat == "9:16" && segment(app, "9:16")?.selected == true)
+        let guide = try #require(frame(app, "9:16"), "no guide frame on the camera preview")
+        checkPlace(app, preview: guide)
         #expect(RecordingSources.load(from: app.defaults).videoFormat == "9:16", "the choice is not remembered")
-        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
-            // The stand-in camera draws no picture: the renders show the camera's place (the face drawing) under the guide.
-            for lang in ["it", "fr"] {
-                let demo = RecordDemo(sources: app.recorder.sources, open: nil, grantPermissions: true)
-                app.rig?.close()   // a rig in another language resets the words only when it closes
-                app.hostEditor(Navigation(activity: .record, rightTab: .claude), language: lang) { AnyView($0.environment(\.recordDemo, demo)) }
-                await app.settle()
-                #expect(guide(app, "9:16"), "no guide in the \(lang) render")
-                try app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("registra-guide-\(lang).png"))
-            }
-            app.rig.close()
-            app.hostEditor(Navigation(activity: .record, rightTab: .claude))
-            await app.settle()
-        }
-        try await choose(app, loc("Come la camera"))
-        #expect(app.recorder.sources.videoFormat == nil && !guide(app, "9:16"))
-        // A screen session: 16:9 by default, no «as the camera».
-        app.recorder.sources.apply(.screenFace)
+        // A second click on the chosen one changes nothing.
+        #expect(try await click(app, "9:16") == 0)
+        #expect(try await click(app, loc("Come la camera")) == 1)
+        #expect(app.recorder.sources.videoFormat == nil && frame(app, "9:16") == nil)
+        // Not shown while recording; the caption keeps naming the format.
+        app.recorder.sources.videoFormat = "4:5"
+        app.recorder.sources.prompter = false
+        app.recorder.start()
         await app.settle()
-        #expect(menu(app)?.value == "16:9")
-        try await choose(app, "9:16")
-        #expect(app.recorder.sources.takeFormat == "9:16")
+        #expect(app.recorder.isRecording && segments(app).isEmpty, "the format bar is shown while recording: \(segments(app).map(\.name))")
+        #expect(app.rig.elements().contains { $0.name == "4:5" && !$0.isControl }, "the caption does not say 4:5 while recording")
+        app.recorder.stop()
+        await app.settle()
         app.recorder.sources.videoFormat = nil
+    }
+
+    @Test func withTheScreenThePreviewIsTheCompositionOfTheFormat() async throws {
+        let app = try await AppRig(project: nil)
+        defer { app.close() }
+        app.capture.screen = true
+        app.recorder.sources.apply(.screenFace)
+        app.recorder.sources.videoFormat = nil
+        app.recorder.sources.layout = LayoutSpec(kind: .split)
+        app.hostEditor(Navigation(activity: .record, rightTab: .claude))
+        await app.settle()
+        // A screen session: no «as the camera», 16:9 chosen, the composition 16:9.
+        #expect(segments(app).map(\.name) == ["9:16", "16:9", "4:5", "1:1"], "\(segments(app).map(\.name))")
+        #expect(segment(app, "16:9")?.selected == true)
+        let wide = try #require(frame(app, "16:9"), "no 16:9 frame on the preview")
+        #expect(abs(wide.frame.width / wide.frame.height - 16.0 / 9) < 0.02, "\(wide.frame)")
+        checkPlace(app, preview: wide)
+        // At 16:9 the vertical stack does not apply: dimmed, a click on it changes nothing.
+        let stack = try #require(app.rig.element(loc("Verticale")), "no «Verticale» tile")
+        #expect(!stack.enabled, "«Verticale» is offered in a 16:9 frame")
+        app.rig.click(stack.centre)
+        await app.settle()
+        #expect(app.recorder.sources.layout.kind == .split, "the click on a disabled tile changed the layout")
+        // 9:16: the frame is portrait, side by side becomes the vertical stack (as the import lays it out), the face under
+        // the screen across the whole width.
+        #expect(try await click(app, "9:16") >= 1)
+        #expect(app.recorder.sources.takeFormat == "9:16")
+        let tall = try #require(frame(app, "9:16"), "no 9:16 frame on the preview")
+        #expect(abs(tall.frame.width / tall.frame.height - 1080.0 / 1920) < 0.02, "\(tall.frame)")
+        checkPlace(app, preview: tall)
+        #expect(app.recorder.sources.layout.kind == .stack, "side by side stayed in a portrait frame: \(app.recorder.sources.layout.label)")
+        let face = try #require(app.rig.elements().first { $0.label == loc("Volto nel video") && tall.frame.contains(CGPoint(x: $0.frame.midX, y: $0.frame.midY)) },
+                                "no face on the preview")
+        #expect(face.frame.minY >= tall.frame.midY - 2 && abs(face.frame.width - tall.frame.width) < 3, "the face is not under the screen: \(face.frame) in \(tall.frame)")
+        #expect(app.rig.element(loc("Affiancati"))?.enabled == false && app.rig.element(loc("Verticale"))?.enabled == true)
+        #expect(app.rig.element(loc("Verticale"))?.selected == true, "the stack is not the chosen tile")
+        // A layout that applies stays chosen: the bubble, from 9:16 to 1:1 and back to 16:9.
+        app.rig.click(try #require(app.rig.element(loc("Bolla"))).centre)
+        await app.settle()
+        try await click(app, "1:1")
+        #expect(app.recorder.sources.layout.kind == .bubble && app.rig.element(loc("Bolla"))?.selected == true)
+        try await click(app, "16:9")
+        #expect(app.recorder.sources.videoFormat == nil && app.recorder.sources.layout.kind == .bubble)
         app.recorder.sources.apply(.face)
+        app.recorder.sources.layout = LayoutSpec(kind: .bubble)
+    }
+
+    @Test func questoProgettoShowsTheProjectsFormatAndSaysWhenItChanges() async throws {
+        let app = try await AppRig(project: "empty")
+        defer { app.close() }
+        let p = try #require(app.store.project)
+        let own = try #require(ScreenLook.formatID(p))
+        let other = own == "16:9" ? "9:16" : "16:9"
+        app.recorder.sources.apply(.face)
+        app.recorder.sources.videoFormat = nil
+        app.hostEditor(Navigation(activity: .record, rightTab: .claude))
+        await app.settle()
+        #expect(app.store.recordingDestination == .thisProject)
+        // The project's format, chosen; no «as the camera»: the take joins a project of a given format.
+        #expect(segments(app).map(\.name) == ["9:16", "16:9", "4:5", "1:1"], "\(segments(app).map(\.name))")
+        #expect(segment(app, own)?.selected == true, "the project's \(own) is not the chosen format")
+        let note = String(format: loc("Il progetto passa a %@ quando aggiungi la ripresa"), other)
+        #expect(app.rig.element(note) == nil)
+        #expect(try await click(app, other) == 0, "a choice for this project changed the sources")
+        #expect(app.store.recordingFormat == other && segment(app, other)?.selected == true)
+        #expect(app.rig.element(note) != nil, "no line says the project changes: \(app.rig.elements().map(\.name).filter { !$0.isEmpty }.suffix(12))")
+        #expect(app.recorder.sources.videoFormat == nil, "the new project's choice changed")
+        // Its own format again: nothing to change, the line goes.
+        try await click(app, own)
+        #expect(app.store.recordingFormat == nil && app.rig.element(note) == nil)
+        // «Nuovo progetto»: the sources' choice again (as the camera).
+        app.store.recordingChoice = .newProject
+        await app.settle()
+        #expect(segment(app, loc("Come la camera"))?.selected == true)
+        app.store.recordingChoice = nil
+    }
+
+    /// The snapshots of #160 in Italian and French, at the default window size and the minimum one: the camera alone in
+    /// 9:16, screen + face in 9:16 and 16:9, «Questo progetto» with another format. Every face-layout tile stays in view at
+    /// the default size (#52).
+    @Test func snapshotsOfTheFormatOnTop() async throws {
+        let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"].map { URL(fileURLWithPath: $0) }
+        struct State { let name: String; let preset: RecordingSources.Preset; let format: String?; let project: Bool }
+        let states = [State(name: "camera-9x16", preset: .face, format: "9:16", project: false),
+                      State(name: "screen-face-9x16", preset: .screenFace, format: "9:16", project: false),
+                      State(name: "screen-face-16x9", preset: .screenFace, format: nil, project: false),
+                      State(name: "this-project-other", preset: .screenFace, format: nil, project: true)]
+        for state in states {
+            let app = try await AppRig(project: state.project ? "empty" : nil)
+            defer { app.close() }
+            app.capture.screen = true
+            var sources = app.recorder.sources
+            sources.apply(state.preset)
+            sources.videoFormat = state.format
+            sources.layout = LayoutSpec(kind: .bubble)
+            app.recorder.sources = sources
+            if state.project, let p = app.store.project {
+                app.store.recordingFormat = ScreenLook.formatID(p) == "16:9" ? "9:16" : "16:9"
+            }
+            for size in [CGSize(width: 1440, height: 900), CGSize(width: 1024, height: 640)] {
+                for lang in ["it", "fr"] {
+                    let demo = RecordDemo(sources: sources, open: nil, grantPermissions: true)
+                    app.rig?.close()
+                    app.hostEditor(Navigation(activity: .record, rightTab: .claude), size: size, language: lang) { AnyView($0.environment(\.recordDemo, demo)) }
+                    await app.settle()
+                    await app.idle(0.2)
+                    #expect(segments(app).count >= 4, "\(state.name) \(lang) \(size): no format bar")
+                    // #52 at the default window size, in a tab without a project. With a project the destination's switch
+                    // pushes the second row of tiles under the footer, with or without the line about the format (#163).
+                    if state.preset == .screenFace, !state.project, size.width == 1440 {
+                        for (_, name) in FaceLayoutControls.names {
+                            let tile = app.rig.element(loc(name))
+                            #expect(tile.map { $0.clip.contains($0.frame) && $0.frame.maxY < Double(size.height) } == true,
+                                    "\(state.name) \(lang) \(Int(size.width)): «\(name)» is not in view: \(String(describing: tile?.frame))")
+                        }
+                    }
+                    if let dir {
+                        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+                        try app.snapshot(to: dir.appendingPathComponent("registra-\(state.name)-\(Int(size.width))-\(lang).png"))
+                    }
+                }
+            }
+        }
     }
 }
 }

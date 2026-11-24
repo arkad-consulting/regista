@@ -60,14 +60,63 @@ struct RecordView: View {
     var body: some View {
         switch part {
         case .preview:
-            RecordPreview(sources: s, environment: env, live: live, sampleLevel: demo?.grantPermissions == true)
+            RecordPreview(sources: s, environment: env, live: live, output: output, sampleLevel: demo?.grantPermissions == true,
+                          bar: s.screen || s.camera ? AnyView(formatBar) : nil)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .task { if live { await recorder.prepare() } }
         case .controls:
             column
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in screensChanged += 1 }
                 .onChange(of: s.target) { screenShut = false }
+                // A face layout the format cannot lay out gives way to the one it becomes there (#160), as the import does.
+                .task(id: output.frameAspect) { fitLayout() }
         }
+    }
+
+    // MARK: Format
+
+    /// The take joins this tab's project («Questo progetto»): the project's format is the take's (#160).
+    private var joinsProject: Bool { store.project != nil && store.recordingDestination == .thisProject }
+
+    /// The project's format as a preset id (nil: a size of its own).
+    private var projectFormat: String? { store.project.flatMap(ScreenLook.formatID) }
+
+    /// The format the take comes out in: the control's choice and the preview's frame (#160).
+    private var output: TakeOutput {
+        s.output(project: joinsProject ? store.project.map { ($0.settings.width, $0.settings.height) } : nil,
+                 forProject: store.recordingFormat)
+    }
+
+    /// The video's format (#160), centred above the preview: «as the camera» (an icon, named by its tooltip) for a camera
+    /// take that becomes a new project, then 9:16 · 16:9 · 4:5 · 1:1. Not shown while recording (the caption names it).
+    private var formatBar: some View {
+        let ids = RecordingSources.formatChoices(camera: !s.screen && !joinsProject)
+        return RSegmented(items: ids.map { ($0, $0 == RecordingSources.cameraFormat ? "" : $0) },
+                          selection: Binding(get: { output.id }, set: { pickFormat($0) }),
+                          symbols: [RecordingSources.cameraFormat: "video"], fill: false,
+                          tips: [RecordingSources.cameraFormat: "Come la camera"])
+            .fixedSize()
+            .opacity(recorder.isRecording ? 0 : 1)
+            .disabled(recorder.isRecording)
+            .accessibilityHidden(recorder.isRecording)
+    }
+
+    private func pickFormat(_ id: String) {
+        guard live, !recorder.isRecording, id != output.id else { return }
+        if joinsProject {
+            // Another format for this project: it changes when the take lands; its own format again: nothing to change.
+            store.recordingFormat = id == projectFormat ? nil : id
+        } else {
+            recorder.sources.videoFormat = id == RecordingSources.cameraFormat || (s.screen && id == "16:9") ? nil : id
+        }
+    }
+
+    /// The face layout as the take's format lays it out: side by side becomes the vertical stack in a portrait frame and
+    /// back (project.format's rule), written into the sources so the preview, the tiles and the session agree.
+    private func fitLayout() {
+        guard live, !recorder.isRecording else { return }
+        let fitted = recorder.sources.layout.fitted(aspect: output.frameAspect)
+        if fitted != recorder.sources.layout { recorder.sources.layout = fitted }
     }
 
     /// The displays the picker shows: the demo's samples, else the connected ones (the recorder's hardware).
@@ -145,7 +194,10 @@ struct RecordView: View {
                     RSection(loc("Sorgenti")) { sourceRows }
                     if s.showsFaceLayout {
                         // Drawings a little shorter than the Inspector's: every tile in view at the default window size (#52).
-                        RSection(loc("Volto nel video")) { FaceLayoutControls(layout: layoutBinding, drawingHeight: 28) }
+                        RSection(loc("Volto nel video")) {
+                            FaceLayoutControls(layout: layoutBinding, drawingHeight: 28,
+                                               unavailable: FaceLayoutControls.unavailable(aspect: output.frameAspect))
+                        }
                     }
                 }
                 .padding(Ed.Space.l)
@@ -156,7 +208,7 @@ struct RecordView: View {
     }
 
     private var layoutBinding: Binding<LayoutSpec> {
-        Binding(get: { s.layout }, set: { recorder.sources.layout = $0 })
+        Binding(get: { s.layout.fitted(aspect: output.frameAspect) }, set: { recorder.sources.layout = $0 })
     }
 
     private var sourceRows: some View {
@@ -313,9 +365,6 @@ struct RecordView: View {
             if elsewhere == nil {
             destination
             HStack(spacing: Ed.Space.s) {
-                // The video's format (#153) beside the destination, left of Registra: a line more would push the face
-                // layout out of view (#52), and the destination's line has no room left beside it.
-                if !recorder.isRecording { formatRow }
                 if recorder.isRecording {
                     EdButton(title: recorder.isPaused ? loc("Riprendi") : loc("Pausa"), symbol: recorder.isPaused ? "play.fill" : "pause.fill",
                              large: true) { recorder.togglePause() }
@@ -332,28 +381,6 @@ struct RecordView: View {
         .overlay(alignment: .top) { Ed.rule2.frame(height: 1) }
     }
 
-    /// The video's format (#153), beside the destination: as the camera (a camera take's default) · 9:16 · 16:9 · 4:5 · 1:1;
-    /// a screen session starts at 16:9 (9:16 gives the vertical stack). The choice is remembered with the sources.
-    private var formatRow: some View {
-        let presets = FormatMenu.presets()
-        let order = s.screen ? ["16:9", "9:16", "4:5", "1:1"] : ["9:16", "16:9", "4:5", "1:1"]
-        let items = (s.screen ? [] : [FormatMenu.Item(id: RecordingSources.cameraFormat, title: loc("Come la camera"), symbol: "video")])
-            + order.compactMap { id in presets.first { $0.id == id } }
-        let chosen = s.formatChoice
-        // Compact, on the destination's line: the format's ratio, or the camera's symbol for «Come la camera» (its name is
-        // the control's value and the first line of its list).
-        let camera = chosen == RecordingSources.cameraFormat
-        return FormatMenu(label: items.first { $0.id == chosen }?.title ?? chosen, items: items, selected: chosen,
-                          tip: "Il formato del video: la cornice sull'anteprima mostra cosa resta; in montaggio il volto resta nell'inquadratura",
-                          font: Ed.ui(Ed.TypeSize.caption), symbol: camera ? "video" : "aspectratio", height: 32, display: camera ? "" : chosen) { id in
-            guard !recorder.isRecording else { return }
-            recorder.sources.videoFormat = id == RecordingSources.cameraFormat || (s.screen && id == "16:9") ? nil : id
-        }
-        .disabled(recorder.isRecording)
-        .fixedSize()
-        .overlay(RoundedRectangle(cornerRadius: Ed.Radius.m, style: .continuous).strokeBorder(Ed.line2))
-    }
-
     /// Where the take will go (#39), right above the Record button: "Nuovo progetto" / "Questo progetto" when the tab has
     /// a project (remembered per tab), and one line naming the place.
     private var destination: some View {
@@ -368,9 +395,16 @@ struct RecordView: View {
                                   .thisProject: "La registrazione va nei Media del progetto di questa scheda"])
                     .disabled(recorder.isRecording)
             }
-            // The video's format on the same line (#153): one line more would push the face layout out of view (#52).
             Label { Text(verbatim: line).lineLimit(1).truncationMode(.middle) } icon: { Image(systemName: goes == .thisProject ? "film" : "plus.rectangle.on.folder") }
                 .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
+            // Another format chosen above the preview for this project (#160): it changes when the take is added.
+            if joinsProject, let f = store.recordingFormat, f != projectFormat {
+                // Whole, on two lines in a narrow column rather than cut.
+                Label { Text(verbatim: loc("Il progetto passa a %@ quando aggiungi la ripresa", f)).fixedSize(horizontal: false, vertical: true) } icon: {
+                    Image(systemName: "aspectratio")
+                }
+                .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.gold)
+            }
         }
     }
 }
@@ -669,6 +703,16 @@ struct FaceLayoutControls: View {
     /// The tallest a tile's drawing may be (nil: as tall as its width gives).
     var drawingHeight: CGFloat? = nil
     var hint: String? = loc("Il volto si può spostare anche mentre registri: in montaggio ogni cambio diventa un tratto modificabile della timeline.")
+    /// The layouts the video's format cannot lay out, with why (Italian keys): drawn dimmed, not clickable (#160).
+    var unavailable: [LayoutSpec.Kind: String] = [:]
+
+    /// Side by side needs a landscape frame and the vertical stack a portrait one (project.format's rule).
+    static func unavailable(aspect: Double) -> [LayoutSpec.Kind: String] {
+        var out: [LayoutSpec.Kind: String] = [:]
+        if !LayoutSpec.applies(.split, aspect: aspect) { out[.split] = "In un formato verticale schermo e volto vanno uno sopra l'altro: Verticale" }
+        if !LayoutSpec.applies(.stack, aspect: aspect) { out[.stack] = "In un formato orizzontale schermo e volto vanno affiancati: Affiancati" }
+        return out
+    }
 
     static let names: [(LayoutSpec.Kind, String)] = [
         (.bubble, "Bolla"), (.split, "Affiancati"), (.stack, "Verticale"), (.face, "Volto"), (.cutout, "Ritaglio"), (.screen, "Solo schermo"),
@@ -680,7 +724,7 @@ struct FaceLayoutControls: View {
                 ForEach(Self.names, id: \.0) { kind, name in
                     LayoutTile(spec: LayoutSpec(kind: kind, corner: layout.corner, shape: layout.shape, size: layout.size,
                                                side: kind == layout.kind ? layout.side : nil), title: loc(name),
-                               on: layout.kind == kind, aspect: aspect, drawingHeight: drawingHeight) {
+                               on: layout.kind == kind, aspect: aspect, drawingHeight: drawingHeight, unavailable: unavailable[kind]) {
                         var l = layout
                         // The side belongs to its layout: another layout starts from its own default (#19).
                         if kind != l.kind { l.side = nil }
@@ -743,6 +787,8 @@ private struct LayoutTile: View {
     let on: Bool
     var aspect: Double = 16.0 / 9.0
     var drawingHeight: CGFloat? = nil
+    /// Why the video's format cannot lay this layout out (Italian key; nil: it can).
+    var unavailable: String? = nil
     let action: () -> Void
     @State private var hover = false
 
@@ -772,6 +818,10 @@ private struct LayoutTile: View {
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }
+        .disabled(unavailable != nil)
+        .opacity(unavailable != nil ? 0.4 : 1)
+        // A hint, not a label: the tile keeps its name.
+        .groupTip(unavailable ?? "")
         .accessibilityAddTraits(on ? .isSelected : [])
     }
 
@@ -791,26 +841,38 @@ private struct LayoutTile: View {
 
 // MARK: - Preview
 
-/// The live preview in the output format: the screen and the face where the layout puts them (16:9), the camera alone,
-/// or — with only the microphone — the voice and its level. Without frames (no permission, an offscreen render) each
-/// part is drawn as a placeholder of the same geometry, so the layout still reads.
+/// The live preview in the take's format (#160): the screen and the face where the layout puts them in a frame of that
+/// format (the composition the import gives), the camera alone with the format's guide, or — with only the microphone —
+/// the voice and its level. Without frames (no permission, an offscreen render) each part is drawn as a placeholder of
+/// the same geometry, so the layout still reads. The format control sits centred on the bar above it.
 struct RecordPreview: View {
     @EnvironmentObject private var recorder: Recorder
     let sources: RecordingSources
     let environment: RecordingEnvironment
     let live: Bool
+    /// The format the take comes out in.
+    var output = TakeOutput(id: RecordingSources.cameraFormat, aspect: nil)
     /// A render drawn as if every permission were granted shows a sample level in the meter.
     var sampleLevel = false
+    /// The bar above the preview (the format control), nil: none.
+    var bar: AnyView? = nil
+
+    /// With the screen, the frame of the take's format; otherwise the camera's 16:9 picture.
+    private var frameAspect: Double { sources.screen ? output.frameAspect : 16.0 / 9 }
 
     var body: some View {
         VStack(spacing: Ed.Space.m) {
-            ZStack {
-                content
+            // The bar sits right on top of the preview, the pair centred in the area.
+            VStack(spacing: Ed.Space.m) {
+                if let bar { bar }
+                ZStack {
+                    content
+                }
+                .aspectRatio(frameAspect, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.xl))
+                .overlay(RoundedRectangle(cornerRadius: Ed.Radius.xl).strokeBorder(Ed.line2))
+                .overlay(alignment: .topLeading) { if recorder.isRecording { recordingPill.padding(Ed.Space.m) } }
             }
-            .aspectRatio(16 / 9, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: Ed.Radius.xl))
-            .overlay(RoundedRectangle(cornerRadius: Ed.Radius.xl).strokeBorder(Ed.line2))
-            .overlay(alignment: .topLeading) { if recorder.isRecording { recordingPill.padding(Ed.Space.m) } }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             caption
         }
@@ -828,12 +890,12 @@ struct RecordPreview: View {
                 if live, recorder.hasCamera { CameraPreview(session: recorder.session, gravity: .resizeAspectFill) }
                 else { FacePlaceholder(note: cameraNote) }
                 // #153: where a video of the chosen format falls, centred on the face when one is seen.
-                if let aspect = sources.guideAspect {
-                    FormatGuide(aspect: aspect, id: sources.videoFormat ?? "", faceX: live ? recorder.faceX : nil)
+                if let aspect = sources.guideAspect(output) {
+                    FormatGuide(aspect: aspect, id: output.id, faceX: live ? recorder.faceX : nil)
                 }
             }
-            .onAppear { if live { recorder.followFace(sources.guideAspect != nil) } }
-            .onChange(of: sources.guideAspect) { if live { recorder.followFace(sources.guideAspect != nil) } }
+            .onAppear { if live { recorder.followFace(sources.guideAspect(output) != nil) } }
+            .onChange(of: sources.guideAspect(output)) { if live { recorder.followFace(sources.guideAspect(output) != nil) } }
             .onDisappear { if live { recorder.followFace(false) } }
         } else if sources.microphone {
             voiceOnly
@@ -861,15 +923,17 @@ struct RecordPreview: View {
         }
     }
 
+    /// The composition of the take's format (#160): the layout as that frame lays it out (project.format's rule).
     private var layoutPreview: some View {
         GeometryReader { geo in
             let W = geo.size.width, H = geo.size.height
-            let spec = sources.effectiveLayout
+            let spec = sources.effectiveLayout.fitted(aspect: frameAspect)
             let g = Layouts.geometry(spec, width: Int(W), height: Int(H), screen: (16, 9), camera: (16, 9))
             ZStack(alignment: .topLeading) {
                 Ed.stageDeep
                 place(g.screen, W: W, H: H) {
-                    if live, let frame = recorder.screenFrame { ScreenPreview(surface: frame) }
+                    // Filled as the edit fills the screen's box (cropped around its centre, never letterboxed).
+                    if live, let frame = recorder.screenFrame { ScreenPreview(surface: frame, gravity: .resizeAspectFill) }
                     else { ScreenPlaceholder(note: screenNote, compact: false) }
                 }
                 .opacity(g.screen.visible ? 1 : 0)
@@ -884,6 +948,11 @@ struct RecordPreview: View {
                     .accessibilityHidden(!g.camera.visible)
                 }
             }
+        }
+        .overlay {
+            // The frame of the take's format, named as the camera's guide is (the tests find it by its name), a picture.
+            Color.clear.allowsHitTesting(false).accessibilityElement().accessibilityAddTraits(.isImage)
+                .accessibilityLabel(String(format: loc("Cornice del video %@"), output.id))
         }
     }
 
@@ -946,10 +1015,13 @@ struct RecordPreview: View {
     private var caption: some View {
         HStack(spacing: Ed.Space.s) {
             SectionLabel("Anteprima")
-            Text(verbatim: sources.screen ? sources.formatChoice : (sources.camera ? (sources.videoFormat ?? loc("formato della camera")) : loc("audio")))
+            Text(verbatim: !sources.screen && !sources.camera ? loc("audio")
+                 : output.id == RecordingSources.cameraFormat ? loc("formato della camera") : output.id)
                 .font(Ed.mono(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
             Spacer()
-            Text(verbatim: inFile).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).lineLimit(1)
+            // Whole, on two lines in a narrow window (French at the minimum size) rather than cut.
+            Text(verbatim: inFile).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text2).lineLimit(2)
+                .multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -1012,7 +1084,9 @@ struct FormatGuide: View {
             }
         }
         .allowsHitTesting(false)
+        // A picture, not a control: nothing to click (#160: the click audit meets it now that a project's format shows it).
         .accessibilityElement()
+        .accessibilityAddTraits(.isImage)
         .accessibilityLabel(String(format: loc("Cornice del video %@"), id))
     }
 }

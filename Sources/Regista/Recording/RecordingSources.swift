@@ -111,15 +111,36 @@ struct RecordingSources: Codable, Equatable {
     /// The format the take's project gets (#153): a preset id, or nil for the camera's own size (a camera take as the camera).
     var takeFormat: String? { screen ? (videoFormat ?? "16:9") : videoFormat }
 
-    /// The choice as the menu shows it: «camera» for the camera's own format.
-    var formatChoice: String { screen ? (videoFormat ?? "16:9") : (videoFormat ?? Self.cameraFormat) }
+    /// The «as the camera» choice: the camera's own format.
     static let cameraFormat = "camera"
 
-    /// The aspect of the guide drawn on the camera preview: a chosen format other than the camera's (its preview is 16:9),
-    /// while the camera shows alone. nil: no guide.
-    var guideAspect: Double? {
-        guard camera, !screen, let id = videoFormat, let p = ExportPreset.all.first(where: { $0.id == id }) else { return nil }
-        let a = Double(p.width) / Double(p.height)
+    /// The segments of Registra's format control (#160): «as the camera» for a camera take that becomes a new project,
+    /// then the four formats.
+    static func formatChoices(camera: Bool) -> [String] { (camera ? [cameraFormat] : []) + ["9:16", "16:9", "4:5", "1:1"] }
+
+    /// A preset's width / height (nil: not a preset).
+    static func aspect(_ id: String) -> Double? {
+        ExportPreset.all.first { $0.id == id }.map { Double($0.width) / Double($0.height) }
+    }
+
+    /// The format the take comes out in (#160). Joining a project («Questo progetto», `project` its size): the format
+    /// chosen for it there (`forProject`), else the project's own. Otherwise the sources' choice (nil aspect: the camera's
+    /// own size).
+    func output(project: (width: Int, height: Int)?, forProject: String?) -> TakeOutput {
+        if let p = project {
+            if let id = forProject, let a = Self.aspect(id) { return TakeOutput(id: id, aspect: a) }
+            let a = Double(p.width) / Double(max(p.height, 1))
+            let id = ExportPreset.all.first { abs(Double($0.width) / Double($0.height) - a) < 0.01 }?.id ?? String(format: "%d×%d", p.width, p.height)
+            return TakeOutput(id: id, aspect: a)
+        }
+        guard let id = takeFormat else { return TakeOutput(id: Self.cameraFormat, aspect: nil) }
+        return TakeOutput(id: id, aspect: Self.aspect(id))
+    }
+
+    /// The aspect of the guide drawn on the camera preview: a format other than the camera's (its preview is 16:9), while
+    /// the camera shows alone. nil: no guide.
+    func guideAspect(_ output: TakeOutput) -> Double? {
+        guard camera, !screen, let a = output.aspect else { return nil }
         return abs(a - 16.0 / 9) > 0.01 ? a : nil
     }
 
@@ -170,6 +191,16 @@ struct RecordingSources: Codable, Equatable {
     func save(to d: UserDefaults) {
         if let data = try? JSONEncoder().encode(self) { d.set(data, forKey: Self.defaultsKey) }
     }
+}
+
+/// The format a take comes out in, as Registra's control and preview show it (#160): a preset id («camera» for the
+/// camera's own size, or "W×H" for a project of another size) and its width / height (nil: the camera's own).
+struct TakeOutput: Equatable {
+    var id: String
+    var aspect: Double?
+
+    /// The aspect of the screen modes' composition: 16:9 for the camera's own.
+    var frameAspect: Double { aspect ?? 16.0 / 9 }
 }
 
 /// The macOS privacy permission behind a source.

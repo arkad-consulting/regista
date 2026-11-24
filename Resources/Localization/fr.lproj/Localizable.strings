@@ -2710,3 +2710,6 @@
 "Skill esportata in %@" = "Skill exportée dans %@";
 "Aggiunta la skill «%@»" = "Skill « %@ » ajoutée";
 "Sostituita la skill «%@»" = "Skill « %@ » remplacée";
+"In un formato verticale schermo e volto vanno uno sopra l'altro: Verticale" = "Dans un format vertical, l'écran et le visage vont l'un au-dessus de l'autre : Superposé";
+"In un formato orizzontale schermo e volto vanno affiancati: Affiancati" = "Dans un format horizontal, l'écran et le visage vont côte à côte : Côte à côte";
+"Il progetto passa a %@ quando aggiungi la ripresa" = "Le projet passe en %@ quand vous ajoutez la prise";

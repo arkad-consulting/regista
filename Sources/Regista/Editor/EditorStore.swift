@@ -139,6 +139,9 @@ final class EditorStore: ObservableObject {
     @Published var simpleOpen: SimpleStep?
     /// Where a recording started from this tab goes, as chosen on Registra (nil: the default), kept while the tab is open.
     @Published var recordingChoice: RecordingDestination?
+    /// The format chosen on Registra for a take joining this tab's project (#160, a preset id; nil: the project's own): the
+    /// project changes to it when the take lands.
+    @Published var recordingFormat: String?
     /// The last framing check of this tab's edit (#152): «Trova il volto» shows a cut head while it holds.
     @Published var framing: FramingCheck?
     /// Instagram UI guides on the Program monitor: off until asked for (they are guides, not a crop).
@@ -675,7 +678,8 @@ final class EditorStore: ObservableObject {
     /// the layout chosen while recording, mic — recording.import). Otherwise into this project: the take joins Media,
     /// selected there, and goes on the timeline when the timeline is empty. `format`: the video's format chosen on Registra
     /// (#153, a preset id): a new project gets it through project.format, so the clip is framed on the face; nil keeps the
-    /// take's own format (a session: 16:9). The window stays where it is (#140: on
+    /// take's own format (a session: 16:9). A take joining this project with another format changes the project to it
+    /// (#160). The window stays where it is (#140: on
     /// Registra, ready for the next take) unless `openEditor` (the automatic edit follows): then the editor on Media. A
     /// notice says where the take went and how many takes the project holds, with "Vai al montaggio" and "Mostra nel Finder".
     func importRecording(_ url: URL, session: Bool, newProject: Bool, format: String? = nil, openEditor: Bool = false) {
@@ -704,18 +708,25 @@ final class EditorStore: ObservableObject {
                         if let format, project?.asset(id)?.video != nil { try await perform("project.format", ["preset": .string(format)]) }
                     }
                     try await perform("project.save")
-                } else if session, (project?.duration ?? .zero) == .zero {
-                    try await perform("recording.import", ["path": .string(url.path)])
                 } else {
-                    // A session into a project already edited: its files join Media, the timeline stays as it is.
-                    let files = session ? try Self.sessionFiles(url) : [url]
-                    for f in files {
-                        let id = try await perform("media.import", ["path": .string(f.path)]).value(at: "asset.id")?.stringValue ?? ""
-                        if !session, (project?.duration ?? .zero) == .zero, project?.asset(id)?.video != nil {
-                            try await placeOnTimeline(id)
-                            try await frameOnFace(id)
+                    // Another format chosen on Registra for this project (#160): the project changes to it once the take is
+                    // in (project.format, one undo step, the faces framed), else a take of another format is framed on the face.
+                    let format = format.flatMap { f in project.flatMap(ScreenLook.formatID) == f ? nil : f }
+                    if session, (project?.duration ?? .zero) == .zero {
+                        try await perform("recording.import", ["path": .string(url.path)])
+                    } else {
+                        // A session into a project already edited: its files join Media, the timeline stays as it is.
+                        let files = session ? try Self.sessionFiles(url) : [url]
+                        for f in files {
+                            let id = try await perform("media.import", ["path": .string(f.path)]).value(at: "asset.id")?.stringValue ?? ""
+                            if !session, (project?.duration ?? .zero) == .zero, project?.asset(id)?.video != nil {
+                                try await placeOnTimeline(id)
+                                if format == nil { try await frameOnFace(id) }
+                            }
                         }
                     }
+                    if let format { try await perform("project.format", ["preset": .string(format)]) }
+                    recordingFormat = nil
                 }
                 let added = project?.assets.filter { !before.contains($0.id) } ?? []
                 let shown = added.first(where: { $0.video != nil }) ?? added.first

@@ -700,16 +700,18 @@ struct CameraPreview: NSViewRepresentable {
 /// The latest screen frame (an IOSurface from ScreenCaptureKit) as layer contents.
 struct ScreenPreview: NSViewRepresentable {
     let surface: IOSurface?
+    var gravity: CALayerContentsGravity = .resizeAspect
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         view.wantsLayer = true
-        view.layer?.contentsGravity = .resizeAspect
+        view.layer?.contentsGravity = gravity
         view.layer?.backgroundColor = NSColor.black.cgColor
         return view
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
+        nsView.layer?.contentsGravity = gravity
         nsView.layer?.contents = surface
     }
 }

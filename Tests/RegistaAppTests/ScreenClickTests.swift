@@ -78,7 +78,11 @@ extension MouseSuites.ClickAudits {
         _ = try await audit("record", Navigation(activity: .record, rightTab: .inspector), area: WindowPart.content, noOps: [
             "Solo volto": "the preset already chosen (the recorder's default sources: the camera alone)",
             "Questo progetto": "where the take goes, already chosen (the default once the tab has a project, #140)",
-        ], restore: { app in app.store.recordingChoice = nil })
+            "9:16": "the take's format above the preview, already chosen: the take joins the fixture project, which is 9:16 (#160)",
+        ], restore: { app in
+            app.store.recordingChoice = nil
+            app.store.recordingFormat = nil
+        })
     }
 
     @Test(arguments: Navigation.TextsTab.allCases)

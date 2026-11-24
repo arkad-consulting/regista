@@ -131,16 +131,13 @@ enum ProjectFormat: Command {
         }
         project.settings.width = size.0
         project.settings.height = size.1
-        let portrait = size.1 > size.0, landscape = size.0 > size.1
         var applied: [JSONValue] = []
         for index in (project.recordings ?? []).indices {
             let link = project.recordings![index]
             guard link.screen != nil else { continue }
             for (k, l) in (link.layouts ?? []).enumerated() {
-                var spec = l.layout
                 // Side by side needs width, the vertical stack needs height.
-                if portrait, spec.kind == .split { spec = LayoutSpec(kind: .stack, side: spec.side == "left" ? "top" : nil) }
-                if landscape, spec.kind == .stack { spec = LayoutSpec(kind: .split, side: spec.side == "top" ? "left" : nil) }
+                let spec = l.layout.fitted(aspect: to)
                 try Recording.apply(spec, link: index, from: l.from, to: l.to, transition: k == 0 ? 0 : 0.3, &project)
                 applied.append(["recordingId": .string(link.id), "from": ProjectState.seconds(l.from), "to": ProjectState.seconds(l.to),
                                 "layout": .string(spec.label)])

@@ -318,7 +318,8 @@ final class Workbench: ObservableObject {
         if recordingTabID == nil {
             recordingTabID = activeID
             startedDestination = active.recordingDestination
-            startedFormat = recorder?.sources.takeFormat
+            // Joining the tab's project: the format chosen for it there (#160); otherwise the sources' choice.
+            startedFormat = startedDestination == .thisProject ? active.recordingFormat : recorder?.sources.takeFormat
         }
         notice = nil
     }

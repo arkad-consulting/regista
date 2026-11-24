@@ -5,9 +5,9 @@ import RegistaCore
 import Testing
 @testable import Regista
 
-// #19: the face's side for «Affiancati» and «Verticale», and «Pausa» for a take with no screen. Real clicks on the real
-// Registra panel with the capture stand-in (no camera, microphone or screen is opened; the teleprompter's window is
-// kept offscreen by the rig).
+// #19: the face's side for «Affiancati» and «Verticale» (in a portrait format, #160), and «Pausa» for a take with no
+// screen. Real clicks on the real Registra panel with the capture stand-in (no camera, microphone or screen is opened;
+// the teleprompter's window is kept offscreen by the rig).
 
 /// Seconds of the recorded file at `wall` seconds after Record, with the pauses taken out.
 @Test func theTeleprompterMarkersSkipTheTakesPauses() {
@@ -84,19 +84,21 @@ extension MouseSuites {
         #expect(left.midX < right.midX - 50, "\(tag): the preview's face did not move left (\(right) → \(left))")
         #expect(control(w("Volto a sinistra")) != nil, "\(tag): the row went away")
 
-        // «Verticale»: below by default, «Volto sopra» moves it up.
-        app.rig.click(try await reach(w("Verticale")).centre)
+        // «Verticale» needs a portrait format (#160): 9:16 above the preview turns side by side into the stack, the face on
+        // the same side (left → top), as the import lays it out; «sotto» moves it down — one change, the preview with it.
+        #expect(control(w("Verticale"))?.enabled == false, "\(tag): «Verticale» is offered in a 16:9 frame")
+        app.rig.click(try #require(control("9:16"), "\(tag): no 9:16 above the preview").centre)
         await app.settle()
-        #expect(app.recorder.sources.layout.kind == .stack, "\(tag): \(app.recorder.sources.layout)")
-        let below = try #require(face)
-        let up = try await reach(w("Volto sopra"))
-        #expect(try await reach(w("sotto")).selected, "\(tag): «sotto» is not the default")
-        changes = 0
-        app.rig.click(up.centre)
-        await app.settle()
-        #expect(app.recorder.sources.layout.side == "top" && changes == 1, "\(tag): \(app.recorder.sources.layout) after \(changes) changes")
+        #expect(app.recorder.sources.layout.kind == .stack && app.recorder.sources.layout.side == "top", "\(tag): \(app.recorder.sources.layout)")
         let above = try #require(face)
-        #expect(above.midY < below.midY - 30, "\(tag): the preview's face did not move up (\(below) → \(above))")
+        #expect(try await reach(w("Volto sopra")).selected, "\(tag): «Volto sopra» is not kept from «Volto a sinistra»")
+        let down = try await reach(w("sotto"))
+        changes = 0
+        app.rig.click(down.centre)
+        await app.settle()
+        #expect(app.recorder.sources.layout.side == "bottom" && changes == 1, "\(tag): \(app.recorder.sources.layout) after \(changes) changes")
+        let below = try #require(face)
+        #expect(below.midY > above.midY + 30, "\(tag): the preview's face did not move down (\(above) → \(below))")
         if let dir { try? app.snapshot(to: dir.appendingPathComponent("record-side-stack-\(language)-1440.png")) }
 
         // At the smallest window the row fits and «Registra» stays in view; the column says it continues when it does.
@@ -108,6 +110,8 @@ extension MouseSuites {
         let cue = app.rig.elements().contains { $0.name == w("Altro sotto") && $0.visible }
         #expect(inView(row) || cue, "\(tag): the side row is below the fold and the column does not say it continues")
         if let dir { try? app.snapshot(to: dir.appendingPathComponent("record-side-stack-\(language)-1024.png")) }
+        app.rig.click(try #require(control("16:9"), "\(tag): no 16:9 above the preview").centre)
+        await app.settle()
         app.rig.click(try await reach(w("Affiancati")).centre)
         await app.settle()
         if let dir { try? app.snapshot(to: dir.appendingPathComponent("record-side-split-\(language)-1024.png")) }

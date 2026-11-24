@@ -279,7 +279,8 @@ struct RSegmented<T: Hashable>: View {
                 .disabled(disabled.contains(item.0))
                 .opacity(disabled.contains(item.0) ? 0.4 : 1)
                 .tip(tips[item.0] ?? "", shortcut: shortcuts[item.0])
-                .accessibilityLabel(loc(item.1))
+                // An icon segment is named by its tooltip.
+                .accessibilityLabel(loc(item.1.isEmpty ? tips[item.0] ?? "" : item.1))
                 .accessibilityAddTraits(on ? .isSelected : [])
             }
         }

@@ -1,7 +1,7 @@
 import RegistaCore
 import SwiftUI
 
-/// The output formats as one compact menu (the toolbar's format label, Registra's «Formato del video»): the label as it
+/// The output formats as one compact menu (the toolbar's format label; Regia e skill's choices): the label as it
 /// reads, a small chevron; a click opens the short list, the current one checked, and a choice calls `pick` and closes
 /// it. Chosen about once per video: it stays a label, with no panel of its own.
 struct FormatMenu: View {
@@ -20,7 +20,7 @@ struct FormatMenu: View {
     /// The whole label (false: cut to the width left, the toolbar's narrow fallback).
     var whole = true
     var font: Font = Ed.ui(Ed.TypeSize.body)
-    /// A symbol before the label (Registra's menu, where no word says «format»).
+    /// A symbol before the label (a menu whose label is a symbol alone).
     var symbol: String? = nil
     /// The label's height (the toolbar's controls: 24; a line of text: 18).
     var height: CGFloat = 24
