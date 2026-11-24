@@ -631,7 +631,9 @@ final class EditorStore: ObservableObject {
         if asset.audio != nil, audio == nil { audio = try await perform("track.add", ["kind": "audio"]).value(at: "track.id")?.stringValue }
         var picture: String?
         if asset.video != nil, let video {
-            picture = try await perform("timeline.place", ["assetId": .string(assetID), "trackId": .string(video)]).value(at: "clip.id")?.stringValue
+            // A camera clip of another aspect than the project's is framed on the face in the same undo step (#154).
+            picture = try await perform("timeline.place", ["assetId": .string(assetID), "trackId": .string(video), "frameOnFace": true])
+                .value(at: "clip.id")?.stringValue
         }
         if asset.audio != nil, let audio {
             var params: JSONValue = ["assetId": .string(assetID), "trackId": .string(audio)]
@@ -655,14 +657,6 @@ final class EditorStore: ObservableObject {
             // In Semplice, its own "Fai tutto" (with the light grade, without the steps this Mac cannot run).
             if nav.level == .simple { doEverything(script: script) } else { runAll(settings: stepSettings, script: script) }
         }
-    }
-
-    /// A take placed in a project of another format keeps the project's format and is framed on the face (#150):
-    /// project.format at the project's own size (it tracks the faces first). Nothing to do when the aspects match.
-    func frameOnFace(_ assetID: String) async throws {
-        guard let s = project?.settings, let v = project?.asset(assetID)?.video,
-              abs(Double(v.width) / Double(v.height) - Double(s.width) / Double(max(s.height, 1))) > 1e-3 else { return }
-        try await perform("project.format", ["width": .number(Double(s.width)), "height": .number(Double(s.height))])
     }
 
     /// Where a recording started from this tab goes (#39): a new project when the tab has none; otherwise the choice made
@@ -720,8 +714,8 @@ final class EditorStore: ObservableObject {
                         for f in files {
                             let id = try await perform("media.import", ["path": .string(f.path)]).value(at: "asset.id")?.stringValue ?? ""
                             if !session, (project?.duration ?? .zero) == .zero, project?.asset(id)?.video != nil {
+                                // A take of another format is framed on the face as it is placed (#150, #154).
                                 try await placeOnTimeline(id)
-                                if format == nil { try await frameOnFace(id) }
                             }
                         }
                     }

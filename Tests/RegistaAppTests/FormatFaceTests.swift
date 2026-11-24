@@ -84,6 +84,29 @@ func landscapeTake(_ name: String = "Registrazione 2026-11-22 \(UUID().uuidStrin
     #expect(!FaceFraming.cutHeads(face, crop: centred, frame: (1920, 1080), headroom: 0.02).isEmpty)
 }
 
+/// #154: a landscape video imported into a vertical project (Media › Importa…, Inizio › Monta un video) goes on the
+/// timeline framed on the face, in the placement's undo step: never cut around its centre.
+@MainActor
+@Test func aLandscapeVideoImportedIntoAVerticalProjectIsFramedOnTheFace() async throws {
+    let b = faceBench("format-face-import")
+    let tab = b.newTab()
+    b.select(tab.tabID)
+    try await tab.perform("project.new", ["name": "verticale", "directory": .string(rigTempDir("projects").path), "width": 1080, "height": 1920])
+    let n = tab.activity.count
+    tab.importMedia([try landscapeTake("intervista.mov")])
+    try await untilFramed { tab.project?.tracks.first { $0.kind == .video }?.clips.first?.transform != nil || tab.activity.dropFirst(n).contains { $0.status == .failed } }
+    let p = try #require(tab.project)
+    #expect(p.settings.width == 1080 && p.settings.height == 1920, "the import changed the project's format")
+    #expect(p.assets.first?.analysis?.faces != nil, "the faces were not tracked")
+    let place = try #require(tab.activity.dropFirst(n).first { $0.command == "timeline.place" && $0.params.contains("frameOnFace") }, "no framed placement")
+    #expect(place.result.contains(loc("inquadrata sul volto")), "the placement's line does not say it was framed: «\(place.result)»")
+    #expect(!tab.activity.dropFirst(n).contains { $0.command == "project.format" }, "the framing took a step of its own")
+    let (crop, pass) = try await framing(tab)
+    let c = try #require(crop, "the clip was not framed: it is cut around its centre")
+    #expect(abs(c[0] / c[1] - 1080.0 / 1920) < 0.01 && c[2] > 900, "the crop is not on the face: \(c)")
+    #expect(pass, "faces.checkFraming fails after the import")
+}
+
 // #153: Registra chooses the video's format before recording.
 
 @Test func theTakeFormatFollowsTheChoiceTheSourcesAndTheDestination() {

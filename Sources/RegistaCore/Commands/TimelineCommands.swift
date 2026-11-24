@@ -70,7 +70,7 @@ enum Timeline {
 
 enum TimelinePlace: Command {
     static let id = "timeline.place"
-    static let summary = "Manual editing: place an asset (or a source range of it) on a track as a new clip at a timeline time, optionally linked to another clip. Fails if the spot is occupied. Returns the new clip id."
+    static let summary = "Manual editing: place an asset (or a source range of it) on a track as a new clip at a timeline time, optionally linked to another clip. Fails if the spot is occupied. With frameOnFace, a camera video of another aspect than the project's is framed on its face as project.format frames it (its faces tracked first when it has no face track: faces.track, local Apple Vision, no cost), in the same undo step. Returns the new clip id and, with frameOnFace, the assets tracked and the clips framed."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .required("assetId", .string, "Asset id from media.import."),
@@ -79,6 +79,7 @@ enum TimelinePlace: Command {
         .optional("sourceIn", .time, "Start inside the source media (default 0)."),
         .optional("sourceOut", .time, "End inside the source media (default: end of the media; a still image lasts 5 s)."),
         .optional("linkTo", .string, "Link the new clip to this clip (e.g. the sound of a picture clip): they then move, trim, cut and delete together."),
+        .optional("frameOnFace", .boolean, "Frame a full-frame camera video of another aspect on its face, tracking the faces first when needed (default false: the picture is cropped around its centre). Import a camera clip into a project of another format with it."),
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
@@ -105,7 +106,41 @@ enum TimelinePlace: Command {
         project.tracks[t].clips.append(clip)
         project.tracks[t].sortClips()
         ctx.project = project
-        return ["clip": ProjectState.summary(of: clip), "trackId": .string(project.tracks[t].id)]
+        var result: [String: JSONValue] = ["clip": ProjectState.summary(of: clip), "trackId": .string(project.tracks[t].id)]
+        if p.bool("frameOnFace") == true { try frameOnFace(clip.id, into: &result, &ctx) }
+        return .object(result)
+    }
+
+    /// The placed clip framed on its face for the project's aspect (#154), as a take joining a project is: its faces
+    /// tracked first when the asset has no face track (a face engine permitting), then FaceReframe at the zoom it has.
+    /// Nothing to do for a clip that shows its whole source at the project's aspect, or that is no camera picture.
+    static func frameOnFace(_ clipID: String, into result: inout [String: JSONValue], _ ctx: inout CommandContext) throws {
+        var project = try ctx.requireProject()
+        let aspect = Double(project.settings.width) / Double(max(project.settings.height, 1))
+        guard let at = FaceReframe.candidates(project, aspect: aspect).first(where: { project.tracks[$0.track].clips[$0.clip].id == clipID })
+        else { return }
+        let aid = project.tracks[at.track].clips[at.clip].assetID
+        var log: [JSONValue] = [], tracked: [JSONValue] = [], warnings: [JSONValue] = []
+        if project.asset(aid)?.analysis?.faces == nil {
+            if ctx.services.faces == nil {
+                warnings.append("no face engine in this host: the clip is cropped around its centre")
+            } else {
+                do {
+                    try ctx.perform(FacesTrack.self, ["assetId": .string(aid)], log: &log)
+                    tracked.append(.string(aid))
+                } catch {
+                    warnings.append(.string("faces of \(aid) not tracked (\((error as? CommandError)?.message ?? "\(error)")): the clip is cropped around its centre"))
+                }
+                project = try ctx.requireProject()
+            }
+        }
+        var cache: [String: FaceTrack] = [:]
+        let framed = FaceReframe.apply(&project, from: aspect, to: aspect, only: [clipID]) { FaceReframe.track($0, cache: &cache) }
+        ctx.project = project
+        result["tracked"] = .array(tracked)
+        result["reframed"] = .array(framed.map(\.json))
+        if !warnings.isEmpty { result["warnings"] = .array(warnings) }
+        if !log.isEmpty { result["commands"] = .array(log) }
     }
 }
 

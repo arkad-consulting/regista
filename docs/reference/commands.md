@@ -2539,7 +2539,7 @@ Returns: the moved clips.
 
 **Put on the timeline** · MCP tool: `timeline_place` · undo: yes — one undo step · takes `project`
 
-Manual editing: place an asset (or a source range of it) on a track as a new clip at a timeline time, optionally linked to another clip. Fails if the spot is occupied. Returns the new clip id.
+Manual editing: place an asset (or a source range of it) on a track as a new clip at a timeline time, optionally linked to another clip. Fails if the spot is occupied. With frameOnFace, a camera video of another aspect than the project's is framed on its face as project.format frames it (its faces tracked first when it has no face track: faces.track, local Apple Vision, no cost), in the same undo step. Returns the new clip id and, with frameOnFace, the assets tracked and the clips framed.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -2549,8 +2549,9 @@ Manual editing: place an asset (or a source range of it) on a track as a new cli
 | `sourceIn` | seconds | no | 0 | Start inside the source media (default 0). |
 | `sourceOut` | seconds | no | end of the media | End inside the source media (default: end of the media; a still image lasts 5 s). |
 | `linkTo` | string | no | – | Link the new clip to this clip (e.g. the sound of a picture clip): they then move, trim, cut and delete together. |
+| `frameOnFace` | boolean | no | false: the picture is cropped around its centre | Frame a full-frame camera video of another aspect on its face, tracking the faces first when needed (default false: the picture is cropped around its centre). Import a camera clip into a project of another format with it. |
 
-Returns: the new clip id.
+Returns: the new clip id and, with frameOnFace, the assets tracked and the clips framed.
 
 ### `timeline.trim`
 

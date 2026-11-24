@@ -2772,3 +2772,6 @@
 "Esporta per misurare" = "Exporter pour mesurer";
 "It is measured on the exported video: export it, then it is checked." = "Cela se mesure sur la vidéo exportée : exportez-la, puis c'est vérifié.";
 "The face has not been found yet: «Find the face» finds it, then it is checked." = "Le visage n'a pas encore été trouvé : « Trouver le visage » le trouve, puis c'est vérifié.";
+
+/* A camera clip placed in a project of another format, framed on the face (#154). */
+"inquadrata sul volto" = "cadré sur le visage";

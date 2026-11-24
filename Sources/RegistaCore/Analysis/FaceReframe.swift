@@ -56,12 +56,15 @@ public enum FaceReframe {
     static func maxHeight(_ w: Double, _ h: Double, aspect: Double) -> Double { w / h > aspect ? h : w / aspect }
 
     /// Crops the candidate clips (`candidates`) of `project`, drawn now at `from` (the output aspect before), for an output
-    /// of aspect `to`, on the face tracks `faces` gives. Returns the clips framed on a face.
+    /// of aspect `to`, on the face tracks `faces` gives; `only`: those clips alone (a clip just placed). Returns the clips
+    /// framed on a face.
     @discardableResult
-    public static func apply(_ project: inout Project, from: Double, to aspect: Double, faces: (MediaAsset) -> FaceTrack?) -> [Row] {
+    public static func apply(_ project: inout Project, from: Double, to aspect: Double, only: Set<String>? = nil,
+                             faces: (MediaAsset) -> FaceTrack?) -> [Row] {
         var rows: [Row] = []
         for (t, c) in candidates(project, aspect: aspect) {
             var clip = project.tracks[t].clips[c]
+            if let only, !only.contains(clip.id) { continue }
             guard let asset = project.asset(clip.assetID), let v = asset.video, let track = faces(asset) else { continue }
             let W = Double(v.width), H = Double(v.height)
             // The zoom the clip has now: the height it is drawn with, against the largest crop of the aspect it is drawn at.

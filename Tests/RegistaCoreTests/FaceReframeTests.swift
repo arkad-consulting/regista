@@ -82,3 +82,39 @@ private func cutFrames(_ track: FaceTrack, crop: (Double) -> [Double]) -> Int {
     #expect(e.project == project && project.tracks[0].clips[0].transform == nil)
     #expect(RenderJob(project: project, preset: ExportPreset.named(nil, project: project)).project == project)
 }
+
+// #154: a camera clip that joins a project of another format through import (media.import, then timeline.place with
+// frameOnFace, as the app places an imported video) is framed on the face in the placement's undo step.
+@Test func aLandscapeClipPlacedInAVerticalProjectIsFramedOnTheFaceInOneStep() throws {
+    var fakes = FakeServices()
+    fakes.faceTrack = rightOfCentre()
+    var prober = FakeProber()
+    prober.media.video = VideoInfo(width: 1920, height: 1080, frameRate: Rational(30), codec: "h264", rotation: 0)
+    let e = Engine(prober: prober, services: fakes.make())
+    try e.execute("project.new", params: ["name": "reel", "directory": .string(tempDir().path), "width": 1080, "height": 1920])
+    try e.execute("media.import", params: ["path": .string(fakeMedia())])
+    try e.execute("track.add", params: ["kind": "video"])
+    // Without frameOnFace the clip keeps the centred crop (an agent placing a B-roll where it wants it).
+    let plain = try e.execute("timeline.place", params: ["assetId": "a1", "trackId": "t1", "sourceIn": 0, "sourceOut": 4])
+    #expect(plain["tracked"] == nil && e.clips(0)[0].transform == nil && e.project?.assets[0].analysis?.faces == nil)
+    try e.execute("history.undo")
+
+    let undo = e.context.history.undoStack.count
+    let r = try e.execute("timeline.place", params: ["assetId": "a1", "trackId": "t1", "sourceIn": 0, "sourceOut": 4, "frameOnFace": true])
+    #expect(e.context.history.undoStack.count == undo + 1, "the placement and the framing are not one undo step")
+    #expect(r["tracked"]?.arrayValue?.compactMap(\.stringValue) == ["a1"], "the result does not name the asset tracked: \(r)")
+    #expect(r["reframed"]?.arrayValue?.first?["clipId"]?.stringValue == e.clips(0)[0].id, "\(r)")
+    #expect(e.project?.settings.width == 1080 && e.project?.settings.height == 1920, "the project's format changed")
+    let crop = try #require(e.clips(0)[0].transform?.cropRect(sourceWidth: 1920, sourceHeight: 1080), "the clip is cut around its centre")
+    let centred = RenderJob.fit([1920, 1080, 0, 0], aspect: 1080.0 / 1920, within: (1920, 1080))
+    #expect(abs(crop[0] / crop[1] - 1080.0 / 1920) < 0.01 && crop[2] > centred[2] + 200, "the crop is not on the face: \(crop)")
+    let check = try e.execute("faces.checkFraming", params: ["every": 1])
+    #expect(check["pass"] == true && check["framesCut"] == 0, "\(check)")
+    // One undo takes the clip and its face track away together.
+    try e.execute("history.undo")
+    #expect(e.clips(0).isEmpty && e.project?.assets[0].analysis?.faces == nil)
+    // A clip of the project's own aspect has nothing to frame: no tracking.
+    try e.execute("project.format", params: ["preset": "16:9"])
+    let same = try e.execute("timeline.place", params: ["assetId": "a1", "trackId": "t1", "sourceIn": 0, "sourceOut": 4, "frameOnFace": true])
+    #expect(same["tracked"] == nil && e.clips(0)[0].transform == nil, "\(same)")
+}

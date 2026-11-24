@@ -100,7 +100,9 @@ enum CommandLines {
         case "edit.beatSync":
             return loc("%@ BPM", Words.number(((r["tempo"]?.doubleValue ?? 0) * 10).rounded() / 10)) + " · "
                 + count(r["added"]?.arrayValue?.count ?? int(r["added"]) ?? 0, "1 colpo a tempo", "%@ colpi a tempo")
-        case "timeline.place": return loc("Clip messa a %@", time(r.value(at: "clip.start")))
+        case "timeline.place":
+            let placed = loc("Clip messa a %@", time(r.value(at: "clip.start")))
+            return (r["reframed"]?.arrayValue ?? []).isEmpty ? placed : placed + " · " + loc("inquadrata sul volto")
         case "timeline.trim": return loc("Clip rifilata: %@–%@", time(r.value(at: "clip.start")), time(r.value(at: "clip.end")))
         case "timeline.move": return loc("Clip spostata a %@", time(r.value(at: "clip.start")))
         case "timeline.delete": return count(r["deleted"]?.arrayValue?.count ?? 0, "1 clip eliminata", "%@ clip eliminate")
