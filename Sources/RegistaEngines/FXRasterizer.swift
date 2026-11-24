@@ -197,7 +197,8 @@ final class FXStore: @unchecked Sendable {
         ctx.setLineWidth(max(s.width * k, 1))
         ctx.setLineCap(.round)
         ctx.setLineJoin(.round)
-        ctx.setShadow(offset: CGSize(width: 0, height: 2 * k), blur: 10 * k, color: CGColor(gray: 0, alpha: 0.3))
+        // A shadow offset is in base space and ignores the flip above: a negative height falls below the stroke.
+        ctx.setShadow(offset: CGSize(width: 0, height: -2 * k), blur: 10 * k, color: CGColor(gray: 0, alpha: 0.3))
         ctx.addLines(between: drawn)
         ctx.strokePath()
         if s.kind == .arrow, p > 0.82, let tip = drawn.last {

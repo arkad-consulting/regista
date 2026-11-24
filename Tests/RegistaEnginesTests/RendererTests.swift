@@ -64,6 +64,41 @@ func pixel(_ png: URL, _ x: Int, _ y: Int) throws -> (Int, Int, Int) {
     return (Int(p[o]), Int(p[o + 1]), Int(p[o + 2]))
 }
 
+/// A drawn arrow's soft shadow falls below the stroke (#168): drawn in a flipped (top-left origin) context and laid on a
+/// light picture, the band just under the stroke is darker than the band just over it.
+@Test func anArrowCastsItsShadowBelowIt() throws {
+    let W = 1080, H = 600
+    let arrow = ShapeLayer(kind: .arrow, rect: [0.2, 0.4, 0.6, 0], color: "#E5484D", width: 12, drawOn: 0)
+    let stroke = try #require(FXStore.drawStroke(arrow, progress: 1, w: W, h: H))
+    let wall = CIImage(color: CIColor(red: 0.94, green: 0.93, blue: 0.9)).cropped(to: CGRect(x: 0, y: 0, width: W, height: H))
+    let srgb = CGColorSpace(name: CGColorSpace.sRGB)!
+    let ci = CIContext()
+    let picture = try #require(ci.createCGImage(stroke.composited(over: wall), from: wall.extent, format: .RGBA8, colorSpace: srgb))
+    if let shots = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+        try? ci.writePNGRepresentation(of: CIImage(cgImage: picture), to: URL(fileURLWithPath: shots).appendingPathComponent("arrow-shadow.png"),
+                                       format: .RGBA8, colorSpace: srgb)
+    }
+    let ctx = try #require(CGContext(data: nil, width: W, height: H, bitsPerComponent: 8, bytesPerRow: W * 4, space: srgb,
+                                     bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+    ctx.draw(picture, in: CGRect(x: 0, y: 0, width: W, height: H))
+    let data = try #require(ctx.data).bindMemory(to: UInt8.self, capacity: W * H * 4)
+    func px(_ x: Int, _ y: Int) -> (Int, Int, Int) { let o = (y * W + x) * 4; return (Int(data[o]), Int(data[o + 1]), Int(data[o + 2])) }
+    // Around the arc's lowest point the stroke runs flat: in each column, find its rows (the red), then the mean brightness
+    // of the 8 rows starting 2 px outside its top edge and its bottom edge (rows from the top of the picture).
+    var above = 0.0, below = 0.0, columns = 0
+    for x in stride(from: 480, through: 600, by: 10) {
+        let rows = (150..<450).filter { let p = px(x, $0); return p.0 > 170 && p.1 < 140 }
+        guard let top = rows.first, let bottom = rows.last else { continue }
+        func band(_ ys: ClosedRange<Int>) -> Double { ys.reduce(0.0) { s, y in let p = px(x, y); return s + Double(p.0 + p.1 + p.2) / 3 } / 8 }
+        above += band((top - 9)...(top - 2))
+        below += band((bottom + 2)...(bottom + 9))
+        columns += 1
+    }
+    try #require(columns > 8, "the stroke was not found around the arc's lowest point")
+    above /= Double(columns); below /= Double(columns)
+    #expect(below < above - 6, "the band below the stroke (\(below)) is not darker than the band above it (\(above))")
+}
+
 @Test func compositorCropsGradesAndDrawsCaptions() throws {
     let clip = try syntheticClip()
     defer { try? FileManager.default.removeItem(at: clip) }
