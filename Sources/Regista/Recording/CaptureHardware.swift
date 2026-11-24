@@ -19,6 +19,8 @@ protocol CaptureHardware: AnyObject {
     func requestScreen()
     /// The connected cameras or microphones.
     func devices(_ type: AVMediaType) -> [AVCaptureDevice]
+    /// The system's default camera or microphone (its unique id).
+    func defaultDevice(_ type: AVMediaType) -> String?
     /// Runs the capture session's setup, which opens the chosen devices.
     func openDevices(_ setup: @escaping @Sendable () -> Void)
     /// Starts writing a movie-file take; `delegate` hears when it ends.
@@ -71,6 +73,8 @@ final class MacCapture: CaptureHardware {
         let kinds: [AVCaptureDevice.DeviceType] = type == .video ? [.builtInWideAngleCamera, .external, .continuityCamera] : [.microphone, .external]
         return AVCaptureDevice.DiscoverySession(deviceTypes: kinds, mediaType: type, position: .unspecified).devices
     }
+
+    func defaultDevice(_ type: AVMediaType) -> String? { AVCaptureDevice.default(for: type)?.uniqueID }
 
     func openDevices(_ setup: @escaping @Sendable () -> Void) { queue.async(execute: setup) }
 

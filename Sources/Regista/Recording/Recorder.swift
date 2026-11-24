@@ -54,11 +54,25 @@ final class Recorder: NSObject, ObservableObject {
 
     @Published private(set) var displays: [CGDirectDisplayID] = []
     @Published private(set) var windows: [SCWindow] = []
+    /// What the live preview draws, observed on its own (#162): the screen's frames (thirty to sixty a second) and the
+    /// face's place (four a second) were published here, and each one drew every view of the recorder again — the
+    /// Registra screen and the menu bar — and each drawing asked the capture system for its devices.
+    let previewFeed = PreviewFeed()
     /// Latest screen frame for the live preview.
-    @Published private(set) var screenFrame: IOSurface?
+    private(set) var screenFrame: IOSurface? {
+        get { previewFeed.surface }
+        set { if previewFeed.surface !== newValue { previewFeed.surface = newValue } }
+    }
     /// Where the face is across the camera preview (0…1, as the preview shows it), while the format guide follows it
     /// (#153); nil when no face is seen or nobody asks.
-    @Published private(set) var faceX: Double?
+    private(set) var faceX: Double? {
+        get { previewFeed.faceX }
+        set { if previewFeed.faceX != newValue { previewFeed.faceX = newValue } }
+    }
+    /// The system's default camera and microphone, read when the devices are listed (#162), never while drawing:
+    /// AVCaptureDevice.default waits on the capture system, which is busy while a session starts.
+    private var defaultCameraID: String?
+    private var defaultMicrophoneID: String?
 
     /// The format guide on the camera preview follows the face (#153): a few face detections a second on the camera's
     /// frames (Apple Vision, on this Mac), only while it is on.
@@ -120,14 +134,14 @@ final class Recorder: NSObject, ObservableObject {
     var cameraDevice: AVCaptureDevice? {
         guard sources.camera, cameraPermission != .denied else { return nil }
         let id = RecordingSources.device(remembered: sources.cameraID, available: cameras.map(\.uniqueID),
-                                         systemDefault: AVCaptureDevice.default(for: .video)?.uniqueID)
+                                         systemDefault: defaultCameraID)
         return cameras.first { $0.uniqueID == id }
     }
 
     var microphoneDevice: AVCaptureDevice? {
         guard sources.microphone, microphonePermission != .denied else { return nil }
         let id = RecordingSources.device(remembered: sources.microphoneID, available: microphones.map(\.uniqueID),
-                                         systemDefault: AVCaptureDevice.default(for: .audio)?.uniqueID)
+                                         systemDefault: defaultMicrophoneID)
         return microphones.first { $0.uniqueID == id }
     }
 
@@ -143,10 +157,10 @@ final class Recorder: NSObject, ObservableObject {
         switch source {
         case .camera:
             RecordingSources.device(remembered: sources.cameraID, available: cameras.map(\.uniqueID),
-                                    systemDefault: AVCaptureDevice.default(for: .video)?.uniqueID)
+                                    systemDefault: defaultCameraID)
         case .microphone:
             RecordingSources.device(remembered: sources.microphoneID, available: microphones.map(\.uniqueID),
-                                    systemDefault: AVCaptureDevice.default(for: .audio)?.uniqueID)
+                                    systemDefault: defaultMicrophoneID)
         default: nil
         }
     }
@@ -156,11 +170,11 @@ final class Recorder: NSObject, ObservableObject {
         switch source {
         case .camera:
             let id = RecordingSources.device(remembered: sources.cameraID, available: cameras.map(\.uniqueID),
-                                             systemDefault: AVCaptureDevice.default(for: .video)?.uniqueID)
+                                             systemDefault: defaultCameraID)
             return cameras.first { $0.uniqueID == id }?.localizedName
         case .microphone:
             let id = RecordingSources.device(remembered: sources.microphoneID, available: microphones.map(\.uniqueID),
-                                             systemDefault: AVCaptureDevice.default(for: .audio)?.uniqueID)
+                                             systemDefault: defaultMicrophoneID)
             return microphones.first { $0.uniqueID == id }?.localizedName
         default: return nil
         }
@@ -226,6 +240,8 @@ final class Recorder: NSObject, ObservableObject {
     func refreshDevices() {
         cameras = hardware.devices(.video)
         microphones = hardware.devices(.audio)
+        defaultCameraID = hardware.defaultDevice(.video)
+        defaultMicrophoneID = hardware.defaultDevice(.audio)
         refreshPermissions()
         configure()
     }
@@ -541,6 +557,14 @@ final class Recorder: NSObject, ObservableObject {
         cursorTimer?.invalidate()
         cursorTimer = nil
     }
+}
+
+/// What the live preview draws (#162): the latest screen frame (an IOSurface from ScreenCaptureKit) and the face's place
+/// for the format guide. Only the picture and the guide observe it.
+@MainActor
+final class PreviewFeed: ObservableObject {
+    @Published var surface: IOSurface?
+    @Published var faceX: Double?
 }
 
 /// The microphone's level, 0…1 on a −60…0 dBFS scale, with a quick rise and a slower fall.

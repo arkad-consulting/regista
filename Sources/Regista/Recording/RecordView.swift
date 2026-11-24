@@ -891,7 +891,8 @@ struct RecordPreview: View {
                 else { FacePlaceholder(note: cameraNote) }
                 // #153: where a video of the chosen format falls, centred on the face when one is seen.
                 if let aspect = sources.guideAspect(output) {
-                    FormatGuide(aspect: aspect, id: output.id, faceX: live ? recorder.faceX : nil)
+                    if live { LiveGuide(feed: recorder.previewFeed, aspect: aspect, id: output.id) }
+                    else { FormatGuide(aspect: aspect, id: output.id) }
                 }
             }
             .onAppear { if live { recorder.followFace(sources.guideAspect(output) != nil) } }
@@ -932,8 +933,7 @@ struct RecordPreview: View {
             ZStack(alignment: .topLeading) {
                 Ed.stageDeep
                 place(g.screen, W: W, H: H) {
-                    // Filled as the edit fills the screen's box (cropped around its centre, never letterboxed).
-                    if live, let frame = recorder.screenFrame { ScreenPreview(surface: frame, gravity: .resizeAspectFill) }
+                    if live { LiveScreen(feed: recorder.previewFeed, note: screenNote) }
                     else { ScreenPlaceholder(note: screenNote, compact: false) }
                 }
                 .opacity(g.screen.visible ? 1 : 0)
@@ -1089,6 +1089,27 @@ struct FormatGuide: View {
         .accessibilityAddTraits(.isImage)
         .accessibilityLabel(String(format: loc("Cornice del video %@"), id))
     }
+}
+
+/// The live screen picture: the only view that observes the screen's frames (#162), the placeholder until one comes.
+/// Filled as the edit fills the screen's box (cropped around its centre, never letterboxed).
+private struct LiveScreen: View {
+    @ObservedObject var feed: PreviewFeed
+    let note: String?
+
+    var body: some View {
+        if let surface = feed.surface { ScreenPreview(surface: surface, gravity: .resizeAspectFill) }
+        else { ScreenPlaceholder(note: note, compact: false) }
+    }
+}
+
+/// The format guide on the live camera, following the face: the only view that observes the face's place (#162).
+private struct LiveGuide: View {
+    @ObservedObject var feed: PreviewFeed
+    let aspect: Double
+    let id: String
+
+    var body: some View { FormatGuide(aspect: aspect, id: id, faceX: feed.faceX) }
 }
 
 /// The screen's place in the preview while there is no frame: a faint desktop drawing and, when known, why.

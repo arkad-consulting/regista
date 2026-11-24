@@ -281,6 +281,13 @@ final class RigCapture: CaptureHardware {
         let kinds: [AVCaptureDevice.DeviceType] = type == .video ? [.builtInWideAngleCamera, .external, .continuityCamera] : [.microphone, .external]
         return AVCaptureDevice.DiscoverySession(deviceTypes: kinds, mediaType: type, position: .unspecified).devices
     }
+    /// How long the default device takes to answer (#162: a stand-in that blocks, as the capture system can).
+    var defaultDelay: TimeInterval = 0
+    func defaultDevice(_ type: AVMediaType) -> String? {
+        log.append("defaultDevice \(type.rawValue)")
+        if defaultDelay > 0 { Thread.sleep(forTimeInterval: defaultDelay) }
+        return AVCaptureDevice.default(for: type)?.uniqueID
+    }
     func openDevices(_ setup: @escaping @Sendable () -> Void) { log.append("openDevices") }
     func startMovie(_ output: AVCaptureMovieFileOutput, to url: URL, delegate: AVCaptureFileOutputRecordingDelegate) {
         log.append("startMovie \(url.lastPathComponent)")
