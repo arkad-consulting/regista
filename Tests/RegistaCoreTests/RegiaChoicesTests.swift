@@ -59,6 +59,45 @@ private func used(_ r: JSONValue) -> [String: String] { (r["fromChoices"]?.objec
     #expect(try JSONDecoder().decode(Project.self, from: JSONEncoder().encode(Project(name: "old"))).choices == nil)
 }
 
+@Test func theProjectsOwnChoicesWinForThisProjectOnlyAsOneUndoStep() throws {
+    let e = try regiaEngine()
+    let book = e.context.services.rules
+    try kindSays(e, ["pace": "fast"])
+    let r = try e.checkUndoRedo("project.setChoices", ["choices": ["pace": "calm", "framing": ["value": "still", "number": 1.3]]])
+    let c = ProjectChoices(e.project, book: book)
+    #expect(c.value("pace") == "calm" && c.regiaValue("pace") == "fast" && c.differs("pace"))
+    #expect(c.value("framing") == "still" && c.number("framing") == [1.3])
+    let pace = r["choices"]?.arrayValue?.first { $0["id"] == "pace" }
+    #expect(pace?["value"] == "calm" && pace?["regia"] == "fast" && pace?["source"] == "project")
+    // The commands read them; recipe.get names them for this project.
+    #expect(used(try e.execute("takes.list")) == ["pace": "calm"])
+    let recipe = try e.execute("recipe.get", params: ["name": "talking-head-reel"])["text"]?.stringValue ?? ""
+    #expect(recipe.contains("This project's own choices") && recipe.contains("pace: calm") && recipe.contains("framing: still 1.3"))
+    // A number alone keeps the option; reset takes them back to the regia.
+    try e.execute("project.setChoices", params: ["choices": ["framing": ["number": 1.2]]])
+    #expect(ProjectChoices(e.project, book: book).value("framing") == "still" && ProjectChoices(e.project, book: book).number("framing") == [1.2])
+    try e.execute("project.setChoices", params: ["reset": ["pace", "framing"]])
+    #expect(e.project?.choices == nil && ProjectChoices(e.project, book: book).value("pace") == "fast")
+    // Unknown choices and options are refused with the list; nothing to do is refused too.
+    #expect(throws: CommandError.self) { try e.execute("project.setChoices", params: ["choices": ["tempo": "fast"]]) }
+    #expect(throws: CommandError.self) { try e.execute("project.setChoices", params: ["choices": ["pace": "slowest"]]) }
+    #expect(throws: CommandError.self) { try e.execute("project.setChoices", params: ["reset": ["tempo"]]) }
+    #expect(throws: CommandError.self) { try e.execute("project.setChoices") }
+}
+
+@Test func theChoiceAndTheEditItMakesAreOneUndoStep() throws {
+    let e = try regiaEngine()
+    try e.execute("takes.list")
+    try e.execute("edit.autoCut")
+    let before = e.project
+    let r = try e.execute("project.setChoices", params: ["choices": ["pace": "fast"], "then": ["command": "edit.autoCut", "params": ["replace": true]]])
+    #expect(used(r["then"] ?? .null) == ["pace": "fast"] && e.project?.takes?.options.maxPause == 0.4)
+    try e.execute("history.undo")
+    #expect(e.project == before)
+    #expect(throws: CommandError.self) { try e.execute("project.setChoices", params: ["choices": ["pace": "fast"], "then": ["command": "project.state"]]) }
+    #expect(e.project == before, "a refused then left the choice in")
+}
+
 @Test func takesAndTheCutTakeTheirPausesFromThePace() throws {
     let e = try regiaEngine()
     try kindSays(e, ["pace": "fast"])

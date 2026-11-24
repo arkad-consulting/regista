@@ -133,7 +133,7 @@ public enum Commands {
 
     /// Editing rules (#31) and the person's skills (#157).
     static let rules: [any Command.Type] = [
-        RulesList.self, RulesGet.self, RulesSet.self, RulesReset.self, RulesAddKind.self, RulesRemoveKind.self, ProjectSetKind.self,
+        RulesList.self, RulesGet.self, RulesSet.self, RulesReset.self, RulesAddKind.self, RulesRemoveKind.self, ProjectSetKind.self, ProjectSetChoices.self,
         RulesCheck.self, RulesFix.self, CaptionsClear.self,
         SkillList.self, SkillGet.self, SkillCreate.self, SkillSet.self, SkillDuplicate.self, SkillRemove.self, SkillExport.self, SkillImport.self,
     ]

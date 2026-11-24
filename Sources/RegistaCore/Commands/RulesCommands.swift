@@ -305,6 +305,45 @@ enum ProjectSetKind: Command {
     }
 }
 
+enum ProjectSetChoices: Command {
+    static let id = "project.setChoices"
+    static let summary = "Set the open project's own choices (one regia): for this project only they win over the person's sheets (rules.set changes the regia of every project, Settings › Rules), and the commands a choice decides start from them where a call leaves a value out. choices {id: option | {value, number}} sets one or more (ids and options as rules.list gives them); reset [ids] takes those back to the regia. then {command, params}: an edit command run after, in the same undo step (a Simple step's control: the choice and the edit it makes). Only when the person asked for this project. One undo step. Returns every choice of the project (value, regia, source) and then's result."
+    static let kind = CommandKind.edit
+    static let params: [ParamSpec] = [
+        .optional("choices", .object, "Choices to set for this project: {id: option | {value, number}} (ids: \(RuleChoiceSpec.ids.joined(separator: ", ")))."),
+        .optional("reset", .array(.string), "Choices of this project to take back to the regia."),
+        .optional("then", .object, "An edit command to run after, in the same undo step: {command, params}."),
+    ]
+
+    static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
+        var project = try ctx.requireProject()
+        guard p.has("choices") || p.has("reset") else { throw CommandError.invalid("\(id): pass choices or reset") }
+        let changes = try Rules.choiceChanges(p.json("choices"), kind: RuleBook.everyVideo, command: id)
+        let reset = p.strings("reset") ?? []
+        for r in reset where RuleChoiceSpec.named(r) == nil {
+            throw CommandError.invalid("\(id): reset: unknown choice '\(r)' (choices: \(RuleChoiceSpec.ids.joined(separator: ", ")))")
+        }
+        let before = ProjectChoices(project, book: ctx.services.rules)
+        var own = project.choices ?? [:]
+        for r in reset { own[r] = nil }
+        for c in changes {
+            own[c.id] = ChoiceOverride(value: c.value ?? before.value(c.id), number: c.number ?? own[c.id]?.number)
+        }
+        project.choices = own.isEmpty ? nil : own
+        ctx.project = project
+        var result: [String: JSONValue] = [:]
+        if let then = p.json("then") {
+            guard let name = then["command"]?.stringValue, let command = Commands.all.first(where: { $0.id == name }), command.kind == .edit,
+                  name != id else {
+                throw CommandError.invalid("\(id): then.command is an edit command (\(then["command"]?.stringValue ?? "none") is not)")
+            }
+            result["then"] = try Nested.run(command, then["params"]?.objectValue ?? [:], &ctx)
+        }
+        result["choices"] = ProjectChoices(ctx.project, book: ctx.services.rules).json
+        return .object(result)
+    }
+}
+
 enum RulesCheck: Command {
     static let id = "rules.check"
     static let summary = "Check the edit against the rules of its kind before export (export.render runs it too and refuses while a check fails): no captions while the opening title is on screen, none on the closing logo, a clean pause between the last spoken word and the logo, a logo only at the end, no logo or title over the speaker's face, no text under the minimum size. Each violation has its time and, where a safe one exists, its fix as a command call (one undo step; rules.fix applies them). Warnings do not block. Returns pass, the violations, each check's state (on, number, skipped and why) and the problems of the sheets' headers."

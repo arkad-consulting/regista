@@ -2708,3 +2708,10 @@
 "In un formato orizzontale schermo e volto vanno affiancati: Affiancati" = "Dans un format horizontal, l'écran et le visage vont côte à côte : Côte à côte";
 "Il progetto passa a %@ quando aggiungi la ripresa" = "Le projet passe en %@ quand vous ajoutez la prise";
 "Mostra i rapporti di blocco" = "Afficher les rapports de blocage";
+"Niente sottotitoli: lo dice la tua regia." = "Pas de sous-titres : votre réalisation le veut ainsi.";
+"Il video resta com'è stato girato: lo dice la tua regia." = "La vidéo reste telle qu'elle a été tournée : votre réalisation le veut ainsi.";
+"Niente musica: lo dice la tua regia." = "Pas de musique : votre réalisation le veut ainsi.";
+"La tua regia vuole una musica sotto la voce: scegline una." = "Votre réalisation veut une musique sous la voix : choisissez-en une.";
+"Diverso dalla tua regia (%1$@: %2$@)" = "Différent de votre réalisation (%1$@ : %2$@)";
+"Torna alla tua regia: il passo segue di nuovo Impostazioni › Regia e skill" = "Revenir à votre réalisation : l'étape suit de nouveau Réglages › Réalisation et skills";
+"Scelte del progetto" = "Choix du projet";

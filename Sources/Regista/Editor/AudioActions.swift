@@ -65,6 +65,8 @@ extension EditorStore {
     /// Aggiungi musica…: audio.addMusic, then the check under the voice, as one job of this tab.
     func addMusic(_ url: URL) {
         guard project != nil, jobs.latest(AudioCalls.musicJob)?.isRunning != true else { return }
+        // Music the person picks where their regia says never: a music bed is this project's choice (one undo step).
+        if projectChoices.value("music") == "never", let c = SimpleCalls.choose("music", "bed", projectChoices) { run(c.id, c.params) }
         startJob(kind: AudioCalls.musicJob, title: loc("Musica")) { [weak self] h, job in
             guard let self else { return }
             h.update(detail: loc("Porto la musica al livello giusto e la abbasso sotto la voce…"))

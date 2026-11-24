@@ -192,7 +192,7 @@ struct LevelSection: View {
             } else {
                 EdButton(title: String(format: loc("Porta a %@ LUFS"), Fmt.number(LoudnessTarget.integrated)), symbol: "dial.medium",
                          prominent: clean.canRun, disabled: !clean.canRun || store.runningStepJob != nil) {
-                    store.runStep(.clean, settings: StepSettings.saved(project: store.project))
+                    store.runStep(.clean, settings: store.stepSettings)
                 }
                 .tip("Pulisce la voce e la porta al livello giusto (un passo annullabile)")
                 if !clean.canRun { hint(clean.line) }

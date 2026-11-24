@@ -327,7 +327,13 @@ enum RecipeGet: Command {
             return ["recipes": .array(recipes + skills)]
         }
         let kind = Recipes.named(name)?.kind ?? name
-        let rules = book.briefing(kind, language: language) + "\n\n" + book.choicesBriefing(kind, language: language)
+        var rules = book.briefing(kind, language: language) + "\n\n" + book.choicesBriefing(kind, language: language)
+        // The open project's own choices (project.setChoices), when it is this kind: they win for this project.
+        if let project = ctx.project, let own = project.choices, !own.isEmpty, book.kind(of: project).kind == kind {
+            let c = ProjectChoices(project, book: book)
+            rules += "\n\nThis project's own choices (project.setChoices; they win over the sheets for this project only): "
+                + own.keys.sorted().map { id in "\(id): \(c.value(id))" + (c.number(id).map { " " + RuleChoiceSpec.format($0) } ?? "") }.joined(separator: ", ") + "."
+        }
         // The names the person wrote (their «Nomi» sections) come first: the caption steps spell names by them.
         let names = book.namesBriefing(kind, language: language).map { $0 + "\n\n" } ?? ""
         if let r = Recipes.named(name) {

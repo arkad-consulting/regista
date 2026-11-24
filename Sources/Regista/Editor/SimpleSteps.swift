@@ -45,6 +45,18 @@ enum SimpleStep: String, CaseIterable, Identifiable {
         }
     }
 
+    /// The person's choices this step's controls open on and change (for this project only): its dot and «Ripristina».
+    var choiceIDs: [String] {
+        switch self {
+        case .cut: ["pace"]
+        case .captions: ["captions", "keywords"]
+        case .look: ["colour"]
+        case .sound: ["music", "sfx"]
+        case .voice: []
+        case .graphics: ["closing-logo"]
+        }
+    }
+
     /// The step a "Fai tutto" sub-step works on.
     static func of(_ step: TextStep) -> SimpleStep {
         switch step {
@@ -68,6 +80,9 @@ struct SimpleState: Equatable {
     var install: String? = nil
     /// The line is a warning (a head cut by the framing, #152).
     var warning = false
+    /// The line says what the person's regia wants here (no captions, no colour, no music, a music bed): the step's panel
+    /// shows it too.
+    var regia = false
 
     var canAct: Bool { status != .blocked && status != .unavailable && status != .running }
 }
@@ -153,6 +168,10 @@ enum SimpleCalls {
         return s
     }
 
+    /// The cut again at the project's pace (the choice the command reads), its pauses kept when the switch is off.
+    static func cut(pauses: Bool) -> StepCall {
+        StepCall(id: "edit.autoCut", params: pauses ? ["replace": true] : ["replace": true, "maxPause": .number(SimplePace.keepAll)])
+    }
     static func cut(_ pace: String, pauses: Bool) -> StepCall {
         let p = SimplePace.pauses(pace)
         return StepCall(id: "edit.autoCut", params: ["replace": true, "maxPause": .number(pauses ? p.maxPause : SimplePace.keepAll),
@@ -186,6 +205,8 @@ enum SimpleCalls {
         StepCall(id: "timeline.delete", params: ["clipIds": .array(track.clips.map { .string($0.id) })])
     }
     static func soundEffects(_ on: Bool) -> StepCall { StepCall(id: "sfx.onCuts", params: on ? [:] : ["remove": true]) }
+    /// The project's colour choice on the whole picture (look.apply without a look).
+    static let colour = StepCall(id: "look.apply", params: [:])
     static func clean(_ on: Bool) -> StepCall { on ? StepCalls.clean : StepCall(id: "audio.clean", params: ["restore": true]) }
     static func logo(_ p: LogoPlacement) -> StepCall {
         StepCall(id: "logo.add", params: ["replace": true, "corner": .string(p.corner), "width": .number(p.width),
@@ -193,15 +214,59 @@ enum SimpleCalls {
     }
     static func removeClips(_ ids: [String]) -> StepCall { StepCall(id: "timeline.delete", params: ["clipIds": .array(ids.map { .string($0) })]) }
 
-    /// What "Fai tutto" adds after the Pro steps: the light grade, when the picture has neither a look nor a grade yet.
-    static func lookExtras(_ p: Project?) -> [StepCall] {
-        guard let p, let track = SimpleSnapshot.mainVideo(p), !SimpleSnapshot.hasLook(p) else { return [] }
+    /// A choice changed in a step, for this project only (project.setChoices), with the edit it makes (`then`) in the same
+    /// undo step: the project's own choice when it differs from the regia, else the regia again (no choice of its own).
+    /// nil when nothing changes.
+    static func choose(_ id: String, _ value: String, _ choices: ProjectChoices, then: StepCall? = nil) -> StepCall? {
+        var params: [String: JSONValue] = [:]
+        if value != choices.regiaValue(id) { if choices.overrides[id]?.value != value { params["choices"] = [id: .string(value)] } }
+        else if choices.overrides[id] != nil { params["reset"] = [.string(id)] }
+        guard !params.isEmpty else { return then }
+        if let then { params["then"] = ["command": .string(then.id), "params": then.params] }
+        return StepCall(id: "project.setChoices", params: .object(params))
+    }
+
+    /// «Ripristina»: the step's choices back to the regia (this project's own go), and what the step made redone as the
+    /// regia says where one command can (the cut at its pace, the captions' style, the colour, the sound effects, the
+    /// logo's seconds): one undo step. nil when the step has no choice of its own.
+    static func restore(_ step: SimpleStep, _ snap: SimpleSnapshot) -> StepCall? {
+        let c = snap.choices
+        let ids = step.choiceIDs.filter { c.overrides[$0] != nil }
+        guard !ids.isEmpty else { return nil }
+        var then: StepCall?
+        switch step {
+        case .cut where snap[.cut].status == .done && snap.pace != nil:
+            then = cut(pauses: snap.pauses)
+        case .captions:
+            if let track = snap.captionsTrack {
+                then = c.regiaValue("captions") == "none" ? captionsOff(trackID: track) : StepCall(id: "captions.setStyle", params: [:])
+            }
+        case .look where snap.videoTrack != nil && c.regiaValue("colour") != "look":
+            then = colour
+        case .sound where snap.effects > 0:
+            then = StepCall(id: "sfx.onCuts", params: ["replace": true])
+        case .graphics where !snap.logoClips.isEmpty:
+            then = c.regiaValue("closing-logo") == "off" ? removeClips(snap.logoClips) : logo(snap.logoPlacement)
+        default: break
+        }
+        var params: [String: JSONValue] = ["reset": .array(ids.map { .string($0) })]
+        if let then { params["then"] = ["command": .string(then.id), "params": then.params] }
+        return StepCall(id: "project.setChoices", params: .object(params))
+    }
+
+    /// What "Fai tutto" adds after the Pro steps: the light grade, when the colour choice says light and the picture has
+    /// neither a look nor a grade yet (none: the picture as filmed; look: which one is the person's to say).
+    static func lookExtras(_ p: Project?, choices: ProjectChoices? = nil) -> [StepCall] {
+        guard let p, let track = SimpleSnapshot.mainVideo(p), !SimpleSnapshot.hasLook(p),
+              (choices ?? ProjectChoices(p, book: nil)).value("colour") == "light" else { return [] }
         return [light(true, trackID: track.id)]
     }
 
-    /// The Pro steps "Fai tutto" runs here: the voice cleaning only when this Mac can clean.
-    static func doEverythingSteps(hasScriptText: Bool, engines: SimpleEngines) -> [TextStep] {
-        EditorStore.allSteps(hasScriptText: hasScriptText).filter { $0 != .clean || engines.clean == nil }
+    /// The Pro steps "Fai tutto" runs here: the voice cleaning only when this Mac can clean, the captions only when the
+    /// caption style choice is not «none».
+    static func doEverythingSteps(hasScriptText: Bool, engines: SimpleEngines, choices: ProjectChoices? = nil) -> [TextStep] {
+        let captions = (choices ?? ProjectChoices(nil, book: nil)).value("captions") != "none"
+        return EditorStore.allSteps(hasScriptText: hasScriptText).filter { ($0 != .clean || engines.clean == nil) && ($0 != .captions || captions) }
     }
 }
 
@@ -233,6 +298,8 @@ struct SimpleSnapshot {
     var allJob: JobCenter.Job?
     var hasProject = false
     var engines = SimpleEngines.ready
+    /// What the person wants for this project (the regia, its own choices on top): the controls open on it.
+    var choices = ProjectChoices(nil, book: nil)
     // Cut and takes
     /// The cut's pace (nil: pauses of no pace's, set in Pro); before the cut, the project's choice.
     var pace: String? = SimplePace.spec.defaultOption
@@ -240,6 +307,7 @@ struct SimpleSnapshot {
     var retakes: [Retake] = []
     // Captions
     var captionsTrack: String?
+    /// The captions' style; before there are captions, the caption style choice (none: no captions).
     var captionStyle = CaptionStyle.talkingHeadV1.id
     var keywords = 0
     // Look
@@ -289,10 +357,12 @@ struct SimpleSnapshot {
         let text = TextSteps.compute(p, framing: framing, lookup: lookup)
         let choices = choices ?? ProjectChoices(p, book: nil)
         var s = SimpleSnapshot(states: [:], hasProject: p != nil, engines: engines)
+        s.choices = choices
         s.pace = choices.value("pace")
+        s.captionStyle = choices.value("captions")
         s.voiceOver = voiceOver
         for step in SimpleStep.allCases {
-            var st = state(step, p, text, engines, lookup)
+            var st = state(step, p, text, engines, choices, lookup)
             if running.contains(step) { st.status = .running }
             s.states[step] = st
         }
@@ -345,9 +415,9 @@ struct SimpleSnapshot {
         return words.prefix(6).joined(separator: " ").trimmingCharacters(in: CharacterSet(charactersIn: ".,;:"))
     }
 
-    private static func state(_ step: SimpleStep, _ p: Project?, _ text: TextSteps, _ engines: SimpleEngines,
+    private static func state(_ step: SimpleStep, _ p: Project?, _ text: TextSteps, _ engines: SimpleEngines, _ choices: ProjectChoices,
                               _ lookup: (String) -> String) -> SimpleState {
-        var s = baseState(step, p, text, engines, lookup)
+        var s = baseState(step, p, text, engines, choices, lookup)
         // A head cut by the framing (#152) shows on Taglio e riprese, the step «Fai tutto» finds the face in.
         if step == .cut, text[.faces].status == .stale, s.status != .running {
             s.line = text[.faces].line
@@ -356,7 +426,7 @@ struct SimpleSnapshot {
         return s
     }
 
-    private static func baseState(_ step: SimpleStep, _ p: Project?, _ text: TextSteps, _ engines: SimpleEngines,
+    private static func baseState(_ step: SimpleStep, _ p: Project?, _ text: TextSteps, _ engines: SimpleEngines, _ choices: ProjectChoices,
                                   _ lookup: (String) -> String) -> SimpleState {
         guard let p, let asset = TextSteps.mainAsset(p) else {
             return SimpleState(status: .blocked, line: text[.transcribe].line, needsImport: true)
@@ -379,6 +449,8 @@ struct SimpleSnapshot {
             case .stale: return SimpleState(status: .todo, line: c.line)
             default: break
             }
+            // The caption style choice says no captions: nothing to do (the switch still makes them on request).
+            if choices.value("captions") == "none" { return SimpleState(status: .notNeeded, line: lookup("Niente sottotitoli: lo dice la tua regia."), regia: true) }
             if !transcribed, let why = engines.transcribe {
                 return SimpleState(status: .unavailable, line: lookup(why), install: WhisperCppTranscriber.engineID)
             }
@@ -386,7 +458,11 @@ struct SimpleSnapshot {
             return SimpleState(status: .todo, line: lookup("Parola per parola, con le parole chiave evidenziate."))
         case .look:
             guard video != nil else { return SimpleState(status: .blocked, line: lookup("Prima metti il video in timeline: taglia le pause."), needs: .cut) }
-            guard hasLook(p) else { return SimpleState(status: .todo, line: lookup("Una luce più viva e, se vuoi, un colore per tutto il video.")) }
+            guard hasLook(p) else {
+                // The colour choice «none»: the picture as it was filmed.
+                if choices.value("colour") == "none" { return SimpleState(status: .notNeeded, line: lookup("Il video resta com'è stato girato: lo dice la tua regia."), regia: true) }
+                return SimpleState(status: .todo, line: lookup("Una luce più viva e, se vuoi, un colore per tutto il video."))
+            }
             var parts: [String] = []
             if let l = p.grade?.look, let look = Look.named(l) { parts.append(lookup(look.label)) }
             if video?.clips.contains(where: { LightGrade.isOn($0.color) }) == true { parts.append(lookup("luce leggera")) }
@@ -396,7 +472,11 @@ struct SimpleSnapshot {
             let music = AudioCalls.musicTrack(p) != nil
             let effects = p.tracks.filter { $0.role == "sfx" }.flatMap(\.clips).count
             guard music || effects > 0 else {
-                return SimpleState(status: .notNeeded, line: lookup("Facoltativo: la musica di tendenza si aggiunge di solito su Instagram."))
+                switch choices.value("music") {
+                case "never": return SimpleState(status: .notNeeded, line: lookup("Niente musica: lo dice la tua regia."), regia: true)
+                case "bed": return SimpleState(status: .todo, line: lookup("La tua regia vuole una musica sotto la voce: scegline una."), regia: true)
+                default: return SimpleState(status: .notNeeded, line: lookup("Facoltativo: la musica di tendenza si aggiunge di solito su Instagram."))
+                }
             }
             var parts: [String] = []
             if music { parts.append(lookup("Musica sotto la voce")) }
@@ -454,41 +534,95 @@ extension EditorStore {
     /// Runs one Simple control's command (instant, one undo step); its error shows in the window.
     func runSimple(_ call: StepCall) { run(call.id, call.params) }
 
-    /// Taglio e riprese: the first time a job that transcribes, finds the takes and cuts at the pace (the steps already
-    /// done are skipped); afterwards, the cut again at the new pace (one undo step). The pace is saved for the Pro steps too.
-    func simpleCut(_ pace: String, pauses: Bool) {
-        let d = UserDefaults.standard
-        let p = SimplePace.pauses(pace)
-        d.set(pauses ? p.maxPause : SimplePace.keepAll, forKey: StepSettings.minPauseKey)
-        d.set(p.keepPause, forKey: StepSettings.breathKey)
-        if TextSteps.compute(project)[.cut].status == .done || project?.takes != nil {
-            return runSimple(SimpleCalls.cut(pace, pauses: pauses))
-        }
-        runSimpleSteps(SimpleCalls.cutSteps, kind: "simple.cut", title: SimpleStep.cut.title(),
-                       settings: SimpleCalls.cutSettings(pace, pauses: pauses, base: StepSettings.saved(project: project)))
+    /// The Pro steps' settings: the person's own from the Pro rail, else this project's choices.
+    var stepSettings: StepSettings { StepSettings.saved(project: project, choices: projectChoices) }
+
+    /// The cut is there (or its takes): a change in Taglio e riprese cuts again.
+    private var simpleHasCut: Bool { TextSteps.compute(project)[.cut].status == .done || project?.takes != nil }
+
+    /// Runs a choice changed in a step and the edit it makes (SimpleCalls.choose): one undo step.
+    private func simpleChoose(_ id: String, _ value: String, then: StepCall? = nil) {
+        if let call = SimpleCalls.choose(id, value, projectChoices, then: then) { runSimple(call) }
     }
 
-    /// Sottotitoli on: a job that transcribes when needed, then makes the captions in the chosen style with the
-    /// suggested keywords. Off: the caption track goes (one undo step).
-    func simpleCaptions(on: Bool, style: String) {
-        UserDefaults.standard.set(style, forKey: StepSettings.styleKey)
-        if !on {
-            if let id = simpleSnapshot.captionsTrack { runSimple(SimpleCalls.captionsOff(trackID: id)) }
+    /// Taglio e riprese, «Taglia il video»: a job that transcribes, finds the takes and cuts at the project's pace (the
+    /// steps already done are skipped); once cut, the cut again (one undo step).
+    func simpleCut(pauses: Bool) {
+        if simpleHasCut { return runSimple(SimpleCalls.cut(pauses: pauses)) }
+        runSimpleSteps(SimpleCalls.cutSteps, kind: "simple.cut", title: SimpleStep.cut.title(),
+                       settings: SimpleCalls.cutSettings(projectChoices.value("pace"), pauses: pauses, base: StepSettings.regia(projectChoices, project: project)))
+    }
+
+    /// A pace picked in Taglio e riprese: this project's choice, and the cut again at it once there is one (one undo step).
+    func simplePace(_ pace: String, pauses: Bool) {
+        simpleChoose("pace", pace, then: simpleHasCut ? SimpleCalls.cut(pauses: pauses) : nil)
+    }
+
+    /// Sottotitoli on: a job that transcribes when needed, then makes the captions in the project's caption style with the
+    /// suggested keywords (when the caption style choice is none, turning them on is this project's choice of the regia's
+    /// style, else the default). Off: the caption track goes and this project's choice is no captions (one undo step).
+    func simpleCaptions(on: Bool) {
+        let c = projectChoices
+        guard on else {
+            if let id = simpleSnapshot.captionsTrack { simpleChoose("captions", "none", then: SimpleCalls.captionsOff(trackID: id)) }
             return
         }
+        var style = c.value("captions")
+        if CaptionStyle.presets[style] == nil {
+            style = CaptionStyle.presets[c.regiaValue("captions")] != nil ? c.regiaValue("captions") : RuleChoiceSpec.named("captions")!.defaultOption
+            simpleChoose("captions", style)
+        }
         runSimpleSteps(SimpleCalls.captionSteps, kind: "simple.captions", title: SimpleStep.captions.title(),
-                       settings: SimpleCalls.captionSettings(style: style, base: StepSettings.saved(project: project)))
+                       settings: SimpleCalls.captionSettings(style: style, base: StepSettings.regia(c, project: project)))
     }
 
-    /// A caption style: on the captions already made (one undo step), and the one the next captions get.
+    /// A caption style: this project's choice, and on the captions already made (one undo step).
     func simpleCaptionStyle(_ style: String) {
-        UserDefaults.standard.set(style, forKey: StepSettings.styleKey)
-        if simpleSnapshot.captionsTrack != nil { runSimple(SimpleCalls.captionStyle(style)) }
+        simpleChoose("captions", style, then: simpleSnapshot.captionsTrack != nil ? StepCall(id: "captions.setStyle", params: [:]) : nil)
+    }
+
+    /// Luce leggera on or off: the colour this project then has (a look, the light grade or none) as its choice, with the
+    /// grade (one undo step).
+    func simpleLight(_ on: Bool) {
+        let s = simpleSnapshot
+        guard let track = s.videoTrack else { return }
+        simpleChoose("colour", s.look != "none" ? "look" : (on ? "light" : "none"), then: SimpleCalls.light(on, trackID: track))
+    }
+
+    /// A look (or none) of Aspetto: the colour this project then has as its choice, with the look (one undo step).
+    func simpleLook(_ id: String, amount: Double) {
+        simpleChoose("colour", id != "none" ? "look" : (simpleSnapshot.light ? "light" : "none"), then: SimpleCalls.look(id, amount: amount))
+    }
+
+    /// «Un whoosh sui tagli» on (the regia's sound effects, sparse when it says none) or off (none): this project's choice
+    /// and the effects (one undo step).
+    func simpleSoundEffects(_ on: Bool) {
+        let regia = projectChoices.regiaValue("sfx")
+        simpleChoose("sfx", on ? (regia != "none" ? regia : "sparse") : "none", then: SimpleCalls.soundEffects(on))
+    }
+
+    /// The music taken off: this project's music choice back to the regia too (one undo step).
+    func simpleRemoveMusic(_ track: Track) {
+        simpleChoose("music", projectChoices.regiaValue("music"), then: SimpleCalls.removeMusic(track))
+    }
+
+    /// «Logo nel video» on (at the end for the regia's seconds; «on» when the regia says off) or off: this project's choice
+    /// and the logo (one undo step).
+    func simpleLogo(_ on: Bool) {
+        let s = simpleSnapshot, regia = projectChoices.regiaValue("closing-logo")
+        simpleChoose("closing-logo", on ? (regia != "off" ? regia : "on") : "off",
+                     then: on ? SimpleCalls.logo(s.logoPlacement) : SimpleCalls.removeClips(s.logoClips))
+    }
+
+    /// «Ripristina» beside a step's title: its choices back to the regia, what it made redone as the regia says (one undo
+    /// step).
+    func simpleRestore(_ step: SimpleStep) {
+        if let call = SimpleCalls.restore(step, simpleSnapshot) { runSimple(call) }
     }
 
     /// Pulisci la voce on (the Pro step's job), off (the original sound back, one undo step).
     func simpleClean(_ on: Bool) {
-        if on { runStep(.clean, settings: StepSettings.saved(project: project)) } else { runSimple(SimpleCalls.clean(false)) }
+        if on { runStep(.clean, settings: stepSettings) } else { runSimple(SimpleCalls.clean(false)) }
     }
 
     /// The music's level preset (measures the music file first when its level is not known yet).
@@ -521,11 +655,13 @@ extension EditorStore {
     }
 
     /// "Fai tutto" of the Semplice level: the Pro steps this Mac can run (the teleprompter's text as the script), then
-    /// the light grade; the steps already done are skipped, so a second run adds nothing.
+    /// the light grade, all as the project's choices say (its pace, its caption style or none, its keywords, its colour) and
+    /// never with values of its own; the steps already done are skipped, so a second run adds nothing.
     func doEverything(script: String?) {
+        let c = projectChoices
         let text = project?.script == nil ? script?.trimmingCharacters(in: .whitespacesAndNewlines) : nil
-        let steps = SimpleCalls.doEverythingSteps(hasScriptText: !(text ?? "").isEmpty, engines: simpleEngines)
-        runAll(settings: StepSettings.saved(project: project), script: script, steps: steps, extras: { SimpleCalls.lookExtras($0) },
+        let steps = SimpleCalls.doEverythingSteps(hasScriptText: !(text ?? "").isEmpty, engines: simpleEngines, choices: c)
+        runAll(settings: StepSettings.regia(c, project: project), script: script, steps: steps, extras: { SimpleCalls.lookExtras($0, choices: c) },
                extrasTitle: SimpleStep.look.title())
     }
 }

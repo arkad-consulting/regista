@@ -127,6 +127,7 @@ enum CommandTitles {
         "project.save": "Salva il progetto",
         "project.state": "Leggi il progetto",
         "project.setKind": "Scegli il tipo di video",
+        "project.setChoices": "Scelte del progetto",
         "recipe.get": "Leggi una ricetta",
         "rules.addKind": "Aggiungi un tipo di video",
         "rules.check": "Controlla le regole di montaggio",

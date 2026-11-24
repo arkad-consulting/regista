@@ -648,15 +648,17 @@ extension MouseSuites {
     }
 
     /// The rig's rules folder is the test process's: the sheet switched off here is put back whatever happens.
-    private func check(_ app: AppRig, open: () async throws -> Void) async throws {
-        do { try await steps(app, open: open) } catch {
+    private func check(_ app: AppRig, simple: Bool = false, open: () async throws -> Void) async throws {
+        do { try await steps(app, simple: simple, open: open) } catch {
             _ = try? await app.store.silent("rules.reset", ["kind": "every-video"])
             throw error
         }
         _ = try await app.store.silent("rules.reset", ["kind": "every-video"])
     }
 
-    private func steps(_ app: AppRig, open: () async throws -> Void) async throws {
+    /// `simple`: the Semplice level's switch, whose «off» is the project's closing-logo choice too, with the edit in the
+    /// same command (project.setChoices), and whose «on» after it takes the choice back to the regia the same way (#165).
+    private func steps(_ app: AppRig, simple: Bool, open: () async throws -> Void) async throws {
         let book = app.store.engine.context.services.rules
         try await app.store.perform("brandkit.apply", ["kit": "cafe-atelier"])
         let end = try #require(app.store.project?.videoEnd).seconds
@@ -670,14 +672,16 @@ extension MouseSuites {
                 "the logo is \(closing.start.seconds)–\(closing.end.seconds) s, not the last 2 s of a \(end) s video")
         #expect(try await app.store.silent("rules.check")["violations"]?.arrayValue?.contains { $0["check"] == "logo-end" } == false,
                 "the logo the switch placed breaks «The logo only at the end»")
-        try await flip(app, "timeline.delete")
+        try await flip(app, simple ? "project.setChoices" : "timeline.delete")
         #expect(logos(app).isEmpty)
+        #expect(app.store.project?.choices?["closing-logo"]?.value == (simple ? "off" : nil), "\(String(describing: app.store.project?.choices))")
         // The rule off: the corner for the whole video.
         try await app.store.perform("rules.set", ["kind": "every-video", "checks": ["logo-end": false]])
         #expect(!book.logoOnlyAtEnd(try #require(app.store.project)))
         try await open()
         #expect(app.rig.elements(containing: corner).isEmpty == false, "with the rule off the caption does not say the corner")
-        try await flip(app, "logo.add")
+        try await flip(app, simple ? "project.setChoices" : "logo.add")
+        #expect(app.store.project?.choices == nil)
         let whole = try #require(logos(app).first, "no logo")
         #expect(whole.start == .zero && abs(whole.end.seconds - (app.store.project?.duration.seconds ?? 0)) < 0.04,
                 "with the rule off the logo is \(whole.start.seconds)–\(whole.end.seconds) s, not the whole video")
@@ -704,7 +708,7 @@ extension MouseSuites {
     @Test func semplice() async throws {
         let app = try await AppRig()
         defer { app.close() }
-        try await check(app) {
+        try await check(app, simple: true) {
             app.hostEditor(Navigation(activity: .media, level: .simple, rightTab: .inspector))
             await app.settle()
             // The rail's Grafica row (in the rail's column, under «Fai tutto»).

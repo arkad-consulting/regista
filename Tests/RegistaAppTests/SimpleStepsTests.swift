@@ -94,6 +94,7 @@ private func engine(transcriber: RegistaCore.Transcriber = TakeTranscriber(), cl
     s.cleaner = cleaner ?? LevelCleaner(audio: s.audio)
     s.profiles = ProfileStore(directory: tempDir())
     s.generationState = tempDir()
+    s.rules = RuleBook(directory: tempDir().appendingPathComponent("rules", isDirectory: true))
     return Engine(services: s)
 }
 
@@ -304,18 +305,83 @@ private struct StubProber: MediaProber {
     let e = engine(), dir = tempDir()
     try imported(e, dir)
     let steps = SimpleCalls.doEverythingSteps(hasScriptText: false, engines: .ready)
-    let first = try await job(e, steps, base, extras: SimpleCalls.lookExtras)
+    let first = try await job(e, steps, base, extras: { SimpleCalls.lookExtras($0) })
     #expect(first == ["media.extractAudio", "transcript.run", "faces.track", "script.fromTranscript", "takes.list", "edit.autoCut", "audio.clean",
                       "captions.generate", "clip.set"])
     let s = snap(e)
     #expect([SimpleStep.cut, .captions, .look, .voice].allSatisfy { s[$0].status == .done })
     #expect(s.light && s[.sound].status == .notNeeded && s[.graphics].status == .notNeeded)   // no music or graphics unasked
     let after = e.project
-    let second = try await job(e, steps, base, extras: SimpleCalls.lookExtras)
+    let second = try await job(e, steps, base, extras: { SimpleCalls.lookExtras($0) })
     #expect(second.isEmpty)                                     // every step done: nothing runs
     #expect(e.project == after)                                 // and nothing changes
     #expect(e.project?.tracks.filter { $0.kind == .caption }.count == 1)
     #expect(e.project?.assets.filter { $0.origin?.process == "audio.clean" }.count == 1)
+}
+
+/// One regia (#165): «Fai tutto» on a project whose kind says a fast pace, no captions and no colour touch-up cuts with the
+/// fast pauses, draws no captions and adds no light grade — the project's values, never its own; those steps then say the
+/// regia wants it so and nothing is left to do.
+@MainActor
+@Test func doEverythingUsesTheProjectsChoicesNeverItsOwn() async throws {
+    guard FileManager.default.isExecutableFile(atPath: ffmpeg) else { return }
+    let e = engine(), dir = tempDir()
+    try imported(e, dir)
+    try e.execute("rules.set", params: ["kind": "talking-head-reel", "choices": ["pace": "fast", "captions": "none", "colour": "none"]])
+    let c = ProjectChoices(e.project, book: e.context.services.rules)
+    let steps = SimpleCalls.doEverythingSteps(hasScriptText: false, engines: .ready, choices: c)
+    #expect(!steps.contains(.captions) && steps.contains(.cut))
+    let ran = try await job(e, steps, StepSettings.regia(c, project: e.project), extras: { SimpleCalls.lookExtras($0, choices: c) })
+    #expect(!ran.contains("captions.generate") && !ran.contains("clip.set"), "\(ran)")
+    #expect(e.project?.takes?.options.maxPause == 0.4 && e.project?.takes?.options.keepPause == 0.06)
+    #expect(!(e.project?.tracks.contains { $0.kind == .caption } ?? true) && e.project?.choices == nil)
+    let s = SimpleSnapshot.compute(e.project, engines: .ready, choices: ProjectChoices(e.project, book: e.context.services.rules), lookup: { $0 })
+    #expect(s[.captions].status == .notNeeded && s[.captions].line == "Niente sottotitoli: lo dice la tua regia.")
+    #expect(s[.look].status == .notNeeded && s.next == nil && s.captionStyle == "none" && s.pace == "fast")
+}
+
+/// One regia (#165): a pace picked in Taglio e riprese is this project's own (stored in it, with the cut it makes, one
+/// undo step; the regia's own pace again leaves no choice of its own); «Ripristina» takes the step back to the regia; a
+/// regia changed in Settings reaches a project without a choice of its own the next time the step runs.
+@MainActor
+@Test func aChangeInAStepIsThisProjectsOwnAndRipristinaTakesItBack() async throws {
+    guard FileManager.default.isExecutableFile(atPath: ffmpeg) else { return }
+    let e = engine(), dir = tempDir()
+    try imported(e, dir)
+    let book = e.context.services.rules
+    try e.execute("rules.set", params: ["kind": "talking-head-reel", "choices": ["pace": "fast"]])
+    func choices() -> ProjectChoices { ProjectChoices(e.project, book: book) }
+    func now() -> SimpleSnapshot { SimpleSnapshot.compute(e.project, engines: .ready, choices: choices(), lookup: { $0 }) }
+    // Before the cut the step opens on the regia's pace; a pace picked is stored, and the same pace again changes nothing.
+    #expect(now().pace == "fast")
+    try control(e, try #require(SimpleCalls.choose("pace", "calm", choices())))
+    #expect(now().pace == "calm" && choices().differs("pace"))
+    #expect(SimpleCalls.choose("pace", "calm", choices()) == nil)
+    // The cut at this project's pace; another pace and the cut it makes in one undo step.
+    try await job(e, SimpleCalls.cutSteps, SimpleCalls.cutSettings(choices().value("pace"), pauses: true, base: StepSettings.regia(choices(), project: e.project)))
+    #expect(e.project?.takes?.options.maxPause == 1.2)
+    try control(e, try #require(SimpleCalls.choose("pace", "normal", choices(), then: SimpleCalls.cut(pauses: true))))
+    #expect(e.project?.takes?.options.maxPause == 0.7 && now().pace == "normal")
+    // The regia's own pace again: no choice of its own any more.
+    let back = try #require(SimpleCalls.choose("pace", "fast", choices(), then: SimpleCalls.cut(pauses: true)))
+    #expect(back.params["reset"] == ["pace"])
+    try control(e, back)
+    #expect(e.project?.choices == nil && e.project?.takes?.options.maxPause == 0.4)
+    // «Ripristina»: the step's choice back to the regia and the cut again at its pace, one undo step.
+    try control(e, try #require(SimpleCalls.choose("pace", "calm", choices(), then: SimpleCalls.cut(pauses: true))))
+    try control(e, try #require(SimpleCalls.restore(.cut, now())))
+    #expect(e.project?.choices == nil && e.project?.takes?.options.maxPause == 0.4)
+    #expect(SimpleCalls.restore(.cut, now()) == nil, "nothing to take back")
+    // A take picked keeps the cut's pauses, whatever the regia says now.
+    try e.execute("rules.set", params: ["kind": "talking-head-reel", "choices": ["pace": "normal"]])
+    if let r = now().retakes.first {
+        _ = try e.execute("edit.autoCut", params: SimpleCalls.pick(line: r.line, take: r.chosen == 1 ? 2 : 1, options: e.project?.takes?.options).params)
+    }
+    #expect(e.project?.takes?.options.maxPause == 0.4, "nothing re-runs by itself")
+    // The regia changed in Settings: the next time the step runs, the cut follows it.
+    let again = SimpleCalls.cut(pauses: true)
+    _ = try e.execute(again.id, params: again.params)
+    #expect(e.project?.takes?.options.maxPause == 0.7)
 }
 
 @MainActor

@@ -298,6 +298,8 @@ private struct SimplePanel: View {
                         JobCard(job: job, onCancel: { store.jobs.cancel(job.id) }, onDismiss: { store.jobs.dismiss(job.id) })
                     }
                     header
+                    // What the person's regia wants in this step (no captions, no music…), in view whatever the rail shows.
+                    if state.regia { note(state.line) }
                     if let job = snap.jobs[step], job.isRunning || isFailed(job) {
                         JobCard(job: job, onCancel: { store.jobs.cancel(job.id) }, onDismiss: { store.jobs.dismiss(job.id) })
                     }
@@ -330,7 +332,18 @@ private struct SimplePanel: View {
                 .frame(width: 34, height: 34)
                 .background(RoundedRectangle(cornerRadius: Ed.Radius.l, style: .continuous).fill(Ed.raised))
             VStack(alignment: .leading, spacing: 3) {
-                Text(verbatim: step.title()).font(Ed.ui(Ed.TypeSize.heading, .semibold)).foregroundStyle(Ed.text)
+                HStack(alignment: .firstTextBaseline, spacing: Ed.Space.s) {
+                    Text(verbatim: step.title()).font(Ed.ui(Ed.TypeSize.heading, .semibold)).foregroundStyle(Ed.text)
+                    Spacer(minLength: 0)
+                    // This project differs from the regia in this step: one click takes it back.
+                    if step.choiceIDs.contains(where: snap.choices.differs) {
+                        EdButton(title: loc("Ripristina"), symbol: "arrow.counterclockwise", quiet: true, disabled: snap.busy != nil) {
+                            store.simpleRestore(step)
+                        }
+                        .tip("Torna alla tua regia: il passo segue di nuovo Impostazioni › Regia e skill")
+                        .fixedSize()
+                    }
+                }
                 Text(verbatim: Self.purpose(step)).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text3)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -400,6 +413,46 @@ private struct SimplePanel: View {
     }
 }
 
+/// A section's label with the regia's dot when this project's choice of `ids` differs from the person's regia.
+private func regiaLabel(_ title: String, _ ids: [String], _ choices: ProjectChoices) -> some View {
+    HStack(spacing: Ed.Space.xs) {
+        SectionLabel(title)
+        RegiaDot(ids: ids, choices: choices)
+        Spacer(minLength: 0)
+    }
+}
+
+/// A small dot: this project differs from the person's regia here; the tooltip says what the regia has («Diverso dalla tua
+/// regia (Ritmo: normale)»). Nothing when it does not differ.
+struct RegiaDot: View {
+    let ids: [String]
+    let choices: ProjectChoices
+
+    /// One line per choice that differs: its title and the regia's option, in the interface language.
+    static func tip(_ ids: [String], _ choices: ProjectChoices) -> String {
+        ids.filter(choices.differs).compactMap { id -> String? in
+            guard let spec = RuleChoiceSpec.named(id) else { return nil }
+            var regia = loc(spec.option(choices.regiaValue(id))?.label ?? choices.regiaValue(id)).lowercased(with: Words.locale)
+            if spec.number != nil, let n = choices.regiaNumber(id), choices.number(id) != n {
+                regia += " " + RulesSettings.numbers(n) + (spec.number?.unit == "s" ? " s" : spec.number?.unit ?? "")
+            }
+            return String(format: loc("Diverso dalla tua regia (%1$@: %2$@)"), loc(spec.title), regia)
+        }.joined(separator: "\n")
+    }
+
+    var body: some View {
+        let text = Self.tip(ids, choices)
+        if !text.isEmpty {
+            Circle().fill(Ed.gold).frame(width: 6, height: 6)
+                .frame(width: 14, height: 14)
+                .contentShape(Rectangle())
+                .accessibilityElement()
+                .accessibilityAddTraits(.isImage)
+                .tip(text)
+        }
+    }
+}
+
 /// A dim sentence under a control.
 private func note(_ text: String) -> some View {
     Text(verbatim: text).font(Ed.ui(Ed.TypeSize.small)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
@@ -417,15 +470,14 @@ private func openPro(_ store: EditorStore, _ go: (inout Navigation) -> Void) {
 private struct CutPanel: View {
     @EnvironmentObject private var store: EditorStore
     let snap: SimpleSnapshot
-    @State private var draft: String?
     @State private var pausesDraft = true
 
     private var cut: Bool { snap[.cut].status == .done || store.project?.takes != nil || snap.retakes.count > 0 }
 
     var body: some View {
-        // Before the cut, the pace the project's choice says (or the one picked here); after it, the cut's own (none lit
-        // when Pro set pauses of no pace).
-        let pace = cut ? snap.pace : draft ?? snap.pace
+        // Before the cut, the pace this project's choice says; after it, the cut's own (none lit when Pro set pauses of no
+        // pace). A pace picked is this project's choice (the dot says when it differs from the regia).
+        let pace = snap.pace
         let pauses = cut ? snap.pauses : pausesDraft
         VStack(alignment: .leading, spacing: Ed.Space.xl) {
             // #152: the framing check found a head cut; one click frames the clips on the face again.
@@ -436,18 +488,19 @@ private struct CutPanel: View {
                     }
                 }
             }
-            RSection("PAUSE") {
+            RSection("") {
+                regiaLabel("PAUSE", SimpleStep.cut.choiceIDs, snap.choices)
                 RToggle(title: "Togli le pause lunghe", isOn: Binding(get: { pauses }, set: { on in
-                    if cut { store.simpleCut(pace ?? snap.pace ?? SimplePace.spec.defaultOption, pauses: on) } else { pausesDraft = on }
+                    if cut { store.simpleCut(pauses: on) } else { pausesDraft = on }
                 }), subtitle: "Resta un respiro prima e dopo ogni frase.")
                 RSegmented(items: SimplePace.ids.map { ($0, SimplePace.title($0)) }, selection: Binding(get: { pace ?? "" }, set: { p in
-                    if cut { store.simpleCut(p, pauses: pauses) } else { draft = p }
+                    if p != pace { store.simplePace(p, pauses: pauses) }
                 }), tips: Dictionary(uniqueKeysWithValues: SimplePace.ids.map { ($0, SimplePace.tip($0)) }))
                 .disabled(!pauses).opacity(pauses ? 1 : 0.45)
             }
             if !cut, snap[.cut].status != .running, snap.allJob?.isRunning != true {
                 EdButton(title: loc("Taglia il video"), symbol: "scissors", prominent: true, fill: true, disabled: snap.busy != nil) {
-                    store.simpleCut(pace ?? SimplePace.spec.defaultOption, pauses: pausesDraft)
+                    store.simpleCut(pauses: pausesDraft)
                 }
             } else if cut {
                 RSection("RIPRESE") {
@@ -503,19 +556,20 @@ func captionStyleName(_ id: String) -> String {
 private struct CaptionsPanel: View {
     @EnvironmentObject private var store: EditorStore
     let snap: SimpleSnapshot
-    @AppStorage(StepSettings.styleKey) private var saved = CaptionStyle.talkingHeadV1.id
 
     var body: some View {
         let on = snap.captionsTrack != nil
-        let style = on ? snap.captionStyle : saved
+        // The captions' style, else the caption style choice (none lights no chip).
+        let style = snap.captionStyle
         VStack(alignment: .leading, spacing: Ed.Space.xl) {
             RSection("") {
-                RToggle(title: "Sottotitoli nel video", isOn: Binding(get: { on }, set: { store.simpleCaptions(on: $0, style: style) }),
+                RToggle(title: "Sottotitoli nel video", isOn: Binding(get: { on }, set: { store.simpleCaptions(on: $0) }),
                         subtitle: on ? String(format: loc("%d parole evidenziate"), snap.keywords) : "Si creano dal parlato, in pochi secondi.")
             }
-            RSection("STILE") {
+            RSection("") {
+                regiaLabel("STILE", SimpleStep.captions.choiceIDs, snap.choices)
                 RChips(items: CaptionStyle.all.map { .init(id: $0.id, title: captionStyleName($0.id)) }, selection: style, columns: 2) {
-                    store.simpleCaptionStyle($0)
+                    if $0 != style { store.simpleCaptionStyle($0) }
                 }
                 note(loc("Talking head è lo stile dei reel approvati: maiuscole, parola chiave in un riquadro."))
             }
@@ -534,14 +588,14 @@ private struct LookPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Ed.Space.xl) {
-            RSection("LUCE") {
-                RToggle(title: "Luce leggera", isOn: Binding(get: { snap.light }, set: { on in
-                    if let t = snap.videoTrack { store.runSimple(SimpleCalls.light(on, trackID: t)) }
-                }), subtitle: "Un po' più di luce, contrasto e colore.")
+            RSection("") {
+                regiaLabel("LUCE", SimpleStep.look.choiceIDs, snap.choices)
+                RToggle(title: "Luce leggera", isOn: Binding(get: { snap.light }, set: { store.simpleLight($0) }),
+                        subtitle: "Un po' più di luce, contrasto e colore.")
             }
             RSection("COLORE") {
                 RChips(items: SimpleLooks.ids.map { .init(id: $0, title: SimpleLooks.title($0)) }, selection: snap.look, columns: 3) { id in
-                    store.runSimple(SimpleCalls.look(id, amount: snap.look == "none" ? 0.6 : SimpleLooks.nearestAmount(snap.lookAmount)))
+                    store.simpleLook(id, amount: snap.look == "none" ? 0.6 : SimpleLooks.nearestAmount(snap.lookAmount))
                 }
                 if snap.look != "none" {
                     RSegmented(items: SimpleLooks.amounts.map { ($0.id, $0.title) },
@@ -564,7 +618,8 @@ private struct SoundPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Ed.Space.xl) {
-            RSection("MUSICA") {
+            RSection("") {
+                regiaLabel("MUSICA", ["music"], snap.choices)
                 if let m = snap.music {
                     HStack(spacing: Ed.Space.s) {
                         Image(systemName: "music.note").font(Ed.icon(Ed.TypeSize.small, .medium)).foregroundStyle(Ed.musicWave)
@@ -572,7 +627,7 @@ private struct SoundPanel: View {
                         Text(verbatim: m.name).font(Ed.ui(Ed.TypeSize.body, .medium)).foregroundStyle(Ed.text).lineLimit(1).truncationMode(.middle)
                         Spacer(minLength: Ed.Space.xs)
                         IconButton(symbol: "xmark", help: "Togli la musica") {
-                            if let t = AudioCalls.musicTrack(store.project) { store.runSimple(SimpleCalls.removeMusic(t)) }
+                            if let t = AudioCalls.musicTrack(store.project) { store.simpleRemoveMusic(t) }
                         }
                     }
                     RSegmented(items: MusicLevel.allCases.map { ($0, $0.title) },
@@ -592,8 +647,9 @@ private struct SoundPanel: View {
             .task(id: snap.music?.trackID) {
                 if let p = store.project, let m = AudioCalls.musicTrack(p), let a = p.asset(m.clips[0].assetID) { await store.measureMusic(a) }
             }
-            RSection("EFFETTI SONORI") {
-                RToggle(title: "Un whoosh sui tagli", isOn: Binding(get: { snap.effects > 0 }, set: { store.runSimple(SimpleCalls.soundEffects($0)) }),
+            RSection("") {
+                regiaLabel("EFFETTI SONORI", ["sfx"], snap.choices)
+                RToggle(title: "Un whoosh sui tagli", isOn: Binding(get: { snap.effects > 0 }, set: { store.simpleSoundEffects($0) }),
                         subtitle: canCutSounds ? "Leggero, al massimo sei, a qualche secondo l'uno dall'altro."
                                                : "Prima taglia il video: i suoni vanno sui tagli.")
                     .disabled(!canCutSounds)
@@ -666,10 +722,10 @@ private struct GraphicsPanelSimple: View {
             RSection("TITOLO") {
                 if let item = EffectsCatalog.named("text-hook") { CatalogRowItem(item: item) }
             }
-            RSection("LOGO") {
-                RToggle(title: "Logo nel video", isOn: Binding(get: { !snap.logoClips.isEmpty }, set: { on in
-                    store.runSimple(on ? SimpleCalls.logo(snap.logoPlacement) : SimpleCalls.removeClips(snap.logoClips))
-                }), subtitle: snap.logoReason ?? LogoSwitch.caption(atEnd: snap.logoAtEnd))
+            RSection("") {
+                regiaLabel("LOGO", SimpleStep.graphics.choiceIDs, snap.choices)
+                RToggle(title: "Logo nel video", isOn: Binding(get: { !snap.logoClips.isEmpty }, set: { store.simpleLogo($0) }),
+                        subtitle: snap.logoReason ?? LogoSwitch.caption(atEnd: snap.logoAtEnd))
                 .disabled(snap.logoReason != nil && snap.logoClips.isEmpty)
             }
             RSection("SCHEDE ANIMATE") {

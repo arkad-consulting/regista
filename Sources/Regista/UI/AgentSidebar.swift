@@ -348,7 +348,7 @@ struct TakesView: View {
                     Text(loc("Dopo una scelta: rifai il taglio")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).lineLimit(1)
                     Spacer()
                     EdButton(title: loc("Rifai il taglio"), symbol: "scissors", disabled: store.runningStepJob != nil) {
-                        store.runStep(.cut, settings: StepSettings.saved(project: store.project))
+                        store.runStep(.cut, settings: store.stepSettings)
                     }
                     .tip("Rimonta con le riprese scelte (poi riapplica voce pulita e inquadrature)")
                 }

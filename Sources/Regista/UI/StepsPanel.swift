@@ -75,7 +75,7 @@ struct StepsPanel: View {
             let key = suggestionKey(s)
             guard !key.isEmpty, key != suggestedFor else { return }
             suggestedFor = key
-            suggestions = await store.suggestKeywords(style: StepSettings.saved(project: store.project).style)
+            suggestions = await store.suggestKeywords(style: store.stepSettings.style)
         }
     }
 }
@@ -131,7 +131,7 @@ private struct DoAllCard: View {
             if snap.allJob?.isRunning != true {
                 EdButton(title: pending.isEmpty ? loc("Tutto fatto") : loc("Fai tutto"), symbol: "wand.and.stars", prominent: ready && !pending.isEmpty,
                          large: true, fill: true, disabled: !ready || pending.isEmpty || snap.busy != nil) {
-                    store.runAll(settings: StepSettings.saved(project: store.project), script: prompter.ownScript)
+                    store.runAll(settings: store.stepSettings, script: prompter.ownScript)
                 }
                 .tip("Trascrive, trova il volto, sceglie le riprese, taglia le pause, pulisce la voce e mette i sottotitoli, in ordine", shortcut: "⇧⌘M")
                 Text(verbatim: caption(ready: ready, pending: pending)).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
@@ -211,9 +211,10 @@ private struct StepBody: View {
     let openStep: (TextStep) -> Void
 
     @AppStorage(StepSettings.languageKey) private var language = StepSettings.appLanguage
-    @AppStorage(StepSettings.minPauseKey) private var minPause = 0.7
-    @AppStorage(StepSettings.breathKey) private var breath = 0.12
-    @AppStorage(StepSettings.styleKey) private var style = CaptionStyle.talkingHeadV1.id
+    // The person's own pauses and caption style for the Pro steps; until set, the project's choices (StepSettings.saved).
+    @AppStorage(StepSettings.minPauseKey) private var minPause: Double?
+    @AppStorage(StepSettings.breathKey) private var breath: Double?
+    @AppStorage(StepSettings.styleKey) private var style: String?
     @State private var draft = ""
     @State private var editingScript = false
     @State private var accepted: [String]?
@@ -221,7 +222,14 @@ private struct StepBody: View {
 
     private var state: StepState { snap.steps[step] }
     private var settings: StepSettings {
-        StepSettings(language: language, minPause: minPause, breath: breath, style: style, keywords: keywords)
+        let regia = StepSettings.regia(store.projectChoices, project: store.project)
+        var s = regia
+        s.language = language
+        s.minPause = minPause ?? regia.minPause
+        s.breath = breath ?? regia.breath
+        if let st = style, CaptionStyle.presets[st] != nil { s.style = st }
+        s.keywords = keywords
+        return s
     }
     /// The keywords the captions will get: the user's choice, else those of the captions already made, else the
     /// suggestions as they are.
@@ -270,8 +278,10 @@ private struct StepBody: View {
                 EdButton(title: loc("Rivedi e cambia le riprese"), symbol: "list.number") { store.nav.textsTab = .takes }
             }
         case .cut:
-            RSlider(value: $minPause, range: 0.3...2.0, step: 0.1, label: loc("Pausa minima da togliere"), format: { seconds($0, 1) })
-            RSlider(value: $breath, range: 0...0.4, step: 0.02, label: loc("Respiro lasciato prima e dopo"), format: { seconds($0, 2) })
+            RSlider(value: Binding(get: { settings.minPause }, set: { minPause = $0 }), range: 0.3...2.0, step: 0.1,
+                    label: loc("Pausa minima da togliere"), format: { seconds($0, 1) })
+            RSlider(value: Binding(get: { settings.breath }, set: { breath = $0 }), range: 0...0.4, step: 0.02,
+                    label: loc("Respiro lasciato prima e dopo"), format: { seconds($0, 2) })
             Text(verbatim: loc("Le pause più lunghe della pausa minima spariscono; resta un respiro su ogni lato perché il parlato non suoni tagliato."))
                 .font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3).fixedSize(horizontal: false, vertical: true)
         case .clean:
@@ -334,7 +344,7 @@ private struct StepBody: View {
 
     @ViewBuilder private var captionControls: some View {
         label(loc("Stile"))
-        RChips(items: CaptionStyle.all.map { .init(id: $0.id, title: styleName($0.id)) }, selection: style, columns: 2) { style = $0 }
+        RChips(items: CaptionStyle.all.map { .init(id: $0.id, title: styleName($0.id)) }, selection: settings.style, columns: 2) { style = $0 }
         label(loc("Parole chiave"))
         if snap.suggestions.isEmpty && keywords.isEmpty {
             Text(verbatim: loc("Cerco le parole da evidenziare…")).font(Ed.ui(Ed.TypeSize.caption)).foregroundStyle(Ed.text3)
@@ -467,18 +477,18 @@ struct StepOffer: View {
                     let first = steps[need]
                     EdButton(title: String(format: loc("Prima: %@"), need.title()), symbol: need.symbol, prominent: first.canRun,
                              disabled: !first.canRun || busy != nil) {
-                        store.runStep(need, settings: StepSettings.saved(project: store.project))
+                        store.runStep(need, settings: store.stepSettings)
                     }
                 } else if state.status != .running {
                     EdButton(title: state.status == .done ? String(format: loc("%@ di nuovo"), step.title()) : step.title(), symbol: step.symbol,
                              prominent: state.status != .done, disabled: busy != nil) {
                         if step == .captions {
                             Task {
-                                let s = StepSettings.saved(project: store.project)
+                                let s = store.stepSettings
                                 store.runStep(.captions, settings: s, keywords: await store.suggestKeywords(style: s.style))
                             }
                         } else {
-                            store.runStep(step, settings: StepSettings.saved(project: store.project))
+                            store.runStep(step, settings: store.stepSettings)
                         }
                     }
                 }

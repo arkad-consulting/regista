@@ -92,7 +92,7 @@ extension EditorStore {
         startJob(kind: TextStep.faces.jobKind, title: loc("Inquadra sul volto")) { [weak self] h, job in
             guard let self else { return }
             let driver = self.driver(h, job)
-            try await driver.run([StepCalls.reframe(p)], settings: StepSettings.saved(project: p), from: 0, to: 0.9)
+            try await driver.run([StepCalls.reframe(p)], settings: stepSettings, from: 0, to: 0.9)
             await driver.checkFraming()
             h.update(detail: self.textSteps[.faces].line)
         }
@@ -103,7 +103,7 @@ extension EditorStore {
         guard runningStepJob == nil else { return }
         startJob(kind: step.jobKind, title: step.title()) { [weak self] h, job in
             guard let self else { return }
-            try await self.driver(h, job).run([call], settings: StepSettings.saved(project: self.project), from: 0, to: 1)
+            try await self.driver(h, job).run([call], settings: self.stepSettings, from: 0, to: 1)
             h.update(detail: self.textSteps[step].line)
         }
     }

@@ -2708,3 +2708,10 @@
 "In un formato orizzontale schermo e volto vanno affiancati: Affiancati" = "In a landscape format the screen and the face go side by side: Side by side";
 "Il progetto passa a %@ quando aggiungi la ripresa" = "The project changes to %@ when you add the take";
 "Mostra i rapporti di blocco" = "Show the hang reports";
+"Niente sottotitoli: lo dice la tua regia." = "No captions: your direction says so.";
+"Il video resta com'è stato girato: lo dice la tua regia." = "The video stays as it was filmed: your direction says so.";
+"Niente musica: lo dice la tua regia." = "No music: your direction says so.";
+"La tua regia vuole una musica sotto la voce: scegline una." = "Your direction wants music under the voice: pick one.";
+"Diverso dalla tua regia (%1$@: %2$@)" = "Different from your direction (%1$@: %2$@)";
+"Torna alla tua regia: il passo segue di nuovo Impostazioni › Regia e skill" = "Back to your direction: the step follows Settings › Direction & skills again";
+"Scelte del progetto" = "Project choices";

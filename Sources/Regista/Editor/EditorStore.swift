@@ -653,7 +653,7 @@ final class EditorStore: ObservableObject {
                 return
             }
             // In Semplice, its own "Fai tutto" (with the light grade, without the steps this Mac cannot run).
-            if nav.level == .simple { doEverything(script: script) } else { runAll(settings: StepSettings.saved(project: project), script: script) }
+            if nav.level == .simple { doEverything(script: script) } else { runAll(settings: stepSettings, script: script) }
         }
     }
 

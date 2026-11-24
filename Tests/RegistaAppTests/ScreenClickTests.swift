@@ -241,7 +241,7 @@ extension MouseSuites.ClickAudits {
         nav.show(.simple)
         _ = try await audit(window.width == RigWindowSize.standard.width ? "simple" : "simple-\(window.testDescription)", nav, size: window.size,
                             area: RenderParts.content(window.size), noOps: [
-            "1, Taglio e riprese": "the step already open", "Taglio e riprese": "the step already open", "Normale": alreadyCurrent,
+            "1, Taglio e riprese": "the step already open", "Taglio e riprese": "the step already open", "Normal": alreadyCurrent,
             "Semplice": alreadyCurrent,
         ])
     }

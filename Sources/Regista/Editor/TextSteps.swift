@@ -92,11 +92,12 @@ struct FramingCheck: Equatable {
 struct StepSettings: Equatable {
     /// "it", "fr", "en", "pt" or "auto".
     var language: String
-    /// Pauses longer than this are cut out, seconds (edit.autoCut maxPause).
-    var minPause = 0.7
-    /// Breath kept before and after a removed pause, seconds (edit.autoCut keepPause).
-    var breath = 0.12
-    var style = CaptionStyle.talkingHeadV1.id
+    /// Pauses longer than this are cut out, seconds (edit.autoCut maxPause); the default pace's.
+    var minPause = SimplePace.pauses(SimplePace.spec.defaultOption).maxPause
+    /// Breath kept before and after a removed pause, seconds (edit.autoCut keepPause); the default pace's.
+    var breath = SimplePace.pauses(SimplePace.spec.defaultOption).keepPause
+    /// The caption style; the caption style choice's default.
+    var style = RuleChoiceSpec.named("captions")!.defaultOption
     /// The keywords the user accepted (nil: the suggestions are taken as they are).
     var keywords: [String]? = nil
 
@@ -109,13 +110,23 @@ struct StepSettings: Equatable {
         return languages.contains(code) ? code : "it"
     }
 
-    /// The saved choices; the language defaults to the project's (a transcript already made), then the app's.
-    static func saved(_ d: UserDefaults = .standard, project: Project? = nil) -> StepSettings {
-        let projectLanguage = project?.assets.compactMap { $0.analysis?.transcript?.language }.first { languages.contains($0) }
-        var s = StepSettings(language: d.string(forKey: languageKey) ?? projectLanguage ?? appLanguage)
+    /// The Pro steps' settings: the language defaults to the project's (a transcript already made), then the app's; the
+    /// pauses and the caption style are the person's own (the Pro step's sliders and chips), else the project's choices.
+    static func saved(_ d: UserDefaults = .standard, project: Project? = nil, choices: ProjectChoices? = nil) -> StepSettings {
+        var s = regia(choices ?? ProjectChoices(project, book: nil), project: project, d)
         if d.object(forKey: minPauseKey) != nil { s.minPause = d.double(forKey: minPauseKey) }
         if d.object(forKey: breathKey) != nil { s.breath = d.double(forKey: breathKey) }
         if let st = d.string(forKey: styleKey), CaptionStyle.presets[st] != nil { s.style = st }
+        return s
+    }
+
+    /// What the Simple steps and «Fai tutto» run with: the language as saved (else the project's, then the app's), the
+    /// pauses of the project's pace and its caption style (none: the default style, for captions made on request).
+    static func regia(_ choices: ProjectChoices, project: Project?, _ d: UserDefaults = .standard) -> StepSettings {
+        let projectLanguage = project?.assets.compactMap { $0.analysis?.transcript?.language }.first { languages.contains($0) }
+        var s = StepSettings(language: d.string(forKey: languageKey) ?? projectLanguage ?? appLanguage)
+        (s.minPause, s.breath) = choices.pace
+        if CaptionStyle.presets[choices.value("captions")] != nil { s.style = choices.value("captions") }
         return s
     }
 
