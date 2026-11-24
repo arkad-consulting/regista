@@ -88,3 +88,39 @@ public struct ProjectChoices: Sendable {
         })
     }
 }
+
+/// The choices a command used where its call left a value out, for its result's `fromChoices`: {"pace": "fast"}; a number
+/// used too follows the option ("alternate 1.15"), a number alone stands alone ("1.15").
+public struct ChoicesUsed {
+    public let choices: ProjectChoices
+    private var used: [String: (value: Bool, number: Bool)] = [:]
+
+    public init(_ choices: ProjectChoices) { self.choices = choices }
+
+    /// The project's option of `id`, noted as used.
+    public mutating func value(_ id: String) -> String {
+        used[id, default: (false, false)].value = true
+        return choices.value(id)
+    }
+
+    /// The project's number of `id`, noted as used.
+    public mutating func number(_ id: String) -> [Double] {
+        used[id, default: (false, false)].number = true
+        return choices.number(id) ?? []
+    }
+
+    /// The pace's pauses, noted as used.
+    public mutating func pace() -> (maxPause: Double, keepPause: Double) { ProjectChoices.pace(value("pace")) }
+
+    public var json: JSONValue {
+        var o: [String: JSONValue] = [:]
+        for (id, u) in used {
+            let number = u.number ? choices.number(id).map(RuleChoiceSpec.format) : nil
+            o[id] = .string([u.value ? choices.value(id) : nil, number].compactMap { $0 }.joined(separator: " "))
+        }
+        return .object(o)
+    }
+
+    /// No choice used.
+    public var isEmpty: Bool { used.isEmpty }
+}

@@ -120,14 +120,14 @@ enum Takes {
 
 enum TakesList: Command {
     static let id = "takes.list"
-    static let summary = "Find every reading of every script line (the speaker repeats a line until it comes out right), pick the best per line (complete, no restart; the last complete one by default) and compute its cut points on the speech envelope. A teleprompter recording's live take markers are used first (the restarts were seen live); otherwise the transcript is aligned to the script. Show this list to the user as text. Returns the source (live / transcript) and per line: the takes (text, start/end, complete or not, word error rate) and the chosen one; then use takes.select to override and edit.autoCut to build."
+    static let summary = "Find every reading of every script line (the speaker repeats a line until it comes out right), pick the best per line (complete, no restart; the last complete one by default) and compute its cut points on the speech envelope. A teleprompter recording's live take markers are used first (the restarts were seen live); otherwise the transcript is aligned to the script. Show this list to the user as text. Returns the source (live / transcript) and per line: the takes (text, start/end, complete or not, word error rate) and the chosen one; then use takes.select to override and edit.autoCut to build; fromChoices names the person's choices used where the call left a value out (the pace)."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("assetId", .string, "Transcribed asset (default: the only one with a transcript or live take markers)."),
         .optional("source", .oneOf(["auto", "live", "transcript"]), "auto (default): live markers when the asset has them for this script, else the transcript."),
         .optional("maxWer", .number, "Word error rate still counted as complete (default 0.3)."),
-        .optional("maxPause", .number, "Pauses longer than this inside a take are cut out, seconds (default 0.7)."),
-        .optional("keepPause", .number, "Silence kept on each side of a removed pause, seconds (default 0.12)."),
+        .optional("maxPause", .number, "Pauses longer than this inside a take are cut out, seconds (default: the project's pace choice — calm 1.2, normal 0.7, fast 0.4)."),
+        .optional("keepPause", .number, "Silence kept on each side of a removed pause, seconds (default: the project's pace choice — calm 0.25, normal 0.12, fast 0.06)."),
         .optional("pre", .number, "Lead-in before speech, seconds (default 0.10)."),
         .optional("post", .number, "Tail after speech, seconds (default 0.20)."),
     ]
@@ -147,14 +147,16 @@ enum TakesList: Command {
             asset = usable[0]
         }
         var options = TakeOptions()
+        var used = ChoicesUsed(ProjectChoices(project, book: ctx.services.rules))
         if let v = p.number("maxWer") { options.maxWer = v }
-        if let v = p.number("maxPause") { options.maxPause = v }
-        if let v = p.number("keepPause") { options.keepPause = v }
+        (options.maxPause, options.keepPause) = Takes.pauses(p, &used)
         if let v = p.number("pre") { options.pre = v }
         if let v = p.number("post") { options.post = v }
         project.takes = try compute(asset: asset, script: script, options: options, source: p.string("source") ?? "auto")
         ctx.project = project
-        return Takes.summary(project.takes!)
+        var r = Takes.summary(project.takes!).objectValue ?? [:]
+        r["fromChoices"] = used.json
+        return .object(r)
     }
 
     /// Every reading of every line of `script` in `asset`, from its live take markers (`source` auto or live) or its
@@ -210,15 +212,15 @@ enum TakesSelect: Command {
 
 enum EditAutoCut: Command {
     static let id = "edit.autoCut"
-    static let summary = "Build the rough cut from the chosen takes: one clip per kept range (each chosen take, the pauses longer than maxPause inside it cut out; filler words stay: transcript.fillers lists them, transcript.deleteWords removes them) on a video track and the same ranges on an audio track, linked and frame-snapped so picture and sound cut together; 15 ms audio fades. replace: true rebuilds after takes.select. Expressed as ordinary track.add / timeline.delete / timeline.place commands, undone as one step. Returns the segments (line, take, source in/out, timeline start), track ids and duration."
+    static let summary = "Build the rough cut from the chosen takes: one clip per kept range (each chosen take, the pauses longer than maxPause inside it cut out; filler words stay: transcript.fillers lists them, transcript.deleteWords removes them) on a video track and the same ranges on an audio track, linked and frame-snapped so picture and sound cut together; 15 ms audio fades. replace: true rebuilds after takes.select. Expressed as ordinary track.add / timeline.delete / timeline.place commands, undone as one step. Returns the segments (line, take, source in/out, timeline start), track ids, duration and fromChoices (the person's choices used where the call left a value out: the pace)."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("videoTrackId", .string, "Video track (default: the first one, created if missing)."),
         .optional("audioTrackId", .string, "Audio track (default: the first one, created if missing)."),
         .optional("replace", .boolean, "Remove the clips already on those tracks first (default false: fail if they are not empty)."),
         .optional("fades", .time, "Audio micro-fade at both edges of every sound clip, seconds (default 0.015; 0 = none)."),
-        .optional("maxPause", .number, "Pauses longer than this inside a take are cut out, seconds: recomputes the takes' cut points (as takes.list maxPause), keeping the picks made with takes.select."),
-        .optional("keepPause", .number, "Breath kept on each side of a removed pause, seconds: recomputes the cut points (as takes.list keepPause), keeping the picks."),
+        .optional("maxPause", .number, "Pauses longer than this inside a take are cut out, seconds (default: the project's pace choice, as takes.list): another value than the takes' recomputes their cut points, keeping the picks made with takes.select."),
+        .optional("keepPause", .number, "Breath kept on each side of a removed pause, seconds (default: the project's pace choice): recomputes the cut points as maxPause does."),
         .optional("picks", .array(.object), "Takes to use, applied first as takes.select would: [{line, take}] (1-based, as in takes.list), so a new pick and the cut it needs are one undo step."),
         .optional("dryRun", .boolean, "Only return the commands, change nothing."),
     ]
@@ -229,8 +231,8 @@ enum EditAutoCut: Command {
         guard let asset = project.asset(set.assetID) else { throw CommandError.notFound("\(id): asset \(set.assetID) is gone") }
         var work = ctx
         var options = set.options
-        if let v = p.number("maxPause") { options.maxPause = v }
-        if let v = p.number("keepPause") { options.keepPause = v }
+        var used = ChoicesUsed(ProjectChoices(project, book: ctx.services.rules))
+        (options.maxPause, options.keepPause) = Takes.pauses(p, &used)
         if options != set.options {
             guard let script = project.script else { throw CommandError.conflict("\(id): no script — run script.set first") }
             set = try TakesList.compute(asset: asset, script: script, options: options, source: set.source == "live" ? "live" : "transcript")
@@ -291,7 +293,7 @@ enum EditAutoCut: Command {
         }
         if !dryRun { ctx = work }
         return ["commands": .array(log), "segments": .array(placed), "videoTrackId": .string(v), "audioTrackId": .string(a),
-                "duration": ProjectState.seconds(start), "dryRun": .bool(dryRun)]
+                "duration": ProjectState.seconds(start), "dryRun": .bool(dryRun), "fromChoices": used.json]
     }
 }
 
@@ -610,7 +612,7 @@ enum TranscriptEditText: Command {
 
 enum EditPunchIns: Command {
     static let id = "edit.punchIns"
-    static let summary = "Hide jump cuts by alternating two framings over the clips of a video track (a base crop and a tighter punch-in), switching at every clip or only when the script line changes (by \"line\"). Default (no crops given): face-aware crops per shot from the face track (run faces.track first) — every detected face kept in frame (a child in the arms too), room above the hair, never a head cut, static when one crop holds the shot, else smoothed and speed-limited; zoom sets how tight base and punch are. preset \"wesites-selfie\" = fixed crops for a close 1080×1920 selfie take (base [864,1536,152,384], punch [760,1351,204,487]); base/punch = your own fixed crops; mode \"face\" = fixed sizes centred on the main face. Expressed as clip.set commands, one undo step. Returns each clip's framing, crop, whether every head fits, and the face count."
+    static let summary = "Hide jump cuts by alternating two framings over the clips of a video track (a base crop and a tighter punch-in), switching at every clip or only when the script line changes (by \"line\"). Default (no crops given): face-aware crops per shot from the face track (run faces.track first) — every detected face kept in frame (a child in the arms too), room above the hair, never a head cut, static when one crop holds the shot, else smoothed and speed-limited; zoom sets how tight base and punch are. preset \"wesites-selfie\" = fixed crops for a close 1080×1920 selfie take (base [864,1536,152,384], punch [760,1351,204,487]); base/punch = your own fixed crops; mode \"face\" = fixed sizes centred on the main face. Expressed as clip.set commands, one undo step. Returns each clip's framing, crop, whether every head fits, the face count and fromChoices (the person's choices used where the call left a value out: the framing and its zoom)."
     static let kind = CommandKind.edit
     static let presets: [String: (base: [Double], punch: [Double])] = [
         "wesites-selfie": ([864, 1536, 152, 384], [760, 1351, 204, 487]),
@@ -621,9 +623,9 @@ enum EditPunchIns: Command {
         .optional("preset", .oneOf(Array(presets.keys).sorted()), "Named fixed crops (wesites-selfie: a close 1080×1920 selfie take)."),
         .optional("trackId", .string, "Video track (default: the first one)."),
         .optional("mode", .oneOf(["auto", "alternate", "face"]), "auto (default without crops): face-aware crops; alternate: the fixed crops; face: fixed sizes centred on the main face."),
-        .optional("zoom", .array(.number), "auto: crop height of base and punch as fractions of the largest crop (default [0.8, 0.7]); grown when the heads need it."),
+        .optional("zoom", .array(.number), "auto: crop height of base and punch as fractions of the largest crop (default: base 0.8, the punch-in the project's framing number closer — 1.15 gives [0.8, 0.696]); grown when the heads need it."),
         .optional("headroom", .number, "auto: room above the hair, fraction of the crop height (default 0.05)."),
-        .optional("by", .oneOf(["clip", "line"]), "Switch framing at every clip (default) or only when the script line changes (needs takes)."),
+        .optional("by", .oneOf(["clip", "line"]), "Switch framing at every clip or only when the script line changes (needs takes). Default: the project's framing choice — alternate by line (at every clip while there are no takes), alternate-cut at every clip, still: one framing for every clip."),
         .optional("startWith", .oneOf(["base", "punch"]), "Framing of the first clip (default base)."),
         .optional("pad", .number, "Face mode: room added above the face box, fraction of its height (default 0.25)."),
         .optional("smooth", .number, "Face/auto mode: moving-average window on the crop position, seconds (default 0.5 face, 0.6 auto)."),
@@ -648,12 +650,24 @@ enum EditPunchIns: Command {
                 throw CommandError.invalid("\(id): \(mode) needs base and punch [w, h, x, y] (or a preset)")
             }
         }
-        let zoom = p.numbers("zoom") ?? [0.8, 0.7]
+        var used = ChoicesUsed(ProjectChoices(project, book: ctx.services.rules))
+        let zoom: [Double]
+        if let z = p.numbers("zoom") { zoom = z }
+        else if mode == "auto", let closer = used.number("framing").first, closer > 0 { zoom = [0.8, (0.8 / closer * 1000).rounded() / 1000] }
+        else { zoom = [0.8, 0.7] }   // fixed crops: no zoom
         guard zoom.count == 2, zoom.allSatisfy({ $0 > 0.2 && $0 <= 1 }) else { throw CommandError.invalid("\(id): zoom must be [base, punch] in 0.2…1") }
-        let byLine = p.string("by") == "line"
+        // Where the framing changes: the call's `by`, else the framing choice (still: never).
+        let framing = p.has("by") ? nil : used.value("framing")
+        var byLine = framing.map { $0 == "alternate" } ?? (p.string("by") == "line")
+        var note: String?
+        if byLine, framing != nil, project.takes == nil {
+            byLine = false
+            note = "the framing choice changes it by script line, and there are no takes (takes.list): it changes at every clip"
+        }
+        let still = framing == "still"
         var parity = p.string("startWith") == "punch" ? 1 : 0
 
-        // Framing per clip: flips when the group (clip, or script line) changes.
+        // Framing per clip: flips when the group (clip, or script line) changes; never when the choice is still.
         var lines: [Int?] = clips.map { _ in nil }
         if byLine {
             let set = try Takes.require(project, command: id)
@@ -661,7 +675,7 @@ enum EditPunchIns: Command {
         }
         var choice: [Int] = []
         for (k, line) in lines.enumerated() {
-            if k > 0, !byLine || line == nil || line != lines[k - 1] { parity ^= 1 }
+            if k > 0, !still, !byLine || line == nil || line != lines[k - 1] { parity ^= 1 }
             choice.append(parity)
         }
 
@@ -719,8 +733,10 @@ enum EditPunchIns: Command {
             rows.append(.object(row))
         }
         ctx = work
-        return ["trackId": .string(project.tracks[t].id), "mode": .string(mode), "clips": .array(rows), "commands": .array(log),
-                "allFit": .bool(rows.allSatisfy { $0["fits"]?.boolValue != false })]
+        var result: [String: JSONValue] = ["trackId": .string(project.tracks[t].id), "mode": .string(mode), "clips": .array(rows), "commands": .array(log),
+                                           "allFit": .bool(rows.allSatisfy { $0["fits"]?.boolValue != false }), "fromChoices": used.json]
+        if let note { result["note"] = .string(note) }
+        return .object(result)
     }
 }
 
@@ -759,6 +775,12 @@ enum FacePunch {
 }
 
 extension Takes {
+    /// The pauses a call asks for, each one it leaves out from the project's pace choice (takes.list, edit.autoCut).
+    static func pauses(_ p: CommandParams, _ used: inout ChoicesUsed) -> (maxPause: Double, keepPause: Double) {
+        let pace = p.has("maxPause") && p.has("keepPause") ? nil : used.pace()
+        return (p.number("maxPause") ?? pace!.maxPause, p.number("keepPause") ?? pace!.keepPause)
+    }
+
     /// Script line (1-based) whose chosen take overlaps the clip's source range most.
     static func line(of c: Clip, in set: TakeSet) -> Int? {
         guard c.assetID == set.assetID else { return nil }

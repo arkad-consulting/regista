@@ -129,6 +129,15 @@ enum CaptionsCommon {
          })]
     }
 
+    /// The style the project's caption style choice says; its «none» (no captions) refuses, saying how to caption anyway.
+    static func chosenStyle(_ used: inout ChoicesUsed, command: String) throws -> CaptionStyle {
+        let chosen = used.value("captions")
+        guard let style = CaptionStyle.presets[chosen] else {
+            throw CommandError.conflict("\(command): the person's caption style choice is \(chosen) (no captions for this kind of video) — pass style when the person asked for captions")
+        }
+        return style
+    }
+
     /// keywords.json: {"keywords": [...], "fixes": {...}}.
     static func readKeywordsFile(_ path: String, command: String) throws -> (keywords: [String], fixes: [String: String]) {
         let url = URL(fileURLWithPath: EngineConfig.expand(path))
@@ -141,7 +150,7 @@ enum CaptionsCommon {
 
 enum CaptionsGenerate: Command {
     static let id = "captions.generate"
-    static let summary = "Add the burned-in captions: word-by-word chunks built from the transcript of the edited timeline, on a caption track (created if missing), in a style preset (talking-head-v1 = large uppercase words a few at a time, the keyword on a coloured box), with your keywords highlighted (default: the script's keywords from script.prepare) and fixes for misheard words. Run it after the picture edit is final (re-run after any cut: captions go stale). Re-running keeps the track's keywords, fixes and style unless new ones are given. Returns chunk/word counts, how many keywords are shown and a preview of the first chunks."
+    static let summary = "Add the burned-in captions: word-by-word chunks built from the transcript of the edited timeline, on a caption track (created if missing), in a style preset (talking-head-v1 = large uppercase words a few at a time, the keyword on a coloured box), with your keywords highlighted (default: the script's keywords from script.prepare) and fixes for misheard words. Run it after the picture edit is final (re-run after any cut: captions go stale). Re-running keeps the track's keywords, fixes and style unless new ones are given. Returns chunk/word counts, how many keywords are shown, a preview of the first chunks and fromChoices (the person's choices used where the call left a value out: caption style, keywords)."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("trackId", .string, "Caption track (default: the first one, created if missing)."),
@@ -149,9 +158,9 @@ enum CaptionsGenerate: Command {
         .optional("keywords", .array(.string), "Keywords (display form, e.g. uppercase)."),
         .optional("keywordsPath", .string, "keywords.json with {\"keywords\": [...], \"fixes\": {...}}."),
         .optional("fixes", .object, "Replacements of displayed words, {\"AL\": \"ALL'IA\", \"IA\": \"\"} (empty removes the word)."),
-        .optional("style", .oneOf(CaptionStyle.all.map(\.id)), "Style preset (default talking-head-v1; elegant-serif, bold-keyword, ghost-karaoke: effects.catalog category captions)."),
+        .optional("style", .oneOf(CaptionStyle.all.map(\.id)), "Style preset: talking-head-v1, elegant-serif, bold-keyword, ghost-karaoke (effects.catalog category captions). Default: the track's style on a re-run, else the project's caption style choice (refused when it is none, no captions: pass a style when the person asked for captions)."),
         .optional("avoidFaces", .boolean, "Move chunks off every face of the picture (needs faces.track; default true): another band inside the Instagram safe zones, shifted aside, or split shorter."),
-        .optional("dryRun", .boolean, "Change nothing: return the chunks it would build and suggestedKeywords (the keywords it would use, then numbers, names and the longest word of each sentence, never stop words) for a person to accept or edit before generating."),
+        .optional("dryRun", .boolean, "Change nothing: return the chunks it would build and suggestedKeywords (the keywords it would use, then numbers, names and the longest word of each sentence, never stop words) for a person to accept or edit before generating. With the project's keywords choice off, nothing is suggested."),
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
@@ -178,9 +187,16 @@ enum CaptionsGenerate: Command {
         if let path = p.string("keywordsPath") { (keywords, fixes) = try CaptionsCommon.readKeywordsFile(path, command: id) }
         if let k = p.strings("keywords") { keywords = k }
         if let f = p.json("fixes")?.objectValue { fixes = f.compactMapValues(\.stringValue) }
-        let style = p.string("style").flatMap { CaptionStyle.presets[$0] } ?? old?.style ?? .talkingHeadV1
+        var used = ChoicesUsed(ProjectChoices(project, book: ctx.services.rules))
+        let style: CaptionStyle
+        if let s = p.string("style").flatMap({ CaptionStyle.presets[$0] }) { style = s }
+        else if let o = old?.style { style = o }
+        else { style = try CaptionsCommon.chosenStyle(&used, command: id) }
+        // The keywords a person did not pass: chosen automatically, unless their keywords choice is off.
+        let automatic = !p.has("keywords") && !p.has("keywordsPath")
+        let suggest = !automatic || used.value("keywords") != "off"
         // First run without keywords: the ones flagged in the teleprompter script (script.prepare), in caption form.
-        if old == nil, !p.has("keywords"), !p.has("keywordsPath"), let k = project.script?.keywords, !k.isEmpty {
+        if old == nil, automatic, suggest, let k = project.script?.keywords, !k.isEmpty {
             keywords = k.flatMap { kw -> [String] in
                 let ws = kw.split(separator: " ").enumerated().map { i, w in
                     (text: String(w), start: MediaTime(seconds: Double(i) * 0.1), end: MediaTime(seconds: Double(i) * 0.1 + 0.1))
@@ -195,8 +211,9 @@ enum CaptionsGenerate: Command {
         if p.bool("dryRun") == true {
             var r = CaptionsCommon.summary(captions, trackID: project.tracks[t].id, project: project).objectValue!
             r["preview"] = .array(captions.chunks.prefix(12).map { .string($0.text) })
-            r["suggestedKeywords"] = .array(suggestions(captions, source: source, project: project).map { .string($0) })
+            r["suggestedKeywords"] = .array(suggest ? suggestions(captions, source: source, project: project).map { .string($0) } : [])
             r["dryRun"] = true
+            r["fromChoices"] = used.json
             return .object(r)
         }
         if let old { CaptionsCommon.carryPlaces(CaptionsCommon.placedChunks(old), into: &captions) }
@@ -208,6 +225,7 @@ enum CaptionsGenerate: Command {
         r["commands"] = .array(log)
         r["placement"] = CaptionsCommon.placementJSON(placement)
         r["preview"] = .array(captions.chunks.prefix(12).map { .string($0.text) })
+        r["fromChoices"] = used.json
         return .object(r)
     }
 
@@ -289,11 +307,11 @@ enum CaptionsSetKeywords: Command {
 
 enum CaptionsSetStyle: Command {
     static let id = "captions.setStyle"
-    static let summary = "Apply a caption style preset (talking-head-v1 = large uppercase words in white with a black outline, a few at a time, word by word, the keyword on a coloured box; elegant-serif = cream serif italic, one calm phrase at a time; bold-keyword = bold white sans on up to two lines, keyword in the brand accent; ghost-karaoke = whole phrase shown, upcoming words ghosted, lit word by word — effects.catalog category captions says when to use each) and/or override fields: font, fontSize, strokeWidth, colors, gap, bandY, bandHeight, maxWords, maxChars, hold, reveal (word|chunk), keywordMode (box|color), upcomingOpacity, shadowOpacity/shadowBlur/shadowY, maxLineWidth, lineSpacing, wordAlign (center|baseline); null clears an optional field. Chunking fields rebuild the chunks. Change the style only as the person's caption style choice says or when asked. Returns the caption summary."
+    static let summary = "Apply a caption style preset (talking-head-v1 = large uppercase words in white with a black outline, a few at a time, word by word, the keyword on a coloured box; elegant-serif = cream serif italic, one calm phrase at a time; bold-keyword = bold white sans on up to two lines, keyword in the brand accent; ghost-karaoke = whole phrase shown, upcoming words ghosted, lit word by word — effects.catalog category captions says when to use each) and/or override fields: font, fontSize, strokeWidth, colors, gap, bandY, bandHeight, maxWords, maxChars, hold, reveal (word|chunk), keywordMode (box|color), upcomingOpacity, shadowOpacity/shadowBlur/shadowY, maxLineWidth, lineSpacing, wordAlign (center|baseline); null clears an optional field. Chunking fields rebuild the chunks. Change the style only as the person's caption style choice says or when asked (without style and overrides, that choice). Returns the caption summary and fromChoices."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("trackId", .string, "Caption track (default: the first one with captions)."),
-        .optional("style", .oneOf(CaptionStyle.all.map(\.id)), "Preset to start from (default: the current style)."),
+        .optional("style", .oneOf(CaptionStyle.all.map(\.id)), "Preset to start from (default: the current style when overrides are given, else the project's caption style choice)."),
         .optional("overrides", .object, "Style fields to change, e.g. {\"bandY\": 1200, \"keywordBoxColor\": \"#FFD400\"}."),
     ]
 
@@ -301,7 +319,11 @@ enum CaptionsSetStyle: Command {
         var project = try ctx.requireProject()
         let t = try CaptionsCommon.trackIndex(p, project, command: id)
         var c = try CaptionsCommon.require(project.tracks[t], command: id)
-        var style = p.string("style").flatMap { CaptionStyle.presets[$0] } ?? c.style
+        var used = ChoicesUsed(ProjectChoices(project, book: ctx.services.rules))
+        var style: CaptionStyle
+        if let s = p.string("style").flatMap({ CaptionStyle.presets[$0] }) { style = s }
+        else if p.has("overrides") { style = c.style }
+        else { style = try CaptionsCommon.chosenStyle(&used, command: id) }
         if let o = p.json("overrides")?.objectValue {
             guard case .object(var current) = try JSONValue.from(style) else { throw CommandError.invalid("\(id): bad style") }
             for (k, v) in o {
@@ -334,6 +356,7 @@ enum CaptionsSetStyle: Command {
         var r = CaptionsCommon.summary(c, trackID: project.tracks[t].id, project: project).objectValue!
         r["rechunked"] = .bool(rechunk)
         r["placement"] = CaptionsCommon.placementJSON(placement)
+        r["fromChoices"] = used.json
         return .object(r)
     }
 }

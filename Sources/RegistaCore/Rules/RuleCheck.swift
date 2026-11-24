@@ -92,20 +92,22 @@ enum RuleCheck {
     /// can move it); one that starts earlier is a logo across the video.
     static let closingLead = MediaTime(seconds: 3)
 
-    /// How long the closing logo stays when only the end allows one (#74): the logo-end check has no length of its own,
-    /// so the last 2 s of the video.
+    /// How long the closing logo stays when only the end allows one (#74) and nothing says otherwise: the project's
+    /// closing-logo choice gives its seconds (logo.add), 2 by default.
     static let closingLogo = MediaTime(seconds: 2)
 
-    /// The closing seconds of the video, where a logo goes when only the end allows one; nil without a main video.
-    static func closingWindow(_ project: Project) -> (start: MediaTime, end: MediaTime)? {
+    /// The last `seconds` of the video, where a logo goes when only the end allows one; nil without a main video.
+    static func closingWindow(_ project: Project, seconds: Double? = nil) -> (start: MediaTime, end: MediaTime)? {
         guard let end = project.videoEnd, end > .zero else { return nil }
-        return (max(.zero, end - closingLogo).snapped(to: project.settings.frameRate), end)
+        let length = seconds.map { MediaTime(seconds: $0) } ?? closingLogo
+        return (max(.zero, end - length).snapped(to: project.settings.frameRate), end)
     }
 
     static func run(_ project: Project, book: RuleBook, language: String, renderer: VideoRenderer?) -> RuleReport {
         let (kind, source, note) = book.kind(of: project)
         let states = book.checks(kind, language: language)
-        let scene = Scene(project)
+        var scene = Scene(project)
+        scene.closingSeconds = ProjectChoices(project, book: book).number("closing-logo")?.first
         var rows: [RuleReport.Row] = []
         var violations: [RuleViolation] = []
         for state in states {
@@ -145,6 +147,8 @@ enum RuleCheck {
         /// The last spoken word on the timeline (nil: no transcript).
         var lastWord: (start: MediaTime, end: MediaTime)?
         var captions: [(track: Track, captions: Captions)] = []
+        /// How long the closing logo stays (the project's closing-logo seconds): the logo-end fix keeps it that long.
+        var closingSeconds: Double?
 
         init(_ project: Project) {
             self.project = project
@@ -286,7 +290,7 @@ enum RuleCheck {
                     text = RuleText(rulePhrase("A logo in the middle of the video (%1$@ s): the logo goes only at the end."), RuleText.s(c.start))
                 }
                 // The fix: the same logo, kept for the closing seconds only (one command, one undo step).
-                let fix = logo.track.kind != .overlay ? nil : RuleCheck.closingWindow(project).map { w in
+                let fix = logo.track.kind != .overlay ? nil : RuleCheck.closingWindow(project, seconds: closingSeconds).map { w in
                     RuleFix(command: "logo.add", params: ["clipId": .string(c.id)],
                             label: RuleText(rulePhrase("Keep the logo for the last %1$@ s only"), RuleText.s(w.end - w.start)))
                 }

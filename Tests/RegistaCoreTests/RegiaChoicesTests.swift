@@ -3,7 +3,8 @@ import Testing
 @testable import RegistaCore
 
 // One regia (step 3): one place answers what this person wants for this project — the kind's sheet over "For every video"
-// over the default, the project's own choices on top.
+// over the default, the project's own choices on top. The commands a choice decides start from it where a call leaves the
+// value out, a value passed still wins, and the result's fromChoices names exactly the choices used.
 
 /// A talking-head reel project on fakes, its own rule sheets in a scratch folder: the take transcribed («uno due», a 1 s
 /// pause, «tre quattro») and its script.
@@ -23,6 +24,9 @@ private func regiaEngine(_ fakes: FakeServices = FakeServices()) throws -> Engin
 private func kindSays(_ e: Engine, _ choices: JSONValue) throws {
     try e.execute("rules.set", params: ["kind": "talking-head-reel", "choices": choices])
 }
+
+/// A result's fromChoices.
+private func used(_ r: JSONValue) -> [String: String] { (r["fromChoices"]?.objectValue ?? [:]).compactMapValues(\.stringValue) }
 
 @Test func onePlaceResolvesTheKindOverEveryVideoOverTheDefaultWithTheProjectOnTop() throws {
     let e = try regiaEngine()
@@ -53,4 +57,146 @@ private func kindSays(_ e: Engine, _ choices: JSONValue) throws {
     #expect(ProjectChoices.pace(maxPause: 0.9, keepPause: 0.2) == nil)
     // A project file from before the field reads the same.
     #expect(try JSONDecoder().decode(Project.self, from: JSONEncoder().encode(Project(name: "old"))).choices == nil)
+}
+
+@Test func takesAndTheCutTakeTheirPausesFromThePace() throws {
+    let e = try regiaEngine()
+    try kindSays(e, ["pace": "fast"])
+    let takes = try e.execute("takes.list")
+    #expect(used(takes) == ["pace": "fast"] && e.project?.takes?.options.maxPause == 0.4 && e.project?.takes?.options.keepPause == 0.06)
+    let fast = try e.execute("edit.autoCut")
+    #expect(used(fast) == ["pace": "fast"])
+    #expect(fast["segments"]?.arrayValue?.count == 2, "the 1 s pause is cut at the fast pace: \(fast)")
+    // A value passed wins and is not reported; one passed alone leaves the other to the choice.
+    let calm = try e.execute("edit.autoCut", params: ["replace": true, "maxPause": 1.2, "keepPause": 0.25])
+    #expect(used(calm).isEmpty && calm["segments"]?.arrayValue?.count == 1)
+    let half = try e.execute("edit.autoCut", params: ["replace": true, "maxPause": 1.2])
+    #expect(used(half) == ["pace": "fast"] && e.project?.takes?.options.keepPause == 0.06)
+    try kindSays(e, ["pace": "calm"])
+    #expect(used(try e.execute("takes.list")) == ["pace": "calm"] && e.project?.takes?.options.maxPause == 1.2)
+    #expect(used(try e.execute("takes.list", params: ["maxPause": 0.5, "keepPause": 0.1])).isEmpty)
+}
+
+@Test func captionsTakeTheirStyleAndKeywordsFromTheChoices() throws {
+    let e = try regiaEngine()
+    try e.execute("takes.list")
+    try e.execute("edit.autoCut")
+    try kindSays(e, ["captions": "none"])
+    // «No captions»: a call without a style is refused and says how to caption anyway.
+    #expect(throws: CommandError.self) { try e.execute("captions.generate") }
+    try kindSays(e, ["captions": "bold-keyword", "keywords": "off"])
+    let dry = try e.execute("captions.generate", params: ["dryRun": true])
+    #expect(dry["suggestedKeywords"]?.arrayValue == [] && used(dry) == ["captions": "bold-keyword", "keywords": "off"])
+    let made = try e.execute("captions.generate")
+    #expect(used(made) == ["captions": "bold-keyword", "keywords": "off"])
+    #expect(e.project?.tracks.first { $0.captions != nil }?.captions?.style.id == "bold-keyword")
+    try kindSays(e, ["keywords": "on"])
+    let on = try e.execute("captions.generate", params: ["dryRun": true, "style": "elegant-serif"])
+    #expect(used(on) == ["keywords": "on"] && (on["suggestedKeywords"]?.arrayValue?.isEmpty == false))
+    // Keywords and a style passed win.
+    #expect(used(try e.execute("captions.generate", params: ["style": "ghost-karaoke", "keywords": ["TRE"]])).isEmpty)
+    // setStyle: the choice when neither a style nor overrides are given.
+    let styled = try e.execute("captions.setStyle")
+    #expect(used(styled) == ["captions": "bold-keyword"] && e.project?.tracks.first { $0.captions != nil }?.captions?.style.id == "bold-keyword")
+    #expect(used(try e.execute("captions.setStyle", params: ["style": "elegant-serif"])).isEmpty)
+    #expect(used(try e.execute("captions.setStyle", params: ["overrides": ["maxWords": 2]])).isEmpty)
+    try kindSays(e, ["captions": "none"])
+    #expect(throws: CommandError.self) { try e.execute("captions.setStyle") }
+}
+
+@Test func punchInsTakeTheirSwitchAndZoomFromTheFraming() throws {
+    let e = try regiaEngine()
+    try e.execute("faces.track", params: ["assetId": "a1"])
+    try e.execute("track.add", params: ["kind": "video"])
+    for (start, a) in [(0.0, 0.0), (2.0, 10.0), (4.0, 20.0)] {
+        try e.execute("timeline.place", params: ["assetId": "a1", "trackId": "t1", "start": .number(start), "sourceIn": .number(a), "sourceOut": .number(a + 2)])
+    }
+    let crops: JSONValue = ["base": [864, 1536, 152, 384], "punch": [760, 1351, 204, 487]]
+    func framings(_ r: JSONValue) -> [String] { r["clips"]?.arrayValue?.compactMap { $0["framing"]?.stringValue } ?? [] }
+    try kindSays(e, ["framing": "still"])
+    var r = try e.execute("edit.punchIns", params: crops)
+    #expect(framings(r) == ["base", "base", "base"] && used(r) == ["framing": "still"])
+    try kindSays(e, ["framing": "alternate-cut"])
+    r = try e.execute("edit.punchIns", params: crops)
+    #expect(framings(r) == ["base", "punch", "base"] && used(r) == ["framing": "alternate-cut"])
+    // By line without takes: at every clip, and the result says why.
+    try kindSays(e, ["framing": "alternate"])
+    r = try e.execute("edit.punchIns", params: crops)
+    #expect(framings(r) == ["base", "punch", "base"] && used(r) == ["framing": "alternate"] && r["note"] != nil)
+    var explicit = crops.objectValue!
+    explicit["by"] = "clip"
+    #expect(used(try e.execute("edit.punchIns", params: .object(explicit))).isEmpty)
+    // The face-aware crops: the punch-in is the choice's number closer than the base.
+    try kindSays(e, ["framing": ["value": "alternate-cut", "number": 1.25]])
+    r = try e.execute("edit.punchIns")
+    #expect(used(r) == ["framing": "alternate-cut 1.25"], "\(r)")
+    let heights = (r["clips"]?.arrayValue ?? []).compactMap { $0["crop"]?.arrayValue?[1].doubleValue }
+    #expect(heights.count == 3 && abs(heights[0] / heights[1] - 1.25) < 0.02, "\(heights)")
+    #expect(used(try e.execute("edit.punchIns", params: ["zoom": [0.8, 0.7], "by": "clip"])).isEmpty)
+}
+
+@Test func theColourTouchUpTakesItsDefaultFromTheColourChoice() throws {
+    let e = try regiaEngine()
+    try e.execute("track.add", params: ["kind": "video"])
+    try e.execute("timeline.place", params: ["assetId": "a1", "trackId": "t1", "sourceIn": 0, "sourceOut": 4])
+    let light = try e.checkUndoRedo("look.apply", [:])
+    #expect(used(light) == ["colour": "light"] && e.project?.tracks[0].clips.allSatisfy { LightGrade.isOn($0.color) } == true)
+    try e.execute("look.apply", params: ["look": "film", "amount": 0.5])
+    try kindSays(e, ["colour": "none"])
+    let none = try e.execute("look.apply")
+    #expect(used(none) == ["colour": "none"] && e.project?.grade?.look == nil)
+    #expect(e.project?.tracks[0].clips.contains { LightGrade.isOn($0.color) } == false)
+    try kindSays(e, ["colour": "look"])
+    #expect(throws: CommandError.self) { try e.execute("look.apply") }   // which look: the call says
+    #expect(used(try e.execute("look.apply", params: ["look": "golden"])).isEmpty)
+}
+
+@Test func soundEffectsAndMusicFollowTheirChoices() throws {
+    let e = try regiaEngine()
+    try e.execute("track.add", params: ["kind": "video"])
+    for k in 0..<6 {   // cuts every 2 s
+        try e.execute("timeline.place", params: ["assetId": "a1", "trackId": "t1", "start": .number(Double(k) * 2), "sourceIn": .number(Double(k) * 10), "sourceOut": .number(Double(k) * 10 + 2)])
+    }
+    let sparse = try e.execute("sfx.onCuts")
+    #expect(used(sparse) == ["sfx": "sparse"] && sparse["placed"] == 3, "≥ 3 s apart: \(sparse)")
+    try kindSays(e, ["sfx": "actions"])
+    let every = try e.execute("sfx.onCuts", params: ["replace": true])
+    #expect(used(every) == ["sfx": "actions"] && every["placed"] == 5, "every cut: \(every)")
+    // None: the effects there go with replace, and a call with nothing to replace is refused unless the person asked.
+    try kindSays(e, ["sfx": "none"])
+    let gone = try e.execute("sfx.onCuts", params: ["replace": true])
+    #expect(gone["placed"] == 0 && gone["removed"] == 5 && used(gone) == ["sfx": "none"])
+    #expect(throws: CommandError.self) { try e.execute("sfx.onCuts") }
+    let asked = try e.execute("sfx.onCuts", params: ["override": true])
+    #expect(used(asked).isEmpty && asked["placed"] == 3)
+
+    let bed = fakeMedia("bed.wav")
+    try kindSays(e, ["music": "never"])
+    #expect(throws: CommandError.self) { try e.execute("audio.addMusic", params: ["path": .string(bed)]) }
+    let music = try e.execute("audio.addMusic", params: ["path": .string(bed), "override": true])
+    #expect(used(music).isEmpty)
+    try e.execute("history.undo")
+    try kindSays(e, ["music": "bed"])
+    #expect(used(try e.execute("audio.addMusic", params: ["path": .string(bed)])) == ["music": "bed"])
+}
+
+@Test func theLogoAtTheEndFollowsTheClosingLogoChoice() throws {
+    let e = try regiaEngine()
+    try e.execute("track.add", params: ["kind": "video"])
+    try e.execute("timeline.place", params: ["assetId": "a1", "trackId": "t1", "sourceIn": 0, "sourceOut": 8])
+    let logo = fakeMedia("logo.png")
+    try kindSays(e, ["closing-logo": "off"])
+    #expect(throws: CommandError.self) { try e.execute("logo.add", params: ["path": .string(logo)]) }
+    try kindSays(e, ["closing-logo": ["value": "on", "number": 3]])
+    let end = try e.checkUndoRedo("logo.add", ["path": .string(logo)])
+    #expect(used(end) == ["closing-logo": "on 3"])
+    #expect(end.value(at: "clip.start")?.doubleValue == 5 && end.value(at: "clip.end")?.doubleValue == 8, "\(end)")
+    let placed = try e.execute("logo.add", params: ["path": .string(logo), "replace": true, "start": 1, "end": 2])
+    #expect(used(placed).isEmpty)
+    // The logo moved to the end (rules.fix's fix) stays the choice's seconds too.
+    let id = try #require(placed.value(at: "clip.id")?.stringValue)
+    let moved = try e.execute("logo.add", params: ["clipId": .string(id)])
+    #expect(used(moved) == ["closing-logo": "3"] && moved.value(at: "clip.start")?.doubleValue == 5)
+    try kindSays(e, ["closing-logo": "off"])
+    #expect(used(try e.execute("logo.add", params: ["path": .string(logo), "replace": true, "override": true])).isEmpty)
 }

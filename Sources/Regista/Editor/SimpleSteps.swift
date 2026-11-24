@@ -127,16 +127,6 @@ enum SimpleLooks {
     static func nearestAmount(_ a: Double) -> Double { amounts.map(\.id).min { abs($0 - a) < abs($1 - a) }! }
 }
 
-/// The house light grade (recipe: brightness 0.02, contrast 1.06, saturation 1.08).
-enum LightGrade {
-    static let brightness = 0.02, contrast = 1.06, saturation = 1.08
-
-    static func isOn(_ c: ColorAdjust?) -> Bool {
-        guard let c else { return false }
-        return abs(c.brightness - brightness) < 0.001 && abs(c.contrast - contrast) < 0.001 && abs(c.saturation - saturation) < 0.001
-    }
-}
-
 /// The motion templates offered in Semplice (Grafica › Motion in Pro has them all).
 enum SimpleGraphics {
     static let templates = ["kicker-headline", "checklist", "counter"]
@@ -168,9 +158,15 @@ enum SimpleCalls {
         return StepCall(id: "edit.autoCut", params: ["replace": true, "maxPause": .number(pauses ? p.maxPause : SimplePace.keepAll),
                                                      "keepPause": .number(p.keepPause)])
     }
-    /// Another take for a line, and the cut that uses it: one undo step.
-    static func pick(line: Int, take: Int) -> StepCall {
-        StepCall(id: "edit.autoCut", params: ["replace": true, "picks": [["line": .number(Double(line)), "take": .number(Double(take))]]])
+    /// Another take for a line, and the cut that uses it: one undo step. The cut keeps its pauses (`options`, the takes'
+    /// own): only the take changes, whatever the pace choice says now.
+    static func pick(line: Int, take: Int, options: TakeOptions?) -> StepCall {
+        var params: [String: JSONValue] = ["replace": true, "picks": [["line": .number(Double(line)), "take": .number(Double(take))]]]
+        if let options {
+            params["maxPause"] = .number(options.maxPause)
+            params["keepPause"] = .number(options.keepPause)
+        }
+        return StepCall(id: "edit.autoCut", params: .object(params))
     }
     static func captionsOff(trackID: String) -> StepCall { StepCall(id: "track.delete", params: ["trackId": .string(trackID), "force": true]) }
     static func captionStyle(_ style: String) -> StepCall { StepCall(id: "captions.setStyle", params: ["style": .string(style)]) }

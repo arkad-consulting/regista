@@ -47,7 +47,7 @@ Returns: the grade.
 
 **Add music** · MCP tool: `audio_addMusic` · undo: yes — one undo step · takes `project`
 
-Lay a music bed on its own track (Music, A2), levelled to a loudness (default −22 LUFS un-ducked), looped to the end if short, faded in/out, and ducked automatically under the voice: the speech regions of the voice track (its words) lower it by `duck` dB (default −12, so the music sits ~19 dB under a −15 LUFS voice while someone speaks) with smooth attack/release. House rule: no music unless asked (Instagram trending audio is added in the app); when used, keep it subtle. Returns the track, clips, gain and the expected level under speech.
+Lay a music bed on its own track (Music, A2), levelled to a loudness (default −22 LUFS un-ducked), looped to the end if short, faded in/out, and ducked automatically under the voice: the speech regions of the voice track (its words) lower it by `duck` dB (default −12, so the music sits ~19 dB under a −15 LUFS voice while someone speaks) with smooth attack/release. The project's music choice decides: on-request = only when the person asks (Instagram trending audio is added in the app), bed = a music bed under the whole video, never = refused unless override: true (the person asked for this music); when used, keep it subtle. Returns the track, clips, gain, the expected level under speech and fromChoices.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -64,8 +64,9 @@ Lay a music bed on its own track (Music, A2), levelled to a loudness (default �
 | `fadeIn` | seconds | no | 0.5 | Fade-in seconds (default 0.5). |
 | `fadeOut` | seconds | no | 1.5 | Fade-out seconds at the end (default 1.5). |
 | `loop` | boolean | no | true | Repeat the music to fill the range (default true). |
+| `override` | boolean | no | – | Lay it although the project's music choice is never: only when the person asked for this music. |
 
-Returns: the track, clips, gain and the expected level under speech.
+Returns: the track, clips, gain, the expected level under speech and fromChoices.
 
 ### `audio.checkDucking`
 
@@ -353,7 +354,7 @@ Returns: the chunks removed and shortened.
 
 **Generate captions** · MCP tool: `captions_generate` · undo: yes — one undo step · takes `project`
 
-Add the burned-in captions: word-by-word chunks built from the transcript of the edited timeline, on a caption track (created if missing), in a style preset (talking-head-v1 = large uppercase words a few at a time, the keyword on a coloured box), with your keywords highlighted (default: the script's keywords from script.prepare) and fixes for misheard words. Run it after the picture edit is final (re-run after any cut: captions go stale). Re-running keeps the track's keywords, fixes and style unless new ones are given. Returns chunk/word counts, how many keywords are shown and a preview of the first chunks.
+Add the burned-in captions: word-by-word chunks built from the transcript of the edited timeline, on a caption track (created if missing), in a style preset (talking-head-v1 = large uppercase words a few at a time, the keyword on a coloured box), with your keywords highlighted (default: the script's keywords from script.prepare) and fixes for misheard words. Run it after the picture edit is final (re-run after any cut: captions go stale). Re-running keeps the track's keywords, fixes and style unless new ones are given. Returns chunk/word counts, how many keywords are shown, a preview of the first chunks and fromChoices (the person's choices used where the call left a value out: caption style, keywords).
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -362,11 +363,11 @@ Add the burned-in captions: word-by-word chunks built from the transcript of the
 | `keywords` | array of string | no | – | Keywords (display form, e.g. uppercase). |
 | `keywordsPath` | string | no | – | keywords.json with {"keywords": [...], "fixes": {...}}. |
 | `fixes` | object | no | – | Replacements of displayed words, {"AL": "ALL'IA", "IA": ""} (empty removes the word). |
-| `style` | one of `talking-head-v1`, `elegant-serif`, `bold-keyword`, `ghost-karaoke` | no | talking-head-v1 | Style preset (default talking-head-v1; elegant-serif, bold-keyword, ghost-karaoke: effects.catalog category captions). |
+| `style` | one of `talking-head-v1`, `elegant-serif`, `bold-keyword`, `ghost-karaoke` | no | the track's style on a re-run, else the project's caption style choice (refused when it is none, no captions: pass a style when the person asked for captions | Style preset: talking-head-v1, elegant-serif, bold-keyword, ghost-karaoke (effects.catalog category captions). Default: the track's style on a re-run, else the project's caption style choice (refused when it is none, no captions: pass a style when the person asked for captions). |
 | `avoidFaces` | boolean | no | true | Move chunks off every face of the picture (needs faces.track; default true): another band inside the Instagram safe zones, shifted aside, or split shorter. |
-| `dryRun` | boolean | no | – | Change nothing: return the chunks it would build and suggestedKeywords (the keywords it would use, then numbers, names and the longest word of each sentence, never stop words) for a person to accept or edit before generating. |
+| `dryRun` | boolean | no | – | Change nothing: return the chunks it would build and suggestedKeywords (the keywords it would use, then numbers, names and the longest word of each sentence, never stop words) for a person to accept or edit before generating. With the project's keywords choice off, nothing is suggested. |
 
-Returns: chunk/word counts, how many keywords are shown and a preview of the first chunks.
+Returns: chunk/word counts, how many keywords are shown, a preview of the first chunks and fromChoices (the person's choices used where the call left a value out: caption style, keywords).
 
 ### `captions.get`
 
@@ -425,15 +426,15 @@ Returns: the caption summary.
 
 **Change the caption style** · MCP tool: `captions_setStyle` · undo: yes — one undo step · takes `project`
 
-Apply a caption style preset (talking-head-v1 = large uppercase words in white with a black outline, a few at a time, word by word, the keyword on a coloured box; elegant-serif = cream serif italic, one calm phrase at a time; bold-keyword = bold white sans on up to two lines, keyword in the brand accent; ghost-karaoke = whole phrase shown, upcoming words ghosted, lit word by word — effects.catalog category captions says when to use each) and/or override fields: font, fontSize, strokeWidth, colors, gap, bandY, bandHeight, maxWords, maxChars, hold, reveal (word|chunk), keywordMode (box|color), upcomingOpacity, shadowOpacity/shadowBlur/shadowY, maxLineWidth, lineSpacing, wordAlign (center|baseline); null clears an optional field. Chunking fields rebuild the chunks. Change the style only as the person's caption style choice says or when asked. Returns the caption summary.
+Apply a caption style preset (talking-head-v1 = large uppercase words in white with a black outline, a few at a time, word by word, the keyword on a coloured box; elegant-serif = cream serif italic, one calm phrase at a time; bold-keyword = bold white sans on up to two lines, keyword in the brand accent; ghost-karaoke = whole phrase shown, upcoming words ghosted, lit word by word — effects.catalog category captions says when to use each) and/or override fields: font, fontSize, strokeWidth, colors, gap, bandY, bandHeight, maxWords, maxChars, hold, reveal (word|chunk), keywordMode (box|color), upcomingOpacity, shadowOpacity/shadowBlur/shadowY, maxLineWidth, lineSpacing, wordAlign (center|baseline); null clears an optional field. Chunking fields rebuild the chunks. Change the style only as the person's caption style choice says or when asked (without style and overrides, that choice). Returns the caption summary and fromChoices.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `trackId` | string | no | the first one with captions | Caption track (default: the first one with captions). |
-| `style` | one of `talking-head-v1`, `elegant-serif`, `bold-keyword`, `ghost-karaoke` | no | the current style | Preset to start from (default: the current style). |
+| `style` | one of `talking-head-v1`, `elegant-serif`, `bold-keyword`, `ghost-karaoke` | no | the current style when overrides are given, else the project's caption style choice | Preset to start from (default: the current style when overrides are given, else the project's caption style choice). |
 | `overrides` | object | no | – | Style fields to change, e.g. {"bandY": 1200, "keywordBoxColor": "#FFD400"}. |
 
-Returns: the caption summary.
+Returns: the caption summary and fromChoices.
 
 ## clip
 
@@ -628,7 +629,7 @@ Returns: the style and whether it is drawn.
 
 **Automatic cut** · MCP tool: `edit_autoCut` · undo: yes — one undo step · takes `project`
 
-Build the rough cut from the chosen takes: one clip per kept range (each chosen take, the pauses longer than maxPause inside it cut out; filler words stay: transcript.fillers lists them, transcript.deleteWords removes them) on a video track and the same ranges on an audio track, linked and frame-snapped so picture and sound cut together; 15 ms audio fades. replace: true rebuilds after takes.select. Expressed as ordinary track.add / timeline.delete / timeline.place commands, undone as one step. Returns the segments (line, take, source in/out, timeline start), track ids and duration.
+Build the rough cut from the chosen takes: one clip per kept range (each chosen take, the pauses longer than maxPause inside it cut out; filler words stay: transcript.fillers lists them, transcript.deleteWords removes them) on a video track and the same ranges on an audio track, linked and frame-snapped so picture and sound cut together; 15 ms audio fades. replace: true rebuilds after takes.select. Expressed as ordinary track.add / timeline.delete / timeline.place commands, undone as one step. Returns the segments (line, take, source in/out, timeline start), track ids, duration and fromChoices (the person's choices used where the call left a value out: the pace).
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -636,12 +637,12 @@ Build the rough cut from the chosen takes: one clip per kept range (each chosen 
 | `audioTrackId` | string | no | the first one, created if missing | Audio track (default: the first one, created if missing). |
 | `replace` | boolean | no | false: fail if they are not empty | Remove the clips already on those tracks first (default false: fail if they are not empty). |
 | `fades` | seconds | no | 0.015 | Audio micro-fade at both edges of every sound clip, seconds (default 0.015; 0 = none). |
-| `maxPause` | number | no | – | Pauses longer than this inside a take are cut out, seconds: recomputes the takes' cut points (as takes.list maxPause), keeping the picks made with takes.select. |
-| `keepPause` | number | no | – | Breath kept on each side of a removed pause, seconds: recomputes the cut points (as takes.list keepPause), keeping the picks. |
+| `maxPause` | number | no | the project's pace choice, as takes.list | Pauses longer than this inside a take are cut out, seconds (default: the project's pace choice, as takes.list): another value than the takes' recomputes their cut points, keeping the picks made with takes.select. |
+| `keepPause` | number | no | the project's pace choice | Breath kept on each side of a removed pause, seconds (default: the project's pace choice): recomputes the cut points as maxPause does. |
 | `picks` | array of object | no | – | Takes to use, applied first as takes.select would: [{line, take}] (1-based, as in takes.list), so a new pick and the cut it needs are one undo step. |
 | `dryRun` | boolean | no | – | Only return the commands, change nothing. |
 
-Returns: the segments (line, take, source in/out, timeline start), track ids and duration.
+Returns: the segments (line, take, source in/out, timeline start), track ids, duration and fromChoices (the person's choices used where the call left a value out: the pace).
 
 ### `edit.autoZoom`
 
@@ -691,7 +692,7 @@ Returns: the tempo, the beats and what was added.
 
 **Punch-ins** · MCP tool: `edit_punchIns` · undo: yes — one undo step · takes `project`
 
-Hide jump cuts by alternating two framings over the clips of a video track (a base crop and a tighter punch-in), switching at every clip or only when the script line changes (by "line"). Default (no crops given): face-aware crops per shot from the face track (run faces.track first) — every detected face kept in frame (a child in the arms too), room above the hair, never a head cut, static when one crop holds the shot, else smoothed and speed-limited; zoom sets how tight base and punch are. preset "wesites-selfie" = fixed crops for a close 1080×1920 selfie take (base [864,1536,152,384], punch [760,1351,204,487]); base/punch = your own fixed crops; mode "face" = fixed sizes centred on the main face. Expressed as clip.set commands, one undo step. Returns each clip's framing, crop, whether every head fits, and the face count.
+Hide jump cuts by alternating two framings over the clips of a video track (a base crop and a tighter punch-in), switching at every clip or only when the script line changes (by "line"). Default (no crops given): face-aware crops per shot from the face track (run faces.track first) — every detected face kept in frame (a child in the arms too), room above the hair, never a head cut, static when one crop holds the shot, else smoothed and speed-limited; zoom sets how tight base and punch are. preset "wesites-selfie" = fixed crops for a close 1080×1920 selfie take (base [864,1536,152,384], punch [760,1351,204,487]); base/punch = your own fixed crops; mode "face" = fixed sizes centred on the main face. Expressed as clip.set commands, one undo step. Returns each clip's framing, crop, whether every head fits, the face count and fromChoices (the person's choices used where the call left a value out: the framing and its zoom).
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -700,14 +701,14 @@ Hide jump cuts by alternating two framings over the clips of a video track (a ba
 | `preset` | one of `wesites-selfie` | no | – | Named fixed crops (wesites-selfie: a close 1080×1920 selfie take). |
 | `trackId` | string | no | the first one | Video track (default: the first one). |
 | `mode` | one of `auto`, `alternate`, `face` | no | without crops | auto (default without crops): face-aware crops; alternate: the fixed crops; face: fixed sizes centred on the main face. |
-| `zoom` | array of number | no | [0.8, 0.7] | auto: crop height of base and punch as fractions of the largest crop (default [0.8, 0.7]); grown when the heads need it. |
+| `zoom` | array of number | no | base 0.8, the punch-in the project's framing number closer — 1.15 gives [0.8, 0.696] | auto: crop height of base and punch as fractions of the largest crop (default: base 0.8, the punch-in the project's framing number closer — 1.15 gives [0.8, 0.696]); grown when the heads need it. |
 | `headroom` | number | no | 0.05 | auto: room above the hair, fraction of the crop height (default 0.05). |
-| `by` | one of `clip`, `line` | no | – | Switch framing at every clip (default) or only when the script line changes (needs takes). |
+| `by` | one of `clip`, `line` | no | the project's framing choice — alternate by line (at every clip while there are no takes | Switch framing at every clip or only when the script line changes (needs takes). Default: the project's framing choice — alternate by line (at every clip while there are no takes), alternate-cut at every clip, still: one framing for every clip. |
 | `startWith` | one of `base`, `punch` | no | base | Framing of the first clip (default base). |
 | `pad` | number | no | 0.25 | Face mode: room added above the face box, fraction of its height (default 0.25). |
 | `smooth` | number | no | 0.5 face, 0.6 auto | Face/auto mode: moving-average window on the crop position, seconds (default 0.5 face, 0.6 auto). |
 
-Returns: each clip's framing, crop, whether every head fits, and the face count.
+Returns: each clip's framing, crop, whether every head fits, the face count and fromChoices (the person's choices used where the call left a value out: the framing and its zoom).
 
 ## effect
 
@@ -1327,7 +1328,7 @@ Returns: the clips written, the speaker box, the free area for a graphic, the bu
 
 **Add the logo** · MCP tool: `logo_add` · undo: yes — one undo step · takes `project`
 
-Put the brand logo over the video: the applied kit's logo (or kit / path), at the kit's placement — a corner inside the Instagram safe area, never in the caption band — sized in px at 1080 wide, faded in and out. By default it spans the whole timeline (a watermark) — unless the project's rules want the logo only at the end (logo-end, on in the default rules): then it goes in the closing 2 s of the video and the result's timing says so; pass start/duration for any other time (rules.check then judges it). clipId moves a logo already placed instead (the logo-end fix): to the closing seconds, or to start/end, keeping its look. brandkit.apply swaps it when the kit changes. Returns the clip, its box and warnings.
+Put the brand logo over the video: the applied kit's logo (or kit / path), at the kit's placement — a corner inside the Instagram safe area, never in the caption band — sized in px at 1080 wide, faded in and out. By default it spans the whole timeline (a watermark) — unless the project's rules want the logo only at the end (logo-end, on in the default rules): then it goes in the closing seconds of the video (as many as the project's closing-logo choice says, 2 by default) and the result's timing says so; with the closing-logo choice off a call with no time is refused unless override: true (the person asked for the logo); pass start/duration for any other time (rules.check then judges it). clipId moves a logo already placed instead (the logo-end fix): to the closing seconds, or to start/end, keeping its look. brandkit.apply swaps it when the kit changes. Returns the clip, its box, warnings and fromChoices.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1345,8 +1346,9 @@ Put the brand logo over the video: the applied kit's logo (or kit / path), at th
 | `trackId` | string | no | the Logo track, created if needed | Track (default: the Logo track, created if needed). |
 | `replace` | boolean | no | – | Remove the logo clips already on the timeline first (one undo step: move or resize the logo). |
 | `clipId` | string | no | – | Move this logo clip instead of adding one: to start/end when given, else to the closing seconds of the video. Keeps its corner, size and animation. |
+| `override` | boolean | no | – | Add it with no time although the project's closing-logo choice is off: only when the person asked for the logo. |
 
-Returns: the clip, its box and warnings.
+Returns: the clip, its box, warnings and fromChoices.
 
 ### `logo.animate`
 
@@ -1374,16 +1376,16 @@ Returns: the clip.
 
 **Apply a look** · MCP tool: `look_apply` · undo: yes — one undo step · takes `project`
 
-Apply a colour look (filter) with an intensity, to clips or — with no clip — to the whole picture (video, inserts and layout boxes; titles, stickers, logos keep their colours). Looks: golden (Dorato), frost (Brina), film (Pellicola), graphite (Grafite, b&w), ink (Inchiostro, hard b&w), vivid (Vivido), velvet (Velluto), riviera (Riviera, teal & orange), archive (Archivio), matte (Opaco), sunset (Tramonto), fjord (Fiordo), night (Notte), airy (Luce); none removes it. Intensity 0 draws exactly the original. Taste: one look for the whole reel, 40–70 %. Returns the grade.
+Apply a colour look (filter) with an intensity, to clips or — with no clip — to the whole picture (video, inserts and layout boxes; titles, stickers, logos keep their colours). Looks: golden (Dorato), frost (Brina), film (Pellicola), graphite (Grafite, b&w), ink (Inchiostro, hard b&w), vivid (Vivido), velvet (Velluto), riviera (Riviera, teal & orange), archive (Archivio), matte (Opaco), sunset (Tramonto), fjord (Fiordo), night (Notte), airy (Luce); none removes it. Intensity 0 draws exactly the original. Taste: one look for the whole reel, 40–70 %. Without look, the project's colour choice: none = the picture as filmed (no look, no light grade), light = the light grade on the main video (brightness 0.02, contrast 1.06, saturation 1.08) and no look, look = refused (the call names the look). Returns the grade and fromChoices.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `look` | one of `golden`, `frost`, `film`, `graphite`, `ink`, `vivid`, `velvet`, `riviera`, `archive`, `matte`, `sunset`, `fjord`, `night`, `airy`, `none` | yes | – | Look id (look.list), or none. |
+| `look` | one of `golden`, `frost`, `film`, `graphite`, `ink`, `vivid`, `velvet`, `riviera`, `archive`, `matte`, `sunset`, `fjord`, `night`, `airy`, `none` | no | the project's colour choice, on the whole picture | Look id (look.list), or none (default: the project's colour choice, on the whole picture). |
 | `amount` | number | no | 1 | Intensity 0…1 (default 1; 0.5 is often enough). |
 | `clipId` | string | no | the whole picture | Clip (default: the whole picture). |
 | `clipIds` | array of string | no | – | Several clips. |
 
-Returns: the grade.
+Returns: the grade and fromChoices.
 
 ### `look.list`
 
@@ -2135,15 +2137,17 @@ Returns: the effects.
 
 **Sound effects on the cuts** · MCP tool: `sfx_onCuts` · undo: yes — one undo step · takes `project`
 
-Sound effects in one switch: a soft whoosh (from the shipped bank) on the cuts of the main video track, its loudest moment on the cut, at least 3 s apart and at most 6, quiet (volume 0.2); remove: true takes every sound effect off instead. One undo step either way; running it again on a reel that already has effects changes nothing. Returns the effects placed or removed.
+Sound effects in one switch: a soft whoosh (from the shipped bank) on the cuts of the main video track, its loudest moment on the cut, quiet (volume 0.2), as the project's sound effects choice says: sparse = at least 3 s apart and at most 6, actions = on every cut at least 1 s apart, none = refused unless override: true (the person asked; then sparse); remove: true takes every sound effect off instead, replace: true takes them off and places them again as the choice says. One undo step either way; running it again on a reel that already has effects changes nothing. Returns the effects placed or removed and fromChoices.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `remove` | boolean | no | – | Remove every sound effect (the clips of the SFX tracks). |
+| `replace` | boolean | no | – | Remove the sound effects there first, then place them as the choice says (none: they stay off). |
+| `override` | boolean | no | – | Place them sparse whatever the project's sound effects choice says: only when the person asked for them. |
 | `name` | string | no | whoosh_fast/crisp | Library name of the sound (default whoosh_fast/crisp). |
 | `volume` | number | no | 0.2 | Linear gain (default 0.2). |
 
-Returns: the effects placed or removed.
+Returns: the effects placed or removed and fromChoices.
 
 ## skill
 
@@ -2351,19 +2355,19 @@ Returns: the per-line comparison.
 
 **Find the takes** · MCP tool: `takes_list` · undo: yes — one undo step · takes `project`
 
-Find every reading of every script line (the speaker repeats a line until it comes out right), pick the best per line (complete, no restart; the last complete one by default) and compute its cut points on the speech envelope. A teleprompter recording's live take markers are used first (the restarts were seen live); otherwise the transcript is aligned to the script. Show this list to the user as text. Returns the source (live / transcript) and per line: the takes (text, start/end, complete or not, word error rate) and the chosen one; then use takes.select to override and edit.autoCut to build.
+Find every reading of every script line (the speaker repeats a line until it comes out right), pick the best per line (complete, no restart; the last complete one by default) and compute its cut points on the speech envelope. A teleprompter recording's live take markers are used first (the restarts were seen live); otherwise the transcript is aligned to the script. Show this list to the user as text. Returns the source (live / transcript) and per line: the takes (text, start/end, complete or not, word error rate) and the chosen one; then use takes.select to override and edit.autoCut to build; fromChoices names the person's choices used where the call left a value out (the pace).
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `assetId` | string | no | the only one with a transcript or live take markers | Transcribed asset (default: the only one with a transcript or live take markers). |
 | `source` | one of `auto`, `live`, `transcript` | no | – | auto (default): live markers when the asset has them for this script, else the transcript. |
 | `maxWer` | number | no | 0.3 | Word error rate still counted as complete (default 0.3). |
-| `maxPause` | number | no | 0.7 | Pauses longer than this inside a take are cut out, seconds (default 0.7). |
-| `keepPause` | number | no | 0.12 | Silence kept on each side of a removed pause, seconds (default 0.12). |
+| `maxPause` | number | no | the project's pace choice — calm 1.2, normal 0.7, fast 0.4 | Pauses longer than this inside a take are cut out, seconds (default: the project's pace choice — calm 1.2, normal 0.7, fast 0.4). |
+| `keepPause` | number | no | the project's pace choice — calm 0.25, normal 0.12, fast 0.06 | Silence kept on each side of a removed pause, seconds (default: the project's pace choice — calm 0.25, normal 0.12, fast 0.06). |
 | `pre` | number | no | 0.10 | Lead-in before speech, seconds (default 0.10). |
 | `post` | number | no | 0.20 | Tail after speech, seconds (default 0.20). |
 
-Returns: the source (live / transcript) and per line: the takes (text, start/end, complete or not, word error rate) and the chosen one; then use takes.select to override and edit.autoCut to build.
+Returns: the source (live / transcript) and per line: the takes (text, start/end, complete or not, word error rate) and the chosen one; then use takes.select to override and edit.autoCut to build; fromChoices names the person's choices used where the call left a value out (the pace).
 
 ### `takes.live`
 

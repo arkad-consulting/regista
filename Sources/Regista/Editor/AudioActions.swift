@@ -9,8 +9,9 @@ enum AudioCalls {
     /// The job kind of the music work (adding it, checking it under the voice).
     static let musicJob = "audio.music"
 
-    /// Aggiungi musica: the command's own defaults (−22 LUFS bed, loop or trim to the edit, fades, ducking −12 dB).
-    static func addMusic(path: String) -> StepCall { StepCall(id: "audio.addMusic", params: ["path": .string(path)]) }
+    /// Aggiungi musica: the command's own defaults (−22 LUFS bed, loop or trim to the edit, fades, ducking −12 dB). The
+    /// person picked this music: it goes in whatever the music choice says (override).
+    static func addMusic(path: String) -> StepCall { StepCall(id: "audio.addMusic", params: ["path": .string(path), "override": true]) }
     static let checkDucking = StepCall(id: "audio.checkDucking", params: [:])
     /// The music's volume: every clip of its track (a looped bed is several clips), one undo step.
     static func musicVolume(trackID: String, gain: Double) -> StepCall {

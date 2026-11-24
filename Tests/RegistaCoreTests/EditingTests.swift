@@ -68,7 +68,8 @@ private func linkedEngine() throws -> Engine {
     try e.execute("takes.list")
     try e.execute("edit.autoCut")
     let base: JSONValue = [864, 1536, 152, 384], punch: JSONValue = [760, 1351, 204, 487]
-    let r = try e.checkUndoRedo("edit.punchIns", ["base": base, "punch": punch])
+    // At every clip (by: clip; without `by`, the framing choice decides: RegiaChoicesTests).
+    let r = try e.checkUndoRedo("edit.punchIns", ["base": base, "punch": punch, "by": "clip"])
     #expect(r["clips"]?.arrayValue?.map { $0["framing"]?.stringValue ?? "" } == ["base", "punch", "base", "punch"])
     #expect(r["commands"]?.arrayValue?.allSatisfy { $0["command"] == "clip.set" } == true)
     func xs() -> [Double] { e.clips(0).map { ($0.transform!.cropRect(sourceWidth: 1080, sourceHeight: 1920)[2]).rounded() } }

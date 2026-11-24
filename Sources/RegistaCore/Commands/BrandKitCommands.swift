@@ -436,7 +436,7 @@ enum BrandkitDelete: Command {
 
 enum LogoAdd: Command {
     static let id = "logo.add"
-    static let summary = "Put the brand logo over the video: the applied kit's logo (or kit / path), at the kit's placement — a corner inside the Instagram safe area, never in the caption band — sized in px at 1080 wide, faded in and out. By default it spans the whole timeline (a watermark) — unless the project's rules want the logo only at the end (logo-end, on in the default rules): then it goes in the closing 2 s of the video and the result's timing says so; pass start/duration for any other time (rules.check then judges it). clipId moves a logo already placed instead (the logo-end fix): to the closing seconds, or to start/end, keeping its look. brandkit.apply swaps it when the kit changes. Returns the clip, its box and warnings."
+    static let summary = "Put the brand logo over the video: the applied kit's logo (or kit / path), at the kit's placement — a corner inside the Instagram safe area, never in the caption band — sized in px at 1080 wide, faded in and out. By default it spans the whole timeline (a watermark) — unless the project's rules want the logo only at the end (logo-end, on in the default rules): then it goes in the closing seconds of the video (as many as the project's closing-logo choice says, 2 by default) and the result's timing says so; with the closing-logo choice off a call with no time is refused unless override: true (the person asked for the logo); pass start/duration for any other time (rules.check then judges it). clipId moves a logo already placed instead (the logo-end fix): to the closing seconds, or to start/end, keeping its look. brandkit.apply swaps it when the kit changes. Returns the clip, its box, warnings and fromChoices."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("start", .time, "Timeline start (default 0)."),
@@ -453,11 +453,17 @@ enum LogoAdd: Command {
         .optional("trackId", .string, "Track (default: the Logo track, created if needed)."),
         .optional("replace", .boolean, "Remove the logo clips already on the timeline first (one undo step: move or resize the logo)."),
         .optional("clipId", .string, "Move this logo clip instead of adding one: to start/end when given, else to the closing seconds of the video. Keeps its corner, size and animation."),
+        .optional("override", .boolean, "Add it with no time although the project's closing-logo choice is off: only when the person asked for the logo."),
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         var project = try ctx.requireProject()
-        if let cid = p.string("clipId") { return try move(cid, p, &project, &ctx) }
+        var used = ChoicesUsed(ProjectChoices(project, book: ctx.services.rules))
+        if let cid = p.string("clipId") { return try move(cid, p, &project, &ctx, &used) }
+        let timed = p.has("start") || p.has("end") || p.has("duration")
+        if !timed, p.bool("override") != true, used.value("closing-logo") == "off" {
+            throw CommandError.conflict("\(id): the person's closing-logo choice is off (no logo at the end) — pass override: true only when the person asked for the logo, or start/duration for a logo elsewhere")
+        }
         if p.bool("replace") == true {
             for t in project.tracks.indices where project.tracks[t].role == "logo" { project.tracks[t].clips.removeAll() }
         }
@@ -478,7 +484,7 @@ enum LogoAdd: Command {
         var timing: String?
         if let e = p.time("end") { end = e.snapped(to: rate) }
         else if let d = p.time("duration") { end = (start + d).snapped(to: rate) }
-        else if !p.has("start"), ctx.services.rules.logoOnlyAtEnd(project), let w = RuleCheck.closingWindow(project) {
+        else if !p.has("start"), ctx.services.rules.logoOnlyAtEnd(project), let w = RuleCheck.closingWindow(project, seconds: closingSeconds(&used, p)) {
             // The project's rules want the logo only at the end (#74): the closing seconds of the video.
             (start, end) = w
             timing = closingLine(w)
@@ -500,7 +506,14 @@ enum LogoAdd: Command {
             result["warnings"] = .array(made.warnings + problems.map { .string("logo \($0)") })
         }
         if let timing { result["timing"] = .string(timing) }
+        result["fromChoices"] = used.json
         return .object(result)
+    }
+
+    /// How long the closing logo stays: the project's closing-logo seconds (the person's own when they asked with
+    /// override: true, without counting it as used).
+    static func closingSeconds(_ used: inout ChoicesUsed, _ p: CommandParams) -> Double {
+        (p.bool("override") == true ? used.choices.number("closing-logo") ?? [] : used.number("closing-logo")).first ?? RuleCheck.closingLogo.seconds
     }
 
     static func closingLine(_ w: (start: MediaTime, end: MediaTime)) -> String {
@@ -509,7 +522,8 @@ enum LogoAdd: Command {
 
     /// clipId: the logo already placed, moved to start/end or to the closing seconds of the video, its look kept (its
     /// entrance stays at its start, its exit moves with its end). One undo step.
-    static func move(_ clipID: String, _ p: CommandParams, _ project: inout Project, _ ctx: inout CommandContext) throws -> JSONValue {
+    static func move(_ clipID: String, _ p: CommandParams, _ project: inout Project, _ ctx: inout CommandContext,
+                     _ used: inout ChoicesUsed) throws -> JSONValue {
         let (t, c) = try Timeline.locate(clip: clipID, in: project)
         var clip = project.tracks[t].clips[c]
         let rate = project.settings.frameRate
@@ -521,7 +535,9 @@ enum LogoAdd: Command {
             else if let d = p.time("duration") { end = (start + d).snapped(to: rate) }
             else { end = start + clip.duration }
         } else {
-            guard let w = RuleCheck.closingWindow(project) else { throw CommandError.conflict("\(id): no video on the timeline to put the logo at the end of") }
+            guard let w = RuleCheck.closingWindow(project, seconds: closingSeconds(&used, p)) else {
+                throw CommandError.conflict("\(id): no video on the timeline to put the logo at the end of")
+            }
             (start, end) = w
             timing = closingLine(w)
         }
@@ -533,7 +549,7 @@ enum LogoAdd: Command {
         project.tracks[t].clips[c] = clip
         project.tracks[t].sortClips()
         ctx.project = project
-        var result: [String: JSONValue] = ["clip": ProjectState.summary(of: clip), "trackId": .string(project.tracks[t].id)]
+        var result: [String: JSONValue] = ["clip": ProjectState.summary(of: clip), "trackId": .string(project.tracks[t].id), "fromChoices": used.json]
         if let timing { result["timing"] = .string(timing) }
         return .object(result)
     }

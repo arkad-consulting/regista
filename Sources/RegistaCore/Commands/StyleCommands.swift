@@ -503,8 +503,9 @@ enum StyleApply: Command {
                 }
                 ctx.project = pr
             }
-            // sfx.onCuts places the bank's whoosh with its loudest moment on each cut (≥ 3 s apart, max 6).
-            step("whoosh on cuts") { try Nested.run(SFXOnCuts.self, ["volume": .number(0.12 + 0.12 * i)], &$0) }
+            // sfx.onCuts places the bank's whoosh with its loudest moment on each cut (≥ 3 s apart, max 6): the style asked
+            // for them, whatever the sound effects choice says.
+            step("whoosh on cuts") { try Nested.run(SFXOnCuts.self, ["volume": .number(0.12 + 0.12 * i), "override": true], &$0) }
             if hasCaptions { step("pop captions (word by word)") { try Nested.run(CaptionsSetStyle.self, ["overrides": ["reveal": "word"]], &$0) } }
             else { skipped.append("pop captions: no captions yet (captions.generate, then style.apply again)") }
         case "pulito":

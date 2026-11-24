@@ -87,10 +87,10 @@ enum LookList: Command {
 
 enum LookApply: Command {
     static let id = "look.apply"
-    static let summary = "Apply a colour look (filter) with an intensity, to clips or — with no clip — to the whole picture (video, inserts and layout boxes; titles, stickers, logos keep their colours). Looks: golden (Dorato), frost (Brina), film (Pellicola), graphite (Grafite, b&w), ink (Inchiostro, hard b&w), vivid (Vivido), velvet (Velluto), riviera (Riviera, teal & orange), archive (Archivio), matte (Opaco), sunset (Tramonto), fjord (Fiordo), night (Notte), airy (Luce); none removes it. Intensity 0 draws exactly the original. Taste: one look for the whole reel, 40–70 %. Returns the grade."
+    static let summary = "Apply a colour look (filter) with an intensity, to clips or — with no clip — to the whole picture (video, inserts and layout boxes; titles, stickers, logos keep their colours). Looks: golden (Dorato), frost (Brina), film (Pellicola), graphite (Grafite, b&w), ink (Inchiostro, hard b&w), vivid (Vivido), velvet (Velluto), riviera (Riviera, teal & orange), archive (Archivio), matte (Opaco), sunset (Tramonto), fjord (Fiordo), night (Notte), airy (Luce); none removes it. Intensity 0 draws exactly the original. Taste: one look for the whole reel, 40–70 %. Without look, the project's colour choice: none = the picture as filmed (no look, no light grade), light = the light grade on the main video (brightness 0.02, contrast 1.06, saturation 1.08) and no look, look = refused (the call names the look). Returns the grade and fromChoices."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
-        .required("look", .oneOf(Look.ids + ["none"]), "Look id (look.list), or none."),
+        .optional("look", .oneOf(Look.ids + ["none"]), "Look id (look.list), or none (default: the project's colour choice, on the whole picture)."),
         .optional("amount", .number, "Intensity 0…1 (default 1; 0.5 is often enough)."),
         .optional("clipId", .string, "Clip (default: the whole picture)."),
         .optional("clipIds", .array(.string), "Several clips."),
@@ -98,7 +98,7 @@ enum LookApply: Command {
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         var project = try ctx.requireProject()
-        let look = p.requiredString("look")
+        guard let look = p.string("look") else { return try colour(p, &ctx) }
         if let a = p.number("amount"), !(0...1).contains(a) { throw CommandError.invalid("\(id): amount is 0…1") }
         func update(_ g: Grade?) -> Grade? {
             var g = g ?? Grade()
@@ -111,7 +111,7 @@ enum LookApply: Command {
         if ids.isEmpty {
             project.grade = update(project.grade)
             ctx.project = project
-            return ["scope": "project", "grade": project.grade.map(EffectsJSON.grade) ?? .null]
+            return ["scope": "project", "grade": project.grade.map(EffectsJSON.grade) ?? .null, "fromChoices": [:]]
         }
         var out: [JSONValue] = []
         for cid in ids {
@@ -121,7 +121,39 @@ enum LookApply: Command {
             out.append(["clipId": .string(cid), "grade": project.tracks[t].clips[c].grade.map(EffectsJSON.grade) ?? .null])
         }
         ctx.project = project
-        return ["scope": "clips", "clips": .array(out)]
+        return ["scope": "clips", "clips": .array(out), "fromChoices": [:]]
+    }
+
+    /// No look given: the project's colour choice on the whole picture — the look off, and the light grade on the main
+    /// video's clips (light) or off them (none). One undo step.
+    static func colour(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
+        var project = try ctx.requireProject()
+        guard EffectsJSON.clipIDs(p).isEmpty, !p.has("amount") else {
+            throw CommandError.invalid("\(id): pass look with clipId(s) or amount (without look, the colour choice applies to the whole picture)")
+        }
+        var used = ChoicesUsed(ProjectChoices(project, book: ctx.services.rules))
+        let chosen = used.value("colour")
+        guard chosen != "look" else {
+            throw CommandError.conflict("\(id): the person's colour choice is a look from the catalogue — pass look (look.list) to say which")
+        }
+        if var g = project.grade, g.look != nil {
+            g.look = nil
+            g.amount = nil
+            g.keys?["amount"] = nil
+            project.grade = g.isEmpty ? nil : g
+            ctx.project = project
+        }
+        let main = project.tracks.first { $0.kind == .video && !$0.clips.isEmpty }
+        let light = chosen == "light"
+        if light, main == nil { throw CommandError.conflict("\(id): no video on the timeline for the light grade") }
+        // The light grade on every clip (light), or off the clips that have exactly it (none: other adjustments stay).
+        let clips = (main?.clips ?? []).filter { light ? !LightGrade.isOn($0.color) : LightGrade.isOn($0.color) }.map(\.id)
+        if !clips.isEmpty {
+            try Nested.run(ClipSet.self, ["clipIds": .array(clips.map { .string($0) }), "brightness": .number(light ? LightGrade.brightness : 0),
+                                          "contrast": .number(light ? LightGrade.contrast : 1), "saturation": .number(light ? LightGrade.saturation : 1)], &ctx)
+        }
+        return ["scope": "colour", "colour": .string(chosen), "grade": ctx.project?.grade.map(EffectsJSON.grade) ?? .null,
+                "clips": .array(clips.map { .string($0) }), "fromChoices": used.json]
     }
 
     static func visual(_ clip: Clip, _ project: Project, command: String) throws {
@@ -618,5 +650,17 @@ enum LogoAnimate: Command {
         project.tracks[t].clips[c] = clip
         ctx.project = project
         return ["clip": ProjectState.summary(of: clip), "motion": .string(motion.rawValue)]
+    }
+}
+
+/// The light grade of the colour choice's «light» (the recipes' touch-up): a little brightness, contrast and saturation on
+/// the main video's clips.
+public enum LightGrade {
+    public static let brightness = 0.02, contrast = 1.06, saturation = 1.08
+
+    /// The clip's colour is exactly the light grade.
+    public static func isOn(_ c: ColorAdjust?) -> Bool {
+        guard let c else { return false }
+        return abs(c.brightness - brightness) < 0.001 && abs(c.contrast - contrast) < 0.001 && abs(c.saturation - saturation) < 0.001
     }
 }

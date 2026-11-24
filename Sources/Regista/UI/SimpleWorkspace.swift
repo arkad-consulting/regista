@@ -479,7 +479,9 @@ private struct RetakeRow: View {
                 Text(verbatim: retake.text).font(Ed.ui(Ed.TypeSize.body)).foregroundStyle(Ed.text2).lineLimit(2)
             }
             RSegmented(items: (1...retake.takes).map { ($0, String(format: loc("Ripresa %d"), $0)) },
-                       selection: Binding(get: { retake.chosen ?? 0 }, set: { store.runSimple(SimpleCalls.pick(line: retake.line, take: $0)) }),
+                       selection: Binding(get: { retake.chosen ?? 0 }, set: {
+                           store.runSimple(SimpleCalls.pick(line: retake.line, take: $0, options: store.project?.takes?.options))
+                       }),
                        height: 24)
                 .padding(.leading, 22)
         }

@@ -130,7 +130,7 @@ public enum SoundLibrary {
 
 enum AudioAddMusic: Command {
     static let id = "audio.addMusic"
-    static let summary = "Lay a music bed on its own track (Music, A2), levelled to a loudness (default −22 LUFS un-ducked), looped to the end if short, faded in/out, and ducked automatically under the voice: the speech regions of the voice track (its words) lower it by `duck` dB (default −12, so the music sits ~19 dB under a −15 LUFS voice while someone speaks) with smooth attack/release. House rule: no music unless asked (Instagram trending audio is added in the app); when used, keep it subtle. Returns the track, clips, gain and the expected level under speech."
+    static let summary = "Lay a music bed on its own track (Music, A2), levelled to a loudness (default −22 LUFS un-ducked), looped to the end if short, faded in/out, and ducked automatically under the voice: the speech regions of the voice track (its words) lower it by `duck` dB (default −12, so the music sits ~19 dB under a −15 LUFS voice while someone speaks) with smooth attack/release. The project's music choice decides: on-request = only when the person asks (Instagram trending audio is added in the app), bed = a music bed under the whole video, never = refused unless override: true (the person asked for this music); when used, keep it subtle. Returns the track, clips, gain, the expected level under speech and fromChoices."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .required("path", .string, "Music file (wav/flac/mp3/m4a)."),
@@ -146,10 +146,15 @@ enum AudioAddMusic: Command {
         .optional("fadeIn", .time, "Fade-in seconds (default 0.5)."),
         .optional("fadeOut", .time, "Fade-out seconds at the end (default 1.5)."),
         .optional("loop", .boolean, "Repeat the music to fill the range (default true)."),
+        .optional("override", .boolean, "Lay it although the project's music choice is never: only when the person asked for this music."),
     ]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
         var project = try ctx.requireProject()
+        var used = ChoicesUsed(ProjectChoices(project, book: ctx.services.rules))
+        if p.bool("override") != true, used.value("music") == "never" {
+            throw CommandError.conflict("\(id): the person's music choice is never (no music for this kind of video) — pass override: true only when the person asked for this music")
+        }
         let rate = project.settings.frameRate
         let asset = try AudioTracks.importAudio(p.requiredString("path"), into: &project, ctx, command: id)
         let start = (p.time("start") ?? .zero).snapped(to: rate)
@@ -201,7 +206,7 @@ enum AudioAddMusic: Command {
         return ["trackId": .string(project.tracks[t].id), "clips": .array(clips.map(ProjectState.summary(of:))),
                 "measuredLUFS": AudioTracks.db(measured.integrated), "gain": AudioTracks.db(gain), "level": AudioTracks.db(level),
                 "duck": AudioTracks.db(duck), "speechRegions": .number(Double(regions)),
-                "underSpeechLUFS": AudioTracks.db(level + min(duck, 0))]
+                "underSpeechLUFS": AudioTracks.db(level + min(duck, 0)), "fromChoices": used.json]
     }
 }
 
@@ -316,10 +321,12 @@ enum SFXAdd: Command {
 
 enum SFXOnCuts: Command {
     static let id = "sfx.onCuts"
-    static let summary = "Sound effects in one switch: a soft whoosh (from the shipped bank) on the cuts of the main video track, its loudest moment on the cut, at least 3 s apart and at most 6, quiet (volume 0.2); remove: true takes every sound effect off instead. One undo step either way; running it again on a reel that already has effects changes nothing. Returns the effects placed or removed."
+    static let summary = "Sound effects in one switch: a soft whoosh (from the shipped bank) on the cuts of the main video track, its loudest moment on the cut, quiet (volume 0.2), as the project's sound effects choice says: sparse = at least 3 s apart and at most 6, actions = on every cut at least 1 s apart, none = refused unless override: true (the person asked; then sparse); remove: true takes every sound effect off instead, replace: true takes them off and places them again as the choice says. One undo step either way; running it again on a reel that already has effects changes nothing. Returns the effects placed or removed and fromChoices."
     static let kind = CommandKind.edit
     static let params: [ParamSpec] = [
         .optional("remove", .boolean, "Remove every sound effect (the clips of the SFX tracks)."),
+        .optional("replace", .boolean, "Remove the sound effects there first, then place them as the choice says (none: they stay off)."),
+        .optional("override", .boolean, "Place them sparse whatever the project's sound effects choice says: only when the person asked for them."),
         .optional("name", .string, "Library name of the sound (default whoosh_fast/crisp)."),
         .optional("volume", .number, "Linear gain (default 0.2)."),
     ]
@@ -334,7 +341,22 @@ enum SFXOnCuts: Command {
             if !existing.isEmpty { try ctx.perform(TimelineDelete.self, ["clipIds": .array(existing.map { .string($0) }), "linked": false], log: &log) }
             return ["removed": .number(Double(existing.count)), "commands": .array(log)]
         }
-        guard existing.isEmpty else { return ["placed": 0, "existing": .number(Double(existing.count)), "commands": []] }
+        var used = ChoicesUsed(ProjectChoices(project, book: ctx.services.rules))
+        var removed = 0
+        if p.bool("replace") == true, !existing.isEmpty {
+            try ctx.perform(TimelineDelete.self, ["clipIds": .array(existing.map { .string($0) }), "linked": false], log: &log)
+            removed = existing.count
+        } else if !existing.isEmpty {
+            return ["placed": 0, "existing": .number(Double(existing.count)), "commands": [], "fromChoices": [:]]
+        }
+        let density = p.bool("override") == true ? "sparse" : used.value("sfx")
+        if density == "none" {
+            guard removed > 0 else {
+                throw CommandError.conflict("\(id): the person's sound effects choice is none — pass override: true only when the person asked for them")
+            }
+            return ["placed": 0, "removed": .number(Double(removed)), "commands": .array(log), "fromChoices": used.json]
+        }
+        let (gap, most) = density == "actions" ? (1.0, Int.max) : (3.0, 6)
         guard let main = project.tracks.first(where: { $0.kind == .video && !$0.clips.isEmpty }) else {
             throw CommandError.conflict("\(id): no video on the timeline")
         }
@@ -344,15 +366,17 @@ enum SFXOnCuts: Command {
         }
         let peak = sound.peak ?? 0.1
         var last = -10.0, at: [Double] = []
-        for cut in main.clips.dropFirst().map(\.start.seconds) where cut - last >= 3 && at.count < 6 {
+        for cut in main.clips.dropFirst().map(\.start.seconds) where cut - last >= gap && at.count < most {
             at.append(max(cut - peak, 0))
             last = cut
         }
-        guard !at.isEmpty else { throw CommandError.conflict("\(id): no cuts at least 3 s apart (cut the pauses first)") }
+        guard !at.isEmpty else { throw CommandError.conflict("\(id): no cuts at least \(Int(gap)) s apart (cut the pauses first)") }
         for t in at {
             try ctx.perform(SFXAdd.self, ["name": .string(name), "at": .number((t * 1000).rounded() / 1000), "volume": .number(p.number("volume") ?? 0.2)], log: &log)
         }
-        return ["placed": .number(Double(at.count)), "at": .array(at.map { .number($0) }), "commands": .array(log)]
+        var r: [String: JSONValue] = ["placed": .number(Double(at.count)), "at": .array(at.map { .number($0) }), "commands": .array(log), "fromChoices": used.json]
+        if removed > 0 { r["removed"] = .number(Double(removed)) }
+        return .object(r)
     }
 }
 

@@ -187,7 +187,7 @@ private let base = StepSettings(language: "it")
     let retake = try #require(s.retakes.first, "the first line was read twice")
     #expect(retake.takes == 2)
     // Another take, and the cut that uses it: one undo step.
-    try control(e, SimpleCalls.pick(line: retake.line, take: retake.chosen == 1 ? 2 : 1))
+    try control(e, SimpleCalls.pick(line: retake.line, take: retake.chosen == 1 ? 2 : 1, options: e.project?.takes?.options))
     #expect(snap(e)[.cut].status == .done)
     try control(e, SimpleCalls.cut("calm", pauses: true))
     #expect(snap(e).pace == "calm")
@@ -325,7 +325,7 @@ private struct StubProber: MediaProber {
     try imported(e, dir)
     // Taglio e riprese (Normale), the other take of the line read twice.
     try await job(e, SimpleCalls.cutSteps, SimpleCalls.cutSettings("normal", pauses: true, base: base))
-    if let r = snap(e).retakes.first { _ = try e.execute("edit.autoCut", params: SimpleCalls.pick(line: r.line, take: r.takes).params) }
+    if let r = snap(e).retakes.first { _ = try e.execute("edit.autoCut", params: SimpleCalls.pick(line: r.line, take: r.takes, options: e.project?.takes?.options).params) }
     // Sottotitoli in the approved style.
     try await job(e, SimpleCalls.captionSteps, SimpleCalls.captionSettings(style: "talking-head-v1", base: base))
     // Aspetto: the light grade and Pellicola at Medio.
