@@ -407,7 +407,7 @@ extension MouseSuites {
                  size: SettingsView.size, language: language)
         await app.settle()
         let table = MouseRig.table(language)
-        let titles = builtIn.map { table.localizedString(forKey: rulesBook(app).title($0, language: RuleBook.interfaceLanguage()), value: nil, table: nil) }
+        let titles = builtIn.map { table.localizedString(forKey: rulesBook(app).title($0, language: language), value: nil, table: nil) }
         _ = await app.until(3) { app.rig.controls().contains { $0.name.hasPrefix(titles.last!) } }
         if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
             try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("settings-rules-list-\(language).png"))
@@ -450,6 +450,38 @@ extension MouseSuites {
         #expect(UserDefaults.standard.string(forKey: SettingsRoute.rulesKey) == longKind, "\(language): a click at the end of the skill's row did not select it")
     }
 
+    /// The sheets in the window's language (#134): a Rules tab laid out in a language shows the prose of «Per ogni video»
+    /// in that language, its first heading and none of the other languages', whatever the language of the Mac running the
+    /// test (its language preferences are never written). REGISTA_UI_SNAPSHOTS: the tab with the prose in view, to look at.
+    @Test(arguments: ["it", "en", "fr", "pt"])
+    func theSheetsProseIsInTheWindowsLanguage(_ language: String) async throws {
+        let saved = UserDefaults.standard.object(forKey: SettingsRoute.rulesKey)
+        defer { UserDefaults.standard.set(saved, forKey: SettingsRoute.rulesKey) }
+        UserDefaults.standard.set(RuleBook.everyVideo, forKey: SettingsRoute.rulesKey)
+        let app = try await AppRig()
+        defer { app.close() }
+        func heading(_ l: String) -> String? {
+            RuleSheetText.parse(RuleDefaults.text(RuleBook.everyVideo, language: l) ?? "").prose
+                .components(separatedBy: "\n").first { $0.hasPrefix("# ") }
+        }
+        let wanted = try #require(heading(language), "the shipped \(language) sheet has no heading")
+        let others = RuleBook.languages.filter { $0 != language }.compactMap(heading)
+        #expect(others.count == 3 && !others.contains(wanted))
+        app.host(SettingsView(pinned: .rules).environment(\.colorScheme, .dark).background(Color(nsColor: .windowBackgroundColor)),
+                 size: SettingsView.size, language: language)
+        await app.settle()
+        let editor = { app.rig.elements().first { $0.role == "AXTextArea" } }
+        _ = await app.until(4) { editor()?.value.isEmpty == false }
+        try await reveal(app, editor)
+        let prose = try #require(editor(), "\(language): no prose editor").value
+        let first = prose.components(separatedBy: "\n").first { $0.hasPrefix("# ") }
+        #expect(first == wanted, "\(language): the prose begins «\(first ?? prose.prefix(60).description)», not «\(wanted)»")
+        for o in others { #expect(!prose.contains(o), "\(language): the prose has «\(o)»") }
+        if let dir = ProcessInfo.processInfo.environment["REGISTA_UI_SNAPSHOTS"] {
+            try? app.snapshot(to: URL(fileURLWithPath: dir).appendingPathComponent("settings-rules-prose-\(language).png"))
+        }
+    }
+
     /// A row on the left opens its item; a skill's header problem shows above the checks with its line; on «Per ogni
     /// video», Importa… asks for a file and Mostra nel Finder shows the sheet's folder or file.
     @Test func aSkillsHeaderProblemShowsAndEveryVideoKeepsItsButtons() async throws {
@@ -469,7 +501,8 @@ extension MouseSuites {
         app.rig.click(try #require(control(app, containing: "Importa…")).centre)
         await app.settle()
         #expect(RigGuard.events.dropFirst(events).contains { $0.kind == .panel } && app.commands(since: n).isEmpty, "Importa… asked for no file")
-        try await app.store.perform("rules.set", ["kind": "every-video", "checks": ["text-size": false]])
+        // In the window's language, as the tab writes it (#134): the sheet written stays the prose on screen.
+        try await app.store.perform("rules.set", ["kind": "every-video", "checks": ["text-size": false], "language": .string(Words.language)])
         _ = await until(app) { control(app, containing: "Ripristina il predefinito")?.enabled == true }
         await app.settle()
         events = RigGuard.events.count

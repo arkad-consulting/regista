@@ -137,8 +137,8 @@ final class ExportRulesModel: ObservableObject {
 
     func refresh() async {
         guard let store, store.project != nil else { report = nil; return }
-        guard let check = try? await store.silent("rules.check") else { return }
-        list = (try? await store.silent("rules.list")) ?? list
+        guard let check = try? await store.silent("rules.check", ["language": RulesModel.language]) else { return }
+        list = (try? await store.silent("rules.list", ["language": RulesModel.language])) ?? list
         report = RulesReport(check: check, list: list)
     }
 

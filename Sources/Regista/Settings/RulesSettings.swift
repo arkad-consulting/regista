@@ -29,6 +29,10 @@ final class RulesRevision: ObservableObject {
 /// in typing.
 @MainActor
 final class RulesModel: ObservableObject {
+    /// The language of the default sheets the tab asks for: the words' (#134), so a window laid out in a language reads
+    /// its sheets in it too, never in the machine's preferred language.
+    static var language: JSONValue { .string(Words.language) }
+
     struct Sheet: Equatable, Identifiable {
         var id: String { kind }
         let kind: String
@@ -193,7 +197,7 @@ final class RulesModel: ObservableObject {
     }
 
     private func readLists(_ store: EditorStore) async throws {
-        let list = try await store.silent("rules.list")
+        let list = try await store.silent("rules.list", ["language": Self.language])
         folder = list["folder"]?.stringValue
         sheets = (list["sheets"]?.arrayValue ?? []).compactMap(Self.sheet)
         skills = (try await store.silent("skill.list")["skills"]?.arrayValue ?? []).compactMap { s in
@@ -212,11 +216,11 @@ final class RulesModel: ObservableObject {
     /// The rules and choices of the item on screen, and its steps.
     private func read(_ store: EditorStore, prose withProse: Bool) async throws {
         let (name, k) = (selection, kind)
-        let s = try await store.silent("rules.get", ["kind": .string(k)])
+        let s = try await store.silent("rules.get", ["kind": .string(k), "language": Self.language])
         guard selection == name else { return }
         apply(s, prose: withProse)
         guard name != RuleBook.everyVideo else { return }
-        let g = try await store.silent("skill.get", ["skill": .string(name)])
+        let g = try await store.silent("skill.get", ["skill": .string(name), "language": Self.language])
         guard selection == name else { return }
         path = g["path"]?.stringValue
         if withProse || steps == storedSteps {
@@ -347,13 +351,13 @@ final class RulesModel: ObservableObject {
         var params: [String: JSONValue]
         if name == RuleBook.everyVideo {
             command = "rules.set"
-            params = ["kind": .string(k)]
+            params = ["kind": .string(k), "language": Self.language]
             if !checks.isEmpty { params["checks"] = .object(checks) }
             if !choices.isEmpty { params["choices"] = .object(choices) }
             if let text { params["prose"] = .string(text) }
         } else {
             command = "skill.set"
-            params = ["skill": .string(name)]
+            params = ["skill": .string(name), "language": Self.language]
             var rules: [String: JSONValue] = [:]
             if !checks.isEmpty { rules["checks"] = .object(checks) }
             if let text { rules["prose"] = .string(text) }
@@ -363,7 +367,7 @@ final class RulesModel: ObservableObject {
         Task {
             do {
                 var r = try await store.perform(command, .object(params))
-                if command == "skill.set" { r = try await store.silent("rules.get", ["kind": .string(k)]) }
+                if command == "skill.set" { r = try await store.silent("rules.get", ["kind": .string(k), "language": Self.language]) }
                 guard selection == name else { return }
                 error = nil
                 apply(r, prose: false)
@@ -382,7 +386,7 @@ final class RulesModel: ObservableObject {
         pending?.cancel()
         Task {
             do {
-                let r = try await store.perform("rules.reset", ["kind": .string(kind)])
+                let r = try await store.perform("rules.reset", ["kind": .string(kind), "language": Self.language])
                 error = nil
                 saved = false
                 if let s = r["sheet"] { apply(s, prose: true) }
@@ -407,7 +411,7 @@ final class RulesModel: ObservableObject {
         let k = kind
         Task {
             do {
-                let r = try await store.perform("rules.set", ["kind": .string(k), "text": .string(String(decoding: data, as: UTF8.self))])
+                let r = try await store.perform("rules.set", ["kind": .string(k), "text": .string(String(decoding: data, as: UTF8.self)), "language": Self.language])
                 error = nil
                 apply(r, prose: true)
             } catch {
@@ -486,7 +490,7 @@ final class RulesModel: ObservableObject {
         guard !title.isEmpty else { return }
         flush()
         flushSteps()
-        skillCommand("skill.create", ["title": .string(title)]) { [weak self] r in
+        skillCommand("skill.create", ["title": .string(title), "language": Self.language]) { [weak self] r in
             self?.adding = false
             self?.newTitle = ""
             self?.pane = .steps
@@ -498,7 +502,7 @@ final class RulesModel: ObservableObject {
         guard isBuiltIn || isSkill else { return }
         flush()
         flushSteps()
-        skillCommand("skill.duplicate", ["from": .string(selection), "title": .string(freeTitle(shownTitle))]) { $0["skill"]?.stringValue }
+        skillCommand("skill.duplicate", ["from": .string(selection), "title": .string(freeTitle(shownTitle)), "language": Self.language]) { $0["skill"]?.stringValue }
     }
 
     func startRename() {
@@ -544,7 +548,7 @@ final class RulesModel: ObservableObject {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         Task {
             do {
-                let r = try await store.silent("skill.import", ["path": .string(url.path), "dryRun": true])
+                let r = try await store.silent("skill.import", ["path": .string(url.path), "dryRun": true, "language": Self.language])
                 error = nil
                 importing = Self.preview(r, path: url.path)
                 importTitle = importing.map { $0.conflict == nil ? $0.title : freeTitle($0.title) } ?? ""
@@ -572,7 +576,7 @@ final class RulesModel: ObservableObject {
     /// Aggiungi (under the file's title, or the new one a conflict asks for) or Sostituisci.
     func confirmImport(replace: Bool) {
         guard let p = importing else { return }
-        var params: [String: JSONValue] = ["path": .string(p.path)]
+        var params: [String: JSONValue] = ["path": .string(p.path), "language": Self.language]
         if replace { params["replace"] = true }
         else if p.conflict != nil || importTitle.trimmingCharacters(in: .whitespaces) != p.title {
             params["title"] = .string(importTitle.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -593,7 +597,7 @@ final class RulesModel: ObservableObject {
     static func sample() -> RulesModel {
         let m = RulesModel(demo: true)
         let book = RuleBook(directory: URL(fileURLWithPath: "/nonexistent"))
-        let language = RuleBook.interfaceLanguage()
+        let language = Words.language
         m.sheets = ([RuleBook.everyVideo] + RuleBook.builtInKinds).map {
             Sheet(kind: $0, title: book.title($0, language: language), builtIn: true, edited: $0 == RuleBook.everyVideo)
         }
