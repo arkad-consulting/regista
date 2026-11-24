@@ -292,6 +292,7 @@ enum CoverMake: Command {
     static let id = "cover.make"
     static let summary = "Render the reel's cover (cover.set first; vertical 9:16 projects only) to a PNG at the project's size: the timeline's frame at the cover's time as frame.render draws it but without captions, and the cover's title drawn by the title engine with the brand kit's preset. Then the check (as cover.check): the title's box, measured on the rendered pixels, must lie inside the band that survives the Instagram grid's centred 3:4 crop and the Shorts shelf's centred 2:3 crop, with the side margin; a title that leaves it fails with by how many pixels, on which side, and the cover.set that fits. Returns the file, the cover and the check, and the cover as an image you can see."
     static let kind = CommandKind.query
+    static let undoNote: String? = "no — writes the cover PNG (output, else next to the exports), outside the project"
     static let params: [ParamSpec] = [
         .optional("output", .string, "Output .png (default: <project>-cover.png next to the exports)."),
         .optional("inline", .boolean, "Return the cover as an image (default true)."),

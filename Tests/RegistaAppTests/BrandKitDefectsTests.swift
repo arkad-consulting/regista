@@ -104,8 +104,17 @@ extension MouseSuites {
             await j.app.idle(0.3)
             let count = loc("1 titolo fuori dai colori del kit")
             #expect(j.shows(count), "\(language): the row does not say «\(count)»: \(j.screen())")
-            let row = try #require(j.rig.elements().first { $0.isControl && $0.visible && ($0.label.contains(count) || $0.label.hasPrefix(loc("Marca"))) },
-                                   "\(language): the row is not a control: \(j.screen())")
+            func findRow() -> RigElement? { j.rig.elements().first { $0.isControl && $0.visible && ($0.label.contains(count) || $0.label.hasPrefix(loc("Marca"))) } }
+            // The card above checks the edit again after the title (a pause, then rules.check): its «not checked» lines may
+            // still grow and push the row down (#166 gave them a link). The row is clicked once it stays where it is.
+            var last = findRow()?.frame
+            for _ in 0..<20 {
+                await j.app.idle(0.25)
+                let now = findRow()?.frame
+                if now != nil, now == last { break }
+                last = now
+            }
+            let row = try #require(findRow(), "\(language): the row is not a control: \(j.screen())")
             j.store.selection = []
             j.store.preview.seek(0)
             await j.app.settle()

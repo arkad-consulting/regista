@@ -365,6 +365,7 @@ enum ExportSRT: Command {
     static let id = "export.srt"
     static let summary = "Write the captions as a SubRip .srt file (one cue per chunk, timeline times) for the platform's own subtitles. Returns the path and cue count."
     static let kind = CommandKind.query
+    static let undoNote: String? = "no — writes the .srt file at path, outside the project"
     static let params: [ParamSpec] = [
         .required("path", .string, "Output .srt path."),
         .optional("trackId", .string, "Caption track (default: the first one with captions)."),

@@ -181,7 +181,7 @@ Returns: the id.
 
 ### `brandkit.export`
 
-**Export a brand kit** · MCP tool: `brandkit_export` · undo: no — reads only · takes `project`
+**Export a brand kit** · MCP tool: `brandkit_export` · undo: no — writes the .registakit file where path says, outside the project · takes `project`
 
 Export a brand kit as one .registakit file (a zip of kit.json + logos + fonts, self-contained) to send to a partner, who adds it with brandkit.import or the app's Importa button. Returns the file.
 
@@ -217,7 +217,7 @@ Returns: the kits and the project's active kit.
 
 ### `brandkit.preview`
 
-**Brand kit preview** · MCP tool: `brandkit_preview` · undo: no — reads only · takes `project`
+**Brand kit preview** · MCP tool: `brandkit_preview` · undo: no — writes the PNG where path says (a temporary file without it), outside the project · takes `project`
 
 Render a 9:16 preview of a brand kit through the real compositor: a caption with its keyword box, a hook title in the kit's display font, the logo at its placement, over a frame of the open project (or a backdrop in the kit's colours). Does not change the project. Returns the PNG, the fonts used and the caption's words drawn (sample, keyword).
 
@@ -576,7 +576,7 @@ Returns: pass, the box, the band, each side it leaves by how many pixels, a sent
 
 ### `cover.make`
 
-**Save the cover** · MCP tool: `cover_make` · undo: no — reads only · takes `project`
+**Save the cover** · MCP tool: `cover_make` · undo: no — writes the cover PNG (output, else next to the exports), outside the project · takes `project`
 
 Render the reel's cover (cover.set first; vertical 9:16 projects only) to a PNG at the project's size: the timeline's frame at the cover's time as frame.render draws it but without captions, and the cover's title drawn by the title engine with the brand kit's preset. Then the check (as cover.check): the title's box, measured on the rendered pixels, must lie inside the band that survives the Instagram grid's centred 3:4 crop and the Shorts shelf's centred 2:3 crop, with the side margin; a title that leaves it fails with by how many pixels, on which side, and the cover.set that fits. Returns the file, the cover and the check, and the cover as an image you can see.
 
@@ -825,7 +825,7 @@ Returns: that report.
 
 ### `export.mlt`
 
-**Export the Shotcut project** · MCP tool: `export_mlt` · undo: no — reads only · takes `project`
+**Export the Shotcut project** · MCP tool: `export_mlt` · undo: no — writes the Shotcut project and its images at path, outside the project · takes `project`
 
 Write the timeline as a Shotcut/MLT project so a human can retouch it: one clip per timeline clip with its crop and grade, overlays (stills, PNG sequences, inserts) placed with Size/Position, titles as transparent PNGs, the sound clips with fades, gain and the music ducking as volume keyframes, and the captions as one PNG per caption state on their own track (images written next to the .mlt). Returns the path, image counts and warnings (what Shotcut cannot represent: animations, effects, blends, transitions).
 
@@ -838,7 +838,7 @@ Returns: the path, image counts and warnings (what Shotcut cannot represent: ani
 
 ### `export.render`
 
-**Export the video** · MCP tool: `export_render` · undo: no — reads only · takes `project`
+**Export the video** · MCP tool: `export_render` · undo: no — writes the mp4 at path, outside the project; the edit stays as it is · takes `project`
 
 Render the final video: the timeline to an mp4 with the same compositor frame.render uses (crops/keyframes/grade, captions drawn natively); H.264 High yuv420p 30 fps, faststart, AAC 48 kHz 192 kb/s; preset "9:16" for a reel. The sound is the mix of the unmuted audio tracks through a limiter. It runs rules.check first and refuses while a rule of the project's kind fails, with the list and the fixes (rules.fix {all: true} applies the safe ones); the file is then the render the measured checks read (caption timing, still stretches, jump cuts) while the edit stays as it is. Returns frames, duration, the measured loudness (expect −15 ±0.5 LUFS, true peak ≤ −1.5), the rule check and warnings (e.g. stale captions).
 
@@ -857,7 +857,7 @@ Returns: frames, duration, the measured loudness (expect −15 ±0.5 LUFS, true 
 
 ### `export.srt`
 
-**Export the captions** · MCP tool: `export_srt` · undo: no — reads only · takes `project`
+**Export the captions** · MCP tool: `export_srt` · undo: no — writes the .srt file at path, outside the project · takes `project`
 
 Write the captions as a SubRip .srt file (one cue per chunk, timeline times) for the platform's own subtitles. Returns the path and cue count.
 
@@ -903,7 +903,7 @@ Returns: detection rate, frames with several faces and jitter.
 
 ### `frame.contactSheet`
 
-**Contact sheet** · MCP tool: `frame_contactSheet` · undo: no — reads only · takes `project`
+**Contact sheet** · MCP tool: `frame_contactSheet` · undo: no — writes the sheet where path says (else in the project's previews folder or a temporary file), outside the edit · takes `project`
 
 See the whole edit at a glance: renders N frames (evenly spaced over the timeline or a range, or at the times you give) with the export's compositor and tiles them in one JPEG sheet (at most 1600 px), each labelled with its timeline time. Use it after building the edit and after every fix to judge framing, punch-in alternation, caption position, wording and keyword boxes. Returns the sheet as an image you can see, its path and the times.
 
@@ -933,7 +933,7 @@ Returns: the list, bottom to top.
 
 ### `frame.render`
 
-**Render a frame** · MCP tool: `frame_render` · undo: no — reads only · takes `project`
+**Render a frame** · MCP tool: `frame_render` · undo: no — writes the PNGs where path or directory says (a temporary file without them), outside the project · takes `project`
 
 Look at one or a few frames of the edit at full quality, rendered by the export's compositor (what you see is what export.render writes: crops, punch-ins, grade, captions). Use it to inspect a precise moment (a caption, a cut, the framing); for an overview of the whole reel use frame.contactSheet. Writes PNGs (one time to path, several into directory) and returns their paths plus up to 6 previews (540 px wide) as images you can see.
 
@@ -980,7 +980,7 @@ Returns: the server address, where ComfyUI is, per model ready / missing (each m
 
 ### `generate.estimate`
 
-**Estimate a generation's cost** · MCP tool: `generate_estimate` · undo: no — reads only · takes `project`
+**Estimate a generation's cost** · MCP tool: `generate_estimate` · undo: no — for a paid provider it records an approval request the person sees in the app, outside the project · takes `project`
 
 Price a generation before running it: credits from the provider's CLI (Higgsfield) or free (ComfyUI), about how long it takes on this Mac (local providers), and whether the result is already cached. kind upscale prices generate.upscale of the clip in refs[0] (no prompt). For a paid provider it records an approval request that the human sees in the Regista app (prompt, model, cost); generate.run then needs the token they get. Returns {estimateId, credits, seconds, model, paid, cached, budgetRemaining, approval}.
 
@@ -1653,7 +1653,7 @@ Returns: the clip, its asset and its box with layout warnings.
 
 ### `preview.frame`
 
-**Preview frame** · MCP tool: `preview_frame` · undo: no — reads only · takes `project`
+**Preview frame** · MCP tool: `preview_frame` · undo: no — writes the PNG at path, outside the project · takes `project`
 
 The frame the app's live preview player shows at a timeline time (AVPlayer through the export compositor), as a PNG at the output size — to check that preview = export against frame.render. Only when the app is running. Returns the path.
 
@@ -1925,7 +1925,7 @@ Returns: the recording id, assets, tracks, the common window and the per-source 
 
 ### `recording.synthesize`
 
-**Create a test recording** · MCP tool: `recording_synthesize` · undo: no — reads only · takes `project`
+**Create a test recording** · MCP tool: `recording_synthesize` · undo: no — writes the synthetic session folder, outside the project · takes `project`
 
 Write a synthetic screen-recording session for tests, in exactly the format of a real Registra recording: screen.mov (an animated desktop with an editor and a browser window, the session clock, a moving cursor and click ripples), camera.mov (a stretch of a real camera take), mic.wav (its sound), session.json with sources and their offsets on the common clock, clicks, a keystroke, cursor samples, a pause entry and sync slates (white screen frames, a camera flash frame and a 1 kHz beep at the same session instants). Offsets default to screen 0, camera 0.25 s (7.5 frames: sub-frame on purpose), mic 0.18 s. cursor: false records the take as Registra does with the system cursor hidden: no cursor or ripples in screen.mov, cursorInVideo false, a mouseUp after each click, one drag (press 6.2 s, release 7.0 s) and the cursor kind per sample (pointingHand over the buttons), so the compositor draws the cursor (cursor.style). sources: ["screen"] writes a screen-only take (no camera.mov, no mic.wav: Registra with the camera and microphone switched off). Returns the session path and what it contains.
 
@@ -2415,7 +2415,7 @@ Returns: the line's choice.
 
 ### `teleprompter.simulate`
 
-**Try the teleprompter** · MCP tool: `teleprompter_simulate` · undo: no — reads only · takes `project`
+**Try the teleprompter** · MCP tool: `teleprompter_simulate` · undo: no — writes its log where output says (a temporary file without it), outside the project · takes `project`
 
 Test the teleprompter without a speaker: replays an audio/video file through the live on-device recognizer (Apple SpeechTranscriber, else SFSpeechRecognizer) at speed× real time and drives the take tracker with it, as if the speaker were reading the script. Returns the cursor lag (median/p90 ms between a word ending and the confirmed cursor / the drawn highlight, with its lead, reaching it), the restarts seen, the live take markers and, with a reference segments.json, which lines got the same take as the hand edit. Writes the full log (cursor moves, restarts, markers; usable by takes.live) to output.
 
@@ -2796,7 +2796,7 @@ Returns: the remaining count.
 
 ### `ui.screenshot`
 
-**Look at the window** · MCP tool: `ui_screenshot` · undo: no — reads only · takes `project`
+**Look at the window** · MCP tool: `ui_screenshot` · undo: no — writes the PNG where path says (a temporary file without it), outside the project · takes `project`
 
 See the Regista app the way the user sees it: renders the app window (an activity of its left bar, or the editor: "edit-pro" = monitors and timeline, "edit-semplice" = the guided steps of the simple level) to a PNG, returned as an image. Only when the app is running. Returns the path, size and what the window shows (timeline lanes and clip counts).
 
@@ -2837,7 +2837,7 @@ Returns: {accepted, total, missing, reference, minutes}.
 
 ### `voice.enroll.script`
 
-**Voice enrolment text** · MCP tool: `voice_enroll_script` · undo: no — reads only · takes `project`
+**Voice enrolment text** · MCP tool: `voice_enroll_script` · undo: no — writes script.md in the active profile, outside the project · takes `project`
 
 Start recording the active profile's own voice: the recording script of a language (consent sentence with their name, then 7 tone blocks: neutral ~10 min, enthusiastic, serious, calm, playful, alarmed, sad ~2 min each), also written to script.md in the profile so they can read it from a phone. Recording advice: a phone with an external mic in a soft, quiet room is best; one file per block. Then voice.enroll.add per file. Returns {consent, blocks, file, minutes}.
 

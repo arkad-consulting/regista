@@ -42,6 +42,14 @@ private func request(_ method: String, _ params: JSONValue = [:], id: JSONValue 
     #expect(cut.value(at: "inputSchema.required") == ["at"])
     #expect(cut.value(at: "inputSchema.properties.at.type") == "number")
     #expect(tools.first { $0["name"] == "project_state" }?.value(at: "annotations.readOnlyHint") == true)
+    // A query that writes outside the project is no read (#158): the brand kits, a file at a path, the support folder.
+    for name in ["brandkit_create", "brandkit_update", "brandkit_setLogo", "brandkit_setFont", "brandkit_import", "brandkit_delete",
+                 "brandkit_export", "export_render", "export_srt", "frame_render", "skill_set", "voice_enroll_script", "generate_estimate"] {
+        #expect(tools.first { $0["name"] == .string(name) }?.value(at: "annotations.readOnlyHint") == false, "\(name) is marked read-only")
+    }
+    for name in ["rules_check", "brandkit_list", "effects_catalog", "media_list"] {
+        #expect(tools.first { $0["name"] == .string(name) }?.value(at: "annotations.readOnlyHint") == true, "\(name) is not marked read-only")
+    }
     // A download only adds files outside the project: neither read-only nor destructive. An edit may change what is there.
     let fetch = try #require(tools.first { $0["name"] == "generate_fetch" })
     #expect(fetch.value(at: "annotations.readOnlyHint") == false && fetch.value(at: "annotations.destructiveHint") == false)

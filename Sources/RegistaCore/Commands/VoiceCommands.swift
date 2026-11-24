@@ -150,6 +150,7 @@ enum VoiceEnrollScript: Command {
     static let id = "voice.enroll.script"
     static let summary = "Start recording the active profile's own voice: the recording script of a language (consent sentence with their name, then 7 tone blocks: neutral ~10 min, enthusiastic, serious, calm, playful, alarmed, sad ~2 min each), also written to script.md in the profile so they can read it from a phone. Recording advice: a phone with an external mic in a soft, quiet room is best; one file per block. Then voice.enroll.add per file. Returns {consent, blocks, file, minutes}."
     static let kind = CommandKind.query
+    static let undoNote: String? = "no — writes script.md in the active profile, outside the project"
     static let params: [ParamSpec] = [.required("language", .string, "fr, it, en or pt.")]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {

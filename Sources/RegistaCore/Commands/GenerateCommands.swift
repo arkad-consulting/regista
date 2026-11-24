@@ -382,6 +382,7 @@ enum GenerateEstimate: Command {
     static let id = "generate.estimate"
     static let summary = "Price a generation before running it: credits from the provider's CLI (Higgsfield) or free (ComfyUI), about how long it takes on this Mac (local providers), and whether the result is already cached. kind upscale prices generate.upscale of the clip in refs[0] (no prompt). For a paid provider it records an approval request that the human sees in the Regista app (prompt, model, cost); generate.run then needs the token they get. Returns {estimateId, credits, seconds, model, paid, cached, budgetRemaining, approval}."
     static let kind = CommandKind.query
+    static let undoNote: String? = "no — for a paid provider it records an approval request the person sees in the app, outside the project"
     static let params: [ParamSpec] = Generate.requestParams.map { spec in
         switch spec.name {
         case "kind": return .required("kind", .oneOf(["image", "video", "music", "voice", "upscale"]), "image, video, music or voice as for generate.run; upscale = generate.upscale of the clip in refs[0] (an asset id).")

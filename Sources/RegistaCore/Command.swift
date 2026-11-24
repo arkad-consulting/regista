@@ -111,6 +111,11 @@ public struct CommandDescriptor: Hashable, Sendable {
     /// The command's own undo answer (Command.undoNote), nil for the kind's.
     public var undoNote: String?
 
+    /// It reads only (the MCP readOnlyHint, #158): a query that writes nothing that stays. A query that declares an undo
+    /// answer writes outside the project (a brand kit, a skill, a file at a path the caller names, the person's support
+    /// folder) and is not read-only. Its own scratch (the temporary folder, the cache, a project's previews) does not count.
+    public var readOnly: Bool { kind == .query && undoNote == nil }
+
     /// JSON Schema (draft 2020-12 subset) of the params object.
     public var inputSchema: JSONValue {
         var props: [String: JSONValue] = [:]

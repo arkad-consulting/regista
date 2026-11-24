@@ -132,11 +132,12 @@ public final class MCPServer {
     }
 
     /// The MCP hints of a command: a query reads only, unless it writes outside the project (it then says what undo does
-    /// with it: a skill, a voice profile); a job (a download, a training) only adds files outside the project, never
-    /// overwriting one, so it is not destructive; every other command may change or replace what is there.
+    /// with it: a brand kit, a skill, a file at a path: `CommandDescriptor.readOnly`); a job (a download, a training) only
+    /// adds files outside the project, never overwriting one, so it is not destructive; every other command may change or
+    /// replace what is there.
     static func annotations(_ d: CommandDescriptor) -> JSONValue {
         switch d.kind {
-        case .query: ["readOnlyHint": d.undoNote == nil ? true : false]
+        case .query: ["readOnlyHint": .bool(d.readOnly)]
         case .job: ["readOnlyHint": false, "destructiveHint": false]
         case .edit, .session, .history: ["readOnlyHint": false]
         }

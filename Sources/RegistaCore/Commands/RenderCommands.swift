@@ -35,6 +35,7 @@ enum ExportRender: Command {
     static let id = "export.render"
     static let summary = "Render the final video: the timeline to an mp4 with the same compositor frame.render uses (crops/keyframes/grade, captions drawn natively); H.264 High yuv420p 30 fps, faststart, AAC 48 kHz 192 kb/s; preset \"9:16\" for a reel. The sound is the mix of the unmuted audio tracks through a limiter. It runs rules.check first and refuses while a rule of the project's kind fails, with the list and the fixes (rules.fix {all: true} applies the safe ones); the file is then the render the measured checks read (caption timing, still stretches, jump cuts) while the edit stays as it is. Returns frames, duration, the measured loudness (expect −15 ±0.5 LUFS, true peak ≤ −1.5), the rule check and warnings (e.g. stale captions)."
     static let kind = CommandKind.query
+    static let undoNote: String? = "no — writes the mp4 at path, outside the project; the edit stays as it is"
     static let params: [ParamSpec] = [
         .required("path", .string, "Output .mp4."),
         Render.presetParam,
@@ -166,6 +167,7 @@ enum FrameRender: Command {
     static let id = "frame.render"
     static let summary = "Look at one or a few frames of the edit at full quality, rendered by the export's compositor (what you see is what export.render writes: crops, punch-ins, grade, captions). Use it to inspect a precise moment (a caption, a cut, the framing); for an overview of the whole reel use frame.contactSheet. Writes PNGs (one time to path, several into directory) and returns their paths plus up to 6 previews (540 px wide) as images you can see."
     static let kind = CommandKind.query
+    static let undoNote: String? = "no — writes the PNGs where path or directory says (a temporary file without them), outside the project"
     static let params: [ParamSpec] = [
         .optional("time", .time, "Timeline time (snapped to the frame grid)."),
         .optional("times", .array(.number), "Several timeline times."),
@@ -206,6 +208,7 @@ enum FrameContactSheet: Command {
     static let id = "frame.contactSheet"
     static let summary = "See the whole edit at a glance: renders N frames (evenly spaced over the timeline or a range, or at the times you give) with the export's compositor and tiles them in one JPEG sheet (at most 1600 px), each labelled with its timeline time. Use it after building the edit and after every fix to judge framing, punch-in alternation, caption position, wording and keyword boxes. Returns the sheet as an image you can see, its path and the times."
     static let kind = CommandKind.query
+    static let undoNote: String? = "no — writes the sheet where path says (else in the project's previews folder or a temporary file), outside the edit"
     static let params: [ParamSpec] = [
         .optional("count", .integer, "Number of evenly spaced frames (default 12, at most 30)."),
         .optional("times", .array(.number), "Timeline times instead of evenly spaced ones."),
@@ -262,6 +265,7 @@ enum ExportMLT: Command {
     static let id = "export.mlt"
     static let summary = "Write the timeline as a Shotcut/MLT project so a human can retouch it: one clip per timeline clip with its crop and grade, overlays (stills, PNG sequences, inserts) placed with Size/Position, titles as transparent PNGs, the sound clips with fades, gain and the music ducking as volume keyframes, and the captions as one PNG per caption state on their own track (images written next to the .mlt). Returns the path, image counts and warnings (what Shotcut cannot represent: animations, effects, blends, transitions)."
     static let kind = CommandKind.query
+    static let undoNote: String? = "no — writes the Shotcut project and its images at path, outside the project"
     static let params: [ParamSpec] = [
         .required("path", .string, "Output .mlt."),
         .optional("captions", .boolean, "Export the caption track as images (default true)."),

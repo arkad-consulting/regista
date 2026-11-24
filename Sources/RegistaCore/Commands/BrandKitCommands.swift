@@ -292,6 +292,7 @@ enum BrandkitCreate: Command {
     static let id = "brandkit.create"
     static let summary = "Create a brand kit for a client (e.g. a bakery, a studio): a copy of an existing kit (from) with a new id and name, or — without from — the default kit's colours, fonts and placement with no logo (a new brand never starts with another brand's logo), then the given colours, fonts, caption style, logo placement, title presets. Saved as a folder (kit.json + assets) in the user's brand kits. Add the logo with brandkit.setLogo and font files with brandkit.setFont. Returns the kit."
     static let kind = CommandKind.query
+    static let undoNote: String? = "yes — history.undo puts the brand kit back"
     static let params: [ParamSpec] = [
         .required("name", .string, "Display name (\"Café Atelier\")."),
         .optional("id", .string, "Kit id (lowercase, digits, -; default from the name)."),
@@ -323,6 +324,7 @@ enum BrandkitUpdate: Command {
     static let id = "brandkit.update"
     static let summary = "Change a brand kit: name, colours by role (merged; null removes), fonts, caption style, logo placement (corner, width, margin, opacity, animation, variant), title presets, watermark, notes. Updating a built-in saves a user copy with the same id that replaces it. The project keeps its applied copy until brandkit.apply is run again. history.undo puts the kit back as it was. Returns the kit."
     static let kind = CommandKind.query
+    static let undoNote: String? = "yes — history.undo puts the brand kit back"
     static let params: [ParamSpec] = [.required("kit", .string, "Kit id.")] + BrandKits.editParams
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
@@ -339,6 +341,7 @@ enum BrandkitSetLogo: Command {
     static let id = "brandkit.setLogo"
     static let summary = "Give a brand kit its logo: an SVG (preferred: sharp at any size) or a PNG with transparency, copied into the kit folder as a variant — onDark (light-coloured logo for footage, the default), onLight (dark-coloured logo for pale backgrounds) or mark (symbol only). Returns the kit."
     static let kind = CommandKind.query
+    static let undoNote: String? = "yes — history.undo puts the brand kit back"
     static let params: [ParamSpec] = [
         .required("kit", .string, "Kit id."),
         .required("path", .string, "The .svg or .png file."),
@@ -360,6 +363,7 @@ enum BrandkitSetFont: Command {
     static let id = "brandkit.setFont"
     static let summary = "Import a font file (.ttf, .otf, .woff2) into a brand kit folder and assign it to a role: display (titles), text, textBold, mono (labels). A kit whose font file goes missing falls back to a system font. Returns the kit with its fonts resolved."
     static let kind = CommandKind.query
+    static let undoNote: String? = "yes — history.undo puts the brand kit back"
     static let params: [ParamSpec] = [
         .required("kit", .string, "Kit id."),
         .required("path", .string, "The font file."),
@@ -381,6 +385,7 @@ enum BrandkitExport: Command {
     static let id = "brandkit.export"
     static let summary = "Export a brand kit as one .registakit file (a zip of kit.json + logos + fonts, self-contained) to send to a partner, who adds it with brandkit.import or the app's Importa button. Returns the file."
     static let kind = CommandKind.query
+    static let undoNote: String? = "no — writes the .registakit file where path says, outside the project"
     static let params: [ParamSpec] = [
         .required("kit", .string, "Kit id."),
         .required("path", .string, "Output file (.registakit added if missing) or folder."),
@@ -401,6 +406,7 @@ enum BrandkitImport: Command {
     static let id = "brandkit.import"
     static let summary = "Add a brand kit from a .registakit file (from brandkit.export), a kit folder or a kit JSON. A kit with the id of an existing user kit gets a new id unless replace is true; a kit with a built-in's id replaces the built-in. Returns the kit."
     static let kind = CommandKind.query
+    static let undoNote: String? = "yes — history.undo puts the brand kit back"
     static let params: [ParamSpec] = [
         .required("path", .string, "The .registakit file, kit folder or kit JSON."),
         .optional("replace", .boolean, "Replace a user kit with the same id (default false)."),
@@ -423,6 +429,7 @@ enum BrandkitDelete: Command {
     static let id = "brandkit.delete"
     static let summary = "Delete a user brand kit folder (a built-in with the same id shows again). Built-ins cannot be deleted. Returns the id."
     static let kind = CommandKind.query
+    static let undoNote: String? = "yes — history.undo puts the brand kit back"
     static let params: [ParamSpec] = [.required("kit", .string, "Kit id.")]
 
     static func run(_ p: CommandParams, _ ctx: inout CommandContext) throws -> JSONValue {
@@ -663,6 +670,7 @@ enum BrandkitPreview: Command {
     static let id = "brandkit.preview"
     static let summary = "Render a 9:16 preview of a brand kit through the real compositor: a caption with its keyword box, a hook title in the kit's display font, the logo at its placement, over a frame of the open project (or a backdrop in the kit's colours). Does not change the project. Returns the PNG, the fonts used and the caption's words drawn (sample, keyword)."
     static let kind = CommandKind.query
+    static let undoNote: String? = "no — writes the PNG where path says (a temporary file without it), outside the project"
     static let params: [ParamSpec] = [
         .optional("kit", .string, "Kit id (default: the applied kit)."),
         .optional("definition", .object, "A whole kit as JSON (unsaved edits, absolute asset paths) instead of an id."),

@@ -93,6 +93,7 @@ enum TeleprompterSimulate: Command {
     static let id = "teleprompter.simulate"
     static let summary = "Test the teleprompter without a speaker: replays an audio/video file through the live on-device recognizer (Apple SpeechTranscriber, else SFSpeechRecognizer) at speed× real time and drives the take tracker with it, as if the speaker were reading the script. Returns the cursor lag (median/p90 ms between a word ending and the confirmed cursor / the drawn highlight, with its lead, reaching it), the restarts seen, the live take markers and, with a reference segments.json, which lines got the same take as the hand edit. Writes the full log (cursor moves, restarts, markers; usable by takes.live) to output."
     static let kind = CommandKind.query
+    static let undoNote: String? = "no — writes its log where output says (a temporary file without it), outside the project"
     static let params: [ParamSpec] = [
         .optional("audio", .string, "Audio or video file (the take)."),
         .optional("replay", .string, "Instead of audio: an earlier simulate log — replays its recognizer updates offline (deterministic, no speech engine needed)."),
