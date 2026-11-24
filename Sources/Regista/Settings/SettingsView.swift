@@ -86,6 +86,8 @@ private struct GeneralSettings: View {
     @AppStorage(Accent.followKey) private var accentFollows = false
     @State private var interface = GeneralPrefs.interfaceLanguage
     @State private var changedInterface = false
+    /// The hang reports on this Mac, newest first (#161).
+    @State private var hangReports: [URL] = []
 
     var body: some View {
         Form {
@@ -125,8 +127,17 @@ private struct GeneralSettings: View {
             } header: { Text(loc("Aspetto")) } footer: {
                 Text(loc("Evidenziazioni e pulsanti nel colore del brand"))
             }
+            // What the app wrote when it stopped answering (#161): shown in the Finder, never sent anywhere.
+            Section {
+                Button(loc("Mostra i rapporti di blocco")) {
+                    guard !demo, let newest = hangReports.first else { return }
+                    NSWorkspace.shared.activateFileViewerSelecting([newest])
+                }
+                .disabled(hangReports.isEmpty)
+            }
         }
         .formStyle(.grouped)
+        .onAppear { hangReports = HangLog.reports() }
     }
 
     private func languageLabel(_ code: String) -> String { GeneralPrefs.interfaceLanguageName(code) }

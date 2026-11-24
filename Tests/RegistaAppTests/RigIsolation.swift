@@ -15,7 +15,7 @@ import Testing
 //   transcription, no ComfyUI server, the other heavy engines pointed at paths that do not exist;
 // - everything else that leaves the process points at a scratch target of this test process (`RigOutside`):
 //   engines.json, the engines folder, the installer (a stub that writes down its arguments), the Claude clients'
-//   home folder (a stub `claude` command and a stub regista-mcp);
+//   home folder (a stub `claude` command and a stub regista-mcp), the hang reports' folder;
 // - the recorder gets a capture stand-in (`RigCapture`): a "recording" state, no session, no camera or microphone opened,
 //   no permission prompt, no speech recognition; copies go to a private pasteboard;
 // - under all of it, RigGuard refuses every process that is not on `RigProcesses`' short allow-list and keeps the
@@ -84,6 +84,8 @@ struct RigOutside {
         setenv("REGISTA_SUPPORT_DIR", support.path, 1)
         setenv("REGISTA_INSTALLER", installer.path, 1)
         setenv("REGISTA_CLAUDE_HOME", home.path, 1)
+        // The hang reports (#161): Impostazioni › Generale lists a scratch folder, never the person's logs.
+        setenv("REGISTA_LOGS_DIR", root.appendingPathComponent("logs", isDirectory: true).path, 1)
         return RigOutside(root: root, enginesFile: engines, support: support, installer: installer, installLog: installLog,
                           claudeHome: home, mcp: mcp, claudeLog: claudeLog)
     }

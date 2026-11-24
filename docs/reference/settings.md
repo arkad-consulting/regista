@@ -51,6 +51,7 @@ Read by the app, `regista-mcp` and `regista-engine` (developers and tests; nobod
 | `REGISTA_HELPERS` | Folder of the ffmpeg, ffprobe, whisper-cli and deep-filter to use as if the app shipped them (default: Regista.app/Contents/Helpers; the tests and checks point it at scripts/build-engines.sh's output). |
 | `REGISTA_INSTALLER` | Folder of the installer scripts Settings › Engines runs (default: the copy inside the app). |
 | `REGISTA_LOCK` | engines.lock that `regista-engine manifest` reads instead of the compiled-in copy (the installer tests' fake downloads), as scripts/install.sh does. |
+| `REGISTA_LOGS_DIR` | Folder of the hang reports the app writes when its main thread stops answering (default ~/Library/Logs/Regista); the tests point it at a scratch folder. |
 | `REGISTA_MANIFEST` | engines.manifest.json that `regista-engine manifest` reads instead of the compiled-in copy (the installer tests' fake engine), as scripts/install.sh does. |
 | `REGISTA_MCP_PROGRESS_INTERVAL` | Seconds between two progress notifications of a long MCP tool call (default 10, at least 0.2). |
 | `REGISTA_MEDIA_ROOT` | Extra folders media.list may read, separated by `:` (as regista-mcp's --media-root). |

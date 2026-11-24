@@ -153,6 +153,8 @@ final class AppState: ObservableObject {
         startPrompterDemoIfRequested()
         DebugSnapshots.startIfRequested()
         AutoSave.start(bench)
+        // A sample of the app when its main thread stops answering for 2 s (#161), kept on this Mac.
+        HangLog.watchdog.start()
         bench.follow(recorder).store(in: &bag)
         // An engines folder installed by an older app gets this app's helper scripts (#61), off the main thread.
         Task.detached(priority: .utility) { EngineScripts.refresh() }
