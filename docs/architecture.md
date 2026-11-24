@@ -1064,8 +1064,8 @@ the logo to fit).
 with a built-in's id replaces it.
 
 **Built-ins**: Arkad (official SVG logos in `Resources/Brand`, Fraunces/Geist bundled), WeSites (IKB #002FA7, ink
-#141414, cream #F7F4EC, vermillon #E8442E, veronese #2E7D5B, rose #F27FA5; keyword pink #FF2D6F = highlight, as the
-approved talking-head-v1; fonts from `<brand kits>/wesites/assets` or `$REGISTA_WESITES_ASSETS`, with fallback), Café Atelier (a fictional
+#141414, cream #F7F4EC, vermillon #E8442E, veronese #2E7D5B, rose #F27FA5; keyword pink #FF2D6F = highlight, as in the
+default caption style (large uppercase words a few at a time); fonts from `<brand kits>/wesites/assets` or `$REGISTA_WESITES_ASSETS`, with fallback), Café Atelier (a fictional
 bakery-café starter: espresso / oat / caramel, terracotta highlight #D2603A, Georgia + Avenir Next, captions in Avenir
 Next Heavy, **placeholder** SVG wordmark).
 

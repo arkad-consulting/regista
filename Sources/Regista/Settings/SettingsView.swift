@@ -120,7 +120,7 @@ private struct GeneralSettings: View {
                 }
                 Toggle(loc("Salvataggio automatico"), isOn: demo ? .constant(autoSave) : $autoSave)
             } header: { Text(loc("Progetti")) } footer: {
-                Text(loc("I progetti, le registrazioni e gli export vanno nella cartella di Regista. Con il salvataggio automatico, ogni minuto Regista salva i progetti aperti che hanno già una cartella; quelli mai salvati li salvi tu con ⌘S. Una registrazione dello schermo resta sempre in 16:9."))
+                Text(loc("I progetti, le registrazioni e gli export vanno nella cartella di Regista. Con il salvataggio automatico, ogni minuto Regista salva i progetti aperti che hanno già una cartella; quelli mai salvati li salvi tu con ⌘S. Una ripresa arriva nel formato scelto in Registra, o in quello del progetto a cui si aggiunge."))
             }
             Section {
                 Toggle(loc("Colore dell'app dal kit"), isOn: demo ? .constant(accentFollows) : $accentFollows)

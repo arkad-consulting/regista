@@ -783,7 +783,7 @@
 "HyperFrames" = "HyperFrames";
 "I clic vengono registrati; i tasti premuti solo con il permesso Accessibilità." = "Clicks are recorded; key presses only with the Accessibility permission.";
 "I file del motore vanno via dalla cartella dei motori di Regista; si può reinstallare da qui." = "The engine's files leave Regista's engines folder; you can install it again from here.";
-"I progetti, le registrazioni e gli export vanno nella cartella di Regista. Con il salvataggio automatico, ogni minuto Regista salva i progetti aperti che hanno già una cartella; quelli mai salvati li salvi tu con ⌘S. Una registrazione dello schermo resta sempre in 16:9." = "Projects, recordings and exports go into the Regista folder. With automatic saving, every minute Regista saves the open projects that already have a folder; save the others yourself with ⌘S. A screen recording always stays 16:9.";
+"I progetti, le registrazioni e gli export vanno nella cartella di Regista. Con il salvataggio automatico, ogni minuto Regista salva i progetti aperti che hanno già una cartella; quelli mai salvati li salvi tu con ⌘S. Una ripresa arriva nel formato scelto in Registra, o in quello del progetto a cui si aggiunge." = "Projects, recordings and exports go into the Regista folder. With automatic saving, every minute Regista saves the open projects that already have a folder; save the others yourself with ⌘S. A take comes in the format chosen in Record, or in that of the project it joins.";
 "I reel sono in 9:16 con inquadratura centrata sul volto e sottotitoli impressi (disattivabili nelle Impostazioni)." = "Reels are 9:16, framed on the face, with burned-in captions (can be turned off in Settings).";
 "I tuoi suoni" = "Your sounds";
 "Icona" = "Icon";
